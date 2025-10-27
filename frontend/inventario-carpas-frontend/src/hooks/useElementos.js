@@ -1,11 +1,12 @@
 // frontend/src/hooks/useElementos.js
+// VERSIÓN FINAL - Compatible con respuestas en formato objeto
+
 import { useState, useEffect, useCallback } from 'react';
 import apiService from '../services/api';
 
 /**
- * Hook personalizado para manejar operaciones CRUD de elementos
- * @param {boolean} autoFetch - Si debe cargar automáticamente al montar
- * @param {boolean} conSeries - Si debe incluir series en la consulta
+ * Hook personalizado para manejar elementos del inventario
+ * Compatible con respuestas en formato objeto {elementos: [...]}
  */
 export const useElementos = (autoFetch = true, conSeries = false) => {
   const [elementos, setElementos] = useState([]);
@@ -19,34 +20,32 @@ export const useElementos = (autoFetch = true, conSeries = false) => {
   const fetchElementos = useCallback(async () => {
     setLoading(true);
     setError(null);
+    
     try {
+      // apiService.getElementos ya maneja la extracción del array
       const data = await apiService.getElementos(conSeries);
+      
+      // Verificar que sea un array
+      if (!Array.isArray(data)) {
+        console.error('❌ Los datos no son un array después de procesar:', data);
+        setElementos([]);
+        setError('Formato de respuesta inválido');
+        return [];
+      }
+      
+      console.log(`✅ ${data.length} elementos cargados correctamente`);
       setElementos(data);
       return data;
     } catch (err) {
-      setError(err.message);
+      console.error('❌ Error al cargar elementos:', err);
+      const errorMessage = err.message || 'Error al cargar elementos';
+      setError(errorMessage);
+      setElementos([]);
       throw err;
     } finally {
       setLoading(false);
     }
   }, [conSeries]);
-
-  /**
-   * Obtener un elemento por ID
-   */
-  const fetchElementoById = useCallback(async (id) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await apiService.getElementoById(id);
-      return data;
-    } catch (err) {
-      setError(err.message);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
 
   /**
    * Crear un nuevo elemento
@@ -55,13 +54,19 @@ export const useElementos = (autoFetch = true, conSeries = false) => {
     setLoading(true);
     setError(null);
     setSuccess(null);
+    
     try {
       const newElemento = await apiService.createElemento(elementoData);
+      
+      // Agregar al estado local
       setElementos(prev => [...prev, newElemento]);
       setSuccess('Elemento creado exitosamente');
+      
       return newElemento;
     } catch (err) {
-      setError(err.message);
+      console.error('❌ Error al crear elemento:', err);
+      const errorMessage = err.message || 'Error al crear elemento';
+      setError(errorMessage);
       throw err;
     } finally {
       setLoading(false);
@@ -75,15 +80,21 @@ export const useElementos = (autoFetch = true, conSeries = false) => {
     setLoading(true);
     setError(null);
     setSuccess(null);
+    
     try {
       const updatedElemento = await apiService.updateElemento(id, elementoData);
+      
+      // Actualizar en el estado local
       setElementos(prev => 
         prev.map(elem => elem.id === id ? updatedElemento : elem)
       );
       setSuccess('Elemento actualizado exitosamente');
+      
       return updatedElemento;
     } catch (err) {
-      setError(err.message);
+      console.error('❌ Error al actualizar elemento:', err);
+      const errorMessage = err.message || 'Error al actualizar elemento';
+      setError(errorMessage);
       throw err;
     } finally {
       setLoading(false);
@@ -97,12 +108,17 @@ export const useElementos = (autoFetch = true, conSeries = false) => {
     setLoading(true);
     setError(null);
     setSuccess(null);
+    
     try {
       await apiService.deleteElemento(id);
+      
+      // Remover del estado local
       setElementos(prev => prev.filter(elem => elem.id !== id));
       setSuccess('Elemento eliminado exitosamente');
     } catch (err) {
-      setError(err.message);
+      console.error('❌ Error al eliminar elemento:', err);
+      const errorMessage = err.message || 'Error al eliminar elemento';
+      setError(errorMessage);
       throw err;
     } finally {
       setLoading(false);
@@ -132,15 +148,11 @@ export const useElementos = (autoFetch = true, conSeries = false) => {
   }, [autoFetch, fetchElementos]);
 
   return {
-    // Estado
     elementos,
     loading,
     error,
     success,
-    
-    // Métodos
     fetchElementos,
-    fetchElementoById,
     createElemento,
     updateElemento,
     deleteElemento,

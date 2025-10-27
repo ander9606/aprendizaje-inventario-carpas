@@ -1,14 +1,15 @@
 // frontend/src/App.jsx
-// VERSIÓN MEJORADA con StatsCard y navegación básica
+// VERSIÓN CON PANEL DE DIAGNÓSTICO
 
 import React, { useState } from 'react';
 import StatsCard from './components/common/statsCard';
 import Inventario from './pages/inventario';
+import ApiDiagnosticPanel from './components/dev/ApiDiagnosticPanel';
 import { useEstadisticas } from './hooks';
 
 function App() {
-  const [currentView, setCurrentView] = useState('dashboard'); // dashboard, inventario
-  const { estadisticas, loading } = useEstadisticas(true);
+  const [currentView, setCurrentView] = useState('dashboard'); // dashboard, inventario, diagnostic
+  const { estadisticas, loading } = useEstadisticas(currentView === 'dashboard');
 
   /**
    * Renderizar Dashboard
@@ -105,19 +106,22 @@ function App() {
             </div>
           </button>
 
-          <button className="flex items-center gap-3 p-4 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition-colors">
-            <span className="text-2xl">➕</span>
+          <button 
+            onClick={() => setCurrentView('diagnostic')}
+            className="flex items-center gap-3 p-4 bg-purple-50 text-purple-700 rounded-lg hover:bg-purple-100 transition-colors"
+          >
+            <span className="text-2xl">🔍</span>
             <div className="text-left">
-              <p className="font-semibold">Nuevo Elemento</p>
-              <p className="text-sm text-green-600">Agregar al inventario</p>
+              <p className="font-semibold">Diagnóstico API</p>
+              <p className="text-sm text-purple-600">Verificar conexión</p>
             </div>
           </button>
 
-          <button className="flex items-center gap-3 p-4 bg-purple-50 text-purple-700 rounded-lg hover:bg-purple-100 transition-colors">
+          <button className="flex items-center gap-3 p-4 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition-colors">
             <span className="text-2xl">📊</span>
             <div className="text-left">
               <p className="font-semibold">Reportes</p>
-              <p className="text-sm text-purple-600">Ver estadísticas</p>
+              <p className="text-sm text-green-600">Ver estadísticas</p>
             </div>
           </button>
         </div>
@@ -132,6 +136,8 @@ function App() {
     switch (currentView) {
       case 'inventario':
         return <Inventario />;
+      case 'diagnostic':
+        return <ApiDiagnosticPanel />;
       case 'dashboard':
       default:
         return renderDashboard();
@@ -169,6 +175,16 @@ function App() {
                 >
                   Inventario
                 </button>
+                <button
+                  onClick={() => setCurrentView('diagnostic')}
+                  className={`px-4 py-2 rounded-lg transition-colors ${
+                    currentView === 'diagnostic'
+                      ? 'bg-purple-100 text-purple-700 font-semibold'
+                      : 'text-gray-600 hover:bg-gray-100'
+                  }`}
+                >
+                  🔍 Diagnóstico
+                </button>
               </div>
             </div>
           </div>
@@ -176,7 +192,7 @@ function App() {
       </nav>
 
       {/* Content */}
-      <div className="container mx-auto px-4 pb-8">
+      <div className={currentView !== 'diagnostic' ? 'container mx-auto px-4 pb-8' : ''}>
         {loading && currentView === 'dashboard' ? (
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>

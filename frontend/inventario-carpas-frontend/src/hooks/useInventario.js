@@ -1,138 +1,176 @@
 // frontend/src/hooks/useInventario.js
+// VERSIÓN DEPURADA Y SIMPLIFICADA
+
+import { useState, useEffect, useCallback } from 'react';
 import { useElementos } from './useElementos';
-import { useSeries } from './useSeries';
 import { useLotes } from './useLotes';
 import { useCategorias } from './useCategorias';
 
 /**
- * Hook compuesto que combina todas las funcionalidades del inventario
- * Útil para páginas que necesitan múltiples recursos
- * 
- * @param {Object} options - Opciones de configuración
- * @param {boolean} options.fetchElementos - Cargar elementos automáticamente
- * @param {boolean} options.fetchLotes - Cargar lotes automáticamente
- * @param {boolean} options.fetchCategorias - Cargar categorías automáticamente
- * @param {boolean} options.conSeries - Incluir series en elementos
- * 
- * @example
- * // Usar en componente de Inventario
- * const {
- *   elementos,
- *   lotes,
- *   categorias,
- *   loading,
- *   createElemento,
- *   createMovimientoLote,
- *   refresh
- * } = useInventario({
- *   fetchElementos: true,
- *   fetchLotes: true,
- *   fetchCategorias: true,
- *   conSeries: true
- * });
+ * Hook maestro para manejar el inventario completo
+ * Integra elementos, lotes y categorías
+ * VERSIÓN CON DEBUG
  */
-export const useInventario = ({
-  fetchElementos = true,
-  fetchLotes = false,
-  fetchCategorias = false,
-  conSeries = false
-} = {}) => {
-  
-  const elementos = useElementos(fetchElementos, conSeries);
-  const series = useSeries();
-  const lotes = useLotes(fetchLotes);
-  const categorias = useCategorias(fetchCategorias);
+export const useInventario = (options = {}) => {
+  const {
+    fetchElementos = true,
+    fetchLotes = false,
+    fetchCategorias = true,
+    conSeries = false,
+  } = options;
+
+  console.log('🔷 useInventario - Opciones:', options);
+
+  // Estado para rastrear errores y mensajes
+  const [errors, setErrors] = useState([]);
+  const [successMessages, setSuccessMessages] = useState([]);
+
+  // Hooks individuales
+  const elementosHook = useElementos(fetchElementos, conSeries);
+  const lotesHook = useLotes(fetchLotes);
+  const categoriasHook = useCategorias(fetchCategorias);
+
+  console.log('🔷 useInventario - Estado de hooks:', {
+    elementos: {
+      loading: elementosHook.loading,
+      dataLength: elementosHook.elementos?.length,
+      error: elementosHook.error
+    },
+    categorias: {
+      loading: categoriasHook.loading,
+      dataLength: categoriasHook.categorias?.length,
+      error: categoriasHook.error
+    }
+  });
 
   /**
-   * Determina si alguna operación está cargando
+   * Recolectar errores de todos los hooks
    */
-  const isLoading = 
-    elementos.loading || 
-    series.loading || 
-    lotes.loading || 
-    categorias.loading;
-
-  /**
-   * Recopila todos los errores activos
-   */
-  const errors = [
-    elementos.error,
-    series.error,
-    lotes.error,
-    categorias.error
-  ].filter(Boolean);
-
-  /**
-   * Recopila todos los mensajes de éxito
-   */
-  const successMessages = [
-    elementos.success,
-    lotes.success
-  ].filter(Boolean);
-
-  /**
-   * Refresca todos los recursos cargados
-   */
-  const refreshAll = async () => {
-    const promises = [];
+  useEffect(() => {
+    const allErrors = [];
     
-    if (fetchElementos) promises.push(elementos.refresh());
-    if (fetchLotes) promises.push(lotes.refresh());
-    if (fetchCategorias) promises.push(categorias.refresh());
+    if (elementosHook.error) {
+      console.error('❌ Error en elementos:', elementosHook.error);
+      allErrors.push(`Elementos: ${elementosHook.error}`);
+    }
+    if (lotesHook.error) {
+      console.error('❌ Error en lotes:', lotesHook.error);
+      allErrors.push(`Lotes: ${lotesHook.error}`);
+    }
+    if (categoriasHook.error) {
+      console.error('❌ Error en categorías:', categoriasHook.error);
+      allErrors.push(`Categorías: ${categoriasHook.error}`);
+    }
     
-    await Promise.all(promises);
-  };
+    setErrors(allErrors);
+  }, [elementosHook.error, lotesHook.error, categoriasHook.error]);
 
   /**
-   * Limpia todos los mensajes de error y éxito
+   * Recolectar mensajes de éxito
    */
-  const clearAllMessages = () => {
-    elementos.clearMessages();
-    series.clearError();
-    lotes.clearMessages();
-    categorias.clearError();
-  };
+  useEffect(() => {
+    const allSuccess = [];
+    
+    if (elementosHook.success) {
+      console.log('✅ Éxito en elementos:', elementosHook.success);
+      allSuccess.push(elementosHook.success);
+    }
+    if (lotesHook.success) {
+      console.log('✅ Éxito en lotes:', lotesHook.success);
+      allSuccess.push(lotesHook.success);
+    }
+    if (categoriasHook.success) {
+      console.log('✅ Éxito en categorías:', categoriasHook.success);
+      allSuccess.push(categoriasHook.success);
+    }
+    
+    setSuccessMessages(allSuccess);
+  }, [elementosHook.success, lotesHook.success, categoriasHook.success]);
+
+  /**
+   * Refrescar todos los datos
+   */
+  const refreshAll = useCallback(async () => {
+    console.log('🔄 Refrescando todo el inventario...');
+    try {
+      if (fetchElementos) {
+        console.log('🔄 Refrescando elementos...');
+        await elementosHook.refresh();
+      }
+      if (fetchLotes) {
+        console.log('🔄 Refrescando lotes...');
+        await lotesHook.refresh();
+      }
+      if (fetchCategorias) {
+        console.log('🔄 Refrescando categorías...');
+        await categoriasHook.refresh();
+      }
+      console.log('✅ Refresco completado');
+    } catch (error) {
+      console.error('❌ Error al refrescar:', error);
+    }
+  }, [fetchElementos, fetchLotes, fetchCategorias, elementosHook, lotesHook, categoriasHook]);
+
+  /**
+   * Limpiar todos los mensajes
+   */
+  const clearAllMessages = useCallback(() => {
+    console.log('🧹 Limpiando mensajes...');
+    setErrors([]);
+    setSuccessMessages([]);
+    elementosHook.clearMessages?.();
+    lotesHook.clearMessages?.();
+    categoriasHook.clearMessages?.();
+  }, [elementosHook, lotesHook, categoriasHook]);
+
+  // Estado de carga general
+  const loading = elementosHook.loading || lotesHook.loading || categoriasHook.loading;
+
+  console.log('🔷 useInventario - Estado final:', {
+    loading,
+    elementosCount: elementosHook.elementos?.length || 0,
+    categoriasCount: categoriasHook.categorias?.length || 0,
+    hasError: errors.length > 0,
+    hasSuccess: successMessages.length > 0
+  });
 
   return {
-    // Estados individuales
+    // Elementos
     elementos: {
-      data: elementos.elementos,
-      loading: elementos.loading,
-      error: elementos.error,
-      success: elementos.success,
-      ...elementos
+      data: elementosHook.elementos || [],
+      loading: elementosHook.loading,
+      error: elementosHook.error,
+      createElemento: elementosHook.createElemento,
+      updateElemento: elementosHook.updateElemento,
+      deleteElemento: elementosHook.deleteElemento,
+      refresh: elementosHook.refresh,
     },
     
-    series: {
-      data: series.series,
-      loading: series.loading,
-      error: series.error,
-      ...series
-    },
-    
+    // Lotes
     lotes: {
-      data: lotes.lotes,
-      loading: lotes.loading,
-      error: lotes.error,
-      success: lotes.success,
-      ...lotes
+      data: lotesHook.lotes || [],
+      loading: lotesHook.loading,
+      error: lotesHook.error,
+      createMovimientoLote: lotesHook.createMovimientoLote,
+      refresh: lotesHook.refresh,
     },
     
+    // Categorías
     categorias: {
-      data: categorias.categorias,
-      loading: categorias.loading,
-      error: categorias.error,
-      ...categorias
+      data: categoriasHook.categorias || [],
+      loading: categoriasHook.loading,
+      error: categoriasHook.error,
+      refresh: categoriasHook.refresh,
     },
     
-    // Estados combinados
-    loading: isLoading,
+    // Estado general
+    loading,
     errors,
     successMessages,
     hasError: errors.length > 0,
     hasSuccess: successMessages.length > 0,
     
-    // Métodos globales
+    // Métodos generales
     refreshAll,
     clearAllMessages,
   };

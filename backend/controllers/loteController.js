@@ -1,4 +1,7 @@
+// Agregar al inicio del archivo
+const { pool } = require('../config/database');
 // ============================================
+
 // CONTROLLER: loteController
 // Responsabilidad: Lógica de negocio de lotes
 // ============================================
