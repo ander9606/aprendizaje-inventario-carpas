@@ -1,109 +1,184 @@
 // ============================================
 // COMPONENTE: CategoriaPadreCard
-// Tarjeta visual para cada categoría padre
+// Muestra una tarjeta de categoría padre con emoji editable
 // ============================================
 
-import { useNavigate } from 'react-router-dom'
+import { useState } from 'react'
 import { Folder, Plus, Edit, Trash2 } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import Card from '../common/Card'
 import Button from '../common/Button'
+import EmojiPicker from '../common/Emojipicker'
+import { useUpdateCategoria, useDeleteCategoria } from '../../hooks/Usecategorias'
 
 /**
- * Componente CategoriaPadreCard
+ * CategoriaPadreCard
  * 
- * Muestra una categoría padre con:
- * - Icono y nombre de la categoría
+ * Tarjeta que muestra una categoría padre con:
+ * - Emoji editable (click para cambiar)
+ * - Nombre de la categoría
  * - Contador de subcategorías
- * - Botón para ver subcategorías
- * - Botón para crear nueva subcategoría
- * - Botones de editar y eliminar
+ * - Botones de navegación y acciones
  * 
- * @param {Object} categoria - Objeto de categoría
- * @param {Function} onEdit - Función para editar categoría
- * @param {Function} onDelete - Función para eliminar categoría
- * @param {Function} onCreateSubcategoria - Función para crear subcategoría
- * 
- * @example
- * <CategoriaPadreCard 
- *   categoria={categoria}
- *   onEdit={handleEdit}
- *   onDelete={handleDelete}
- *   onCreateSubcategoria={handleCreateSub}
- * />
- * 
- * ESTRUCTURA VISUAL:
- * ┌─────────────────────────┐
- * │ 🏕️  CARPAS              │  ← Header con icono y nombre
- * │                         │
- * │ 📁 5 subcategorías      │  ← Contador
- * │                         │
- * │ [Ver subcategorías]     │  ← Botón principal
- * │ [+ Nueva subcategoría]  │  ← Botón secundario
- * │                         │
- * │ [✏️ Editar]  [🗑️ Eliminar] │  ← Acciones
- * └─────────────────────────┘
+ * @param {Object} categoria - Datos de la categoría
+ * @param {Function} onCreateSubcategoria - Callback para crear subcategoría
+ * @param {Function} onEdit - Callback para editar categoría
  */
-export const CategoriaPadreCard = ({ 
+const CategoriaPadreCard = ({ 
   categoria,
-  onEdit,
-  onDelete,
-  onCreateSubcategoria 
+  onCreateSubcategoria,
+  onEdit
 }) => {
   
-  // ============================================
-  // HOOK: useNavigate
-  // Hook de React Router para navegar entre páginas
-  // ============================================
   const navigate = useNavigate()
   
   // ============================================
-  // HANDLER: Navegar a subcategorías
+  // ESTADO LOCAL
   // ============================================
+  
+  // Controla si el EmojiPicker está visible
+  const [mostrarEmojiPicker, setMostrarEmojiPicker] = useState(false)
+  
+  // Emoji actual (para actualización optimista en la UI)
+  const [emojiActual, setEmojiActual] = useState(categoria.emoji || '📦')
+  
+  // ============================================
+  // REACT QUERY HOOKS
+  // ============================================
+  
+  // Hook para actualizar categoría
+  // Devuelve: { mutate, mutateAsync, isLoading, error }
+  const updateCategoria = useUpdateCategoria()
+  
+  // Hook para eliminar categoría
+  const deleteCategoria = useDeleteCategoria()
+  
+  // ============================================
+  // HANDLERS - Navegación
+  // ============================================
+  
+  /**
+   * Navegar a la página de subcategorías
+   */
   const handleVerSubcategorias = () => {
-    // Navegar a /categorias/:id
     navigate(`/categorias/${categoria.id}`)
   }
   
-  // ============================================
-  // HANDLER: Editar categoría
-  // ============================================
-  const handleEdit = (e) => {
-    // Prevenir que el click se propague a la card
+  /**
+   * Abrir modal para crear subcategoría
+   */
+  const handleCreateSubcategoria = (e) => {
     e.stopPropagation()
-    
-    // Llamar a la función que abre el modal de edición
+    if (onCreateSubcategoria) {
+      onCreateSubcategoria(categoria.id)
+    }
+  }
+  
+  /**
+   * Abrir modal para editar categoría
+   */
+  const handleEdit = (e) => {
+    e.stopPropagation()
     if (onEdit) {
       onEdit(categoria)
     }
   }
   
   // ============================================
-  // HANDLER: Eliminar categoría
+  // HANDLER - Seleccionar Emoji (OPCIÓN 2)
   // ============================================
+  
+  /**
+   * Handler para cuando se selecciona un nuevo emoji
+   * 
+   * VERSIÓN CON mutate() y callbacks (Opción 2)
+   * 
+   * FLUJO:
+   * 1. Actualiza el emoji localmente (optimistic update)
+   * 2. Cierra el picker
+   * 3. Llama a la API con mutate()
+   * 4. Si hay éxito: solo muestra mensaje (el cache se invalida automáticamente)
+   * 5. Si hay error: revierte el emoji y muestra alerta
+   */
+  const handleSeleccionarEmoji = (nuevoEmoji) => {
+    console.log('✨ Emoji seleccionado:', nuevoEmoji)
+    
+    // 1. Actualización optimista en la UI
+    setEmojiActual(nuevoEmoji)
+    
+    // 2. Cerrar el picker
+    setMostrarEmojiPicker(false)
+    
+    // 3. Llamar a la API usando mutate()
+    // ✅ CORRECTO: usar .mutate() no updateCategoria() directamente
+    updateCategoria.mutate(
+      // PRIMER ARGUMENTO: datos a enviar
+      { 
+        id: categoria.id, 
+        nombre: categoria.nombre,      // ✅ Obligatorio
+        emoji: nuevoEmoji,             // ✅ El nuevo emoji
+        padre_id: categoria.padre_id   // ✅ Mantener relación
+      },
+      // SEGUNDO ARGUMENTO: callbacks
+      {
+        onSuccess: () => {
+          // ✅ Mutación exitosa
+          console.log('✅ Emoji actualizado en el servidor')
+          // React Query ya invalidó el cache automáticamente
+          // gracias al onSuccess en useUpdateCategoria
+        },
+        onError: (error) => {
+          // ❌ Error en la mutación
+          console.error('❌ Error al actualizar emoji:', error)
+          
+          // Mostrar mensaje al usuario
+          const mensaje = error.response?.data?.mensaje || 'No se pudo actualizar el emoji.'
+          alert(mensaje)
+          
+          // Revertir al emoji original
+          setEmojiActual(categoria.emoji || '📦')
+        }
+      }
+    )
+  }
+  
+  // ============================================
+  // HANDLER - Eliminar Categoría
+  // ============================================
+  
+  /**
+   * Eliminar categoría con confirmación
+   */
   const handleDelete = (e) => {
     e.stopPropagation()
     
     // Confirmar antes de eliminar
-    const confirmar = window.confirm(
-      `¿Estás seguro de eliminar "${categoria.nombre}"?\n\n` +
+    const confirmacion = confirm(
+      `¿Estás seguro de eliminar la categoría "${categoria.nombre}"?\n\n` +
       `Esta acción no se puede deshacer.`
     )
     
-    if (confirmar && onDelete) {
-      onDelete(categoria.id)
+    if (confirmacion) {
+      deleteCategoria.mutate(
+        categoria.id,
+        {
+          onSuccess: () => {
+            console.log('✅ Categoría eliminada exitosamente')
+          },
+          onError: (error) => {
+            console.error('❌ Error al eliminar:', error)
+            const mensaje = error.response?.data?.mensaje || 
+              'No se pudo eliminar la categoría. Puede tener subcategorías o elementos.'
+            alert(mensaje)
+          }
+        }
+      )
     }
   }
   
   // ============================================
-  // HANDLER: Crear subcategoría
+  // RENDER
   // ============================================
-  const handleCreateSubcategoria = (e) => {
-    e.stopPropagation()
-    
-    if (onCreateSubcategoria) {
-      onCreateSubcategoria(categoria.id)
-    }
-  }
   
   return (
     <Card 
@@ -111,14 +186,24 @@ export const CategoriaPadreCard = ({
       className="hover:shadow-lg transition-shadow duration-200"
     >
       {/* ============================================
-          HEADER: Icono y nombre de la categoría
+          HEADER: Emoji y nombre
           ============================================ */}
       <Card.Header>
         <div className="flex items-center gap-3">
-          {/* Icono grande de la categoría */}
-          <span className="text-4xl" role="img" aria-label="Icono de categoría">
-            {categoria.icono || '📦'}
-          </span>
+          {/* 
+            EMOJI CLICKEABLE
+            - Muestra emojiActual (para actualización optimista)
+            - Al hacer clic, abre el EmojiPicker
+            - Efecto hover para indicar que es clickeable
+          */}
+          <button
+            onClick={() => setMostrarEmojiPicker(true)}
+            className="text-4xl cursor-pointer hover:scale-110 transition-transform"
+            title="Click para cambiar el emoji"
+            type="button"
+          >
+            {emojiActual}
+          </button>
           
           {/* Nombre de la categoría */}
           <Card.Title className="flex-1">
@@ -141,69 +226,125 @@ export const CategoriaPadreCard = ({
         <div className="flex items-center gap-2 text-slate-600">
           <Folder className="w-5 h-5" />
           <span className="font-medium">
-            {categoria.total_subcategorias || 0} subcategoría{categoria.total_subcategorias !== 1 ? 's' : ''}
+            {categoria.total_subcategorias || 0} subcategoría
+            {categoria.total_subcategorias !== 1 ? 's' : ''}
           </span>
         </div>
-        
-        {/* Información adicional si existe */}
-        {categoria.fecha_creacion && (
-          <p className="text-xs text-slate-500 mt-2">
-            Creado: {new Date(categoria.fecha_creacion).toLocaleDateString('es-ES')}
-          </p>
-        )}
       </Card.Content>
       
       {/* ============================================
           FOOTER: Botones de acción
           ============================================ */}
-      <Card.Footer className="flex flex-col gap-2">
-        {/* Botón principal: Ver subcategorías */}
-        <Button 
-          variant="primary" 
-          fullWidth
-          onClick={handleVerSubcategorias}
-        >
-          Ver subcategorías {categoria.total_subcategorias > 0 && `(${categoria.total_subcategorias})`}
-        </Button>
+      <Card.Footer>
+        {/* Botones principales (ancho completo) */}
+        <div className="space-y-2 mb-4">
+          {/* Botón: Ver subcategorías */}
+          <Button 
+            variant="primary" 
+            fullWidth
+            onClick={handleVerSubcategorias}
+          >
+            Ver subcategorías
+          </Button>
+          
+          {/* Botón: Nueva subcategoría */}
+          <Button 
+            variant="secondary" 
+            fullWidth
+            icon={<Plus />}
+            onClick={handleCreateSubcategoria}
+          >
+            Nueva subcategoría
+          </Button>
+        </div>
         
-        {/* Botón secundario: Crear subcategoría */}
-        <Button 
-          variant="secondary" 
-          fullWidth
-          icon={<Plus />}
-          onClick={handleCreateSubcategoria}
-        >
-          Nueva subcategoría
-        </Button>
-        
-        {/* Separador visual */}
-        <div className="border-t border-slate-200 my-2"></div>
-        
-        {/* Acciones secundarias: Editar y Eliminar */}
+        {/* Botones secundarios (pequeños, lado a lado) */}
         <div className="flex gap-2">
+          {/* Botón: Editar */}
           <Button 
             variant="ghost" 
-            size="sm"
-            icon={<Edit className="w-4 h-4" />}
+            size="sm" 
+            icon={<Edit />}
             onClick={handleEdit}
-            className="flex-1"
           >
             Editar
           </Button>
           
+          {/* Botón: Eliminar */}
           <Button 
             variant="ghost" 
-            size="sm"
-            icon={<Trash2 className="w-4 h-4" />}
+            size="sm" 
+            icon={<Trash2 />}
             onClick={handleDelete}
-            className="flex-1 text-red-600 hover:bg-red-50 hover:text-red-700"
+            loading={deleteCategoria.isLoading}
+            disabled={deleteCategoria.isLoading}
           >
             Eliminar
           </Button>
         </div>
       </Card.Footer>
+      
+      {/* ============================================
+          EMOJI PICKER (Modal)
+          Se renderiza solo cuando mostrarEmojiPicker es true
+          ============================================ */}
+      {mostrarEmojiPicker && (
+        <EmojiPicker
+          selectedEmoji={emojiActual}
+          onSelect={handleSeleccionarEmoji}
+          onClose={() => setMostrarEmojiPicker(false)}
+        />
+      )}
     </Card>
   )
 }
 
 export default CategoriaPadreCard
+
+/**
+ * ============================================
+ * NOTAS IMPORTANTES Y MEJORES PRÁCTICAS
+ * ============================================
+ * 
+ * 1. ACTUALIZACIÓN OPTIMISTA:
+ *    Se usa setEmojiActual() para actualizar la UI inmediatamente,
+ *    antes de que la API responda. Esto hace que la app se sienta
+ *    más rápida y responsiva.
+ * 
+ * 2. MANEJO DE ERRORES:
+ *    Si la API falla, revertimos el emoji al valor original
+ *    con setEmojiActual(categoria.emoji).
+ * 
+ * 3. MUTATE vs MUTATEASYNC:
+ *    - mutate(): No devuelve Promise, usa callbacks
+ *    - mutateAsync(): Devuelve Promise, usa async/await
+ *    
+ *    Usamos mutate() porque es más simple para este caso.
+ * 
+ * 4. INVALIDACIÓN DE CACHE:
+ *    No la hacemos aquí porque ya está en useUpdateCategoria:
+ *    - queryClient.invalidateQueries({ queryKey: ['categorias'] })
+ *    - queryClient.invalidateQueries({ queryKey: ['categorias', 'padres'] })
+ * 
+ * 5. PROPS DEL COMPONENTE:
+ *    - categoria: objeto con todos los datos de la categoría
+ *    - onCreateSubcategoria: función para abrir modal de crear
+ *    - onEdit: función para abrir modal de editar
+ * 
+ * 6. DATOS REQUERIDOS EN LA ACTUALIZACIÓN:
+ *    El backend requiere estos campos en el PUT:
+ *    - id (en la URL o en el body)
+ *    - nombre (obligatorio)
+ *    - emoji (opcional)
+ *    - padre_id (opcional, puede ser null)
+ * 
+ * 7. REACT QUERY INVALIDATION:
+ *    Cuando se ejecuta updateCategoria.mutate(), el onSuccess
+ *    en useUpdateCategoria invalida automáticamente:
+ *    - ['categorias']
+ *    - ['categorias', 'padres']
+ *    - ['categorias', id]
+ *    
+ *    Esto hace que React Query recargue los datos automáticamente
+ *    y el componente se re-renderiza con los nuevos datos.
+ */

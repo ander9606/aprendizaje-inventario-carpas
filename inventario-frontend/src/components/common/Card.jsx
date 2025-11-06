@@ -33,7 +33,7 @@ export const Card = ({
   // ESTILOS BASE
   // ============================================
   const baseStyles = `
-    bg-white rounded-lg
+    bg-white rounded-lg relative overflow-visible
     transition-all duration-200
   `
   
