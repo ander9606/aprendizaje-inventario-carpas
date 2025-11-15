@@ -236,53 +236,55 @@ const CategoriaPadreCard = ({
           FOOTER: Botones de acción
           ============================================ */}
       <Card.Footer>
-        {/* Botones principales (ancho completo) */}
-        <div className="space-y-2 mb-4">
-          {/* Botón: Ver subcategorías */}
-          <Button 
-            variant="primary" 
-            fullWidth
-            onClick={handleVerSubcategorias}
-          >
-            Ver subcategorías
-          </Button>
-          
-          {/* Botón: Nueva subcategoría */}
-          <Button 
-            variant="secondary" 
-            fullWidth
-            icon={<Plus />}
-            onClick={handleCreateSubcategoria}
-          >
-            Nueva subcategoría
-          </Button>
-        </div>
-        
-        {/* Botones secundarios (pequeños, lado a lado) */}
-        <div className="flex gap-2">
-          {/* Botón: Editar */}
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            icon={<Edit />}
-            onClick={handleEdit}
-          >
-            Editar
-          </Button>
-          
-          {/* Botón: Eliminar */}
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            icon={<Trash2 />}
-            onClick={handleDelete}
-            loading={deleteCategoria.isLoading}
-            disabled={deleteCategoria.isLoading}
-          >
-            Eliminar
-          </Button>
-        </div>
-      </Card.Footer>
+  {/* Botones principales - ancho completo */}
+  <div className="space-y-2 mb-4">
+    {/* Botón: Ver subcategorías */}
+    <Button 
+      variant="primary" 
+      fullWidth
+      onClick={handleVerSubcategorias}
+    >
+      Ver subcategorías
+    </Button>
+    
+    {/* Botón: Nueva subcategoría */}
+    <Button 
+      variant="secondary" 
+      fullWidth
+      icon={<Plus />}
+      onClick={handleCreateSubcategoria}
+    >
+      Nueva subcategoría
+    </Button>
+  </div>
+  
+  {/* Botones secundarios - lado a lado */}
+  <div className="flex gap-2 justify-between">
+    {/* Botón: Editar */}
+    <Button 
+      variant="ghost" 
+      size="sm" 
+      icon={<Edit className="w-4 h-4" />}
+      onClick={handleEdit}
+      className="flex-1"
+    >
+      Editar
+    </Button>
+    
+    {/* Botón: Eliminar */}
+    <Button 
+      variant="ghost" 
+      size="sm" 
+      icon={<Trash2 className="w-4 h-4" />}
+      onClick={handleDelete}
+      loading={deleteCategoria.isLoading}
+      disabled={deleteCategoria.isLoading}
+      className="flex-1"
+    >
+      Eliminar
+    </Button>
+  </div>
+</Card.Footer>
       
       {/* ============================================
           EMOJI PICKER (Modal)
