@@ -159,7 +159,7 @@ const CategoriaPadreCard = ({
     )
     
     if (confirmacion) {
-      deleteCategoria.mutate(
+      deleteCategoria.deleteCategoriaSync(
         categoria.id,
         {
           onSuccess: () => {

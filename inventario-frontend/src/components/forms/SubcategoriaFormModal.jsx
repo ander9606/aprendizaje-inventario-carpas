@@ -3,237 +3,249 @@
 // Modal para crear/editar subcategorías
 // ============================================
 
+import { useState, useEffect } from 'react'
+import { X } from 'lucide-react'
 import Modal from '../common/Modal'
-import CategoriaForm from './CategoriaForm'
-import { 
-  useCreateCategoria, 
-  useUpdateCategoria,
-  useGetCategoriasPadre 
-} from '../../hooks/Usecategorias'
-import Spinner from '../common/Spinner'
+import Button from '../common/Button'
+import EmojiPicker from '../common/Emojipicker'
+import { useCreateCategoria, useUpdateCategoria } from '../../hooks/Usecategorias'
 
-/**
- * Componente SubcategoriaFormModal
- * 
- * Variante especializada de CategoriaFormModal para subcategorías.
- * La diferencia principal es que incluye el campo padre_id.
- * 
- * REUTILIZACIÓN:
- * - Usa el mismo CategoriaForm
- * - Usa los mismos hooks
- * - Solo cambia: isSubcategoria={true} y carga categorías padre
- * 
- * @param {boolean} isOpen - Si el modal está abierto
- * @param {Function} onClose - Callback para cerrar el modal
- * @param {'crear'|'editar'} mode - Modo del formulario
- * @param {Object|null} subcategoria - Datos de la subcategoría (modo editar)
- * @param {number|null} padreId - ID de la categoría padre (modo crear)
- * 
- * @example
- * // Crear subcategoría para una categoría específica
- * <SubcategoriaFormModal
- *   isOpen={isOpen}
- *   onClose={handleClose}
- *   mode="crear"
- *   padreId={1}  // ID de "Carpas"
- * />
- * 
- * // Editar subcategoría existente
- * <SubcategoriaFormModal
- *   isOpen={isOpen}
- *   onClose={handleClose}
- *   mode="editar"
- *   subcategoria={subcategoriaSeleccionada}
- * />
- * 
- * DIFERENCIA CON CategoriaFormModal:
- * - CategoriaFormModal: padre_id = null (categorías padre)
- * - SubcategoriaFormModal: padre_id = requerido (subcategorías)
- */
-export const SubcategoriaFormModal = ({
+const SubcategoriaFormModal = ({
   isOpen,
   onClose,
   mode = 'crear',
-  subcategoria = null,
-  padreId = null
+  padreId = null,
+  subcategoria = null
 }) => {
   
   // ============================================
+  // ESTADO LOCAL
+  // ============================================
+
+  const [formData, setFormData] = useState({
+    nombre: '',
+    emoji: '📦'
+  })
+
+  const [errors, setErrors] = useState({})
+  const [mostrarEmojiPicker, setMostrarEmojiPicker] = useState(false)
+
+  // ============================================
   // HOOKS DE API
   // ============================================
-  
-  /**
-   * Obtener categorías padre para el select
-   * Solo se ejecuta si el modal está abierto
-   */
-  const { 
-    categoriasPadre, 
-    isLoading: isLoadingPadres 
-  } = useGetCategoriasPadre()
-  
-  /**
-   * Hooks para crear/actualizar
-   */
-  const { 
-    createCategoria, 
-    isLoading: isCreating 
-  } = useCreateCategoria()
-  
-  const { 
-    updateCategoria, 
-    isLoading: isUpdating 
-  } = useUpdateCategoria()
-  
-  // Estados combinados
+
+  const { createCategoria, isLoading: isCreating } = useCreateCategoria()
+  const { mutateAsync: updateCategoria, isLoading: isUpdating } = useUpdateCategoria()
+
   const isLoading = isCreating || isUpdating
-  const isLoadingData = isLoadingPadres
-  
+
+  // ============================================
+  // EFFECTS
+  // ============================================
+
+  useEffect(() => {
+    if (mode === 'editar' && subcategoria) {
+      setFormData({
+        nombre: subcategoria.nombre || '',
+        emoji: subcategoria.emoji || '📦'
+      })
+    } else {
+      setFormData({ nombre: '', emoji: '📦' })
+    }
+
+    setErrors({})
+  }, [mode, subcategoria, isOpen])
+
   // ============================================
   // HANDLERS
   // ============================================
-  
-  /**
-   * Manejar el submit del formulario
-   * 
-   * IMPORTANTE: Siempre incluir padre_id
-   */
-  const handleSubmit = async (data) => {
-    try {
-      // Asegurar que tenga padre_id
-      const dataConPadre = {
-        ...data,
-        padre_id: mode === 'crear' 
-          ? padreId || data.padre_id  // Priorizar padreId de props
-          : data.padre_id             // Usar el del formulario
-      }
-      
-      if (mode === 'crear') {
-        // Validar que tenga padre_id
-        if (!dataConPadre.padre_id) {
-          console.error('❌ Error: padre_id es requerido para subcategorías')
-          alert('Error: Debes seleccionar una categoría padre')
-          return
-        }
-        
-        await createCategoria(dataConPadre)
-        console.log('✅ Subcategoría creada:', dataConPadre.nombre)
-        
-      } else {
-        await updateCategoria({
-          id: subcategoria.id,
-          ...dataConPadre
-        })
-        console.log('✅ Subcategoría actualizada:', dataConPadre.nombre)
-      }
-      
-      // Cerrar modal
-      onClose()
-      
-    } catch (err) {
-      console.error('❌ Error al guardar subcategoría:', err)
-      // El modal no se cierra si hay error
+
+  const handleChange = (e) => {
+    const { name, value } = e.target
+
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }))
+
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: '' }))
     }
   }
-  
-  /**
-   * Manejar cancelación
-   */
-  const handleCancel = () => {
-    onClose()
+
+  const handleSelectEmoji = (emoji) => {
+    setFormData(prev => ({ ...prev, emoji }))
+    setMostrarEmojiPicker(false)
   }
-  
+
+  const validate = () => {
+    const newErrors = {}
+
+    if (!formData.nombre.trim()) {
+      newErrors.nombre = 'El nombre es obligatorio'
+    } else if (formData.nombre.trim().length < 3) {
+      newErrors.nombre = 'Debe tener al menos 3 caracteres'
+    } else if (formData.nombre.trim().length > 100) {
+      newErrors.nombre = 'No puede exceder 100 caracteres'
+    }
+
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+
+    if (!validate()) return
+
+    const dataToSend = {
+      nombre: formData.nombre.trim(),
+      emoji: formData.emoji,
+      padre_id: mode === 'crear'
+        ? padreId
+        : subcategoria.padre_id
+    }
+
+    try {
+      if (mode === 'crear') {
+        console.log('📝 Creando subcategoría:', dataToSend)
+        await createCategoria(dataToSend)
+      } else {
+        console.log('📝 Actualizando subcategoría:', dataToSend)
+        await updateCategoria({
+          id: subcategoria.id,
+          ...dataToSend
+        })
+      }
+
+      onClose()
+
+    } catch (error) {
+      console.error('❌ Error al guardar subcategoría:', error)
+
+      const mensajeError =
+        error.response?.data?.mensaje ||
+        (mode === 'crear'
+          ? 'Error al crear subcategoría'
+          : 'Error al actualizar subcategoría')
+
+      setErrors({ submit: mensajeError })
+    }
+  }
+
+  const handleClose = () => {
+    if (!isLoading) {
+      setFormData({ nombre: '', emoji: '📦' })
+      setErrors({})
+      onClose()
+    }
+  }
+
   // ============================================
-  // DETERMINACIONES
+  // RENDER
   // ============================================
-  
-  // Título del modal
-  const modalTitle = mode === 'crear' 
-    ? '➕ Nueva Subcategoría' 
-    : '✏️ Editar Subcategoría'
-  
-  // Datos iniciales del formulario
-  const initialData = mode === 'editar' 
-    ? subcategoria 
-    : { padre_id: padreId }  // Pre-seleccionar padre si viene por props
-  
-  // Buscar nombre de la categoría padre (para mostrar)
-  console.log('Categorias Padre:', categoriasPadre)
-  const categoriaPadre = categoriasPadre.find(
-    cat => cat.id === (padreId || subcategoria?.padre_id)
-  )
-  
-  // ============================================
-  // RENDER: Estado de carga de datos
-  // ============================================
-  
-  if (isLoadingData && isOpen) {
-    return (
+
+  return (
+    <>
       <Modal
         isOpen={isOpen}
-        onClose={onClose}
-        title={modalTitle}
+        onClose={handleClose}
+        title={mode === 'crear' ? '🆕 Nueva Subcategoría' : '✏️ Editar Subcategoría'}
         size="md"
       >
-        <div className="py-8">
-          <Spinner size="lg" text="Cargando datos..." />
-        </div>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          
+          {errors.submit && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+              <p className="text-sm font-medium">{errors.submit}</p>
+            </div>
+          )}
+          
+          {/* Campo Nombre */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Nombre de la subcategoría *
+            </label>
+
+            <input
+              type="text"
+              name="nombre"
+              value={formData.nombre}
+              onChange={handleChange}
+              placeholder="Ej: Carpa 3x3, Mesa redonda..."
+              disabled={isLoading}
+              className={`
+                w-full px-4 py-2.5 border rounded-lg
+                focus:outline-none focus:ring-2 focus:ring-blue-500
+                disabled:bg-slate-100
+                ${errors.nombre ? 'border-red-300 bg-red-50' : 'border-slate-300'}
+              `}
+            />
+
+            {errors.nombre && (
+              <p className="mt-1 text-sm text-red-600">{errors.nombre}</p>
+            )}
+          </div>
+
+          {/* Campo Emoji */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Icono (Emoji)
+            </label>
+
+            <button
+              type="button"
+              onClick={() => setMostrarEmojiPicker(true)}
+              disabled={isLoading}
+              className="
+                w-full px-4 py-3 border border-slate-300 rounded-lg
+                flex items-center gap-3
+                hover:bg-slate-50
+              "
+            >
+              <span className="text-3xl">{formData.emoji}</span>
+              <span className="text-slate-600">Haz clic para cambiar el emoji</span>
+            </button>
+
+            <p className="mt-1 text-xs text-slate-500">
+              El emoji ayuda a identificar visualmente la subcategoría
+            </p>
+          </div>
+
+          {/* Botones */}
+          <div className="flex gap-3 pt-4 border-t">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={handleClose}
+              disabled={isLoading}
+              fullWidth
+            >
+              Cancelar
+            </Button>
+
+            <Button
+              type="submit"
+              variant="primary"
+              loading={isLoading}
+              disabled={isLoading}
+              fullWidth
+            >
+              {mode === 'crear' ? 'Crear Subcategoría' : 'Guardar Cambios'}
+            </Button>
+          </div>
+        </form>
       </Modal>
-    )
-  }
-  
-  // ============================================
-  // RENDER: Formulario
-  // ============================================
-  
-  return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title={modalTitle}
-      size="md"
-      closeOnOverlay={!isLoading}
-    >
-      {/* Info de la categoría padre */}
-      {categoriaPadre && (
-        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-          <p className="text-sm text-blue-700">
-            <span className="font-medium">Categoría padre:</span>{' '}
-            {categoriaPadre.icono} {categoriaPadre.nombre}
-          </p>
-        </div>
+
+      {/* Emoji Picker */}
+      {mostrarEmojiPicker && (
+        <EmojiPicker
+          selectedEmoji={formData.emoji}
+          onSelect={handleSelectEmoji}
+          onClose={() => setMostrarEmojiPicker(false)}
+        />
       )}
-      
-      {/* Formulario */}
-      <CategoriaForm
-        initialData={initialData}
-        onSubmit={handleSubmit}
-        onCancel={handleCancel}
-        isLoading={isLoading}
-        isSubcategoria={true}              // ← DIFERENCIA CLAVE
-        categoriasPadre={categoriasPadre}  // ← DIFERENCIA CLAVE
-      />
-      
-      {/* Info adicional en modo editar */}
-      {mode === 'editar' && subcategoria && (
-        <div className="mt-4 pt-4 border-t border-slate-200">
-          <p className="text-xs text-slate-500">
-            ID: {subcategoria.id} | 
-            Padre ID: {subcategoria.padre_id} | 
-            Creada: {new Date(subcategoria.fecha_creacion).toLocaleDateString()}
-          </p>
-        </div>
-      )}
-      
-      {/* Mensaje si no hay categorías padre disponibles */}
-      {!isLoadingData && categoriasPadre.length === 0 && (
-        <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-          <p className="text-sm text-yellow-700">
-            ⚠️ No hay categorías padre disponibles. 
-            Crea primero una categoría padre.
-          </p>
-        </div>
-      )}
-    </Modal>
+    </>
   )
 }
 
