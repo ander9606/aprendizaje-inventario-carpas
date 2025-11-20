@@ -1,5 +1,6 @@
 // ============================================
-// CONTROLADOR: CATEGORIA - VERSIÓN CORREGIDA
+// CONTROLADOR: CATEGORIA 
+
 // Incluye manejo del campo emoji
 // ============================================
 

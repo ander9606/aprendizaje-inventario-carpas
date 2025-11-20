@@ -1,5 +1,5 @@
 // ============================================
-// MODEL: SerieModel
+// MODEL: SerieModel (ACTUALIZADO CON UBICACIONES)
 // Responsabilidad: Consultas SQL de series
 // ============================================
 
@@ -8,7 +8,7 @@ const { pool } = require('../config/database');
 class SerieModel {
     
     // ============================================
-    // OBTENER TODAS LAS SERIES (con elemento)
+    // OBTENER TODAS LAS SERIES (con elemento y ubicación)
     // ============================================
     static async obtenerTodas() {
         try {
@@ -18,6 +18,9 @@ class SerieModel {
                     s.numero_serie,
                     s.estado,
                     s.ubicacion,
+                    s.ubicacion_id,
+                    u.nombre AS ubicacion_nombre,
+                    u.tipo AS ubicacion_tipo,
                     s.fecha_ingreso,
                     e.id AS elemento_id,
                     e.nombre AS elemento_nombre,
@@ -25,6 +28,7 @@ class SerieModel {
                 FROM series s
                 INNER JOIN elementos e ON s.id_elemento = e.id
                 LEFT JOIN categorias c ON e.categoria_id = c.id
+                LEFT JOIN ubicaciones u ON s.ubicacion_id = u.id
                 ORDER BY e.nombre, s.numero_serie
             `;
             
@@ -47,6 +51,10 @@ class SerieModel {
                     s.numero_serie,
                     s.estado,
                     s.ubicacion,
+                    s.ubicacion_id,
+                    u.nombre AS ubicacion_nombre,
+                    u.tipo AS ubicacion_tipo,
+                    u.ciudad AS ubicacion_ciudad,
                     s.fecha_ingreso,
                     s.created_at,
                     s.updated_at,
@@ -56,6 +64,7 @@ class SerieModel {
                 FROM series s
                 INNER JOIN elementos e ON s.id_elemento = e.id
                 LEFT JOIN categorias c ON e.categoria_id = c.id
+                LEFT JOIN ubicaciones u ON s.ubicacion_id = u.id
                 WHERE s.id = ?
             `;
             
@@ -74,9 +83,11 @@ class SerieModel {
             const query = `
                 SELECT 
                     s.*,
-                    e.nombre AS elemento_nombre
+                    e.nombre AS elemento_nombre,
+                    u.nombre AS ubicacion_nombre
                 FROM series s
                 INNER JOIN elementos e ON s.id_elemento = e.id
+                LEFT JOIN ubicaciones u ON s.ubicacion_id = u.id
                 WHERE s.numero_serie = ?
             `;
             
@@ -98,13 +109,45 @@ class SerieModel {
                     s.numero_serie,
                     s.estado,
                     s.ubicacion,
+                    s.ubicacion_id,
+                    u.nombre AS ubicacion_nombre,
+                    u.tipo AS ubicacion_tipo,
                     s.fecha_ingreso
                 FROM series s
+                LEFT JOIN ubicaciones u ON s.ubicacion_id = u.id
                 WHERE s.id_elemento = ?
                 ORDER BY s.numero_serie
             `;
             
             const [rows] = await pool.query(query, [elementoId]);
+            return rows;
+        } catch (error) {
+            throw error;
+        }
+    }
+    
+    // ============================================
+    // OBTENER SERIES POR UBICACIÓN
+    // ============================================
+    static async obtenerPorUbicacion(ubicacionId) {
+        try {
+            const query = `
+                SELECT 
+                    s.id,
+                    s.numero_serie,
+                    s.estado,
+                    s.fecha_ingreso,
+                    e.id AS elemento_id,
+                    e.nombre AS elemento_nombre,
+                    c.nombre AS categoria
+                FROM series s
+                INNER JOIN elementos e ON s.id_elemento = e.id
+                LEFT JOIN categorias c ON e.categoria_id = c.id
+                WHERE s.ubicacion_id = ?
+                ORDER BY e.nombre, s.numero_serie
+            `;
+            
+            const [rows] = await pool.query(query, [ubicacionId]);
             return rows;
         } catch (error) {
             throw error;
@@ -122,11 +165,14 @@ class SerieModel {
                     s.numero_serie,
                     s.estado,
                     s.ubicacion,
+                    s.ubicacion_id,
+                    u.nombre AS ubicacion_nombre,
                     e.nombre AS elemento_nombre,
                     c.nombre AS categoria
                 FROM series s
                 INNER JOIN elementos e ON s.id_elemento = e.id
                 LEFT JOIN categorias c ON e.categoria_id = c.id
+                LEFT JOIN ubicaciones u ON s.ubicacion_id = u.id
                 WHERE s.estado = ?
                 ORDER BY e.nombre, s.numero_serie
             `;
@@ -148,11 +194,14 @@ class SerieModel {
                     s.id,
                     s.numero_serie,
                     s.ubicacion,
+                    s.ubicacion_id,
+                    u.nombre AS ubicacion_nombre,
                     e.nombre AS elemento_nombre,
                     c.nombre AS categoria
                 FROM series s
                 INNER JOIN elementos e ON s.id_elemento = e.id
                 LEFT JOIN categorias c ON e.categoria_id = c.id
+                LEFT JOIN ubicaciones u ON s.ubicacion_id = u.id
                 WHERE s.estado = 'bueno'
                 ORDER BY e.nombre, s.numero_serie
             `;
@@ -173,11 +222,13 @@ class SerieModel {
                 SELECT 
                     s.id,
                     s.numero_serie,
+                    u.nombre AS ubicacion_nombre,
                     e.nombre AS elemento_nombre,
                     c.nombre AS categoria
                 FROM series s
                 INNER JOIN elementos e ON s.id_elemento = e.id
                 LEFT JOIN categorias c ON e.categoria_id = c.id
+                LEFT JOIN ubicaciones u ON s.ubicacion_id = u.id
                 WHERE s.estado = 'alquilado'
                 ORDER BY e.nombre, s.numero_serie
             `;
@@ -199,13 +250,14 @@ class SerieModel {
                 numero_serie,
                 estado,
                 ubicacion,
+                ubicacion_id,
                 fecha_ingreso
             } = datos;
             
             const query = `
                 INSERT INTO series 
-                (id_elemento, numero_serie, estado, ubicacion, fecha_ingreso)
-                VALUES (?, ?, ?, ?, ?)
+                (id_elemento, numero_serie, estado, ubicacion, ubicacion_id, fecha_ingreso)
+                VALUES (?, ?, ?, ?, ?, ?)
             `;
             
             const [result] = await pool.query(query, [
@@ -213,6 +265,7 @@ class SerieModel {
                 numero_serie,
                 estado || 'bueno',
                 ubicacion || null,
+                ubicacion_id || null,
                 fecha_ingreso || null
             ]);
             
@@ -231,6 +284,7 @@ class SerieModel {
                 numero_serie,
                 estado,
                 ubicacion,
+                ubicacion_id,
                 fecha_ingreso
             } = datos;
             
@@ -239,6 +293,7 @@ class SerieModel {
                 SET numero_serie = ?,
                     estado = ?,
                     ubicacion = ?,
+                    ubicacion_id = ?,
                     fecha_ingreso = ?
                 WHERE id = ?
             `;
@@ -247,6 +302,7 @@ class SerieModel {
                 numero_serie,
                 estado || 'bueno',
                 ubicacion || null,
+                ubicacion_id || null,
                 fecha_ingreso || null,
                 id
             ]);
@@ -260,19 +316,89 @@ class SerieModel {
     // ============================================
     // CAMBIAR ESTADO DE SERIE
     // ============================================
-    static async cambiarEstado(id, nuevoEstado, ubicacion = null) {
+    static async cambiarEstado(id, nuevoEstado, ubicacion = null, ubicacion_id = null) {
         try {
             const query = `
                 UPDATE series 
                 SET estado = ?,
-                    ubicacion = ?
+                    ubicacion = ?,
+                    ubicacion_id = ?
                 WHERE id = ?
             `;
             
             const [result] = await pool.query(query, [
                 nuevoEstado,
                 ubicacion,
+                ubicacion_id,
                 id
+            ]);
+            
+            return result.affectedRows;
+        } catch (error) {
+            throw error;
+        }
+    }
+    
+    // ============================================
+    // MOVER SERIE A OTRA UBICACIÓN ✨ NUEVO
+    // ============================================
+    static async moverUbicacion(id, ubicacionDestinoId) {
+        try {
+            // Obtener nombre de la ubicación destino
+            const [ubicacion] = await pool.query(
+                'SELECT nombre FROM ubicaciones WHERE id = ?',
+                [ubicacionDestinoId]
+            );
+            
+            if (!ubicacion || ubicacion.length === 0) {
+                throw new Error('Ubicación destino no encontrada');
+            }
+            
+            const query = `
+                UPDATE series 
+                SET ubicacion_id = ?,
+                    ubicacion = ?
+                WHERE id = ?
+            `;
+            
+            const [result] = await pool.query(query, [
+                ubicacionDestinoId,
+                ubicacion[0].nombre,
+                id
+            ]);
+            
+            return result.affectedRows;
+        } catch (error) {
+            throw error;
+        }
+    }
+    
+    // ============================================
+    // MOVER MÚLTIPLES SERIES A OTRA UBICACIÓN ✨ NUEVO
+    // ============================================
+    static async moverMultiples(seriesIds, ubicacionDestinoId) {
+        try {
+            // Obtener nombre de la ubicación destino
+            const [ubicacion] = await pool.query(
+                'SELECT nombre FROM ubicaciones WHERE id = ?',
+                [ubicacionDestinoId]
+            );
+            
+            if (!ubicacion || ubicacion.length === 0) {
+                throw new Error('Ubicación destino no encontrada');
+            }
+            
+            const query = `
+                UPDATE series 
+                SET ubicacion_id = ?,
+                    ubicacion = ?
+                WHERE id IN (?)
+            `;
+            
+            const [result] = await pool.query(query, [
+                ubicacionDestinoId,
+                ubicacion[0].nombre,
+                seriesIds
             ]);
             
             return result.affectedRows;
@@ -313,6 +439,56 @@ class SerieModel {
             
             const [rows] = await pool.query(query, [elementoId]);
             return rows[0];
+        } catch (error) {
+            throw error;
+        }
+    }
+    
+    // ============================================
+    // CONTAR SERIES POR UBICACIÓN ✨ NUEVO
+    // ============================================
+    static async contarPorUbicacion(ubicacionId) {
+        try {
+            const query = `
+                SELECT 
+                    COUNT(*) AS total,
+                    SUM(CASE WHEN estado = 'bueno' THEN 1 ELSE 0 END) AS disponibles,
+                    SUM(CASE WHEN estado = 'alquilado' THEN 1 ELSE 0 END) AS alquiladas,
+                    SUM(CASE WHEN estado = 'mantenimiento' THEN 1 ELSE 0 END) AS en_mantenimiento,
+                    SUM(CASE WHEN estado = 'dañado' THEN 1 ELSE 0 END) AS dañados
+                FROM series
+                WHERE ubicacion_id = ?
+            `;
+            
+            const [rows] = await pool.query(query, [ubicacionId]);
+            return rows[0];
+        } catch (error) {
+            throw error;
+        }
+    }
+    
+    // ============================================
+    // OBTENER RESUMEN POR UBICACIÓN ✨ NUEVO
+    // ============================================
+    static async obtenerResumenPorUbicaciones() {
+        try {
+            const query = `
+                SELECT 
+                    u.id AS ubicacion_id,
+                    u.nombre AS ubicacion_nombre,
+                    u.tipo AS ubicacion_tipo,
+                    COUNT(s.id) AS total_series,
+                    SUM(CASE WHEN s.estado = 'bueno' THEN 1 ELSE 0 END) AS disponibles,
+                    SUM(CASE WHEN s.estado = 'alquilado' THEN 1 ELSE 0 END) AS alquiladas
+                FROM ubicaciones u
+                LEFT JOIN series s ON u.id = s.ubicacion_id
+                WHERE u.activo = TRUE
+                GROUP BY u.id, u.nombre, u.tipo
+                ORDER BY total_series DESC
+            `;
+            
+            const [rows] = await pool.query(query);
+            return rows;
         } catch (error) {
             throw error;
         }

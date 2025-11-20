@@ -1,32 +1,35 @@
 // ============================================
-// MODEL: LoteModel
-// Responsabilidad: Consultas SQL de lotes
+// MODEL: SerieModel (ACTUALIZADO CON UBICACIONES)
+// Responsabilidad: Consultas SQL de series
 // ============================================
 
 const { pool } = require('../config/database');
 
-class LoteModel {
+class SerieModel {
     
     // ============================================
-    // OBTENER TODOS LOS LOTES
+    // OBTENER TODAS LAS SERIES (con elemento y ubicación)
     // ============================================
-    static async obtenerTodos() {
+    static async obtenerTodas() {
         try {
             const query = `
                 SELECT 
-                    l.id,
-                    l.lote_numero,
-                    l.cantidad,
-                    l.estado,
-                    l.ubicacion,
-                    l.created_at,
+                    s.id,
+                    s.numero_serie,
+                    s.estado,
+                    s.ubicacion,
+                    s.ubicacion_id,
+                    u.nombre AS ubicacion_nombre,
+                    u.tipo AS ubicacion_tipo,
+                    s.fecha_ingreso,
                     e.id AS elemento_id,
                     e.nombre AS elemento_nombre,
                     c.nombre AS categoria
-                FROM lotes l
-                INNER JOIN elementos e ON l.elemento_id = e.id
+                FROM series s
+                INNER JOIN elementos e ON s.id_elemento = e.id
                 LEFT JOIN categorias c ON e.categoria_id = c.id
-                ORDER BY e.nombre, l.estado
+                LEFT JOIN ubicaciones u ON s.ubicacion_id = u.id
+                ORDER BY e.nombre, s.numero_serie
             `;
             
             const [rows] = await pool.query(query);
@@ -37,18 +40,32 @@ class LoteModel {
     }
     
     // ============================================
-    // OBTENER LOTE POR ID
+    // OBTENER SERIE POR ID
     // ============================================
     static async obtenerPorId(id) {
         try {
             const query = `
                 SELECT 
-                    l.*,
+                    s.id,
+                    s.id_elemento,
+                    s.numero_serie,
+                    s.estado,
+                    s.ubicacion,
+                    s.ubicacion_id,
+                    u.nombre AS ubicacion_nombre,
+                    u.tipo AS ubicacion_tipo,
+                    u.ciudad AS ubicacion_ciudad,
+                    s.fecha_ingreso,
+                    s.created_at,
+                    s.updated_at,
                     e.nombre AS elemento_nombre,
-                    e.requiere_series
-                FROM lotes l
-                INNER JOIN elementos e ON l.elemento_id = e.id
-                WHERE l.id = ?
+                    e.descripcion AS elemento_descripcion,
+                    c.nombre AS categoria
+                FROM series s
+                INNER JOIN elementos e ON s.id_elemento = e.id
+                LEFT JOIN categorias c ON e.categoria_id = c.id
+                LEFT JOIN ubicaciones u ON s.ubicacion_id = u.id
+                WHERE s.id = ?
             `;
             
             const [rows] = await pool.query(query, [id]);
@@ -59,21 +76,47 @@ class LoteModel {
     }
     
     // ============================================
-    // OBTENER LOTES DE UN ELEMENTO
+    // OBTENER SERIE POR NÚMERO DE SERIE
+    // ============================================
+    static async obtenerPorNumeroSerie(numeroSerie) {
+        try {
+            const query = `
+                SELECT 
+                    s.*,
+                    e.nombre AS elemento_nombre,
+                    u.nombre AS ubicacion_nombre
+                FROM series s
+                INNER JOIN elementos e ON s.id_elemento = e.id
+                LEFT JOIN ubicaciones u ON s.ubicacion_id = u.id
+                WHERE s.numero_serie = ?
+            `;
+            
+            const [rows] = await pool.query(query, [numeroSerie]);
+            return rows[0];
+        } catch (error) {
+            throw error;
+        }
+    }
+    
+    // ============================================
+    // OBTENER SERIES DE UN ELEMENTO
     // ============================================
     static async obtenerPorElemento(elementoId) {
         try {
             const query = `
                 SELECT 
-                    id,
-                    lote_numero,
-                    cantidad,
-                    estado,
-                    ubicacion,
-                    created_at
-                FROM lotes
-                WHERE elemento_id = ?
-                ORDER BY estado, ubicacion
+                    s.id,
+                    s.numero_serie,
+                    s.estado,
+                    s.ubicacion,
+                    s.ubicacion_id,
+                    u.nombre AS ubicacion_nombre,
+                    u.tipo AS ubicacion_tipo,
+                    s.fecha_ingreso
+                FROM series s
+                LEFT JOIN ubicaciones u ON s.ubicacion_id = u.id
+                WHERE s.id_elemento = ?
+                ORDER BY s.numero_serie
             `;
             
             const [rows] = await pool.query(query, [elementoId]);
@@ -84,21 +127,54 @@ class LoteModel {
     }
     
     // ============================================
-    // OBTENER LOTES POR ESTADO
+    // OBTENER SERIES POR UBICACIÓN
+    // ============================================
+    static async obtenerPorUbicacion(ubicacionId) {
+        try {
+            const query = `
+                SELECT 
+                    s.id,
+                    s.numero_serie,
+                    s.estado,
+                    s.fecha_ingreso,
+                    e.id AS elemento_id,
+                    e.nombre AS elemento_nombre,
+                    c.nombre AS categoria
+                FROM series s
+                INNER JOIN elementos e ON s.id_elemento = e.id
+                LEFT JOIN categorias c ON e.categoria_id = c.id
+                WHERE s.ubicacion_id = ?
+                ORDER BY e.nombre, s.numero_serie
+            `;
+            
+            const [rows] = await pool.query(query, [ubicacionId]);
+            return rows;
+        } catch (error) {
+            throw error;
+        }
+    }
+    
+    // ============================================
+    // OBTENER SERIES POR ESTADO
     // ============================================
     static async obtenerPorEstado(estado) {
         try {
             const query = `
                 SELECT 
-                    l.id,
-                    l.cantidad,
-                    l.estado,
-                    l.ubicacion,
-                    e.nombre AS elemento_nombre
-                FROM lotes l
-                INNER JOIN elementos e ON l.elemento_id = e.id
-                WHERE l.estado = ?
-                ORDER BY e.nombre
+                    s.id,
+                    s.numero_serie,
+                    s.estado,
+                    s.ubicacion,
+                    s.ubicacion_id,
+                    u.nombre AS ubicacion_nombre,
+                    e.nombre AS elemento_nombre,
+                    c.nombre AS categoria
+                FROM series s
+                INNER JOIN elementos e ON s.id_elemento = e.id
+                LEFT JOIN categorias c ON e.categoria_id = c.id
+                LEFT JOIN ubicaciones u ON s.ubicacion_id = u.id
+                WHERE s.estado = ?
+                ORDER BY e.nombre, s.numero_serie
             `;
             
             const [rows] = await pool.query(query, [estado]);
@@ -109,56 +185,88 @@ class LoteModel {
     }
     
     // ============================================
-    // BUSCAR LOTE ESPECÍFICO (por elemento, estado, ubicación)
+    // OBTENER SERIES DISPONIBLES
     // ============================================
-    static async buscarLoteEspecifico(elementoId, estado, ubicacion) {
+    static async obtenerDisponibles() {
         try {
             const query = `
-                SELECT * FROM lotes
-                WHERE elemento_id = ?
-                  AND estado = ?
-                  AND (ubicacion = ? OR (ubicacion IS NULL AND ? IS NULL))
-                LIMIT 1
+                SELECT 
+                    s.id,
+                    s.numero_serie,
+                    s.ubicacion,
+                    s.ubicacion_id,
+                    u.nombre AS ubicacion_nombre,
+                    e.nombre AS elemento_nombre,
+                    c.nombre AS categoria
+                FROM series s
+                INNER JOIN elementos e ON s.id_elemento = e.id
+                LEFT JOIN categorias c ON e.categoria_id = c.id
+                LEFT JOIN ubicaciones u ON s.ubicacion_id = u.id
+                WHERE s.estado = 'bueno'
+                ORDER BY e.nombre, s.numero_serie
             `;
             
-            const [rows] = await pool.query(query, [
-                elementoId,
-                estado,
-                ubicacion,
-                ubicacion
-            ]);
-            
-            return rows[0];
+            const [rows] = await pool.query(query);
+            return rows;
         } catch (error) {
             throw error;
         }
     }
     
     // ============================================
-    // CREAR LOTE
+    // OBTENER SERIES ALQUILADAS
+    // ============================================
+    static async obtenerAlquiladas() {
+        try {
+            const query = `
+                SELECT 
+                    s.id,
+                    s.numero_serie,
+                    u.nombre AS ubicacion_nombre,
+                    e.nombre AS elemento_nombre,
+                    c.nombre AS categoria
+                FROM series s
+                INNER JOIN elementos e ON s.id_elemento = e.id
+                LEFT JOIN categorias c ON e.categoria_id = c.id
+                LEFT JOIN ubicaciones u ON s.ubicacion_id = u.id
+                WHERE s.estado = 'alquilado'
+                ORDER BY e.nombre, s.numero_serie
+            `;
+            
+            const [rows] = await pool.query(query);
+            return rows;
+        } catch (error) {
+            throw error;
+        }
+    }
+    
+    // ============================================
+    // CREAR NUEVA SERIE
     // ============================================
     static async crear(datos) {
         try {
             const {
-                elemento_id,
-                lote_numero,
-                cantidad,
+                id_elemento,
+                numero_serie,
                 estado,
-                ubicacion
+                ubicacion,
+                ubicacion_id,
+                fecha_ingreso
             } = datos;
             
             const query = `
-                INSERT INTO lotes 
-                (elemento_id, lote_numero, cantidad, estado, ubicacion)
-                VALUES (?, ?, ?, ?, ?)
+                INSERT INTO series 
+                (id_elemento, numero_serie, estado, ubicacion, ubicacion_id, fecha_ingreso)
+                VALUES (?, ?, ?, ?, ?, ?)
             `;
             
             const [result] = await pool.query(query, [
-                elemento_id,
-                lote_numero || null,
-                cantidad,
+                id_elemento,
+                numero_serie,
                 estado || 'bueno',
-                ubicacion || null
+                ubicacion || null,
+                ubicacion_id || null,
+                fecha_ingreso || null
             ]);
             
             return result.insertId;
@@ -168,14 +276,36 @@ class LoteModel {
     }
     
     // ============================================
-    // ACTUALIZAR CANTIDAD DE LOTE
+    // ACTUALIZAR SERIE
     // ============================================
-    static async actualizarCantidad(id, nuevaCantidad) {
+    static async actualizar(id, datos) {
         try {
-            const [result] = await pool.query(
-                'UPDATE lotes SET cantidad = ? WHERE id = ?',
-                [nuevaCantidad, id]
-            );
+            const {
+                numero_serie,
+                estado,
+                ubicacion,
+                ubicacion_id,
+                fecha_ingreso
+            } = datos;
+            
+            const query = `
+                UPDATE series 
+                SET numero_serie = ?,
+                    estado = ?,
+                    ubicacion = ?,
+                    ubicacion_id = ?,
+                    fecha_ingreso = ?
+                WHERE id = ?
+            `;
+            
+            const [result] = await pool.query(query, [
+                numero_serie,
+                estado || 'bueno',
+                ubicacion || null,
+                ubicacion_id || null,
+                fecha_ingreso || null,
+                id
+            ]);
             
             return result.affectedRows;
         } catch (error) {
@@ -184,14 +314,24 @@ class LoteModel {
     }
     
     // ============================================
-    // SUMAR CANTIDAD A LOTE
+    // CAMBIAR ESTADO DE SERIE
     // ============================================
-    static async sumarCantidad(id, cantidadASumar) {
+    static async cambiarEstado(id, nuevoEstado, ubicacion = null, ubicacion_id = null) {
         try {
-            const [result] = await pool.query(
-                'UPDATE lotes SET cantidad = cantidad + ? WHERE id = ?',
-                [cantidadASumar, id]
-            );
+            const query = `
+                UPDATE series 
+                SET estado = ?,
+                    ubicacion = ?,
+                    ubicacion_id = ?
+                WHERE id = ?
+            `;
+            
+            const [result] = await pool.query(query, [
+                nuevoEstado,
+                ubicacion,
+                ubicacion_id,
+                id
+            ]);
             
             return result.affectedRows;
         } catch (error) {
@@ -200,25 +340,32 @@ class LoteModel {
     }
     
     // ============================================
-    // RESTAR CANTIDAD DE LOTE
+    // MOVER SERIE A OTRA UBICACIÓN ✨ NUEVO
     // ============================================
-    static async restarCantidad(id, cantidadARestar) {
+    static async moverUbicacion(id, ubicacionDestinoId) {
         try {
-            // Primero verificar que hay suficiente cantidad
-            const lote = await this.obtenerPorId(id);
+            // Obtener nombre de la ubicación destino
+            const [ubicacion] = await pool.query(
+                'SELECT nombre FROM ubicaciones WHERE id = ?',
+                [ubicacionDestinoId]
+            );
             
-            if (!lote) {
-                throw new Error('Lote no encontrado');
+            if (!ubicacion || ubicacion.length === 0) {
+                throw new Error('Ubicación destino no encontrada');
             }
             
-            if (lote.cantidad < cantidadARestar) {
-                throw new Error(`Cantidad insuficiente. Disponible: ${lote.cantidad}, Solicitado: ${cantidadARestar}`);
-            }
+            const query = `
+                UPDATE series 
+                SET ubicacion_id = ?,
+                    ubicacion = ?
+                WHERE id = ?
+            `;
             
-            const [result] = await pool.query(
-                'UPDATE lotes SET cantidad = cantidad - ? WHERE id = ?',
-                [cantidadARestar, id]
-            );
+            const [result] = await pool.query(query, [
+                ubicacionDestinoId,
+                ubicacion[0].nombre,
+                id
+            ]);
             
             return result.affectedRows;
         } catch (error) {
@@ -227,12 +374,46 @@ class LoteModel {
     }
     
     // ============================================
-    // ELIMINAR LOTE
+    // MOVER MÚLTIPLES SERIES A OTRA UBICACIÓN ✨ NUEVO
+    // ============================================
+    static async moverMultiples(seriesIds, ubicacionDestinoId) {
+        try {
+            // Obtener nombre de la ubicación destino
+            const [ubicacion] = await pool.query(
+                'SELECT nombre FROM ubicaciones WHERE id = ?',
+                [ubicacionDestinoId]
+            );
+            
+            if (!ubicacion || ubicacion.length === 0) {
+                throw new Error('Ubicación destino no encontrada');
+            }
+            
+            const query = `
+                UPDATE series 
+                SET ubicacion_id = ?,
+                    ubicacion = ?
+                WHERE id IN (?)
+            `;
+            
+            const [result] = await pool.query(query, [
+                ubicacionDestinoId,
+                ubicacion[0].nombre,
+                seriesIds
+            ]);
+            
+            return result.affectedRows;
+        } catch (error) {
+            throw error;
+        }
+    }
+    
+    // ============================================
+    // ELIMINAR SERIE
     // ============================================
     static async eliminar(id) {
         try {
             const [result] = await pool.query(
-                'DELETE FROM lotes WHERE id = ?',
+                'DELETE FROM series WHERE id = ?',
                 [id]
             );
             return result.affectedRows;
@@ -242,20 +423,18 @@ class LoteModel {
     }
     
     // ============================================
-    // ESTADÍSTICAS DE UN ELEMENTO
+    // CONTAR SERIES POR ELEMENTO
     // ============================================
-    static async obtenerEstadisticas(elementoId) {
+    static async contarPorElemento(elementoId) {
         try {
             const query = `
                 SELECT 
-                    SUM(cantidad) AS total,
-                    SUM(CASE WHEN estado = 'bueno' THEN cantidad ELSE 0 END) AS disponibles,
-                    SUM(CASE WHEN estado = 'nuevo' THEN cantidad ELSE 0 END) AS nuevos,
-                    SUM(CASE WHEN estado = 'alquilado' THEN cantidad ELSE 0 END) AS alquilados,
-                    SUM(CASE WHEN estado = 'mantenimiento' THEN cantidad ELSE 0 END) AS en_mantenimiento,
-                    SUM(CASE WHEN estado = 'dañado' THEN cantidad ELSE 0 END) AS dañados
-                FROM lotes
-                WHERE elemento_id = ?
+                    COUNT(*) AS total,
+                    SUM(CASE WHEN estado = 'bueno' THEN 1 ELSE 0 END) AS disponibles,
+                    SUM(CASE WHEN estado = 'alquilado' THEN 1 ELSE 0 END) AS alquiladas,
+                    SUM(CASE WHEN estado = 'mantenimiento' THEN 1 ELSE 0 END) AS en_mantenimiento
+                FROM series
+                WHERE id_elemento = ?
             `;
             
             const [rows] = await pool.query(query, [elementoId]);
@@ -266,68 +445,49 @@ class LoteModel {
     }
     
     // ============================================
-    // REGISTRAR MOVIMIENTO EN HISTORIAL
+    // CONTAR SERIES POR UBICACIÓN ✨ NUEVO
     // ============================================
-    static async registrarMovimiento(datos) {
+    static async contarPorUbicacion(ubicacionId) {
         try {
-            const {
-                lote_origen_id,
-                lote_destino_id,
-                cantidad,
-                motivo,
-                descripcion,
-                estado_origen,
-                estado_destino,
-                ubicacion_origen,
-                ubicacion_destino,
-                costo_reparacion
-            } = datos;
-            
             const query = `
-                INSERT INTO lotes_movimientos 
-                (lote_origen_id, lote_destino_id, cantidad, motivo, descripcion,
-                 estado_origen, estado_destino, ubicacion_origen, ubicacion_destino,
-                 costo_reparacion)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                SELECT 
+                    COUNT(*) AS total,
+                    SUM(CASE WHEN estado = 'bueno' THEN 1 ELSE 0 END) AS disponibles,
+                    SUM(CASE WHEN estado = 'alquilado' THEN 1 ELSE 0 END) AS alquiladas,
+                    SUM(CASE WHEN estado = 'mantenimiento' THEN 1 ELSE 0 END) AS en_mantenimiento,
+                    SUM(CASE WHEN estado = 'dañado' THEN 1 ELSE 0 END) AS dañados
+                FROM series
+                WHERE ubicacion_id = ?
             `;
             
-            const [result] = await pool.query(query, [
-                lote_origen_id || null,
-                lote_destino_id || null,
-                cantidad,
-                motivo || null,
-                descripcion || null,
-                estado_origen || null,
-                estado_destino || null,
-                ubicacion_origen || null,
-                ubicacion_destino || null,
-                costo_reparacion || null
-            ]);
-            
-            return result.insertId;
+            const [rows] = await pool.query(query, [ubicacionId]);
+            return rows[0];
         } catch (error) {
             throw error;
         }
     }
     
     // ============================================
-    // OBTENER HISTORIAL DE MOVIMIENTOS
+    // OBTENER RESUMEN POR UBICACIÓN ✨ NUEVO
     // ============================================
-    static async obtenerHistorial(loteId) {
+    static async obtenerResumenPorUbicaciones() {
         try {
             const query = `
                 SELECT 
-                    m.*,
-                    lo.lote_numero AS lote_origen_numero,
-                    ld.lote_numero AS lote_destino_numero
-                FROM lotes_movimientos m
-                LEFT JOIN lotes lo ON m.lote_origen_id = lo.id
-                LEFT JOIN lotes ld ON m.lote_destino_id = ld.id
-                WHERE m.lote_origen_id = ? OR m.lote_destino_id = ?
-                ORDER BY m.fecha_movimiento DESC
+                    u.id AS ubicacion_id,
+                    u.nombre AS ubicacion_nombre,
+                    u.tipo AS ubicacion_tipo,
+                    COUNT(s.id) AS total_series,
+                    SUM(CASE WHEN s.estado = 'bueno' THEN 1 ELSE 0 END) AS disponibles,
+                    SUM(CASE WHEN s.estado = 'alquilado' THEN 1 ELSE 0 END) AS alquiladas
+                FROM ubicaciones u
+                LEFT JOIN series s ON u.id = s.ubicacion_id
+                WHERE u.activo = TRUE
+                GROUP BY u.id, u.nombre, u.tipo
+                ORDER BY total_series DESC
             `;
             
-            const [rows] = await pool.query(query, [loteId, loteId]);
+            const [rows] = await pool.query(query);
             return rows;
         } catch (error) {
             throw error;
@@ -335,4 +495,4 @@ class LoteModel {
     }
 }
 
-module.exports = LoteModel;
+module.exports = SerieModel;
