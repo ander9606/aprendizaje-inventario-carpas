@@ -1,13 +1,15 @@
-// Agregar al inicio del archivo
-const { pool } = require('../config/database');
 // ============================================
-
 // CONTROLLER: loteController
 // Responsabilidad: Lógica de negocio de lotes
 // ============================================
 
 const LoteModel = require('../models/LoteModel');
 const ElementoModel = require('../models/ElementoModel');
+const AppError = require('../utils/AppError');
+const logger = require('../utils/logger');
+const { validateCantidad, validateEstado, validateId } = require('../utils/validators');
+const { ESTADOS_VALIDOS, MENSAJES_ERROR, MENSAJES_EXITO, ENTIDADES } = require('../config/constants');
+const { pool } = require('../config/database');
 
 // ============================================
 // OBTENER TODOS LOS LOTES
@@ -215,7 +217,20 @@ exports.crear = async (req, res) => {
 // ============================================
 // MOVER CANTIDAD ENTRE LOTES (Función Principal)
 // ============================================
-exports.moverCantidad = async (req, res) => {
+/**
+ * MOVER CANTIDAD ENTRE LOTES
+ *
+ * Mueve una cantidad de un lote origen a un lote destino.
+ * Si el lote destino no existe, lo crea.
+ * Si el lote origen queda vacío, lo elimina.
+ * Usa transacciones para garantizar atomicidad.
+ *
+ * POST /api/lotes/mover
+ * Body: { lote_origen_id, cantidad, estado_destino, ubicacion_destino, motivo, descripcion, costo_reparacion }
+ */
+exports.moverCantidad = async (req, res, next) => {
+    const connection = await pool.getConnection();
+
     try {
         const {
             lote_origen_id,
@@ -226,149 +241,148 @@ exports.moverCantidad = async (req, res) => {
             descripcion,
             costo_reparacion
         } = req.body;
-        
+
+        logger.info('loteController.moverCantidad', 'Iniciando movimiento de lote', {
+            lote_origen_id,
+            cantidad,
+            estado_destino
+        });
+
         // ═══════════════════════════════════════
         // VALIDACIONES
         // ═══════════════════════════════════════
-        
-        if (!lote_origen_id) {
-            return res.status(400).json({
-                success: false,
-                mensaje: 'El lote_origen_id es obligatorio'
-            });
-        }
-        
-        if (!cantidad || cantidad <= 0) {
-            return res.status(400).json({
-                success: false,
-                mensaje: 'La cantidad debe ser mayor a 0'
-            });
-        }
-        
-        if (!estado_destino) {
-            return res.status(400).json({
-                success: false,
-                mensaje: 'El estado_destino es obligatorio'
-            });
-        }
-        
-        // Validar estado
-        const estadosValidos = ['nuevo', 'bueno', 'mantenimiento', 'alquilado', 'dañado'];
-        if (!estadosValidos.includes(estado_destino)) {
-            return res.status(400).json({
-                success: false,
-                mensaje: 'Estado destino inválido',
-                estadosValidos
-            });
-        }
-        
+
+        const loteOrigenId = validateId(lote_origen_id, 'lote_origen_id');
+        const cantidadValidada = validateCantidad(cantidad, 'Cantidad');
+        const estadoDestinoValidado = validateEstado(estado_destino);
+
         // Obtener lote origen
-        const loteOrigen = await LoteModel.obtenerPorId(lote_origen_id);
+        const loteOrigen = await LoteModel.obtenerPorId(loteOrigenId);
         if (!loteOrigen) {
-            return res.status(404).json({
-                success: false,
-                mensaje: 'Lote origen no encontrado'
-            });
+            throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO('Lote origen'), 404);
         }
-        
+
         // Verificar cantidad disponible
-        if (loteOrigen.cantidad < cantidad) {
-            return res.status(400).json({
-                success: false,
-                mensaje: `Cantidad insuficiente en lote origen. Disponible: ${loteOrigen.cantidad}, Solicitado: ${cantidad}`
-            });
+        if (loteOrigen.cantidad < cantidadValidada) {
+            throw new AppError(
+                `Cantidad insuficiente. Disponible: ${loteOrigen.cantidad}, Solicitado: ${cantidadValidada}`,
+                400
+            );
         }
-        
+
         // ═══════════════════════════════════════
-        // LÓGICA DE MOVIMIENTO
+        // INICIAR TRANSACCIÓN
         // ═══════════════════════════════════════
-        
-        // 1. Buscar si ya existe un lote con el estado+ubicación destino
+
+        await connection.beginTransaction();
+        logger.debug('loteController.moverCantidad', 'Transacción iniciada');
+
+        // 1. Buscar o crear lote destino
         let loteDestino = await LoteModel.buscarLoteEspecifico(
             loteOrigen.elemento_id,
-            estado_destino,
+            estadoDestinoValidado,
             ubicacion_destino
         );
-        
+
         let loteDestinoId;
-        
+        let loteDestinoCreado = false;
+
         if (loteDestino) {
-            // ───────────────────────────────────
-            // CASO A: Ya existe lote → SUMAR
-            // ───────────────────────────────────
-            console.log(`✅ Lote destino encontrado (id: ${loteDestino.id}). Sumando cantidad...`);
-            
-            await LoteModel.sumarCantidad(loteDestino.id, cantidad);
+            logger.debug('loteController.moverCantidad', 'Lote destino encontrado', {
+                lote_destino_id: loteDestino.id
+            });
+
+            await LoteModel.sumarCantidad(loteDestino.id, cantidadValidada);
             loteDestinoId = loteDestino.id;
-            
         } else {
-            // ───────────────────────────────────
-            // CASO B: No existe → CREAR NUEVO
-            // ───────────────────────────────────
-            console.log('🆕 Lote destino no existe. Creando nuevo lote...');
-            
+            logger.debug('loteController.moverCantidad', 'Creando nuevo lote destino');
+
             loteDestinoId = await LoteModel.crear({
                 elemento_id: loteOrigen.elemento_id,
-                cantidad: cantidad,
-                estado: estado_destino,
+                cantidad: cantidadValidada,
+                estado: estadoDestinoValidado,
                 ubicacion: ubicacion_destino,
-                lote_numero: `LOTE-${Date.now()}`  // Generar número único
+                lote_numero: `LOTE-${Date.now()}`
             });
+            loteDestinoCreado = true;
         }
-        
+
         // 2. Restar cantidad del lote origen
-        await LoteModel.restarCantidad(lote_origen_id, cantidad);
-        
+        await LoteModel.restarCantidad(loteOrigenId, cantidadValidada);
+        logger.debug('loteController.moverCantidad', 'Cantidad restada del lote origen');
+
         // 3. Registrar movimiento en historial
         await LoteModel.registrarMovimiento({
-            lote_origen_id: lote_origen_id,
+            lote_origen_id: loteOrigenId,
             lote_destino_id: loteDestinoId,
-            cantidad: cantidad,
-            motivo: motivo,
-            descripcion: descripcion,
+            cantidad: cantidadValidada,
+            motivo: motivo || null,
+            descripcion: descripcion || null,
             estado_origen: loteOrigen.estado,
-            estado_destino: estado_destino,
+            estado_destino: estadoDestinoValidado,
             ubicacion_origen: loteOrigen.ubicacion,
             ubicacion_destino: ubicacion_destino,
-            costo_reparacion: costo_reparacion
+            costo_reparacion: costo_reparacion || null
         });
-        
+        logger.debug('loteController.moverCantidad', 'Movimiento registrado en historial');
+
         // 4. Si el lote origen quedó vacío, eliminarlo
-        const loteOrigenActualizado = await LoteModel.obtenerPorId(lote_origen_id);
+        const loteOrigenActualizado = await LoteModel.obtenerPorId(loteOrigenId);
+        let loteOrigenEliminado = false;
+
         if (loteOrigenActualizado && loteOrigenActualizado.cantidad === 0) {
-            console.log(`🗑️  Lote origen vacío (id: ${lote_origen_id}). Eliminando...`);
-            await LoteModel.eliminar(lote_origen_id);
+            await LoteModel.eliminar(loteOrigenId);
+            loteOrigenEliminado = true;
+            logger.debug('loteController.moverCantidad', 'Lote origen eliminado (cantidad = 0)');
         }
-        
+
+        // ═══════════════════════════════════════
+        // COMMIT TRANSACCIÓN
+        // ═══════════════════════════════════════
+
+        await connection.commit();
+        logger.info('loteController.moverCantidad', 'Transacción completada exitosamente', {
+            lote_origen_eliminado: loteOrigenEliminado,
+            lote_destino_creado: loteDestinoCreado
+        });
+
         // 5. Obtener estado actualizado
         const estadisticas = await LoteModel.obtenerEstadisticas(loteOrigen.elemento_id);
         const lotesActualizados = await LoteModel.obtenerPorElemento(loteOrigen.elemento_id);
-        
+
         // ═══════════════════════════════════════
         // RESPUESTA
         // ═══════════════════════════════════════
-        
+
         res.json({
             success: true,
-            mensaje: 'Movimiento realizado exitosamente',
+            mensaje: MENSAJES_EXITO.MOVIMIENTO_EXITOSO,
             movimiento: {
-                cantidad_movida: cantidad,
+                cantidad_movida: cantidadValidada,
                 estado_origen: loteOrigen.estado,
-                estado_destino: estado_destino,
-                lote_origen_eliminado: loteOrigenActualizado?.cantidad === 0,
-                lote_destino_creado: !loteDestino
+                estado_destino: estadoDestinoValidado,
+                lote_origen_eliminado: loteOrigenEliminado,
+                lote_destino_creado: loteDestinoCreado
             },
             estadisticas: estadisticas,
             lotes_actuales: lotesActualizados
         });
-        
+
     } catch (error) {
-        console.error('Error en moverCantidad:', error);
-        res.status(500).json({
-            success: false,
-            mensaje: 'Error al mover cantidad',
-            error: error.message
+        // ═══════════════════════════════════════
+        // ROLLBACK EN CASO DE ERROR
+        // ═══════════════════════════════════════
+
+        await connection.rollback();
+        logger.error('loteController.moverCantidad', error, {
+            lote_origen_id: req.body.lote_origen_id,
+            cantidad: req.body.cantidad
         });
+
+        next(error);
+    } finally {
+        connection.release();
+        logger.debug('loteController.moverCantidad', 'Conexión liberada');
     }
 };
 

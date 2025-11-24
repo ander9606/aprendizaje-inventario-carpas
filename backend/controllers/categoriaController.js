@@ -1,18 +1,23 @@
 // ============================================
-// CONTROLADOR: CATEGORIA 
-
+// CONTROLADOR: CATEGORIA
 // Incluye manejo del campo emoji
 // ============================================
 
-const CategoriaModel = require('../models/CategoriaModel')
+const CategoriaModel = require('../models/CategoriaModel');
+const AppError = require('../utils/AppError');
+const logger = require('../utils/logger');
+const { validateNombre, validateEmoji, validateId } = require('../utils/validators');
+const { MENSAJES_ERROR, MENSAJES_EXITO, ENTIDADES } = require('../config/constants');
 
 /**
- * CAMBIOS EN ESTA VERSIÓN:
- * 
- * 1. Agregamos validación del emoji (opcional pero con límites)
- * 2. Extraemos emoji del req.body en crear() y actualizar()
- * 3. Pasamos emoji al modelo
- * 4. USA COMMONJS (module.exports) NO ES6 MODULES
+ * MEJORAS EN ESTA VERSIÓN:
+ *
+ * 1. Usa AppError para manejo centralizado de errores
+ * 2. Usa validadores centralizados de utils/validators
+ * 3. Usa constantes centralizadas de config/constants
+ * 4. Logging estructurado con utils/logger
+ * 5. Los errores se propagan al middleware global
+ * 6. USA COMMONJS (module.exports) NO ES6 MODULES
  */
 
 // ============================================
@@ -22,24 +27,19 @@ const CategoriaModel = require('../models/CategoriaModel')
 /**
  * GET /api/categorias
  */
-exports.obtenerTodas = async (req, res) => {
+exports.obtenerTodas = async (req, res, next) => {
   try {
-    const categorias = await CategoriaModel.obtenerTodas()
-    
+    const categorias = await CategoriaModel.obtenerTodas();
+
     res.json({
       success: true,
       data: categorias,
       total: categorias.length
-    })
+    });
   } catch (error) {
-    console.error('Error en obtenerTodas:', error)
-    res.status(500).json({
-      success: false,
-      mensaje: 'Error al obtener categorías',
-      error: error.message
-    })
+    next(error);
   }
-}
+};
 
 // ============================================
 // OBTENER SOLO CATEGORÍAS PADRE
@@ -48,24 +48,19 @@ exports.obtenerTodas = async (req, res) => {
 /**
  * GET /api/categorias/padres
  */
-exports.obtenerPadres = async (req, res) => {
+exports.obtenerPadres = async (req, res, next) => {
   try {
-    const categorias = await CategoriaModel.obtenerPadres()
-    
+    const categorias = await CategoriaModel.obtenerPadres();
+
     res.json({
       success: true,
       data: categorias,
       total: categorias.length
-    })
+    });
   } catch (error) {
-    console.error('Error en obtenerPadres:', error)
-    res.status(500).json({
-      success: false,
-      mensaje: 'Error al obtener categorías padre',
-      error: error.message
-    })
+    next(error);
   }
-}
+};
 
 // ============================================
 // OBTENER POR ID
@@ -73,32 +68,25 @@ exports.obtenerPadres = async (req, res) => {
 
 /**
  * GET /api/categorias/:id
+ * Nota: El ID ya viene validado por el middleware validateId
  */
-exports.obtenerPorId = async (req, res) => {
+exports.obtenerPorId = async (req, res, next) => {
   try {
-    const { id } = req.params
-    const categoria = await CategoriaModel.obtenerPorId(id)
-    
+    const { id } = req.params;
+    const categoria = await CategoriaModel.obtenerPorId(id);
+
     if (!categoria) {
-      return res.status(404).json({
-        success: false,
-        mensaje: 'Categoría no encontrada'
-      })
+      throw new AppError('Categoría no encontrada', 404);
     }
-    
+
     res.json({
       success: true,
       data: categoria
-    })
+    });
   } catch (error) {
-    console.error('Error en obtenerPorId:', error)
-    res.status(500).json({
-      success: false,
-      mensaje: 'Error al obtener categoría',
-      error: error.message
-    })
+    next(error);
   }
-}
+};
 
 // ============================================
 // OBTENER SUBCATEGORÍAS
@@ -107,36 +95,28 @@ exports.obtenerPorId = async (req, res) => {
 /**
  * GET /api/categorias/:id/hijas
  */
-exports.obtenerHijas = async (req, res) => {
+exports.obtenerHijas = async (req, res, next) => {
   try {
-    const { id } = req.params
-    
+    const { id } = req.params;
+
     // Verificar que la categoría padre existe
-    const categoriaPadre = await CategoriaModel.obtenerPorId(id)
+    const categoriaPadre = await CategoriaModel.obtenerPorId(id);
     if (!categoriaPadre) {
-      return res.status(404).json({
-        success: false,
-        mensaje: 'Categoría padre no encontrada'
-      })
+      throw new AppError('Categoría padre no encontrada', 404);
     }
-    
-    const subcategorias = await CategoriaModel.obtenerHijas(id)
-    
+
+    const subcategorias = await CategoriaModel.obtenerHijas(id);
+
     res.json({
       success: true,
       data: subcategorias,
       total: subcategorias.length,
       categoria_padre: categoriaPadre
-    })
+    });
   } catch (error) {
-    console.error('Error en obtenerHijas:', error)
-    res.status(500).json({
-      success: false,
-      mensaje: 'Error al obtener subcategorías',
-      error: error.message
-    })
+    next(error);
   }
-}
+};
 
 // ============================================
 // CREAR CATEGORÍA
@@ -144,7 +124,7 @@ exports.obtenerHijas = async (req, res) => {
 
 /**
  * POST /api/categorias
- * 
+ *
  * Body:
  * {
  *   "nombre": "Carpas",
@@ -152,76 +132,56 @@ exports.obtenerHijas = async (req, res) => {
  *   "padre_id": null  // opcional
  * }
  */
-exports.crear = async (req, res) => {
+exports.crear = async (req, res, next) => {
   try {
-    const { nombre, emoji, padre_id } = req.body
-    
+    const { nombre, emoji, padre_id } = req.body;
+
+    logger.info('categoriaController.crear', 'Creando nueva categoría', { nombre });
+
     // ============================================
     // VALIDACIONES
     // ============================================
-    
-    // Validar nombre
-    if (!nombre || nombre.trim() === '') {
-      return res.status(400).json({
-        success: false,
-        mensaje: 'El nombre es obligatorio'
-      })
-    }
-    
-    if (nombre.length < 3 || nombre.length > 50) {
-      return res.status(400).json({
-        success: false,
-        mensaje: 'El nombre debe tener entre 3 y 50 caracteres'
-      })
-    }
-    
-    // Validar emoji (opcional pero con límites)
-    if (emoji && emoji.length > 10) {
-      return res.status(400).json({
-        success: false,
-        mensaje: 'El emoji no puede tener más de 10 caracteres'
-      })
-    }
-    
+
+    const nombreValidado = validateNombre(nombre, ENTIDADES.CATEGORIA);
+    const emojiValidado = validateEmoji(emoji);
+
     // Validar padre_id si existe
     if (padre_id) {
-      const categoriaPadre = await CategoriaModel.obtenerPorId(padre_id)
+      const padreIdValidado = validateId(padre_id, 'padre_id');
+      const categoriaPadre = await CategoriaModel.obtenerPorId(padreIdValidado);
       if (!categoriaPadre) {
-        return res.status(404).json({
-          success: false,
-          mensaje: 'La categoría padre no existe'
-        })
+        throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO('Categoría padre'), 404);
       }
     }
-    
+
     // ============================================
     // CREAR CATEGORÍA
     // ============================================
-    
+
     const resultado = await CategoriaModel.crear({
-      nombre: nombre.trim(),
-      emoji: emoji?.trim() || null,
+      nombre: nombreValidado,
+      emoji: emojiValidado,
       padre_id: padre_id || null
-    })
-    
+    });
+
     // Obtener la categoría creada con todos sus datos
-    const categoriaCreada = await CategoriaModel.obtenerPorId(resultado.insertId)
-    
+    const categoriaCreada = await CategoriaModel.obtenerPorId(resultado.insertId);
+
+    logger.info('categoriaController.crear', 'Categoría creada exitosamente', {
+      id: resultado.insertId,
+      nombre: nombreValidado
+    });
+
     res.status(201).json({
       success: true,
-      mensaje: 'Categoría creada exitosamente',
+      mensaje: MENSAJES_EXITO.CREADO(ENTIDADES.CATEGORIA),
       data: categoriaCreada
-    })
-    
+    });
   } catch (error) {
-    console.error('Error en crear:', error)
-    res.status(500).json({
-      success: false,
-      mensaje: 'Error al crear categoría',
-      error: error.message
-    })
+    logger.error('categoriaController.crear', error);
+    next(error);
   }
-}
+};
 
 // ============================================
 // ACTUALIZAR CATEGORÍA
@@ -229,7 +189,7 @@ exports.crear = async (req, res) => {
 
 /**
  * PUT /api/categorias/:id
- * 
+ *
  * Body:
  * {
  *   "nombre": "Carpas Actualizadas",
@@ -237,94 +197,68 @@ exports.crear = async (req, res) => {
  *   "padre_id": null  // opcional
  * }
  */
-exports.actualizar = async (req, res) => {
+exports.actualizar = async (req, res, next) => {
   try {
-    const { id } = req.params
-    const { nombre, emoji, padre_id } = req.body
-    
+    const { id } = req.params;
+    const { nombre, emoji, padre_id } = req.body;
+
+    logger.info('categoriaController.actualizar', 'Actualizando categoría', { id });
+
     // ============================================
     // VALIDACIONES
     // ============================================
-    
+
     // Verificar que la categoría existe
-    const categoriaExistente = await CategoriaModel.obtenerPorId(id)
+    const categoriaExistente = await CategoriaModel.obtenerPorId(id);
     if (!categoriaExistente) {
-      return res.status(404).json({
-        success: false,
-        mensaje: 'Categoría no encontrada'
-      })
+      throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO(ENTIDADES.CATEGORIA), 404);
     }
-    
-    // Validar nombre
-    if (!nombre || nombre.trim() === '') {
-      return res.status(400).json({
-        success: false,
-        mensaje: 'El nombre es obligatorio'
-      })
-    }
-    
-    if (nombre.length < 3 || nombre.length > 50) {
-      return res.status(400).json({
-        success: false,
-        mensaje: 'El nombre debe tener entre 3 y 50 caracteres'
-      })
-    }
-    
-    // Validar emoji
-    if (emoji && emoji.length > 10) {
-      return res.status(400).json({
-        success: false,
-        mensaje: 'El emoji no puede tener más de 10 caracteres'
-      })
-    }
-    
+
+    const nombreValidado = validateNombre(nombre, ENTIDADES.CATEGORIA);
+    const emojiValidado = validateEmoji(emoji);
+
     // Validar que no se esté poniendo como su propio padre
     if (padre_id && parseInt(padre_id) === parseInt(id)) {
-      return res.status(400).json({
-        success: false,
-        mensaje: 'Una categoría no puede ser su propia padre'
-      })
+      throw new AppError('Una categoría no puede ser su propia padre', 400);
     }
-    
+
     // Validar padre_id si existe
     if (padre_id) {
-      const categoriaPadre = await CategoriaModel.obtenerPorId(padre_id)
+      const padreIdValidado = validateId(padre_id, 'padre_id');
+      const categoriaPadre = await CategoriaModel.obtenerPorId(padreIdValidado);
       if (!categoriaPadre) {
-        return res.status(404).json({
-          success: false,
-          mensaje: 'La categoría padre no existe'
-        })
+        throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO('Categoría padre'), 404);
       }
     }
-    
+
     // ============================================
     // ACTUALIZAR CATEGORÍA
     // ============================================
-    
+
     await CategoriaModel.actualizar(id, {
-      nombre: nombre.trim(),
-      emoji: emoji?.trim() || null,
+      nombre: nombreValidado,
+      emoji: emojiValidado,
       padre_id: padre_id || null
-    })
-    
+    });
+
     // Obtener la categoría actualizada
-    const categoriaActualizada = await CategoriaModel.obtenerPorId(id)
-    
+    const categoriaActualizada = await CategoriaModel.obtenerPorId(id);
+
+    logger.info('categoriaController.actualizar', 'Categoría actualizada exitosamente', {
+      id,
+      nombre: nombreValidado
+    });
+
     res.json({
       success: true,
-      mensaje: 'Categoría actualizada exitosamente',
+      mensaje: MENSAJES_EXITO.ACTUALIZADO(ENTIDADES.CATEGORIA),
       data: categoriaActualizada
-    })
-    
+    });
   } catch (error) {
-    console.error('Error en actualizar:', error)
-    res.status(500).json({
-      success: false,
-      mensaje: 'Error al actualizar categoría',
-      error: error.message
-    })
+    logger.error('categoriaController.actualizar', error);
+    next(error);
   }
-}
+};
 
 // ============================================
 // ELIMINAR CATEGORÍA
@@ -333,52 +267,51 @@ exports.actualizar = async (req, res) => {
 /**
  * DELETE /api/categorias/:id
  */
-exports.eliminar = async (req, res) => {
+exports.eliminar = async (req, res, next) => {
   try {
-    const { id } = req.params
-    
+    const { id } = req.params;
+
+    logger.info('categoriaController.eliminar', 'Eliminando categoría', { id });
+
     // Verificar que la categoría existe
-    const categoria = await CategoriaModel.obtenerPorId(id)
+    const categoria = await CategoriaModel.obtenerPorId(id);
     if (!categoria) {
-      return res.status(404).json({
-        success: false,
-        mensaje: 'Categoría no encontrada'
-      })
+      throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO(ENTIDADES.CATEGORIA), 404);
     }
-    
+
     // Verificar que no tenga subcategorías
-    const tieneSubcategorias = await CategoriaModel.tieneSubcategorias(id)
+    const tieneSubcategorias = await CategoriaModel.tieneSubcategorias(id);
     if (tieneSubcategorias) {
-      return res.status(400).json({
-        success: false,
-        mensaje: 'No se puede eliminar una categoría que tiene subcategorías'
-      })
+      throw new AppError(
+        MENSAJES_ERROR.NO_SE_PUEDE_ELIMINAR_CON_HIJOS('una categoría'),
+        400
+      );
     }
-    
+
     // Verificar que no tenga elementos
-    const tieneElementos = await CategoriaModel.tieneElementos(id)
+    const tieneElementos = await CategoriaModel.tieneElementos(id);
     if (tieneElementos) {
-      return res.status(400).json({
-        success: false,
-        mensaje: 'No se puede eliminar una categoría que tiene elementos asociados'
-      })
+      throw new AppError(
+        'No se puede eliminar una categoría que tiene elementos asociados',
+        400
+      );
     }
-    
+
     // Eliminar categoría
-    await CategoriaModel.eliminar(id)
-    
+    await CategoriaModel.eliminar(id);
+
+    logger.info('categoriaController.eliminar', 'Categoría eliminada exitosamente', {
+      id,
+      nombre: categoria.nombre
+    });
+
     res.json({
       success: true,
-      mensaje: 'Categoría eliminada exitosamente'
-    })
-    
+      mensaje: MENSAJES_EXITO.ELIMINADO(ENTIDADES.CATEGORIA)
+    });
   } catch (error) {
-    console.error('Error en eliminar:', error)
-    res.status(500).json({
-      success: false,
-      mensaje: 'Error al eliminar categoría',
-      error: error.message
-    })
+    logger.error('categoriaController.eliminar', error);
+    next(error);
   }
-}
+};
 

@@ -6,6 +6,7 @@
 const express = require('express');
 const router = express.Router();
 const categoriaController = require('../controllers/categoriaController');
+const { validateId } = require('../middleware/validator');
 
 // ============================================
 // DEFINIR RUTAS
@@ -18,19 +19,19 @@ router.get('/', categoriaController.obtenerTodas);
 router.get('/padres', categoriaController.obtenerPadres);
 
 // GET /api/categorias/:id - Obtener una por ID
-router.get('/:id', categoriaController.obtenerPorId);
+router.get('/:id', validateId(), categoriaController.obtenerPorId);
 
 // GET /api/categorias/:id/hijas - Obtener subcategorías
-router.get('/:id/hijas', categoriaController.obtenerHijas);
+router.get('/:id/hijas', validateId(), categoriaController.obtenerHijas);
 
 // POST /api/categorias - Crear nueva
 router.post('/', categoriaController.crear);
 
 // PUT /api/categorias/:id - Actualizar
-router.put('/:id', categoriaController.actualizar);
+router.put('/:id', validateId(), categoriaController.actualizar);
 
 // DELETE /api/categorias/:id - Eliminar
-router.delete('/:id', categoriaController.eliminar);
+router.delete('/:id', validateId(), categoriaController.eliminar);
 
 // ============================================
 // EXPORTAR
