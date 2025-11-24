@@ -165,6 +165,140 @@ class CategoriaModel {
     );
     return rows[0].total > 0;
   }
+
+  // ============================================
+  // OBTENER CATEGORÍAS CON PAGINACIÓN
+  // ============================================
+  /**
+   * Obtiene categorías con paginación y ordenamiento
+   * @param {Object} options - Opciones de paginación
+   * @param {number} options.limit - Elementos por página
+   * @param {number} options.offset - Offset
+   * @param {string} options.sortBy - Campo de ordenamiento (default: 'nombre')
+   * @param {string} options.order - Orden ASC/DESC (default: 'ASC')
+   * @param {string} options.search - Término de búsqueda (opcional)
+   * @returns {Array} Categorías paginadas
+   */
+  static async obtenerConPaginacion({ limit = 20, offset = 0, sortBy = 'nombre', order = 'ASC', search = null }) {
+    // Construir query base
+    let query = `
+      SELECT
+        c.id,
+        c.nombre,
+        c.emoji,
+        c.padre_id,
+        c.created_at,
+        padre.nombre AS padre_nombre,
+        padre.emoji AS padre_emoji,
+        (
+          SELECT COUNT(*)
+          FROM categorias
+          WHERE padre_id = c.id
+        ) AS total_subcategorias
+      FROM categorias c
+      LEFT JOIN categorias padre ON c.padre_id = padre.id
+    `;
+
+    const params = [];
+
+    // Agregar búsqueda si existe
+    if (search) {
+      query += ' WHERE c.nombre LIKE ?';
+      params.push(`%${search}%`);
+    }
+
+    // Agregar ordenamiento
+    const validSortFields = ['nombre', 'id', 'created_at', 'padre_id'];
+    const sortField = validSortFields.includes(sortBy) ? sortBy : 'nombre';
+    const sortOrder = order.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
+
+    query += ` ORDER BY c.${sortField} ${sortOrder}`;
+
+    // Agregar paginación
+    query += ' LIMIT ? OFFSET ?';
+    params.push(limit, offset);
+
+    const [rows] = await pool.query(query, params);
+    return rows;
+  }
+
+  /**
+   * Obtiene el total de categorías (para paginación)
+   * @param {string} search - Término de búsqueda (opcional)
+   * @returns {number} Total de categorías
+   */
+  static async contarTodas(search = null) {
+    let query = 'SELECT COUNT(*) AS total FROM categorias';
+    const params = [];
+
+    if (search) {
+      query += ' WHERE nombre LIKE ?';
+      params.push(`%${search}%`);
+    }
+
+    const [rows] = await pool.query(query, params);
+    return rows[0].total;
+  }
+
+  /**
+   * Obtiene categorías padre con paginación
+   * @param {Object} options - Opciones de paginación
+   * @returns {Array} Categorías padre paginadas
+   */
+  static async obtenerPadresConPaginacion({ limit = 20, offset = 0, sortBy = 'nombre', order = 'ASC', search = null }) {
+    let query = `
+      SELECT
+        c.id,
+        c.nombre,
+        c.emoji,
+        c.created_at,
+        (
+          SELECT COUNT(*)
+          FROM categorias
+          WHERE padre_id = c.id
+        ) AS total_subcategorias
+      FROM categorias c
+      WHERE c.padre_id IS NULL
+    `;
+
+    const params = [];
+
+    // Agregar búsqueda
+    if (search) {
+      query += ' AND c.nombre LIKE ?';
+      params.push(`%${search}%`);
+    }
+
+    // Ordenamiento
+    const validSortFields = ['nombre', 'id', 'created_at'];
+    const sortField = validSortFields.includes(sortBy) ? sortBy : 'nombre';
+    const sortOrder = order.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
+
+    query += ` ORDER BY c.${sortField} ${sortOrder}`;
+    query += ' LIMIT ? OFFSET ?';
+    params.push(limit, offset);
+
+    const [rows] = await pool.query(query, params);
+    return rows;
+  }
+
+  /**
+   * Cuenta categorías padre (para paginación)
+   * @param {string} search - Término de búsqueda (opcional)
+   * @returns {number} Total de categorías padre
+   */
+  static async contarPadres(search = null) {
+    let query = 'SELECT COUNT(*) AS total FROM categorias WHERE padre_id IS NULL';
+    const params = [];
+
+    if (search) {
+      query += ' AND nombre LIKE ?';
+      params.push(`%${search}%`);
+    }
+
+    const [rows] = await pool.query(query, params);
+    return rows[0].total;
+  }
 }
 
 module.exports = CategoriaModel;

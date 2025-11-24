@@ -8,6 +8,7 @@ const AppError = require('../utils/AppError');
 const logger = require('../utils/logger');
 const { validateNombre, validateEmoji, validateId } = require('../utils/validators');
 const { MENSAJES_ERROR, MENSAJES_EXITO, ENTIDADES } = require('../config/constants');
+const { getPaginationParams, getPaginatedResponse, shouldPaginate, getSortParams } = require('../utils/pagination');
 
 /**
  * MEJORAS EN ESTA VERSIÓN:
@@ -26,16 +27,49 @@ const { MENSAJES_ERROR, MENSAJES_EXITO, ENTIDADES } = require('../config/constan
 
 /**
  * GET /api/categorias
+ *
+ * Soporta paginación opcional:
+ * - Sin params: Retorna todas las categorías
+ * - Con ?page=1&limit=20: Retorna paginado
+ * - Con ?search=carpa: Búsqueda por nombre
+ * - Con ?sortBy=nombre&order=DESC: Ordenamiento
+ * - Con ?paginate=false: Fuerza sin paginación
  */
 exports.obtenerTodas = async (req, res, next) => {
   try {
-    const categorias = await CategoriaModel.obtenerTodas();
+    // Verificar si se debe paginar
+    if (shouldPaginate(req.query) && (req.query.page || req.query.limit)) {
+      // MODO PAGINADO
+      const { page, limit, offset } = getPaginationParams(req.query);
+      const { sortBy, order } = getSortParams(req.query, 'nombre');
+      const search = req.query.search || null;
 
-    res.json({
-      success: true,
-      data: categorias,
-      total: categorias.length
-    });
+      logger.debug('categoriaController.obtenerTodas', 'Modo paginado', {
+        page, limit, offset, sortBy, order, search
+      });
+
+      // Obtener datos y total
+      const categorias = await CategoriaModel.obtenerConPaginacion({
+        limit,
+        offset,
+        sortBy,
+        order,
+        search
+      });
+      const total = await CategoriaModel.contarTodas(search);
+
+      // Retornar respuesta paginada
+      res.json(getPaginatedResponse(categorias, page, limit, total));
+    } else {
+      // MODO SIN PAGINACIÓN (retrocompatible)
+      const categorias = await CategoriaModel.obtenerTodas();
+
+      res.json({
+        success: true,
+        data: categorias,
+        total: categorias.length
+      });
+    }
   } catch (error) {
     next(error);
   }
@@ -47,16 +81,40 @@ exports.obtenerTodas = async (req, res, next) => {
 
 /**
  * GET /api/categorias/padres
+ *
+ * Soporta paginación opcional (igual que obtenerTodas)
  */
 exports.obtenerPadres = async (req, res, next) => {
   try {
-    const categorias = await CategoriaModel.obtenerPadres();
+    // Verificar si se debe paginar
+    if (shouldPaginate(req.query) && (req.query.page || req.query.limit)) {
+      // MODO PAGINADO
+      const { page, limit, offset } = getPaginationParams(req.query);
+      const { sortBy, order } = getSortParams(req.query, 'nombre');
+      const search = req.query.search || null;
 
-    res.json({
-      success: true,
-      data: categorias,
-      total: categorias.length
-    });
+      // Obtener datos y total
+      const categorias = await CategoriaModel.obtenerPadresConPaginacion({
+        limit,
+        offset,
+        sortBy,
+        order,
+        search
+      });
+      const total = await CategoriaModel.contarPadres(search);
+
+      // Retornar respuesta paginada
+      res.json(getPaginatedResponse(categorias, page, limit, total));
+    } else {
+      // MODO SIN PAGINACIÓN (retrocompatible)
+      const categorias = await CategoriaModel.obtenerPadres();
+
+      res.json({
+        success: true,
+        data: categorias,
+        total: categorias.length
+      });
+    }
   } catch (error) {
     next(error);
   }
