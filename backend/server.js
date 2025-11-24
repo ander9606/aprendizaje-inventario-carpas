@@ -4,9 +4,11 @@
 
 const express = require('express');
 const cors = require('cors');
+const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
 const { testConnection } = require('./config/database');
+const { errorHandler, notFound } = require('./middleware/errorHandler');
 
 // Importar rutas
 const categoriasRoutes = require('./routes/categorias');
@@ -20,9 +22,34 @@ const ubicacionesRoutes = require('./routes/ubicaciones');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// ============================================
+// CONFIGURACIÓN DE SEGURIDAD
+// ============================================
+
+// CORS - Configurado para frontend específico
+const corsOptions = {
+    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+};
+
+// Rate Limiting - Limitar peticiones para prevenir DoS
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutos
+    max: 100, // máximo 100 peticiones por IP
+    message: {
+        success: false,
+        message: 'Demasiadas peticiones desde esta IP, intenta de nuevo más tarde'
+    },
+    standardHeaders: true, // Retorna info en headers `RateLimit-*`
+    legacyHeaders: false, // Deshabilita headers `X-RateLimit-*`
+});
+
 // Middleware
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(express.json());
+app.use('/api/', limiter); // Aplicar rate limiting solo a rutas /api/
 
 // Ruta raíz
 app.get('/', (req, res) => {
@@ -50,13 +77,15 @@ app.use('/api/ubicaciones', ubicacionesRoutes);
 app.use('/api/materiales', materialesRoutes);
 app.use('/api/unidades', unidadesRoutes);
 
-// Ruta 404
-app.use('*', (req, res) => {
-    res.status(404).json({
-        success: false,
-        message: 'Ruta no encontrada'
-    });
-});
+// ============================================
+// MANEJO DE ERRORES
+// ============================================
+
+// Ruta 404 - Captura todas las rutas no definidas
+app.use(notFound);
+
+// Middleware global de manejo de errores - DEBE SER EL ÚLTIMO
+app.use(errorHandler);
 
 // Iniciar servidor
 const startServer = async () => {
