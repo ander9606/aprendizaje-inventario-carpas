@@ -9,6 +9,7 @@ require('dotenv').config();
 
 const { testConnection } = require('./config/database');
 const { errorHandler, notFound } = require('./middleware/errorHandler');
+const httpLogger = require('./middleware/httpLogger');
 
 // Importar rutas
 const categoriasRoutes = require('./routes/categorias');
@@ -49,6 +50,7 @@ const limiter = rateLimit({
 // Middleware
 app.use(cors(corsOptions));
 app.use(express.json());
+app.use(httpLogger); // Logging de todas las peticiones HTTP
 app.use('/api/', limiter); // Aplicar rate limiting solo a rutas /api/
 
 // Ruta raíz
