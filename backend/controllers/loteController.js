@@ -14,84 +14,110 @@ const { pool } = require('../config/database');
 // ============================================
 // OBTENER TODOS LOS LOTES
 // ============================================
-exports.obtenerTodos = async (req, res) => {
+
+/**
+ * GET /api/lotes
+ *
+ * Soporta paginación opcional:
+ * - Sin params: Retorna todos los lotes
+ * - Con ?page=1&limit=20: Retorna paginado
+ * - Con ?search=LOTE-123: Búsqueda por número de lote o elemento
+ * - Con ?sortBy=cantidad&order=DESC: Ordenamiento
+ * - Con ?paginate=false: Fuerza sin paginación
+ */
+const { getPaginationParams, getPaginatedResponse, shouldPaginate, getSortParams } = require('../utils/pagination');
+
+exports.obtenerTodos = async (req, res, next) => {
     try {
-        const lotes = await LoteModel.obtenerTodos();
-        
-        res.json({
-            success: true,
-            data: lotes,
-            total: lotes.length
-        });
+        // Verificar si se debe paginar
+        if (shouldPaginate(req.query) && (req.query.page || req.query.limit)) {
+            // MODO PAGINADO
+            const { page, limit, offset } = getPaginationParams(req.query);
+            const { sortBy, order } = getSortParams(req.query, 'lote_numero');
+            const search = req.query.search || null;
+
+            logger.debug('loteController.obtenerTodos', 'Modo paginado', {
+                page, limit, offset, sortBy, order, search
+            });
+
+            // Obtener datos y total
+            const lotes = await LoteModel.obtenerConPaginacion({
+                limit,
+                offset,
+                sortBy,
+                order,
+                search
+            });
+            const total = await LoteModel.contarTodos(search);
+
+            // Retornar respuesta paginada
+            res.json(getPaginatedResponse(lotes, page, limit, total));
+        } else {
+            // MODO SIN PAGINACIÓN (retrocompatible)
+            const lotes = await LoteModel.obtenerTodos();
+
+            res.json({
+                success: true,
+                data: lotes,
+                total: lotes.length
+            });
+        }
     } catch (error) {
-        console.error('Error en obtenerTodos:', error);
-        res.status(500).json({
-            success: false,
-            mensaje: 'Error al obtener lotes',
-            error: error.message
-        });
+        next(error);
     }
 };
 
 // ============================================
 // OBTENER LOTE POR ID
 // ============================================
-exports.obtenerPorId = async (req, res) => {
+exports.obtenerPorId = async (req, res, next) => {
     try {
         const { id } = req.params;
         const lote = await LoteModel.obtenerPorId(id);
-        
+
         if (!lote) {
-            return res.status(404).json({
-                success: false,
-                mensaje: 'Lote no encontrado'
-            });
+            throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO(ENTIDADES.LOTE), 404);
         }
-        
+
         res.json({
             success: true,
             data: lote
         });
     } catch (error) {
-        console.error('Error en obtenerPorId:', error);
-        res.status(500).json({
-            success: false,
-            mensaje: 'Error al obtener lote',
-            error: error.message
-        });
+        next(error);
     }
 };
 
 // ============================================
 // OBTENER LOTES DE UN ELEMENTO
 // ============================================
-exports.obtenerPorElemento = async (req, res) => {
+exports.obtenerPorElemento = async (req, res, next) => {
     try {
         const { elementoId } = req.params;
-        
+
+        // Validar elementoId
+        validateId(elementoId, 'ID de elemento');
+
         // Verificar que el elemento existe
         const elemento = await ElementoModel.obtenerPorId(elementoId);
         if (!elemento) {
-            return res.status(404).json({
-                success: false,
-                mensaje: 'Elemento no encontrado'
-            });
+            throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO(ENTIDADES.ELEMENTO), 404);
         }
-        
+
         // Verificar que NO requiere series
         if (elemento.requiere_series) {
-            return res.status(400).json({
-                success: false,
-                mensaje: 'Este elemento requiere series individuales. Use el endpoint /api/series'
-            });
+            throw new AppError(
+                'Este elemento requiere series individuales. Use el endpoint /api/series',
+                400
+            );
         }
-        
+
         // Obtener lotes
         const lotes = await LoteModel.obtenerPorElemento(elementoId);
-        
+
         // Obtener estadísticas
         const stats = await LoteModel.obtenerEstadisticas(elementoId);
-        
+
         res.json({
             success: true,
             elemento: {
@@ -104,113 +130,92 @@ exports.obtenerPorElemento = async (req, res) => {
             total_lotes: lotes.length
         });
     } catch (error) {
-        console.error('Error en obtenerPorElemento:', error);
-        res.status(500).json({
-            success: false,
-            mensaje: 'Error al obtener lotes del elemento',
-            error: error.message
-        });
+        next(error);
     }
 };
 
 // ============================================
 // OBTENER LOTES POR ESTADO
 // ============================================
-exports.obtenerPorEstado = async (req, res) => {
+exports.obtenerPorEstado = async (req, res, next) => {
     try {
         const { estado } = req.params;
-        
+
         // Validar estado
-        const estadosValidos = ['nuevo', 'bueno', 'mantenimiento', 'alquilado', 'dañado'];
-        if (!estadosValidos.includes(estado)) {
-            return res.status(400).json({
-                success: false,
-                mensaje: 'Estado inválido',
-                estadosValidos
-            });
-        }
-        
-        const lotes = await LoteModel.obtenerPorEstado(estado);
-        
+        const estadoValidado = validateEstado(estado, true);
+
+        const lotes = await LoteModel.obtenerPorEstado(estadoValidado);
+
         res.json({
             success: true,
-            estado,
+            estado: estadoValidado,
             data: lotes,
             total: lotes.length
         });
     } catch (error) {
-        console.error('Error en obtenerPorEstado:', error);
-        res.status(500).json({
-            success: false,
-            mensaje: 'Error al obtener lotes por estado',
-            error: error.message
-        });
+        next(error);
     }
 };
 
 // ============================================
 // CREAR LOTE MANUALMENTE
 // ============================================
-exports.crear = async (req, res) => {
+exports.crear = async (req, res, next) => {
     try {
         const { elemento_id, cantidad, estado, ubicacion, lote_numero } = req.body;
-        
-        // Validaciones básicas
-        if (!elemento_id) {
-            return res.status(400).json({
-                success: false,
-                mensaje: 'El elemento_id es obligatorio'
-            });
-        }
-        
-        if (!cantidad || cantidad <= 0) {
-            return res.status(400).json({
-                success: false,
-                mensaje: 'La cantidad debe ser mayor a 0'
-            });
-        }
-        
+
+        logger.info('loteController.crear', 'Creando nuevo lote', { elemento_id, cantidad });
+
+        // ============================================
+        // VALIDACIONES
+        // ============================================
+
+        const elementoIdValidado = validateId(elemento_id, 'elemento_id');
+        const cantidadValidada = validateCantidad(cantidad, 'Cantidad');
+        const estadoValidado = estado ? validateEstado(estado, false) : 'bueno';
+
         // Verificar que el elemento existe
-        const elemento = await ElementoModel.obtenerPorId(elemento_id);
+        const elemento = await ElementoModel.obtenerPorId(elementoIdValidado);
         if (!elemento) {
-            return res.status(404).json({
-                success: false,
-                mensaje: 'El elemento no existe'
-            });
+            throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO(ENTIDADES.ELEMENTO), 404);
         }
-        
+
         // Verificar que NO requiere series
         if (elemento.requiere_series) {
-            return res.status(400).json({
-                success: false,
-                mensaje: 'Este elemento requiere series individuales, no puede usar lotes'
-            });
+            throw new AppError(
+                'Este elemento requiere series individuales, no puede usar lotes',
+                400
+            );
         }
-        
-        // Crear lote
+
+        // ============================================
+        // CREAR LOTE
+        // ============================================
+
         const nuevoId = await LoteModel.crear({
-            elemento_id,
-            lote_numero,
-            cantidad,
-            estado,
-            ubicacion
+            elemento_id: elementoIdValidado,
+            lote_numero: lote_numero || `LOTE-${Date.now()}`,
+            cantidad: cantidadValidada,
+            estado: estadoValidado,
+            ubicacion: ubicacion || null
         });
-        
+
         // Obtener el lote creado
         const nuevoLote = await LoteModel.obtenerPorId(nuevoId);
-        
+
+        logger.info('loteController.crear', 'Lote creado exitosamente', {
+            id: nuevoId,
+            lote_numero: nuevoLote.lote_numero
+        });
+
         res.status(201).json({
             success: true,
-            mensaje: 'Lote creado exitosamente',
+            mensaje: MENSAJES_EXITO.CREADO(ENTIDADES.LOTE),
             data: nuevoLote
         });
     } catch (error) {
-        console.error('Error en crear:', error);
-        res.status(500).json({
-            success: false,
-            mensaje: 'Error al crear lote',
-            error: error.message
-        });
+        logger.error('loteController.crear', error);
+        next(error);
     }
 };
 
@@ -389,123 +394,108 @@ exports.moverCantidad = async (req, res, next) => {
 // ============================================
 // ACTUALIZAR LOTE (cantidad, ubicación)
 // ============================================
-exports.actualizar = async (req, res) => {
+exports.actualizar = async (req, res, next) => {
     try {
         const { id } = req.params;
         const { cantidad, ubicacion } = req.body;
-        
+
+        logger.info('loteController.actualizar', 'Actualizando lote', { id });
+
         // Obtener lote actual
         const lote = await LoteModel.obtenerPorId(id);
         if (!lote) {
-            return res.status(404).json({
-                success: false,
-                mensaje: 'Lote no encontrado'
-            });
+            throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO(ENTIDADES.LOTE), 404);
         }
-        
+
         // Actualizar cantidad si se proporciona
         if (cantidad !== undefined) {
-            if (cantidad < 0) {
-                return res.status(400).json({
-                    success: false,
-                    mensaje: 'La cantidad no puede ser negativa'
-                });
-            }
-            
-            await LoteModel.actualizarCantidad(id, cantidad);
+            const cantidadValidada = validateCantidad(cantidad, 'Cantidad', false);
+            await LoteModel.actualizarCantidad(id, cantidadValidada);
         }
-        
-        // Si se proporciona ubicación, actualizar (requiere query diferente)
+
+        // Si se proporciona ubicación, actualizar
         if (ubicacion !== undefined) {
             await pool.query(
                 'UPDATE lotes SET ubicacion = ? WHERE id = ?',
                 [ubicacion, id]
             );
         }
-        
+
         // Obtener lote actualizado
         const loteActualizado = await LoteModel.obtenerPorId(id);
-        
+
+        logger.info('loteController.actualizar', 'Lote actualizado exitosamente', { id });
+
         res.json({
             success: true,
-            mensaje: 'Lote actualizado exitosamente',
+            mensaje: MENSAJES_EXITO.ACTUALIZADO(ENTIDADES.LOTE),
             data: loteActualizado
         });
     } catch (error) {
-        console.error('Error en actualizar:', error);
-        res.status(500).json({
-            success: false,
-            mensaje: 'Error al actualizar lote',
-            error: error.message
-        });
+        logger.error('loteController.actualizar', error);
+        next(error);
     }
 };
 
 // ============================================
 // ELIMINAR LOTE
 // ============================================
-exports.eliminar = async (req, res) => {
+exports.eliminar = async (req, res, next) => {
     try {
         const { id } = req.params;
-        
+
+        logger.info('loteController.eliminar', 'Eliminando lote', { id });
+
         // Obtener lote para verificar
         const lote = await LoteModel.obtenerPorId(id);
         if (!lote) {
-            return res.status(404).json({
-                success: false,
-                mensaje: 'Lote no encontrado'
-            });
+            throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO(ENTIDADES.LOTE), 404);
         }
-        
+
         // Advertencia si tiene cantidad
         if (lote.cantidad > 0) {
-            return res.status(400).json({
-                success: false,
-                mensaje: `No se puede eliminar un lote con cantidad ${lote.cantidad}. Primero mueva o reduzca la cantidad a 0.`
-            });
+            throw new AppError(
+                `No se puede eliminar un lote con cantidad ${lote.cantidad}. Primero mueva o reduzca la cantidad a 0.`,
+                400
+            );
         }
-        
+
         const filasAfectadas = await LoteModel.eliminar(id);
-        
+
         if (filasAfectadas === 0) {
-            return res.status(404).json({
-                success: false,
-                mensaje: 'Lote no encontrado'
-            });
+            throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO(ENTIDADES.LOTE), 404);
         }
-        
+
+        logger.info('loteController.eliminar', 'Lote eliminado exitosamente', {
+            id,
+            lote_numero: lote.lote_numero
+        });
+
         res.json({
             success: true,
-            mensaje: 'Lote eliminado exitosamente'
+            mensaje: MENSAJES_EXITO.ELIMINADO(ENTIDADES.LOTE)
         });
     } catch (error) {
-        console.error('Error en eliminar:', error);
-        res.status(500).json({
-            success: false,
-            mensaje: 'Error al eliminar lote',
-            error: error.message
-        });
+        logger.error('loteController.eliminar', error);
+        next(error);
     }
 };
 
 // ============================================
 // OBTENER HISTORIAL DE MOVIMIENTOS
 // ============================================
-exports.obtenerHistorial = async (req, res) => {
+exports.obtenerHistorial = async (req, res, next) => {
     try {
         const { id } = req.params;
-        
+
         // Verificar que el lote existe
         const lote = await LoteModel.obtenerPorId(id);
         if (!lote) {
-            return res.status(404).json({
-                success: false,
-                mensaje: 'Lote no encontrado'
-            });
+            throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO(ENTIDADES.LOTE), 404);
         }
-        
+
         const historial = await LoteModel.obtenerHistorial(id);
-        
+
         res.json({
             success: true,
             lote: {
@@ -518,22 +508,17 @@ exports.obtenerHistorial = async (req, res) => {
             total: historial.length
         });
     } catch (error) {
-        console.error('Error en obtenerHistorial:', error);
-        res.status(500).json({
-            success: false,
-            mensaje: 'Error al obtener historial',
-            error: error.message
-        });
+        next(error);
     }
 };
 
 // ============================================
 // OBTENER RESUMEN DE DISPONIBILIDAD
 // ============================================
-exports.obtenerResumenDisponibilidad = async (req, res) => {
+exports.obtenerResumenDisponibilidad = async (req, res, next) => {
     try {
         const query = `
-            SELECT 
+            SELECT
                 e.id,
                 e.nombre AS elemento,
                 e.cantidad AS cantidad_total,
@@ -547,21 +532,15 @@ exports.obtenerResumenDisponibilidad = async (req, res) => {
             HAVING COUNT(l.id) > 0
             ORDER BY e.nombre
         `;
-        
-        const { pool } = require('../config/database');
+
         const [rows] = await pool.query(query);
-        
+
         res.json({
             success: true,
             data: rows,
             total: rows.length
         });
     } catch (error) {
-        console.error('Error en obtenerResumenDisponibilidad:', error);
-        res.status(500).json({
-            success: false,
-            mensaje: 'Error al obtener resumen de disponibilidad',
-            error: error.message
-        });
+        next(error);
     }
 };

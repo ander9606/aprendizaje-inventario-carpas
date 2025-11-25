@@ -1,266 +1,419 @@
 // ============================================
-// CONTROLLER: elementoController
-// Responsabilidad: Lógica de negocio de elementos
+// CONTROLADOR: ELEMENTO
+// Incluye paginación, validaciones y logging
 // ============================================
 
 const ElementoModel = require('../models/ElementoModel');
+const AppError = require('../utils/AppError');
+const logger = require('../utils/logger');
+const {
+    validateNombre,
+    validateDescripcion,
+    validateCantidad,
+    validateBoolean,
+    validateId,
+    validateEstado,
+    validateTerminoBusqueda
+} = require('../utils/validators');
+const { MENSAJES_ERROR, MENSAJES_EXITO, ENTIDADES } = require('../config/constants');
+const { getPaginationParams, getPaginatedResponse, shouldPaginate, getSortParams } = require('../utils/pagination');
+
+/**
+ * MEJORAS EN ESTA VERSIÓN:
+ *
+ * 1. Usa AppError para manejo centralizado de errores
+ * 2. Usa validadores centralizados de utils/validators
+ * 3. Usa constantes centralizadas de config/constants
+ * 4. Logging estructurado con utils/logger
+ * 5. Paginación opcional con infraestructura reutilizable
+ * 6. Los errores se propagan al middleware global
+ */
 
 // ============================================
 // OBTENER TODOS LOS ELEMENTOS
 // ============================================
-exports.obtenerTodos = async (req, res) => {
+
+/**
+ * GET /api/elementos
+ *
+ * Soporta paginación opcional:
+ * - Sin params: Retorna todos los elementos
+ * - Con ?page=1&limit=20: Retorna paginado
+ * - Con ?search=carpa: Búsqueda por nombre
+ * - Con ?sortBy=nombre&order=DESC: Ordenamiento
+ * - Con ?paginate=false: Fuerza sin paginación
+ */
+exports.obtenerTodos = async (req, res, next) => {
     try {
-        const elementos = await ElementoModel.obtenerTodos();
-        
-        res.json({
-            success: true,
-            data: elementos,
-            total: elementos.length
-        });
+        // Verificar si se debe paginar
+        if (shouldPaginate(req.query) && (req.query.page || req.query.limit)) {
+            // MODO PAGINADO
+            const { page, limit, offset } = getPaginationParams(req.query);
+            const { sortBy, order } = getSortParams(req.query, 'nombre');
+            const search = req.query.search || null;
+
+            logger.debug('elementoController.obtenerTodos', 'Modo paginado', {
+                page, limit, offset, sortBy, order, search
+            });
+
+            // Obtener datos y total
+            const elementos = await ElementoModel.obtenerConPaginacion({
+                limit,
+                offset,
+                sortBy,
+                order,
+                search
+            });
+            const total = await ElementoModel.contarTodos(search);
+
+            // Retornar respuesta paginada
+            res.json(getPaginatedResponse(elementos, page, limit, total));
+        } else {
+            // MODO SIN PAGINACIÓN (retrocompatible)
+            const elementos = await ElementoModel.obtenerTodos();
+
+            res.json({
+                success: true,
+                data: elementos,
+                total: elementos.length
+            });
+        }
     } catch (error) {
-        console.error('Error en obtenerTodos:', error);
-        res.status(500).json({
-            success: false,
-            mensaje: 'Error al obtener elementos',
-            error: error.message
-        });
+        next(error);
     }
 };
 
 // ============================================
 // OBTENER ELEMENTO POR ID
 // ============================================
-exports.obtenerPorId = async (req, res) => {
+
+/**
+ * GET /api/elementos/:id
+ * Nota: El ID ya viene validado por el middleware validateId
+ */
+exports.obtenerPorId = async (req, res, next) => {
     try {
         const { id } = req.params;
         const elemento = await ElementoModel.obtenerPorId(id);
-        
+
         if (!elemento) {
-            return res.status(404).json({
-                success: false,
-                mensaje: 'Elemento no encontrado'
-            });
+            throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO(ENTIDADES.ELEMENTO), 404);
         }
-        
+
         res.json({
             success: true,
             data: elemento
         });
     } catch (error) {
-        console.error('Error en obtenerPorId:', error);
-        res.status(500).json({
-            success: false,
-            mensaje: 'Error al obtener elemento',
-            error: error.message
-        });
+        next(error);
     }
 };
 
 // ============================================
 // OBTENER ELEMENTOS POR CATEGORÍA
 // ============================================
-exports.obtenerPorCategoria = async (req, res) => {
+
+/**
+ * GET /api/elementos/categoria/:categoriaId
+ */
+exports.obtenerPorCategoria = async (req, res, next) => {
     try {
         const { categoriaId } = req.params;
+
+        // Validar categoriaId
+        validateId(categoriaId, 'ID de categoría');
+
         const elementos = await ElementoModel.obtenerPorCategoria(categoriaId);
-        
+
         res.json({
             success: true,
             data: elementos,
             total: elementos.length
         });
     } catch (error) {
-        console.error('Error en obtenerPorCategoria:', error);
-        res.status(500).json({
-            success: false,
-            mensaje: 'Error al obtener elementos por categoría',
-            error: error.message
-        });
+        next(error);
     }
 };
 
 // ============================================
 // OBTENER ELEMENTOS CON SERIES
 // ============================================
-exports.obtenerConSeries = async (req, res) => {
+
+/**
+ * GET /api/elementos/con-series
+ */
+exports.obtenerConSeries = async (req, res, next) => {
     try {
         const elementos = await ElementoModel.obtenerConSeries();
-        
+
         res.json({
             success: true,
             data: elementos,
             total: elementos.length
         });
     } catch (error) {
-        console.error('Error en obtenerConSeries:', error);
-        res.status(500).json({
-            success: false,
-            mensaje: 'Error al obtener elementos con series',
-            error: error.message
-        });
+        next(error);
     }
 };
 
 // ============================================
 // OBTENER ELEMENTOS SIN SERIES
 // ============================================
-exports.obtenerSinSeries = async (req, res) => {
+
+/**
+ * GET /api/elementos/sin-series
+ */
+exports.obtenerSinSeries = async (req, res, next) => {
     try {
         const elementos = await ElementoModel.obtenerSinSeries();
-        
+
         res.json({
             success: true,
             data: elementos,
             total: elementos.length
         });
     } catch (error) {
-        console.error('Error en obtenerSinSeries:', error);
-        res.status(500).json({
-            success: false,
-            mensaje: 'Error al obtener elementos sin series',
-            error: error.message
-        });
-    }
-};
-
-// ============================================
-// CREAR ELEMENTO
-// ============================================
-exports.crear = async (req, res) => {
-    try {
-        const datos = req.body;
-        
-        // Validación básica
-        if (!datos.nombre || datos.nombre.trim() === '') {
-            return res.status(400).json({
-                success: false,
-                mensaje: 'El nombre es obligatorio'
-            });
-        }
-        
-        // Crear elemento
-        const nuevoId = await ElementoModel.crear(datos);
-        
-        // Obtener el elemento creado
-        const nuevoElemento = await ElementoModel.obtenerPorId(nuevoId);
-        
-        res.status(201).json({
-            success: true,
-            mensaje: 'Elemento creado exitosamente',
-            data: nuevoElemento
-        });
-    } catch (error) {
-        console.error('Error en crear:', error);
-        res.status(500).json({
-            success: false,
-            mensaje: 'Error al crear elemento',
-            error: error.message
-        });
-    }
-};
-
-// ============================================
-// ACTUALIZAR ELEMENTO
-// ============================================
-exports.actualizar = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const datos = req.body;
-        
-        // Validación básica
-        if (!datos.nombre || datos.nombre.trim() === '') {
-            return res.status(400).json({
-                success: false,
-                mensaje: 'El nombre es obligatorio'
-            });
-        }
-        
-        // Actualizar
-        const filasAfectadas = await ElementoModel.actualizar(id, datos);
-        
-        if (filasAfectadas === 0) {
-            return res.status(404).json({
-                success: false,
-                mensaje: 'Elemento no encontrado'
-            });
-        }
-        
-        // Obtener el elemento actualizado
-        const elementoActualizado = await ElementoModel.obtenerPorId(id);
-        
-        res.json({
-            success: true,
-            mensaje: 'Elemento actualizado exitosamente',
-            data: elementoActualizado
-        });
-    } catch (error) {
-        console.error('Error en actualizar:', error);
-        res.status(500).json({
-            success: false,
-            mensaje: 'Error al actualizar elemento',
-            error: error.message
-        });
-    }
-};
-
-// ============================================
-// ELIMINAR ELEMENTO
-// ============================================
-exports.eliminar = async (req, res) => {
-    try {
-        const { id } = req.params;
-        
-        const filasAfectadas = await ElementoModel.eliminar(id);
-        
-        if (filasAfectadas === 0) {
-            return res.status(404).json({
-                success: false,
-                mensaje: 'Elemento no encontrado'
-            });
-        }
-        
-        res.json({
-            success: true,
-            mensaje: 'Elemento eliminado exitosamente'
-        });
-    } catch (error) {
-        console.error('Error en eliminar:', error);
-        res.status(500).json({
-            success: false,
-            mensaje: 'Error al eliminar elemento',
-            error: error.message
-        });
+        next(error);
     }
 };
 
 // ============================================
 // BUSCAR ELEMENTOS
 // ============================================
-exports.buscar = async (req, res) => {
+
+/**
+ * GET /api/elementos/buscar?q=termino
+ */
+exports.buscar = async (req, res, next) => {
     try {
-        const { q } = req.query; // query parameter: ?q=termino
-        
-        if (!q || q.trim() === '') {
-            return res.status(400).json({
-                success: false,
-                mensaje: 'El término de búsqueda es obligatorio'
-            });
-        }
-        
-        const elementos = await ElementoModel.buscarPorNombre(q);
-        
+        const { q } = req.query;
+
+        // Validar término de búsqueda
+        const termino = validateTerminoBusqueda(q);
+
+        const elementos = await ElementoModel.buscarPorNombre(termino);
+
         res.json({
             success: true,
             data: elementos,
             total: elementos.length,
-            termino: q
+            termino
         });
     } catch (error) {
-        console.error('Error en buscar:', error);
-        res.status(500).json({
-            success: false,
-            mensaje: 'Error al buscar elementos',
-            error: error.message
+        next(error);
+    }
+};
+
+// ============================================
+// CREAR ELEMENTO
+// ============================================
+
+/**
+ * POST /api/elementos
+ *
+ * Body:
+ * {
+ *   "nombre": "Carpa 4x4",
+ *   "descripcion": "Carpa grande para eventos",  // opcional
+ *   "cantidad": 10,
+ *   "requiere_series": true,  // opcional
+ *   "categoria_id": 1,  // opcional
+ *   "material_id": 1,  // opcional
+ *   "unidad_id": 1,  // opcional
+ *   "estado": "bueno",  // opcional
+ *   "ubicacion": "Bodega principal",  // opcional
+ *   "fecha_ingreso": "2024-01-15"  // opcional
+ * }
+ */
+exports.crear = async (req, res, next) => {
+    try {
+        const {
+            nombre,
+            descripcion,
+            cantidad,
+            requiere_series,
+            categoria_id,
+            material_id,
+            unidad_id,
+            estado,
+            ubicacion,
+            fecha_ingreso
+        } = req.body;
+
+        logger.info('elementoController.crear', 'Creando nuevo elemento', { nombre });
+
+        // ============================================
+        // VALIDACIONES
+        // ============================================
+
+        const nombreValidado = validateNombre(nombre, ENTIDADES.ELEMENTO);
+        const descripcionValidada = validateDescripcion(descripcion);
+        const cantidadValidada = validateCantidad(cantidad, 'Cantidad', false);
+        const requiereSeriesValidado = validateBoolean(requiere_series, 'requiere_series', false);
+        const estadoValidado = validateEstado(estado, false);
+
+        // Validar IDs si existen
+        if (categoria_id) validateId(categoria_id, 'categoria_id');
+        if (material_id) validateId(material_id, 'material_id');
+        if (unidad_id) validateId(unidad_id, 'unidad_id');
+
+        // ============================================
+        // CREAR ELEMENTO
+        // ============================================
+
+        const nuevoId = await ElementoModel.crear({
+            nombre: nombreValidado,
+            descripcion: descripcionValidada,
+            cantidad: cantidadValidada,
+            requiere_series: requiereSeriesValidado,
+            categoria_id: categoria_id || null,
+            material_id: material_id || null,
+            unidad_id: unidad_id || null,
+            estado: estadoValidado || 'bueno',
+            ubicacion: ubicacion || null,
+            fecha_ingreso: fecha_ingreso || null
         });
+
+        // Obtener el elemento creado con todos sus datos
+        const elementoCreado = await ElementoModel.obtenerPorId(nuevoId);
+
+        logger.info('elementoController.crear', 'Elemento creado exitosamente', {
+            id: nuevoId,
+            nombre: nombreValidado
+        });
+
+        res.status(201).json({
+            success: true,
+            mensaje: MENSAJES_EXITO.CREADO(ENTIDADES.ELEMENTO),
+            data: elementoCreado
+        });
+    } catch (error) {
+        logger.error('elementoController.crear', error);
+        next(error);
+    }
+};
+
+// ============================================
+// ACTUALIZAR ELEMENTO
+// ============================================
+
+/**
+ * PUT /api/elementos/:id
+ *
+ * Body: Mismo que crear
+ */
+exports.actualizar = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const {
+            nombre,
+            descripcion,
+            cantidad,
+            requiere_series,
+            categoria_id,
+            material_id,
+            unidad_id,
+            estado,
+            ubicacion,
+            fecha_ingreso
+        } = req.body;
+
+        logger.info('elementoController.actualizar', 'Actualizando elemento', { id });
+
+        // ============================================
+        // VALIDACIONES
+        // ============================================
+
+        // Verificar que el elemento existe
+        const elementoExistente = await ElementoModel.obtenerPorId(id);
+        if (!elementoExistente) {
+            throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO(ENTIDADES.ELEMENTO), 404);
+        }
+
+        const nombreValidado = validateNombre(nombre, ENTIDADES.ELEMENTO);
+        const descripcionValidada = validateDescripcion(descripcion);
+        const cantidadValidada = validateCantidad(cantidad, 'Cantidad', false);
+        const requiereSeriesValidado = validateBoolean(requiere_series, 'requiere_series', false);
+        const estadoValidado = validateEstado(estado, false);
+
+        // Validar IDs si existen
+        if (categoria_id) validateId(categoria_id, 'categoria_id');
+        if (material_id) validateId(material_id, 'material_id');
+        if (unidad_id) validateId(unidad_id, 'unidad_id');
+
+        // ============================================
+        // ACTUALIZAR ELEMENTO
+        // ============================================
+
+        await ElementoModel.actualizar(id, {
+            nombre: nombreValidado,
+            descripcion: descripcionValidada,
+            cantidad: cantidadValidada,
+            requiere_series: requiereSeriesValidado,
+            categoria_id: categoria_id || null,
+            material_id: material_id || null,
+            unidad_id: unidad_id || null,
+            estado: estadoValidado || 'bueno',
+            ubicacion: ubicacion || null,
+            fecha_ingreso: fecha_ingreso || null
+        });
+
+        // Obtener el elemento actualizado
+        const elementoActualizado = await ElementoModel.obtenerPorId(id);
+
+        logger.info('elementoController.actualizar', 'Elemento actualizado exitosamente', {
+            id,
+            nombre: nombreValidado
+        });
+
+        res.json({
+            success: true,
+            mensaje: MENSAJES_EXITO.ACTUALIZADO(ENTIDADES.ELEMENTO),
+            data: elementoActualizado
+        });
+    } catch (error) {
+        logger.error('elementoController.actualizar', error);
+        next(error);
+    }
+};
+
+// ============================================
+// ELIMINAR ELEMENTO
+// ============================================
+
+/**
+ * DELETE /api/elementos/:id
+ */
+exports.eliminar = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+
+        logger.info('elementoController.eliminar', 'Eliminando elemento', { id });
+
+        // Verificar que el elemento existe
+        const elemento = await ElementoModel.obtenerPorId(id);
+        if (!elemento) {
+            throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO(ENTIDADES.ELEMENTO), 404);
+        }
+
+        // Eliminar elemento
+        const filasAfectadas = await ElementoModel.eliminar(id);
+
+        if (filasAfectadas === 0) {
+            throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO(ENTIDADES.ELEMENTO), 404);
+        }
+
+        logger.info('elementoController.eliminar', 'Elemento eliminado exitosamente', {
+            id,
+            nombre: elemento.nombre
+        });
+
+        res.json({
+            success: true,
+            mensaje: MENSAJES_EXITO.ELIMINADO(ENTIDADES.ELEMENTO)
+        });
+    } catch (error) {
+        logger.error('elementoController.eliminar', error);
+        next(error);
     }
 };

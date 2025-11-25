@@ -13,7 +13,7 @@ class SerieModel {
     static async obtenerTodas() {
         try {
             const query = `
-                SELECT 
+                SELECT
                     s.id,
                     s.numero_serie,
                     s.estado,
@@ -31,9 +31,91 @@ class SerieModel {
                 LEFT JOIN ubicaciones u ON s.ubicacion_id = u.id
                 ORDER BY e.nombre, s.numero_serie
             `;
-            
+
             const [rows] = await pool.query(query);
             return rows;
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    // ============================================
+    // OBTENER SERIES CON PAGINACIÓN
+    // ============================================
+    static async obtenerConPaginacion({ limit, offset, sortBy = 'numero_serie', order = 'ASC', search = null }) {
+        try {
+            let query = `
+                SELECT
+                    s.id,
+                    s.numero_serie,
+                    s.estado,
+                    s.ubicacion,
+                    s.ubicacion_id,
+                    u.nombre AS ubicacion_nombre,
+                    u.tipo AS ubicacion_tipo,
+                    s.fecha_ingreso,
+                    e.id AS elemento_id,
+                    e.nombre AS elemento_nombre,
+                    c.nombre AS categoria
+                FROM series s
+                INNER JOIN elementos e ON s.id_elemento = e.id
+                LEFT JOIN categorias c ON e.categoria_id = c.id
+                LEFT JOIN ubicaciones u ON s.ubicacion_id = u.id
+            `;
+
+            const params = [];
+
+            // Agregar búsqueda si existe
+            if (search) {
+                query += ` WHERE s.numero_serie LIKE ? OR e.nombre LIKE ?`;
+                params.push(`%${search}%`, `%${search}%`);
+            }
+
+            // Agregar ordenamiento
+            const validSortFields = ['numero_serie', 'estado', 'fecha_ingreso', 'elemento_nombre'];
+            const sortField = validSortFields.includes(sortBy) ? sortBy : 'numero_serie';
+
+            // Mapear campo de ordenamiento a columna real
+            let orderByClause = '';
+            if (sortField === 'elemento_nombre') {
+                orderByClause = 'e.nombre';
+            } else {
+                orderByClause = `s.${sortField}`;
+            }
+
+            const sortOrder = order.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
+            query += ` ORDER BY ${orderByClause} ${sortOrder}`;
+
+            // Agregar paginación
+            query += ` LIMIT ? OFFSET ?`;
+            params.push(limit, offset);
+
+            const [rows] = await pool.query(query, params);
+            return rows;
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    // ============================================
+    // CONTAR TOTAL DE SERIES
+    // ============================================
+    static async contarTodas(search = null) {
+        try {
+            let query = `
+                SELECT COUNT(*) as total
+                FROM series s
+                INNER JOIN elementos e ON s.id_elemento = e.id
+            `;
+            const params = [];
+
+            if (search) {
+                query += ` WHERE s.numero_serie LIKE ? OR e.nombre LIKE ?`;
+                params.push(`%${search}%`, `%${search}%`);
+            }
+
+            const [rows] = await pool.query(query, params);
+            return rows[0].total;
         } catch (error) {
             throw error;
         }

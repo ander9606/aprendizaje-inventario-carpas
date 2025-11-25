@@ -1,113 +1,185 @@
 // ============================================
-// CONTROLLER: serieController
-// Responsabilidad: Lógica de negocio de series
+// CONTROLADOR: SERIE
+// Incluye paginación, validaciones y logging
 // ============================================
 
 const SerieModel = require('../models/SerieModel');
 const ElementoModel = require('../models/ElementoModel');
+const AppError = require('../utils/AppError');
+const logger = require('../utils/logger');
+const {
+    validateRequired,
+    validateId,
+    validateEstado
+} = require('../utils/validators');
+const { MENSAJES_ERROR, MENSAJES_EXITO, ENTIDADES, ESTADOS_VALIDOS } = require('../config/constants');
+const { getPaginationParams, getPaginatedResponse, shouldPaginate, getSortParams } = require('../utils/pagination');
+
+/**
+ * MEJORAS EN ESTA VERSIÓN:
+ *
+ * 1. Usa AppError para manejo centralizado de errores
+ * 2. Usa validadores centralizados de utils/validators
+ * 3. Usa constantes centralizadas de config/constants
+ * 4. Logging estructurado con utils/logger
+ * 5. Paginación opcional con infraestructura reutilizable
+ * 6. Los errores se propagan al middleware global
+ */
+
+// ============================================
+// VALIDADOR ESPECÍFICO PARA NÚMERO DE SERIE
+// ============================================
+
+const validateNumeroSerie = (numeroSerie) => {
+    validateRequired(numeroSerie, 'Número de serie');
+
+    if (typeof numeroSerie !== 'string') {
+        throw new AppError('Número de serie debe ser una cadena de texto', 400);
+    }
+
+    const trimmed = numeroSerie.trim();
+
+    if (trimmed.length < 1) {
+        throw new AppError('Número de serie no puede estar vacío', 400);
+    }
+
+    if (trimmed.length > 100) {
+        throw new AppError('Número de serie debe tener máximo 100 caracteres', 400);
+    }
+
+    return trimmed;
+};
 
 // ============================================
 // OBTENER TODAS LAS SERIES
 // ============================================
-exports.obtenerTodas = async (req, res) => {
+
+/**
+ * GET /api/series
+ *
+ * Soporta paginación opcional:
+ * - Sin params: Retorna todas las series
+ * - Con ?page=1&limit=20: Retorna paginado
+ * - Con ?search=ABC123: Búsqueda por número de serie o elemento
+ * - Con ?sortBy=numero_serie&order=DESC: Ordenamiento
+ * - Con ?paginate=false: Fuerza sin paginación
+ */
+exports.obtenerTodas = async (req, res, next) => {
     try {
-        const series = await SerieModel.obtenerTodas();
-        
-        res.json({
-            success: true,
-            data: series,
-            total: series.length
-        });
+        // Verificar si se debe paginar
+        if (shouldPaginate(req.query) && (req.query.page || req.query.limit)) {
+            // MODO PAGINADO
+            const { page, limit, offset } = getPaginationParams(req.query);
+            const { sortBy, order } = getSortParams(req.query, 'numero_serie');
+            const search = req.query.search || null;
+
+            logger.debug('serieController.obtenerTodas', 'Modo paginado', {
+                page, limit, offset, sortBy, order, search
+            });
+
+            // Obtener datos y total
+            const series = await SerieModel.obtenerConPaginacion({
+                limit,
+                offset,
+                sortBy,
+                order,
+                search
+            });
+            const total = await SerieModel.contarTodas(search);
+
+            // Retornar respuesta paginada
+            res.json(getPaginatedResponse(series, page, limit, total));
+        } else {
+            // MODO SIN PAGINACIÓN (retrocompatible)
+            const series = await SerieModel.obtenerTodas();
+
+            res.json({
+                success: true,
+                data: series,
+                total: series.length
+            });
+        }
     } catch (error) {
-        console.error('Error en obtenerTodas:', error);
-        res.status(500).json({
-            success: false,
-            mensaje: 'Error al obtener series',
-            error: error.message
-        });
+        next(error);
     }
 };
 
 // ============================================
 // OBTENER SERIE POR ID
 // ============================================
-exports.obtenerPorId = async (req, res) => {
+
+/**
+ * GET /api/series/:id
+ */
+exports.obtenerPorId = async (req, res, next) => {
     try {
         const { id } = req.params;
         const serie = await SerieModel.obtenerPorId(id);
-        
+
         if (!serie) {
-            return res.status(404).json({
-                success: false,
-                mensaje: 'Serie no encontrada'
-            });
+            throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO(ENTIDADES.SERIE), 404);
         }
-        
+
         res.json({
             success: true,
             data: serie
         });
     } catch (error) {
-        console.error('Error en obtenerPorId:', error);
-        res.status(500).json({
-            success: false,
-            mensaje: 'Error al obtener serie',
-            error: error.message
-        });
+        next(error);
     }
 };
 
 // ============================================
 // OBTENER SERIE POR NÚMERO DE SERIE
 // ============================================
-exports.obtenerPorNumeroSerie = async (req, res) => {
+
+/**
+ * GET /api/series/numero/:numeroSerie
+ */
+exports.obtenerPorNumeroSerie = async (req, res, next) => {
     try {
         const { numeroSerie } = req.params;
         const serie = await SerieModel.obtenerPorNumeroSerie(numeroSerie);
-        
+
         if (!serie) {
-            return res.status(404).json({
-                success: false,
-                mensaje: 'Serie no encontrada'
-            });
+            throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO(ENTIDADES.SERIE), 404);
         }
-        
+
         res.json({
             success: true,
             data: serie
         });
     } catch (error) {
-        console.error('Error en obtenerPorNumeroSerie:', error);
-        res.status(500).json({
-            success: false,
-            mensaje: 'Error al obtener serie',
-            error: error.message
-        });
+        next(error);
     }
 };
 
 // ============================================
 // OBTENER SERIES DE UN ELEMENTO
 // ============================================
-exports.obtenerPorElemento = async (req, res) => {
+
+/**
+ * GET /api/series/elemento/:elementoId
+ */
+exports.obtenerPorElemento = async (req, res, next) => {
     try {
         const { elementoId } = req.params;
-        
+
+        // Validar elementoId
+        validateId(elementoId, 'ID de elemento');
+
         // Verificar que el elemento existe
         const elemento = await ElementoModel.obtenerPorId(elementoId);
         if (!elemento) {
-            return res.status(404).json({
-                success: false,
-                mensaje: 'Elemento no encontrado'
-            });
+            throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO(ENTIDADES.ELEMENTO), 404);
         }
-        
+
         // Obtener series
         const series = await SerieModel.obtenerPorElemento(elementoId);
-        
+
         // Obtener estadísticas
         const stats = await SerieModel.contarPorElemento(elementoId);
-        
+
         res.json({
             success: true,
             elemento: {
@@ -119,288 +191,358 @@ exports.obtenerPorElemento = async (req, res) => {
             total: series.length
         });
     } catch (error) {
-        console.error('Error en obtenerPorElemento:', error);
-        res.status(500).json({
-            success: false,
-            mensaje: 'Error al obtener series del elemento',
-            error: error.message
-        });
+        next(error);
     }
 };
 
 // ============================================
 // OBTENER SERIES POR ESTADO
 // ============================================
-exports.obtenerPorEstado = async (req, res) => {
+
+/**
+ * GET /api/series/estado/:estado
+ */
+exports.obtenerPorEstado = async (req, res, next) => {
     try {
         const { estado } = req.params;
-        
+
         // Validar estado
-        const estadosValidos = ['nuevo', 'bueno', 'mantenimiento', 'alquilado', 'dañado'];
-        if (!estadosValidos.includes(estado)) {
-            return res.status(400).json({
-                success: false,
-                mensaje: 'Estado inválido',
-                estadosValidos
-            });
-        }
-        
-        const series = await SerieModel.obtenerPorEstado(estado);
-        
+        const estadoValidado = validateEstado(estado, true);
+
+        const series = await SerieModel.obtenerPorEstado(estadoValidado);
+
         res.json({
             success: true,
-            estado,
+            estado: estadoValidado,
             data: series,
             total: series.length
         });
     } catch (error) {
-        console.error('Error en obtenerPorEstado:', error);
-        res.status(500).json({
-            success: false,
-            mensaje: 'Error al obtener series por estado',
-            error: error.message
-        });
+        next(error);
     }
 };
 
 // ============================================
 // OBTENER SERIES DISPONIBLES
 // ============================================
-exports.obtenerDisponibles = async (req, res) => {
+
+/**
+ * GET /api/series/disponibles
+ */
+exports.obtenerDisponibles = async (req, res, next) => {
     try {
         const series = await SerieModel.obtenerDisponibles();
-        
+
         res.json({
             success: true,
             data: series,
             total: series.length
         });
     } catch (error) {
-        console.error('Error en obtenerDisponibles:', error);
-        res.status(500).json({
-            success: false,
-            mensaje: 'Error al obtener series disponibles',
-            error: error.message
-        });
+        next(error);
     }
 };
 
 // ============================================
 // OBTENER SERIES ALQUILADAS
 // ============================================
-exports.obtenerAlquiladas = async (req, res) => {
+
+/**
+ * GET /api/series/alquiladas
+ */
+exports.obtenerAlquiladas = async (req, res, next) => {
     try {
         const series = await SerieModel.obtenerAlquiladas();
-        
+
         res.json({
             success: true,
             data: series,
             total: series.length
         });
     } catch (error) {
-        console.error('Error en obtenerAlquiladas:', error);
-        res.status(500).json({
-            success: false,
-            mensaje: 'Error al obtener series alquiladas',
-            error: error.message
-        });
+        next(error);
     }
 };
 
 // ============================================
 // CREAR SERIE
 // ============================================
-exports.crear = async (req, res) => {
+
+/**
+ * POST /api/series
+ *
+ * Body:
+ * {
+ *   "id_elemento": 1,
+ *   "numero_serie": "ABC-12345",
+ *   "estado": "bueno",  // opcional
+ *   "ubicacion": "Bodega A",  // opcional
+ *   "ubicacion_id": 1,  // opcional
+ *   "fecha_ingreso": "2024-01-15"  // opcional
+ * }
+ */
+exports.crear = async (req, res, next) => {
     try {
-        const datos = req.body;
-        
-        // Validaciones
-        if (!datos.id_elemento) {
-            return res.status(400).json({
-                success: false,
-                mensaje: 'El id_elemento es obligatorio'
-            });
-        }
-        
-        if (!datos.numero_serie || datos.numero_serie.trim() === '') {
-            return res.status(400).json({
-                success: false,
-                mensaje: 'El número de serie es obligatorio'
-            });
-        }
-        
+        const {
+            id_elemento,
+            numero_serie,
+            estado,
+            ubicacion,
+            ubicacion_id,
+            fecha_ingreso
+        } = req.body;
+
+        logger.info('serieController.crear', 'Creando nueva serie', { numero_serie });
+
+        // ============================================
+        // VALIDACIONES
+        // ============================================
+
+        // Validar id_elemento
+        const idElementoValidado = validateId(id_elemento, 'id_elemento');
+
+        // Validar numero_serie
+        const numeroSerieValidado = validateNumeroSerie(numero_serie);
+
+        // Validar estado si existe
+        const estadoValidado = estado ? validateEstado(estado, false) : 'bueno';
+
         // Verificar que el elemento existe
-        const elemento = await ElementoModel.obtenerPorId(datos.id_elemento);
+        const elemento = await ElementoModel.obtenerPorId(idElementoValidado);
         if (!elemento) {
-            return res.status(404).json({
-                success: false,
-                mensaje: 'El elemento no existe'
-            });
+            throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO(ENTIDADES.ELEMENTO), 404);
         }
-        
+
         // Verificar que el elemento requiere series
         if (!elemento.requiere_series) {
-            return res.status(400).json({
-                success: false,
-                mensaje: 'Este elemento no requiere números de serie'
-            });
+            throw new AppError('Este elemento no requiere números de serie', 400);
         }
-        
+
         // Verificar que el número de serie no exista
-        const serieExistente = await SerieModel.obtenerPorNumeroSerie(datos.numero_serie);
+        const serieExistente = await SerieModel.obtenerPorNumeroSerie(numeroSerieValidado);
         if (serieExistente) {
-            return res.status(400).json({
-                success: false,
-                mensaje: 'Este número de serie ya existe'
-            });
+            throw new AppError('Este número de serie ya existe', 400);
         }
-        
-        // Crear serie
-        const nuevoId = await SerieModel.crear(datos);
-        
-        // Obtener la serie creada
-        const nuevaSerie = await SerieModel.obtenerPorId(nuevoId);
-        
+
+        // Validar ubicacion_id si existe
+        if (ubicacion_id) {
+            validateId(ubicacion_id, 'ubicacion_id');
+        }
+
+        // ============================================
+        // CREAR SERIE
+        // ============================================
+
+        const nuevoId = await SerieModel.crear({
+            id_elemento: idElementoValidado,
+            numero_serie: numeroSerieValidado,
+            estado: estadoValidado,
+            ubicacion: ubicacion || null,
+            ubicacion_id: ubicacion_id || null,
+            fecha_ingreso: fecha_ingreso || null
+        });
+
+        // Obtener la serie creada con todos sus datos
+        const serieCreada = await SerieModel.obtenerPorId(nuevoId);
+
+        logger.info('serieController.crear', 'Serie creada exitosamente', {
+            id: nuevoId,
+            numero_serie: numeroSerieValidado
+        });
+
         res.status(201).json({
             success: true,
-            mensaje: 'Serie creada exitosamente',
-            data: nuevaSerie
+            mensaje: MENSAJES_EXITO.CREADO(ENTIDADES.SERIE),
+            data: serieCreada
         });
     } catch (error) {
-        console.error('Error en crear:', error);
-        res.status(500).json({
-            success: false,
-            mensaje: 'Error al crear serie',
-            error: error.message
-        });
+        logger.error('serieController.crear', error);
+        next(error);
     }
 };
 
 // ============================================
 // ACTUALIZAR SERIE
 // ============================================
-exports.actualizar = async (req, res) => {
+
+/**
+ * PUT /api/series/:id
+ *
+ * Body: Similar a crear
+ */
+exports.actualizar = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const datos = req.body;
-        
-        // Validación
-        if (!datos.numero_serie || datos.numero_serie.trim() === '') {
-            return res.status(400).json({
-                success: false,
-                mensaje: 'El número de serie es obligatorio'
-            });
+        const {
+            numero_serie,
+            estado,
+            ubicacion,
+            ubicacion_id,
+            fecha_ingreso
+        } = req.body;
+
+        logger.info('serieController.actualizar', 'Actualizando serie', { id });
+
+        // ============================================
+        // VALIDACIONES
+        // ============================================
+
+        // Verificar que la serie existe
+        const serieExistente = await SerieModel.obtenerPorId(id);
+        if (!serieExistente) {
+            throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO(ENTIDADES.SERIE), 404);
         }
-        
+
+        // Validar numero_serie
+        const numeroSerieValidado = validateNumeroSerie(numero_serie);
+
+        // Validar estado si existe
+        const estadoValidado = estado ? validateEstado(estado, false) : 'bueno';
+
         // Verificar que el número de serie no esté en uso por otra serie
-        const serieExistente = await SerieModel.obtenerPorNumeroSerie(datos.numero_serie);
-        if (serieExistente && serieExistente.id != id) {
-            return res.status(400).json({
-                success: false,
-                mensaje: 'Este número de serie ya está en uso'
-            });
+        const serieConMismoNumero = await SerieModel.obtenerPorNumeroSerie(numeroSerieValidado);
+        if (serieConMismoNumero && serieConMismoNumero.id != id) {
+            throw new AppError('Este número de serie ya está en uso', 400);
         }
-        
-        // Actualizar
-        const filasAfectadas = await SerieModel.actualizar(id, datos);
-        
-        if (filasAfectadas === 0) {
-            return res.status(404).json({
-                success: false,
-                mensaje: 'Serie no encontrada'
-            });
+
+        // Validar ubicacion_id si existe
+        if (ubicacion_id) {
+            validateId(ubicacion_id, 'ubicacion_id');
         }
-        
+
+        // ============================================
+        // ACTUALIZAR SERIE
+        // ============================================
+
+        await SerieModel.actualizar(id, {
+            numero_serie: numeroSerieValidado,
+            estado: estadoValidado,
+            ubicacion: ubicacion || null,
+            ubicacion_id: ubicacion_id || null,
+            fecha_ingreso: fecha_ingreso || null
+        });
+
         // Obtener la serie actualizada
         const serieActualizada = await SerieModel.obtenerPorId(id);
-        
+
+        logger.info('serieController.actualizar', 'Serie actualizada exitosamente', {
+            id,
+            numero_serie: numeroSerieValidado
+        });
+
         res.json({
             success: true,
-            mensaje: 'Serie actualizada exitosamente',
+            mensaje: MENSAJES_EXITO.ACTUALIZADO(ENTIDADES.SERIE),
             data: serieActualizada
         });
     } catch (error) {
-        console.error('Error en actualizar:', error);
-        res.status(500).json({
-            success: false,
-            mensaje: 'Error al actualizar serie',
-            error: error.message
-        });
+        logger.error('serieController.actualizar', error);
+        next(error);
     }
 };
 
 // ============================================
 // CAMBIAR ESTADO DE SERIE
 // ============================================
-exports.cambiarEstado = async (req, res) => {
+
+/**
+ * PATCH /api/series/:id/estado
+ *
+ * Body:
+ * {
+ *   "estado": "alquilado",
+ *   "ubicacion": "Evento XYZ",  // opcional
+ *   "ubicacion_id": 5  // opcional
+ * }
+ */
+exports.cambiarEstado = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const { estado, ubicacion } = req.body;
-        
+        const { estado, ubicacion, ubicacion_id } = req.body;
+
+        logger.info('serieController.cambiarEstado', 'Cambiando estado de serie', { id, estado });
+
+        // ============================================
+        // VALIDACIONES
+        // ============================================
+
+        // Verificar que la serie existe
+        const serieExistente = await SerieModel.obtenerPorId(id);
+        if (!serieExistente) {
+            throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO(ENTIDADES.SERIE), 404);
+        }
+
         // Validar estado
-        const estadosValidos = ['nuevo', 'bueno', 'mantenimiento', 'alquilado', 'dañado'];
-        if (!estadosValidos.includes(estado)) {
-            return res.status(400).json({
-                success: false,
-                mensaje: 'Estado inválido',
-                estadosValidos
-            });
+        const estadoValidado = validateEstado(estado, true);
+
+        // Validar ubicacion_id si existe
+        if (ubicacion_id) {
+            validateId(ubicacion_id, 'ubicacion_id');
         }
-        
-        // Cambiar estado
-        const filasAfectadas = await SerieModel.cambiarEstado(id, estado, ubicacion);
-        
-        if (filasAfectadas === 0) {
-            return res.status(404).json({
-                success: false,
-                mensaje: 'Serie no encontrada'
-            });
-        }
-        
+
+        // ============================================
+        // CAMBIAR ESTADO
+        // ============================================
+
+        await SerieModel.cambiarEstado(id, estadoValidado, ubicacion, ubicacion_id);
+
         // Obtener la serie actualizada
         const serieActualizada = await SerieModel.obtenerPorId(id);
-        
+
+        logger.info('serieController.cambiarEstado', 'Estado cambiado exitosamente', {
+            id,
+            estado_anterior: serieExistente.estado,
+            estado_nuevo: estadoValidado
+        });
+
         res.json({
             success: true,
             mensaje: 'Estado cambiado exitosamente',
             data: serieActualizada
         });
     } catch (error) {
-        console.error('Error en cambiarEstado:', error);
-        res.status(500).json({
-            success: false,
-            mensaje: 'Error al cambiar estado',
-            error: error.message
-        });
+        logger.error('serieController.cambiarEstado', error);
+        next(error);
     }
 };
 
 // ============================================
 // ELIMINAR SERIE
 // ============================================
-exports.eliminar = async (req, res) => {
+
+/**
+ * DELETE /api/series/:id
+ */
+exports.eliminar = async (req, res, next) => {
     try {
         const { id } = req.params;
-        
-        const filasAfectadas = await SerieModel.eliminar(id);
-        
-        if (filasAfectadas === 0) {
-            return res.status(404).json({
-                success: false,
-                mensaje: 'Serie no encontrada'
-            });
+
+        logger.info('serieController.eliminar', 'Eliminando serie', { id });
+
+        // Verificar que la serie existe
+        const serie = await SerieModel.obtenerPorId(id);
+        if (!serie) {
+            throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO(ENTIDADES.SERIE), 404);
         }
-        
+
+        // Eliminar serie
+        const filasAfectadas = await SerieModel.eliminar(id);
+
+        if (filasAfectadas === 0) {
+            throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO(ENTIDADES.SERIE), 404);
+        }
+
+        logger.info('serieController.eliminar', 'Serie eliminada exitosamente', {
+            id,
+            numero_serie: serie.numero_serie
+        });
+
         res.json({
             success: true,
-            mensaje: 'Serie eliminada exitosamente'
+            mensaje: MENSAJES_EXITO.ELIMINADO(ENTIDADES.SERIE)
         });
     } catch (error) {
-        console.error('Error en eliminar:', error);
-        res.status(500).json({
-            success: false,
-            mensaje: 'Error al eliminar serie',
-            error: error.message
-        });
+        logger.error('serieController.eliminar', error);
+        next(error);
     }
 };
