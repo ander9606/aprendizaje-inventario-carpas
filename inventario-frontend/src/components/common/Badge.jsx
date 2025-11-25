@@ -115,4 +115,59 @@ export const BadgeWithDot = ({
   )
 }
 
+// ============================================
+// HELPER: ESTADO BADGE
+// Badge específico para estados de elementos
+// ============================================
+import { ESTADO_COLORS, ESTADO_LABELS } from '../../utils/constants'
+
+/**
+ * EstadoBadge - Badge especializado para estados de elementos
+ *
+ * @param {string} estado - Estado del elemento ('nuevo' | 'bueno' | 'alquilado' | 'mantenimiento' | 'dañado')
+ * @param {string} size - Tamaño: 'sm' | 'md' | 'lg'
+ * @param {boolean} showDot - Mostrar punto de color
+ *
+ * @example
+ * <EstadoBadge estado="disponible" size="md" />
+ * <EstadoBadge estado="alquilado" showDot />
+ */
+export const EstadoBadge = ({
+  estado,
+  size = 'md',
+  showDot = false,
+  className = ''
+}) => {
+  const colors = ESTADO_COLORS[estado]
+  const label = ESTADO_LABELS[estado]
+
+  if (!colors || !label) {
+    console.warn(`EstadoBadge: Estado "${estado}" no reconocido`)
+    return null
+  }
+
+  // Mapear colores de constantes a variantes de Badge
+  const variantMap = {
+    'text-purple-700': 'purple',
+    'text-green-700': 'success',
+    'text-blue-700': 'info',
+    'text-yellow-700': 'warning',
+    'text-red-700': 'danger'
+  }
+
+  const variant = variantMap[colors.text] || 'neutral'
+
+  if (showDot) {
+    return <BadgeWithDot variant={variant} size={size} className={className}>
+      {label}
+    </BadgeWithDot>
+  }
+
+  return (
+    <Badge variant={variant} size={size} className={className}>
+      {label}
+    </Badge>
+  )
+}
+
 export default Badge

@@ -141,9 +141,22 @@ export const SUCCESS_MESSAGES = {
 // MENSAJES DE ERROR
 // ============================================
 export const ERROR_MESSAGES = {
+  // Errores generales
   GENERIC: 'Ocurrió un error. Por favor intenta nuevamente',
   NETWORK: 'Error de conexión. Verifica tu internet',
   NOT_FOUND: 'No se encontró el recurso solicitado',
   UNAUTHORIZED: 'No tienes permisos para esta acción',
-  VALIDATION: 'Por favor verifica los datos ingresados'
+  VALIDATION: 'Por favor verifica los datos ingresados',
+
+  // Errores de elementos
+  ELEMENTO_CON_SERIES: 'No se puede eliminar un elemento que tiene series o lotes asociados',
+
+  // Errores de series
+  SERIE_NUMERO_DUPLICADO: 'Este número de serie ya existe. Por favor usa otro',
+  SERIE_ALQUILADA: 'No se puede eliminar una serie que está alquilada',
+  TRANSICION_NO_PERMITIDA: 'Esta transición de estado no está permitida',
+
+  // Errores de lotes
+  LOTE_SIN_CANTIDAD: 'Cantidad insuficiente en el lote origen',
+  LOTE_CANTIDAD_INVALIDA: 'La cantidad debe ser mayor a cero'
 }
