@@ -13,7 +13,7 @@ class ElementoModel {
     static async obtenerTodos() {
         try {
             const query = `
-                SELECT 
+                SELECT
                     e.id,
                     e.nombre,
                     e.descripcion,
@@ -32,9 +32,79 @@ class ElementoModel {
                 LEFT JOIN unidades u ON e.unidad_id = u.id
                 ORDER BY e.nombre
             `;
-            
+
             const [rows] = await pool.query(query);
             return rows;
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    // ============================================
+    // OBTENER ELEMENTOS CON PAGINACIÓN
+    // ============================================
+    static async obtenerConPaginacion({ limit, offset, sortBy = 'nombre', order = 'ASC', search = null }) {
+        try {
+            let query = `
+                SELECT
+                    e.id,
+                    e.nombre,
+                    e.descripcion,
+                    e.cantidad,
+                    e.requiere_series,
+                    e.estado,
+                    e.ubicacion,
+                    e.fecha_ingreso,
+                    c.nombre AS categoria,
+                    m.nombre AS material,
+                    u.nombre AS unidad,
+                    u.abreviatura AS unidad_abrev
+                FROM elementos e
+                LEFT JOIN categorias c ON e.categoria_id = c.id
+                LEFT JOIN materiales m ON e.material_id = m.id
+                LEFT JOIN unidades u ON e.unidad_id = u.id
+            `;
+
+            const params = [];
+
+            // Agregar búsqueda si existe
+            if (search) {
+                query += ` WHERE e.nombre LIKE ?`;
+                params.push(`%${search}%`);
+            }
+
+            // Agregar ordenamiento
+            const validSortFields = ['nombre', 'cantidad', 'estado', 'fecha_ingreso'];
+            const sortField = validSortFields.includes(sortBy) ? sortBy : 'nombre';
+            const sortOrder = order.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
+            query += ` ORDER BY e.${sortField} ${sortOrder}`;
+
+            // Agregar paginación
+            query += ` LIMIT ? OFFSET ?`;
+            params.push(limit, offset);
+
+            const [rows] = await pool.query(query, params);
+            return rows;
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    // ============================================
+    // CONTAR TOTAL DE ELEMENTOS
+    // ============================================
+    static async contarTodos(search = null) {
+        try {
+            let query = `SELECT COUNT(*) as total FROM elementos e`;
+            const params = [];
+
+            if (search) {
+                query += ` WHERE e.nombre LIKE ?`;
+                params.push(`%${search}%`);
+            }
+
+            const [rows] = await pool.query(query, params);
+            return rows[0].total;
         } catch (error) {
             throw error;
         }
