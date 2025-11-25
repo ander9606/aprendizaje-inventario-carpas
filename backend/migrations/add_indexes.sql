@@ -15,15 +15,15 @@ USE aprendizaje_inventario;
 -- ============================================
 
 -- Índice para búsquedas por padre_id (subcategorías)
-CREATE INDEX IF NOT EXISTS idx_categorias_padre_id
+CREATE INDEX idx_categorias_padre_id
 ON categorias(padre_id);
 
 -- Índice para búsquedas por nombre
-CREATE INDEX IF NOT EXISTS idx_categorias_nombre
+CREATE INDEX idx_categorias_nombre
 ON categorias(nombre);
 
 -- Índice compuesto para consultas que filtran por padre_id y ordenan por nombre
-CREATE INDEX IF NOT EXISTS idx_categorias_padre_nombre
+CREATE INDEX idx_categorias_padre_nombre
 ON categorias(padre_id, nombre);
 
 -- ============================================
@@ -31,27 +31,27 @@ ON categorias(padre_id, nombre);
 -- ============================================
 
 -- Índice para búsquedas por categoría
-CREATE INDEX IF NOT EXISTS idx_elementos_categoria
+CREATE INDEX idx_elementos_categoria
 ON elementos(categoria_id);
 
 -- Índice para búsquedas por material
-CREATE INDEX IF NOT EXISTS idx_elementos_material
+CREATE INDEX idx_elementos_material
 ON elementos(material_id);
 
 -- Índice para búsquedas por unidad
-CREATE INDEX IF NOT EXISTS idx_elementos_unidad
+CREATE INDEX idx_elementos_unidad
 ON elementos(unidad_id);
 
 -- Índice para búsquedas por nombre
-CREATE INDEX IF NOT EXISTS idx_elementos_nombre
+CREATE INDEX idx_elementos_nombre
 ON elementos(nombre);
 
 -- Índice para elementos que requieren series
-CREATE INDEX IF NOT EXISTS idx_elementos_requiere_series
+CREATE INDEX idx_elementos_requiere_series
 ON elementos(requiere_series);
 
 -- Índice compuesto para consultas frecuentes
-CREATE INDEX IF NOT EXISTS idx_elementos_categoria_nombre
+CREATE INDEX idx_elementos_categoria_nombre
 ON elementos(categoria_id, nombre);
 
 -- ============================================
@@ -59,27 +59,27 @@ ON elementos(categoria_id, nombre);
 -- ============================================
 
 -- Índice para búsquedas por elemento (CRÍTICO - query más frecuente)
-CREATE INDEX IF NOT EXISTS idx_series_elemento
+CREATE INDEX idx_series_elemento
 ON series(id_elemento);
 
 -- Índice para búsquedas por ubicación
-CREATE INDEX IF NOT EXISTS idx_series_ubicacion
+CREATE INDEX idx_series_ubicacion
 ON series(ubicacion_id);
 
 -- Índice para búsquedas por estado
-CREATE INDEX IF NOT EXISTS idx_series_estado
+CREATE INDEX idx_series_estado
 ON series(estado);
 
 -- Índice para búsquedas por número de serie (único)
-CREATE INDEX IF NOT EXISTS idx_series_numero
+CREATE INDEX idx_series_numero
 ON series(numero_serie);
 
 -- Índice compuesto para consultas de inventario
-CREATE INDEX IF NOT EXISTS idx_series_elemento_estado
+CREATE INDEX idx_series_elemento_estado
 ON series(id_elemento, estado);
 
 -- Índice compuesto para búsquedas por elemento y ubicación
-CREATE INDEX IF NOT EXISTS idx_series_elemento_ubicacion
+CREATE INDEX idx_series_elemento_ubicacion
 ON series(id_elemento, ubicacion_id);
 
 -- ============================================
@@ -87,27 +87,27 @@ ON series(id_elemento, ubicacion_id);
 -- ============================================
 
 -- Índice para búsquedas por elemento (CRÍTICO - query más frecuente)
-CREATE INDEX IF NOT EXISTS idx_lotes_elemento
+CREATE INDEX idx_lotes_elemento
 ON lotes(elemento_id);
 
 -- Índice para búsquedas por estado
-CREATE INDEX IF NOT EXISTS idx_lotes_estado
+CREATE INDEX idx_lotes_estado
 ON lotes(estado);
 
 -- Índice para búsquedas por ubicación
-CREATE INDEX IF NOT EXISTS idx_lotes_ubicacion
+CREATE INDEX idx_lotes_ubicacion
 ON lotes(ubicacion);
 
 -- Índice para búsquedas por número de lote
-CREATE INDEX IF NOT EXISTS idx_lotes_numero
+CREATE INDEX idx_lotes_numero
 ON lotes(lote_numero);
 
 -- Índice compuesto para consultas de inventario
-CREATE INDEX IF NOT EXISTS idx_lotes_elemento_estado
+CREATE INDEX idx_lotes_elemento_estado
 ON lotes(elemento_id, estado);
 
 -- Índice compuesto para búsquedas específicas de lote
-CREATE INDEX IF NOT EXISTS idx_lotes_elemento_estado_ubicacion
+CREATE INDEX idx_lotes_elemento_estado_ubicacion
 ON lotes(elemento_id, estado, ubicacion);
 
 -- ============================================
@@ -115,15 +115,15 @@ ON lotes(elemento_id, estado, ubicacion);
 -- ============================================
 
 -- Índice para búsquedas por tipo
-CREATE INDEX IF NOT EXISTS idx_ubicaciones_tipo
+CREATE INDEX idx_ubicaciones_tipo
 ON ubicaciones(tipo);
 
 -- Índice para búsquedas por nombre
-CREATE INDEX IF NOT EXISTS idx_ubicaciones_nombre
+CREATE INDEX idx_ubicaciones_nombre
 ON ubicaciones(nombre);
 
 -- Índice para estado activo/inactivo
-CREATE INDEX IF NOT EXISTS idx_ubicaciones_activo
+CREATE INDEX idx_ubicaciones_activo
 ON ubicaciones(activo);
 
 -- ============================================
@@ -131,7 +131,7 @@ ON ubicaciones(activo);
 -- ============================================
 
 -- Índice para búsquedas por nombre
-CREATE INDEX IF NOT EXISTS idx_materiales_nombre
+CREATE INDEX idx_materiales_nombre
 ON materiales(nombre);
 
 -- ============================================
@@ -139,11 +139,11 @@ ON materiales(nombre);
 -- ============================================
 
 -- Índice para búsquedas por nombre
-CREATE INDEX IF NOT EXISTS idx_unidades_nombre
+CREATE INDEX idx_unidades_nombre
 ON unidades(nombre);
 
 -- Índice para búsquedas por abreviatura
-CREATE INDEX IF NOT EXISTS idx_unidades_abreviatura
+CREATE INDEX idx_unidades_abreviatura
 ON unidades(abreviatura);
 
 -- ============================================
