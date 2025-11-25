@@ -425,10 +425,10 @@ function ElementoDetallePage() {
               <ArrowLeft className="w-5 h-5 text-slate-600" />
             </button>
 
-            {/* Icono y título */}
+            {/* Icono (heredado de subcategoría) y título */}
             <div>
               <div className="flex items-center gap-3 mb-2">
-                <span className="text-5xl">{elemento.icono || '📦'}</span>
+                <span className="text-5xl">{elemento.subcategoria_icono || '📦'}</span>
                 <div>
                   <h1 className="text-3xl font-bold text-slate-900">
                     {elemento.nombre}

@@ -465,7 +465,7 @@ function ElementosPage() {
                   key={elemento.id}
                   elemento={{
                     nombre: elemento.nombre,
-                    icono: elemento.icono,
+                    icono: subcategoria?.icono || '📦', // Usar icono de subcategoría
                     series: elemento.series || [],
                     estadisticas: {
                       total: elemento.total_series || 0,
@@ -494,7 +494,7 @@ function ElementosPage() {
                   key={elemento.id}
                   elemento={{
                     nombre: elemento.nombre,
-                    icono: elemento.icono,
+                    icono: subcategoria?.icono || '📦', // Usar icono de subcategoría
                     ubicaciones: elemento.lotes_por_ubicacion || [],
                     estadisticas: {
                       total: elemento.cantidad_total || 0,

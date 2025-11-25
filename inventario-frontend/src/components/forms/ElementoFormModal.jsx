@@ -7,7 +7,6 @@ import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
 import Modal from '../common/Modal'
 import Button from '../common/Button'
-import Emojipicker from '../common/Emojipicker'
 import { useCreateElemento, useUpdateElemento } from '../../hooks/Useelementos'
 
 /**
@@ -74,15 +73,16 @@ function ElementoFormModal({
    * CAMPOS:
    * - nombre: Nombre del elemento (ej: "Carpa Doite 3x3")
    * - descripcion: Descripción opcional
-   * - icono: Emoji del elemento (ej: "🏕️")
    * - requiere_series: true = gestión por series, false = gestión por lotes
    * - precio_alquiler: Precio de alquiler por día (opcional)
    * - notas: Notas adicionales (opcional)
+   *
+   * NOTA: Los elementos NO tienen icono propio.
+   * Heredan el ícono de su subcategoría para mantener consistencia visual.
    */
   const [formData, setFormData] = useState({
     nombre: '',
     descripcion: '',
-    icono: '📦',
     requiere_series: true,
     precio_alquiler: '',
     notas: ''
@@ -141,7 +141,6 @@ function ElementoFormModal({
       setFormData({
         nombre: elemento.nombre || '',
         descripcion: elemento.descripcion || '',
-        icono: elemento.icono || '📦',
         requiere_series: elemento.requiere_series ?? true,
         precio_alquiler: elemento.precio_alquiler || '',
         notas: elemento.notas || ''
@@ -151,7 +150,6 @@ function ElementoFormModal({
       setFormData({
         nombre: '',
         descripcion: '',
-        icono: '📦',
         requiere_series: true,
         precio_alquiler: '',
         notas: ''
@@ -173,7 +171,6 @@ function ElementoFormModal({
    *
    * REGLAS DE VALIDACIÓN:
    * - nombre: Obligatorio, mínimo 3 caracteres
-   * - icono: Obligatorio
    * - precio_alquiler: Si se ingresa, debe ser número positivo
    */
   const validateForm = () => {
@@ -184,11 +181,6 @@ function ElementoFormModal({
       newErrors.nombre = 'El nombre es obligatorio'
     } else if (formData.nombre.trim().length < 3) {
       newErrors.nombre = 'El nombre debe tener al menos 3 caracteres'
-    }
-
-    // Validar icono
-    if (!formData.icono) {
-      newErrors.icono = 'Selecciona un icono'
     }
 
     // Validar precio (opcional, pero si existe debe ser válido)
@@ -259,29 +251,6 @@ function ElementoFormModal({
   }
 
   /**
-   * handleEmojiSelect: Maneja selección de emoji
-   *
-   * @param {string} emoji - El emoji seleccionado
-   *
-   * ¿QUÉ HACE?
-   * Actualiza el campo 'icono' con el emoji seleccionado
-   */
-  const handleEmojiSelect = (emoji) => {
-    setFormData(prev => ({
-      ...prev,
-      icono: emoji
-    }))
-
-    // Limpiar error del icono si existe
-    if (errors.icono) {
-      setErrors(prev => ({
-        ...prev,
-        icono: undefined
-      }))
-    }
-  }
-
-  /**
    * handleSubmit: Maneja el envío del formulario
    *
    * @param {Event} e - Evento del formulario
@@ -307,7 +276,6 @@ function ElementoFormModal({
     const dataToSend = {
       nombre: formData.nombre.trim(),
       descripcion: formData.descripcion.trim() || null,
-      icono: formData.icono,
       requiere_series: formData.requiere_series,
       precio_alquiler: formData.precio_alquiler
         ? parseFloat(formData.precio_alquiler)
@@ -432,24 +400,9 @@ function ElementoFormModal({
               focus:outline-none focus:ring-2 focus:ring-blue-500
             "
           />
-        </div>
-
-        {/* ============================================
-            CAMPO: Icono (Emoji Picker)
-            ============================================ */}
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-slate-700 mb-2">
-            Icono *
-          </label>
-          <Emojipicker
-            value={formData.icono}
-            onChange={handleEmojiSelect}
-          />
-          {errors.icono && (
-            <p className="mt-1 text-sm text-red-600">
-              {errors.icono}
-            </p>
-          )}
+          <p className="mt-1 text-xs text-slate-500">
+            💡 Los elementos heredan el ícono de su subcategoría
+          </p>
         </div>
 
         {/* ============================================
