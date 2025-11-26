@@ -12,9 +12,7 @@ import { EstadoBadge } from '../common/Badge'
 import UbicacionBadge from '../common/UbicacionBadge'
 import UbicacionSelector from '../common/UbicacionSelector'
 import { ESTADOS, ESTADO_LABELS } from '../../utils/constants'
-
-// TODO: Descomentar cuando tengamos el hook
-// import { useMoverCantidad } from '../../hooks/Uselotes'
+import { useMoverCantidad } from '../../hooks/Uselotes'
 
 /**
  * ============================================
@@ -98,19 +96,7 @@ function LoteFormModal({
   // 2. HOOKS DE MUTATIONS
   // ============================================
 
-  // TODO: Descomentar cuando tengamos el hook
-  // const moverCantidad = useMoverCantidad()
-
-  // Placeholder mientras implementamos
-  const moverCantidad = {
-    isPending: false,
-    mutate: (data, callbacks) => {
-      console.log('Mover cantidad:', data)
-      setTimeout(() => {
-        callbacks.onSuccess?.()
-      }, 1000)
-    }
-  }
+  const moverCantidad = useMoverCantidad()
 
   // ============================================
   // 3. CONSTANTES

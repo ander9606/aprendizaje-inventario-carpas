@@ -8,16 +8,19 @@ import { Routes, Route } from 'react-router-dom'
 // Importar páginas
 import Dashboard from './pages/Dashboard'
 import Subcategorias from './pages/Subcategorias'
+import ElementosPage from './pages/ElementosPage'
+import ElementoDetallePage from './pages/ElementoDetallePage'
 
 /**
  * COMPONENTE: App
- * 
+ *
  * Este componente define las rutas de la aplicación.
- * 
+ *
  * RUTAS:
- * /                           → Dashboard (Nivel 1: Categorías padre)
- * /categorias/:categoriaId    → Subcategorias (Nivel 2: Subcategorías)
- * /elementos/:subcategoriaId  → Elementos (Nivel 3: Elementos) - Pendiente
+ * /                                                                                  → Dashboard (Nivel 1: Categorías padre)
+ * /categorias/:categoriaId                                                           → Subcategorias (Nivel 2: Subcategorías)
+ * /categorias/:categoriaId/subcategorias/:subcategoriaId/elementos                   → Elementos (Nivel 3: Elementos)
+ * /categorias/:categoriaId/subcategorias/:subcategoriaId/elementos/:elementoId       → Detalle de Elemento (Nivel 4)
  */
 function App() {
   return (
@@ -26,30 +29,37 @@ function App() {
           NIVEL 1: Dashboard (Categorías Padre)
           Ruta: /
           ============================================ */}
-      <Route 
-        path="/" 
-        element={<Dashboard />} 
+      <Route
+        path="/"
+        element={<Dashboard />}
       />
-      
+
       {/* ============================================
           NIVEL 2: Subcategorías
           Ruta: /categorias/:categoriaId
           ============================================ */}
-      <Route 
-        path="/categorias/:categoriaId" 
-        element={<Subcategorias />} 
+      <Route
+        path="/categorias/:categoriaId"
+        element={<Subcategorias />}
       />
-      
+
       {/* ============================================
-          NIVEL 3: Elementos (Pendiente - Fase 4)
-          Ruta: /elementos/:subcategoriaId
+          NIVEL 3: Elementos
+          Ruta: /categorias/:categoriaId/subcategorias/:subcategoriaId/elementos
           ============================================ */}
-      {/* 
-      <Route 
-        path="/elementos/:subcategoriaId" 
-        element={<Elementos />} 
-      /> 
-      */}
+      <Route
+        path="/categorias/:categoriaId/subcategorias/:subcategoriaId/elementos"
+        element={<ElementosPage />}
+      />
+
+      {/* ============================================
+          NIVEL 4: Detalle de Elemento
+          Ruta: /categorias/:categoriaId/subcategorias/:subcategoriaId/elementos/:elementoId
+          ============================================ */}
+      <Route
+        path="/categorias/:categoriaId/subcategorias/:subcategoriaId/elementos/:elementoId"
+        element={<ElementoDetallePage />}
+      />
       
       {/* ============================================
           RUTA 404: Página no encontrada

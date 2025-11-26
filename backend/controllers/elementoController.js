@@ -110,26 +110,45 @@ exports.obtenerPorId = async (req, res, next) => {
 };
 
 // ============================================
-// OBTENER ELEMENTOS POR CATEGORÍA
+// OBTENER ELEMENTOS POR CATEGORÍA/SUBCATEGORÍA
 // ============================================
 
 /**
  * GET /api/elementos/categoria/:categoriaId
+ * GET /api/elementos/subcategoria/:subcategoriaId
+ *
+ * Nota: Ambas rutas apuntan aquí. En el sistema de 3 niveles,
+ * lo que llamamos "categoría" es técnicamente una "subcategoría"
  */
 exports.obtenerPorCategoria = async (req, res, next) => {
     try {
-        const { categoriaId } = req.params;
+        // Aceptar ambos parámetros para flexibilidad
+        const { categoriaId, subcategoriaId } = req.params;
+        const id = categoriaId || subcategoriaId;
 
-        // Validar categoriaId
-        validateId(categoriaId, 'ID de categoría');
+        // Validar ID
+        validateId(id, 'ID de categoría/subcategoría');
 
-        const elementos = await ElementoModel.obtenerPorCategoria(categoriaId);
+        // Si viene de la ruta /subcategoria, devolver con info completa
+        if (subcategoriaId) {
+            const resultado = await ElementoModel.obtenerPorSubcategoriaConInfo(id);
 
-        res.json({
-            success: true,
-            data: elementos,
-            total: elementos.length
-        });
+            res.json({
+                success: true,
+                data: resultado.elementos,
+                subcategoria: resultado.subcategoria,
+                total: resultado.elementos.length
+            });
+        } else {
+            // Ruta simple /categoria, solo elementos
+            const elementos = await ElementoModel.obtenerPorCategoria(id);
+
+            res.json({
+                success: true,
+                data: elementos,
+                total: elementos.length
+            });
+        }
     } catch (error) {
         next(error);
     }
