@@ -74,18 +74,6 @@ function ElementoDetallePage() {
    */
   const [filtroEstado, setFiltroEstado] = useState(null)
 
-  /**
-   * vistaExpandida: Si mostrar vista completa o resumida
-   */
-  const [vistaExpandida, setVistaExpandida] = useState(true)
-
-  /**
-   * Modales (para cuando los implementemos)
-   */
-  const [showEditModal, setShowEditModal] = useState(false)
-  const [serieSeleccionada, setSerieSeleccionada] = useState(null)
-  const [loteSeleccionado, setLoteSeleccionado] = useState(null)
-
   // ============================================
   // 3. HOOKS DE DATOS
   // ============================================
@@ -125,7 +113,6 @@ function ElementoDetallePage() {
   const {
     series = [],
     estadisticas: estadisticasSeries,
-    series_por_ubicacion = [],
     total: totalSeries,
     disponibles: disponiblesSeries,
     isLoading: loadingSeries,
@@ -142,7 +129,6 @@ function ElementoDetallePage() {
     estadisticas: estadisticasLotes,
     lotes_por_ubicacion = [],
     cantidad_total,
-    cantidad_disponible,
     isLoading: loadingLotes,
   } = useGetLotes(elementoId, {
     enabled: elemento?.requiere_series === false
@@ -201,7 +187,8 @@ function ElementoDetallePage() {
    * Abre el modal de edición con los datos del elemento
    */
   const handleEditElemento = () => {
-    setShowEditModal(true)
+    // TODO: Implementar modal de edición
+    console.log('Editar elemento:', elemento)
   }
 
   /**
@@ -253,8 +240,8 @@ function ElementoDetallePage() {
    * Handler: Editar serie
    */
   const handleEditSerie = (serie) => {
-    setSerieSeleccionada(serie)
-    // Abrirá modal de editar serie
+    // TODO: Implementar modal de editar serie
+    console.log('Editar serie:', serie)
   }
 
   /**
@@ -283,7 +270,8 @@ function ElementoDetallePage() {
    * Handler: Editar lote
    */
   const handleEditLote = (lote, ubicacion) => {
-    setLoteSeleccionado({ lote, ubicacion })
+    // TODO: Implementar modal de editar lote
+    console.log('Editar lote:', lote, 'ubicación:', ubicacion)
   }
 
   /**
@@ -616,7 +604,6 @@ function ElementoDetallePage() {
                       onEdit={handleEditSerie}
                       onDelete={handleDeleteSerie}
                       onMove={handleMoveSerie}
-                      compact={!vistaExpandida}
                     />
                   ))}
                 </div>
