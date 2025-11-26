@@ -23,6 +23,9 @@ router.get('/sin-series', elementoController.obtenerSinSeries);
 // GET /api/elementos/categoria/:categoriaId
 router.get('/categoria/:categoriaId', elementoController.obtenerPorCategoria);
 
+// GET /api/elementos/subcategoria/:subcategoriaId (alias para mejor semántica)
+router.get('/subcategoria/:subcategoriaId', elementoController.obtenerPorCategoria);
+
 // ============================================
 // RUTAS CRUD ESTÁNDAR
 // ============================================

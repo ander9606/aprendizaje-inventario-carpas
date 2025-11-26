@@ -10,9 +10,7 @@ import Button from '../common/Button'
 import { EstadoBadge } from '../common/Badge'
 import UbicacionSelector from '../common/UbicacionSelector'
 import { ESTADOS, ESTADO_LABELS } from '../../utils/constants'
-
-// TODO: Descomentar cuando tengamos los hooks
-// import { useCreateSerie, useUpdateSerie } from '../../hooks/Useseries'
+import { useCreateSerie, useUpdateSerie } from '../../hooks/Useseries'
 
 /**
  * ============================================
@@ -101,21 +99,9 @@ function SerieFormModal({
   // 3. HOOKS DE MUTATIONS
   // ============================================
 
-  // TODO: Descomentar cuando tengamos los hooks
-  // const createSerie = useCreateSerie()
-  // const updateSerie = useUpdateSerie()
-  // const mutation = isEditMode ? updateSerie : createSerie
-
-  // Placeholder mientras implementamos hooks
-  const mutation = {
-    isPending: false,
-    mutate: (data, callbacks) => {
-      console.log('Guardar serie:', data)
-      setTimeout(() => {
-        callbacks.onSuccess?.()
-      }, 1000)
-    }
-  }
+  const createSerie = useCreateSerie()
+  const updateSerie = useUpdateSerie()
+  const mutation = isEditMode ? updateSerie : createSerie
 
   // ============================================
   // 4. EFECTOS

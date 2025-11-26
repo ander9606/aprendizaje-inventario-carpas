@@ -17,11 +17,9 @@ import EmptyState from '../components/common/EmptyState'
 import Breadcrumb from '../components/common/Breadcrum'
 import ElementoSerieCard from '../components/elementos/series/ElementoSerieCard'
 import ElementoLoteCard from '../components/elementos/lotes/ElementoLoteCard'
-
-// Formularios (los crearemos después)
-// import ElementoFormModal from '../components/forms/ElementoFormModal'
-// import SerieFormModal from '../components/forms/SerieFormModal'
-// import LoteFormModal from '../components/forms/LoteFormModal'
+import ElementoFormModal from '../components/forms/ElementoFormModal'
+import SerieFormModal from '../components/forms/SerieFormModal'
+import LoteFormModal from '../components/forms/LoteFormModal'
 
 /**
  * ============================================
@@ -523,8 +521,6 @@ function ElementosPage() {
           MODALES (se mostrarán cuando los estados cambien)
           ============================================ */}
 
-      {/* TODO: Descomentar cuando creemos los modales */}
-      {/*
       {showElementoModal && (
         <ElementoFormModal
           isOpen={showElementoModal}
@@ -551,14 +547,14 @@ function ElementosPage() {
           isOpen={!!loteParaMover}
           onClose={() => setLoteParaMover(null)}
           lote={loteParaMover.lote}
-          ubicacion={loteParaMover.ubicacion}
+          ubicacionOrigen={loteParaMover.ubicacion}
+          elemento={loteParaMover.elemento}
           onSuccess={() => {
             setLoteParaMover(null)
             refetch()
           }}
         />
       )}
-      */}
     </div>
   )
 }

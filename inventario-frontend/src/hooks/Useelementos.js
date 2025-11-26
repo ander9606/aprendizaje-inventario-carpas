@@ -48,13 +48,14 @@ export const useGetElementos = (subcategoriaId) => {
     queryKey: ['elementos', 'subcategoria', subcategoriaId],
     queryFn: () => elementosAPI.obtenerPorSubcategoria(subcategoriaId),
     enabled: !!subcategoriaId,  // Solo ejecuta si hay ID
-    
+
     // Transformar los datos antes de devolverlos
     select: (response) => {
       const elementos = response?.data || []
-      
+      const subcategoria = response?.subcategoria || null
+
       // Enriquecer cada elemento con totales calculados
-      return elementos.map(elemento => {
+      const elementosEnriquecidos = elementos.map(elemento => {
         // ============================================
         // ELEMENTOS CON LOTES
         // ============================================
@@ -123,14 +124,20 @@ export const useGetElementos = (subcategoriaId) => {
             series_disponibles: elemento.series_disponibles || elemento.disponibles || 0
           }
         }
-        
+
         return elemento
       })
+
+      return {
+        elementos: elementosEnriquecidos,
+        subcategoria
+      }
     }
   })
-  
+
   return {
-    elementos: data || [],
+    elementos: data?.elementos || [],
+    subcategoria: data?.subcategoria || null,
     isLoading,
     error,
     refetch
