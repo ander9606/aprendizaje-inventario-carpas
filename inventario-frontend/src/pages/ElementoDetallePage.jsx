@@ -6,11 +6,12 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Edit, Trash2, Plus } from 'lucide-react'
+import { toast } from 'sonner'
 
 // Hooks personalizados
-import { useGetElemento } from '../hooks/Useelementos'
-import { useGetSeries } from '../hooks/Useseries'
-import { useGetLotes } from '../hooks/Uselotes'
+import { useGetElemento, useDeleteElemento } from '../hooks/Useelementos'
+import { useGetSeries, useDeleteSerie } from '../hooks/Useseries'
+import { useGetLotes, useDeleteLote } from '../hooks/Uselotes'
 
 // Componentes UI
 import Button from '../components/common/Button'
@@ -22,6 +23,11 @@ import StatCard from '../components/common/StatCard'
 import SerieItem from '../components/elementos/series/SerieItem'
 import LoteUbicacionGroup from '../components/elementos/lotes/LoteUbicacionGroup'
 import EmptyState from '../components/common/EmptyState'
+
+// Modales
+import ElementoFormModal from '../components/forms/ElementoFormModal'
+import SerieFormModal from '../components/forms/SerieFormModal'
+import LoteFormModal from '../components/forms/LoteFormModal'
 
 /**
  * ============================================
@@ -75,16 +81,12 @@ function ElementoDetallePage() {
   const [filtroEstado, setFiltroEstado] = useState(null)
 
   /**
-   * vistaExpandida: Si mostrar vista completa o resumida
+   * Estados de modales
    */
-  const [vistaExpandida, setVistaExpandida] = useState(true)
-
-  /**
-   * Modales (para cuando los implementemos)
-   */
-  const [showEditModal, setShowEditModal] = useState(false)
-  const [serieSeleccionada, setSerieSeleccionada] = useState(null)
-  const [loteSeleccionado, setLoteSeleccionado] = useState(null)
+  const [showEditElementoModal, setShowEditElementoModal] = useState(false)
+  const [showAddSerieModal, setShowAddSerieModal] = useState(false)
+  const [serieParaEditar, setSerieParaEditar] = useState(null)
+  const [loteParaMover, setLoteParaMover] = useState(null)
 
   // ============================================
   // 3. HOOKS DE DATOS
@@ -125,7 +127,6 @@ function ElementoDetallePage() {
   const {
     series = [],
     estadisticas: estadisticasSeries,
-    series_por_ubicacion = [],
     total: totalSeries,
     disponibles: disponiblesSeries,
     isLoading: loadingSeries,
@@ -142,11 +143,29 @@ function ElementoDetallePage() {
     estadisticas: estadisticasLotes,
     lotes_por_ubicacion = [],
     cantidad_total,
-    cantidad_disponible,
     isLoading: loadingLotes,
   } = useGetLotes(elementoId, {
     enabled: elemento?.requiere_series === false
   })
+
+  // ============================================
+  // 3B. MUTATIONS (Operaciones de escritura)
+  // ============================================
+
+  /**
+   * useDeleteElemento: Mutation para eliminar el elemento
+   */
+  const deleteElemento = useDeleteElemento()
+
+  /**
+   * useDeleteSerie: Mutation para eliminar una serie
+   */
+  const deleteSerie = useDeleteSerie()
+
+  /**
+   * useDeleteLote: Mutation para eliminar un lote
+   */
+  const deleteLote = useDeleteLote()
 
   // ============================================
   // 4. VARIABLES DERIVADAS
@@ -201,7 +220,7 @@ function ElementoDetallePage() {
    * Abre el modal de edición con los datos del elemento
    */
   const handleEditElemento = () => {
-    setShowEditModal(true)
+    setShowEditElementoModal(true)
   }
 
   /**
@@ -219,7 +238,7 @@ function ElementoDetallePage() {
     const tieneLotes = !elemento?.requiere_series && cantidad_total > 0
 
     if (tieneSeries || tieneLotes) {
-      alert('No se puede eliminar un elemento que tiene series o lotes asociados')
+      toast.error('No se puede eliminar un elemento que tiene series o lotes asociados')
       return
     }
 
@@ -229,10 +248,15 @@ function ElementoDetallePage() {
     )
 
     if (confirmar) {
-      // TODO: useDeleteElemento mutation
-      console.log('Eliminar elemento:', elemento)
-      // Después de eliminar:
-      // navigate(`/categorias/${categoriaId}/subcategorias/${subcategoriaId}/elementos`)
+      deleteElemento.mutate(elementoId, {
+        onSuccess: () => {
+          toast.success('Elemento eliminado exitosamente')
+          navigate(`/categorias/${categoriaId}/subcategorias/${subcategoriaId}/elementos`)
+        },
+        onError: (error) => {
+          toast.error(error.message || 'Error al eliminar elemento')
+        }
+      })
     }
   }
 
@@ -241,11 +265,10 @@ function ElementoDetallePage() {
    */
   const handleAdd = () => {
     if (elemento?.requiere_series) {
-      // Abrir modal de agregar serie
-      console.log('Agregar serie')
+      setShowAddSerieModal(true)
     } else {
-      // Abrir modal de agregar lote
-      console.log('Agregar lote')
+      // Para lotes, usar el modal de mover con datos vacíos
+      toast.info('Usa el botón de agregar cantidad en cada ubicación')
     }
   }
 
@@ -253,8 +276,7 @@ function ElementoDetallePage() {
    * Handler: Editar serie
    */
   const handleEditSerie = (serie) => {
-    setSerieSeleccionada(serie)
-    // Abrirá modal de editar serie
+    setSerieParaEditar(serie)
   }
 
   /**
@@ -266,8 +288,15 @@ function ElementoDetallePage() {
     )
 
     if (confirmar) {
-      // TODO: useDeleteSerie mutation
-      console.log('Eliminar serie:', serie)
+      deleteSerie.mutate(serie.id, {
+        onSuccess: () => {
+          toast.success('Serie eliminada exitosamente')
+          refetchElemento()
+        },
+        onError: (error) => {
+          toast.error(error.message || 'Error al eliminar serie')
+        }
+      })
     }
   }
 
@@ -275,22 +304,23 @@ function ElementoDetallePage() {
    * Handler: Mover serie
    */
   const handleMoveSerie = (serie) => {
-    console.log('Mover serie:', serie)
-    // Abrir modal para cambiar ubicación
+    // Para mover serie, usar el modal de editar con la serie
+    setSerieParaEditar(serie)
   }
 
   /**
    * Handler: Editar lote
    */
   const handleEditLote = (lote, ubicacion) => {
-    setLoteSeleccionado({ lote, ubicacion })
+    // Para editar lote, abrir modal de mover cantidad
+    setLoteParaMover({ lote, ubicacion, elemento })
   }
 
   /**
    * Handler: Mover lote (cambiar cantidad de ubicación/estado)
    */
   const handleMoveLote = (lote, ubicacion) => {
-    console.log('Mover lote:', lote, 'desde:', ubicacion)
+    setLoteParaMover({ lote, ubicacion, elemento })
   }
 
   /**
@@ -298,12 +328,19 @@ function ElementoDetallePage() {
    */
   const handleDeleteLote = (lote, ubicacion) => {
     const confirmar = window.confirm(
-      `¿Eliminar ${lote.cantidad} unidades en estado ${lote.estado}?`
+      `¿Eliminar ${lote.cantidad} unidades en estado ${lote.estado} de ${ubicacion}?`
     )
 
     if (confirmar) {
-      // TODO: useDeleteLote mutation
-      console.log('Eliminar lote:', lote)
+      deleteLote.mutate(lote.id, {
+        onSuccess: () => {
+          toast.success('Lote eliminado exitosamente')
+          refetchElemento()
+        },
+        onError: (error) => {
+          toast.error(error.message || 'Error al eliminar lote')
+        }
+      })
     }
   }
 
@@ -616,7 +653,6 @@ function ElementoDetallePage() {
                       onEdit={handleEditSerie}
                       onDelete={handleDeleteSerie}
                       onMove={handleMoveSerie}
-                      compact={!vistaExpandida}
                     />
                   ))}
                 </div>
@@ -659,9 +695,63 @@ function ElementoDetallePage() {
       </Card>
 
       {/* ============================================
-          MODALES (TODO)
+          MODALES
           ============================================ */}
-      {/* Implementar cuando creemos los formularios */}
+
+      {/* Modal: Editar Elemento */}
+      {showEditElementoModal && (
+        <ElementoFormModal
+          isOpen={showEditElementoModal}
+          onClose={() => setShowEditElementoModal(false)}
+          onSuccess={() => {
+            setShowEditElementoModal(false)
+            refetchElemento()
+          }}
+          elemento={elemento}
+        />
+      )}
+
+      {/* Modal: Agregar Serie */}
+      {showAddSerieModal && elemento?.requiere_series && (
+        <SerieFormModal
+          isOpen={showAddSerieModal}
+          onClose={() => setShowAddSerieModal(false)}
+          onSuccess={() => {
+            setShowAddSerieModal(false)
+            refetchElemento()
+          }}
+          elemento={elemento}
+        />
+      )}
+
+      {/* Modal: Editar Serie */}
+      {serieParaEditar && (
+        <SerieFormModal
+          isOpen={!!serieParaEditar}
+          onClose={() => setSerieParaEditar(null)}
+          onSuccess={() => {
+            setSerieParaEditar(null)
+            refetchElemento()
+          }}
+          elemento={elemento}
+          serie={serieParaEditar}
+        />
+      )}
+
+      {/* Modal: Mover Cantidad (Lotes) */}
+      {loteParaMover && (
+        <LoteFormModal
+          isOpen={!!loteParaMover}
+          onClose={() => setLoteParaMover(null)}
+          onSuccess={() => {
+            setLoteParaMover(null)
+            refetchElemento()
+          }}
+          lote={loteParaMover.lote}
+          ubicacionOrigen={loteParaMover.ubicacion}
+          elemento={loteParaMover.elemento}
+        />
+      )}
     </div>
   )
 }
