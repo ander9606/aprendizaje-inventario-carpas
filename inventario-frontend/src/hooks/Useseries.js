@@ -26,20 +26,24 @@ import { seriesAPI } from '../api'
 
 /**
  * Hook: Obtener todas las series de un elemento
- * 
+ *
  * @param {number} elementoId - ID del elemento
+ * @param {Object} options - Opciones adicionales de React Query
  * @returns {Object} { series, elemento, estadisticas, series_por_ubicacion, total, disponibles, isLoading, error, refetch }
- * 
+ *
  * @example
  * const { series, estadisticas, series_por_ubicacion, total, disponibles } = useGetSeries(1)
- * 
+ *
+ * // Con opciones (ej: solo ejecutar si requiere_series es true)
+ * const { series } = useGetSeries(elementoId, { enabled: elemento?.requiere_series === true })
+ *
  * // series es un array:
  * [
  *   { id: 1, numero_serie: "DOITE-001", estado: "disponible", ubicacion: "Bodega A" },
  *   { id: 2, numero_serie: "DOITE-002", estado: "alquilado", ubicacion: null },
  *   { id: 3, numero_serie: "DOITE-003", estado: "mantenimiento", ubicacion: "Taller" }
  * ]
- * 
+ *
  * // estadisticas (calculado automáticamente):
  * {
  *   disponible: 6,
@@ -48,7 +52,7 @@ import { seriesAPI } from '../api'
  *   mantenimiento: 1,
  *   dañado: 0
  * }
- * 
+ *
  * // series_por_ubicacion (calculado automáticamente):
  * {
  *   "Bodega A": 5,
@@ -56,15 +60,16 @@ import { seriesAPI } from '../api'
  *   "Taller": 1,
  *   "Sin ubicación": 2
  * }
- * 
+ *
  * // total: 10 (total de series)
  * // disponibles: 7 (disponible + nuevo, listas para alquilar)
  */
-export const useGetSeries = (elementoId) => {
+export const useGetSeries = (elementoId, options = {}) => {
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['series', 'elemento', elementoId],
     queryFn: () => seriesAPI.obtenerPorElemento(elementoId),
-    enabled: !!elementoId,
+    enabled: options.enabled !== undefined ? options.enabled : !!elementoId,
+    ...options,
     
     // Transformar datos para agregar estadísticas
     select: (response) => {

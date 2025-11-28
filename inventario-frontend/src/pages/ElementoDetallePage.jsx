@@ -130,6 +130,7 @@ function ElementoDetallePage() {
     total: totalSeries,
     disponibles: disponiblesSeries,
     isLoading: loadingSeries,
+    refetch: refetchSeries
   } = useGetSeries(elementoId, {
     enabled: elemento?.requiere_series === true
   })
@@ -292,6 +293,7 @@ function ElementoDetallePage() {
         onSuccess: () => {
           toast.success('Serie eliminada exitosamente')
           refetchElemento()
+          refetchSeries()
         },
         onError: (error) => {
           toast.error(error.message || 'Error al eliminar serie')
@@ -719,6 +721,7 @@ function ElementoDetallePage() {
           onSuccess={() => {
             setShowAddSerieModal(false)
             refetchElemento()
+            refetchSeries()
           }}
           elemento={elemento}
         />
@@ -732,6 +735,7 @@ function ElementoDetallePage() {
           onSuccess={() => {
             setSerieParaEditar(null)
             refetchElemento()
+            refetchSeries()
           }}
           elemento={elemento}
           serie={serieParaEditar}
