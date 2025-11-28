@@ -83,9 +83,7 @@ function ElementoFormModal({
   const [formData, setFormData] = useState({
     nombre: '',
     descripcion: '',
-    requiere_series: true,
-    precio_alquiler: '',
-    notas: ''
+    requiere_series: true
   })
 
   /**
@@ -141,18 +139,14 @@ function ElementoFormModal({
       setFormData({
         nombre: elemento.nombre || '',
         descripcion: elemento.descripcion || '',
-        requiere_series: elemento.requiere_series ?? true,
-        precio_alquiler: elemento.precio_alquiler || '',
-        notas: elemento.notas || ''
+        requiere_series: elemento.requiere_series ?? true
       })
     } else if (isOpen && !isEditMode) {
       // Resetear formulario en modo crear
       setFormData({
         nombre: '',
         descripcion: '',
-        requiere_series: true,
-        precio_alquiler: '',
-        notas: ''
+        requiere_series: true
       })
     }
 
@@ -181,14 +175,6 @@ function ElementoFormModal({
       newErrors.nombre = 'El nombre es obligatorio'
     } else if (formData.nombre.trim().length < 3) {
       newErrors.nombre = 'El nombre debe tener al menos 3 caracteres'
-    }
-
-    // Validar precio (opcional, pero si existe debe ser válido)
-    if (formData.precio_alquiler) {
-      const precio = parseFloat(formData.precio_alquiler)
-      if (isNaN(precio) || precio < 0) {
-        newErrors.precio_alquiler = 'Ingresa un precio válido'
-      }
     }
 
     // Guardar errores en el estado
@@ -276,16 +262,12 @@ function ElementoFormModal({
     const dataToSend = {
       nombre: formData.nombre.trim(),
       descripcion: formData.descripcion.trim() || null,
-      requiere_series: formData.requiere_series,
-      precio_alquiler: formData.precio_alquiler
-        ? parseFloat(formData.precio_alquiler)
-        : null,
-      notas: formData.notas.trim() || null
+      requiere_series: formData.requiere_series
     }
 
-    // Si estamos creando, agregar subcategoria_id
+    // Si estamos creando, agregar categoria_id (que es la subcategoría)
     if (!isEditMode) {
-      dataToSend.subcategoria_id = subcategoriaId
+      dataToSend.categoria_id = subcategoriaId
     }
 
     // Ejecutar mutation
@@ -494,62 +476,6 @@ function ElementoFormModal({
               No se puede cambiar el tipo de gestión una vez creado el elemento
             </p>
           )}
-        </div>
-
-        {/* ============================================
-            CAMPO: Precio de alquiler (opcional)
-            ============================================ */}
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-slate-700 mb-2">
-            Precio de alquiler (opcional)
-          </label>
-          <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">
-              $
-            </span>
-            <input
-              type="number"
-              name="precio_alquiler"
-              value={formData.precio_alquiler}
-              onChange={handleInputChange}
-              placeholder="0.00"
-              step="0.01"
-              min="0"
-              className={`
-                w-full pl-8 pr-4 py-2 border rounded-lg
-                focus:outline-none focus:ring-2
-                ${errors.precio_alquiler
-                  ? 'border-red-300 focus:ring-red-500'
-                  : 'border-slate-300 focus:ring-blue-500'
-                }
-              `}
-            />
-          </div>
-          {errors.precio_alquiler && (
-            <p className="mt-1 text-sm text-red-600">
-              {errors.precio_alquiler}
-            </p>
-          )}
-        </div>
-
-        {/* ============================================
-            CAMPO: Notas (opcional)
-            ============================================ */}
-        <div className="mb-6">
-          <label className="block text-sm font-medium text-slate-700 mb-2">
-            Notas adicionales (opcional)
-          </label>
-          <textarea
-            name="notas"
-            value={formData.notas}
-            onChange={handleInputChange}
-            placeholder="Información adicional, observaciones..."
-            rows={2}
-            className="
-              w-full px-4 py-2 border border-slate-300 rounded-lg
-              focus:outline-none focus:ring-2 focus:ring-blue-500
-            "
-          />
         </div>
 
         {/* ============================================

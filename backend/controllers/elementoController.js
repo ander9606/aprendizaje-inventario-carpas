@@ -252,8 +252,6 @@ exports.crear = async (req, res, next) => {
             cantidad,
             requiere_series,
             categoria_id,
-            material_id,
-            unidad_id,
             estado,
             ubicacion,
             fecha_ingreso
@@ -273,8 +271,6 @@ exports.crear = async (req, res, next) => {
 
         // Validar IDs si existen
         if (categoria_id) validateId(categoria_id, 'categoria_id');
-        if (material_id) validateId(material_id, 'material_id');
-        if (unidad_id) validateId(unidad_id, 'unidad_id');
 
         // ============================================
         // CREAR ELEMENTO
@@ -286,8 +282,6 @@ exports.crear = async (req, res, next) => {
             cantidad: cantidadValidada,
             requiere_series: requiereSeriesValidado,
             categoria_id: categoria_id || null,
-            material_id: material_id || null,
-            unidad_id: unidad_id || null,
             estado: estadoValidado || 'bueno',
             ubicacion: ubicacion || null,
             fecha_ingreso: fecha_ingreso || null
@@ -330,8 +324,6 @@ exports.actualizar = async (req, res, next) => {
             cantidad,
             requiere_series,
             categoria_id,
-            material_id,
-            unidad_id,
             estado,
             ubicacion,
             fecha_ingreso
@@ -357,8 +349,6 @@ exports.actualizar = async (req, res, next) => {
 
         // Validar IDs si existen
         if (categoria_id) validateId(categoria_id, 'categoria_id');
-        if (material_id) validateId(material_id, 'material_id');
-        if (unidad_id) validateId(unidad_id, 'unidad_id');
 
         // ============================================
         // ACTUALIZAR ELEMENTO
@@ -370,8 +360,6 @@ exports.actualizar = async (req, res, next) => {
             cantidad: cantidadValidada,
             requiere_series: requiereSeriesValidado,
             categoria_id: categoria_id || null,
-            material_id: material_id || null,
-            unidad_id: unidad_id || null,
             estado: estadoValidado || 'bueno',
             ubicacion: ubicacion || null,
             fecha_ingreso: fecha_ingreso || null
