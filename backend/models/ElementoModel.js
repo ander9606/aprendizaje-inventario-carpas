@@ -116,25 +116,26 @@ class ElementoModel {
     static async obtenerPorId(id) {
         try {
             const query = `
-                SELECT
+                SELECT 
                     e.id,
                     e.nombre,
                     e.descripcion,
                     e.cantidad,
                     e.requiere_series,
                     e.categoria_id,
-                    e.categoria_padre_id,
-                    e.subcategoria_id,
+                    e.material_id,
+                    e.unidad_id,
                     e.estado,
                     e.ubicacion,
                     e.fecha_ingreso,
-                    c.nombre AS categoria_nombre,
-                    c.icono AS subcategoria_icono,
-                    cp.id AS categoria_padre_id,
-                    cp.nombre AS categoria_padre_nombre
+                    c.nombre AS categoria,
+                    m.nombre AS material,
+                    u.nombre AS unidad,
+                    u.abreviatura AS unidad_abrev
                 FROM elementos e
                 LEFT JOIN categorias c ON e.categoria_id = c.id
-                LEFT JOIN categorias cp ON c.padre_id = cp.id
+                LEFT JOIN materiales m ON e.material_id = m.id
+                LEFT JOIN unidades u ON e.unidad_id = u.id
                 WHERE e.id = ?
             `;
             
@@ -301,18 +302,20 @@ class ElementoModel {
             } = datos;
             
             const query = `
-                INSERT INTO elementos
-                (nombre, descripcion, cantidad, requiere_series, categoria_id,
-                 estado, ubicacion, fecha_ingreso)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO elementos 
+                (nombre, descripcion, cantidad, requiere_series, categoria_id, 
+                 material_id, unidad_id, estado, ubicacion, fecha_ingreso)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `;
-
+            
             const [result] = await pool.query(query, [
                 nombre,
                 descripcion || null,
                 cantidad || 0,
                 requiere_series || false,
                 categoria_id || null,
+                material_id || null,
+                unidad_id || null,
                 estado || 'bueno',
                 ubicacion || null,
                 fecha_ingreso || null
@@ -343,24 +346,28 @@ class ElementoModel {
             } = datos;
             
             const query = `
-                UPDATE elementos
-                SET nombre = ?,
-                    descripcion = ?,
-                    cantidad = ?,
+                UPDATE elementos 
+                SET nombre = ?, 
+                    descripcion = ?, 
+                    cantidad = ?, 
                     requiere_series = ?,
-                    categoria_id = ?,
-                    estado = ?,
-                    ubicacion = ?,
+                    categoria_id = ?, 
+                    material_id = ?, 
+                    unidad_id = ?,
+                    estado = ?, 
+                    ubicacion = ?, 
                     fecha_ingreso = ?
                 WHERE id = ?
             `;
-
+            
             const [result] = await pool.query(query, [
                 nombre,
                 descripcion || null,
                 cantidad || 0,
                 requiere_series || false,
                 categoria_id || null,
+                material_id || null,
+                unidad_id || null,
                 estado || 'bueno',
                 ubicacion || null,
                 fecha_ingreso || null,
