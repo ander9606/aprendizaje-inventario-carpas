@@ -9,7 +9,7 @@ import Modal from '../common/Modal'
 import Button from '../common/Button'
 import { EstadoBadge } from '../common/Badge'
 import UbicacionSelector from '../common/UbicacionSelector'
-import { ESTADOS, ESTADO_LABELS } from '../../utils/constants'
+import { ESTADOS } from '../../utils/constants'
 import { useCreateSerie, useUpdateSerie } from '../../hooks/Useseries'
 
 /**
@@ -54,7 +54,7 @@ function SerieFormModal({
   onSuccess,
   elemento,
   serie = null // null = crear, con datos = editar
-}) {
+}){
   // ============================================
   // 1. DETERMINAR MODO
   // ============================================
@@ -95,13 +95,16 @@ function SerieFormModal({
    */
   const [isGeneratingNumber, setIsGeneratingNumber] = useState(false)
 
+
   // ============================================
   // 3. HOOKS DE MUTATIONS
   // ============================================
 
-  const createSerie = useCreateSerie()
-  const updateSerie = useUpdateSerie()
-  const mutation = isEditMode ? updateSerie : createSerie
+    const { createSerie: createSerieFn, isPending: isCreating } = useCreateSerie()
+    const { updateSerie: updateSerieFn, isPending: isUpdating } = useUpdateSerie()
+
+    const mutationIsPending = isEditMode ? isUpdating : isCreating
+
 
   // ============================================
   // 4. EFECTOS
@@ -273,7 +276,7 @@ function SerieFormModal({
 
       toast.success('Número generado automáticamente')
     } catch (error) {
-      toast.error('Error al generar número')
+      toast.error(error.message || 'Error al generar número')
     } finally {
       setIsGeneratingNumber(false)
     }
@@ -309,37 +312,32 @@ function SerieFormModal({
 
     // Ejecutar mutation
     if (isEditMode) {
-      // ACTUALIZAR
-      mutation.mutate(
-        {
-          id: serie.id,
-          data: dataToSend
-        },
-        {
-          onSuccess: () => {
-            toast.success('Serie actualizada exitosamente')
-            onSuccess()
-            onClose()
-          },
-          onError: (error) => {
-            toast.error(error.message || 'Error al actualizar serie')
-          }
-        }
-      )
-    } else {
-      // CREAR
-      mutation.mutate(dataToSend, {
-        onSuccess: () => {
-          toast.success('Serie agregada exitosamente')
-          onSuccess()
-          onClose()
-        },
-        onError: (error) => {
-          toast.error(error.message || 'Error al crear serie')
-        }
-      })
+  updateSerieFn(
+    { id: serie.id, data: dataToSend },
+    {
+      onSuccess: () => {
+        toast.success('Serie actualizada exitosamente')
+        onSuccess()
+        onClose()
+      },
+      onError: (error) => {
+        toast.error(error.message || 'Error al actualizar serie')
+      }
     }
-  }
+  )
+} else {
+  createSerieFn(dataToSend, {
+    onSuccess: () => {
+      toast.success('Serie agregada exitosamente')
+      onSuccess()
+      onClose()
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Error al crear serie')
+    }
+  })
+}}
+
 
   // ============================================
   // 7. RENDERIZADO
@@ -509,16 +507,16 @@ function SerieFormModal({
             type="button"
             variant="ghost"
             onClick={onClose}
-            disabled={mutation.isPending}
+            disabled={mutationIsPending}
           >
             Cancelar
           </Button>
           <Button
             type="submit"
             variant="primary"
-            disabled={mutation.isPending}
+            disabled={mutationIsPending}
           >
-            {mutation.isPending
+            {mutationIsPending
               ? (isEditMode ? 'Guardando...' : 'Agregando...')
               : (isEditMode ? 'Guardar Cambios' : 'Agregar Serie')
             }
@@ -530,47 +528,3 @@ function SerieFormModal({
 }
 
 export default SerieFormModal
-
-/**
- * ============================================
- * 🎓 CONCEPTOS CLAVE
- * ============================================
- *
- * 1. NÚMERO DE SERIE ÚNICO:
- * ─────────────────────────
- * - Cada serie tiene número único
- * - No se puede repetir en el mismo elemento
- * - No se puede cambiar después de crear
- * - Se puede generar automáticamente
- *
- *
- * 2. REGLA DE UBICACIÓN:
- * ──────────────────────
- * - Si NO está alquilado → DEBE tener ubicación
- * - Si está alquilado → ubicación = null
- * - Razón: Alquilado significa que está fuera
- *
- *
- * 3. VALIDACIÓN CONDICIONAL:
- * ──────────────────────────
- * La validación cambia según el estado:
- * - Alquilado: ubicación no requerida
- * - Otros estados: ubicación obligatoria
- *
- *
- * 4. ESTADOS POSIBLES:
- * ───────────────────
- * - nuevo: Elemento nuevo sin usar
- * - bueno: Elemento en buen estado
- * - alquilado: Actualmente alquilado
- * - mantenimiento: En reparación/mantenimiento
- * - dañado: Elemento dañado
- *
- *
- * 5. GENERAR NÚMERO AUTOMÁTICO:
- * ─────────────────────────────
- * - Consulta el último número usado
- * - Incrementa en 1
- * - Formatea con ceros (001, 002, etc)
- * - Usa prefijo del elemento
- */

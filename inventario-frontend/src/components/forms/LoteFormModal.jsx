@@ -11,7 +11,7 @@ import Button from '../common/Button'
 import { EstadoBadge } from '../common/Badge'
 import UbicacionBadge from '../common/UbicacionBadge'
 import UbicacionSelector from '../common/UbicacionSelector'
-import { ESTADOS, ESTADO_LABELS } from '../../utils/constants'
+import { ESTADOS, SUCCESS_MESSAGES } from "../../utils/constants";
 import { useMoverCantidad } from '../../hooks/Uselotes'
 
 /**
@@ -399,7 +399,7 @@ function LoteFormModal({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Mover Cantidad"
+      title={`Mover Cantidad - ${elemento?.nombre || ''}`}
       size="lg"
     >
       <form onSubmit={handleSubmit}>
@@ -666,54 +666,3 @@ function LoteFormModal({
 }
 
 export default LoteFormModal
-
-/**
- * ============================================
- * 🎓 CONCEPTOS CLAVE
- * ============================================
- *
- * 1. CONSOLIDACIÓN AUTOMÁTICA:
- * ────────────────────────────
- * Si ya existe un lote con la misma ubicación + estado,
- * el backend SUMA las cantidades automáticamente.
- * No crea lote duplicado, consolida.
- *
- *
- * 2. AUTO-ELIMINACIÓN:
- * ───────────────────
- * Si el lote origen queda en 0 después de mover,
- * el backend lo elimina automáticamente.
- *
- *
- * 3. VALIDACIÓN DE MÁXIMO:
- * ────────────────────────
- * No se puede mover más cantidad de la disponible.
- * El input limita el máximo dinámicamente.
- *
- *
- * 4. MOTIVOS DE MOVIMIENTO:
- * ─────────────────────────
- * Se registra el motivo para historial y auditoría.
- * Ayuda a entender por qué se movió la cantidad.
- *
- *
- * 5. AUTO-COMPLETADO INTELIGENTE:
- * ───────────────────────────────
- * Según el motivo seleccionado, auto-completa el estado:
- * - Alquiler → estado = alquilado
- * - Devolución → estado = bueno
- * - Reparación → estado = mantenimiento
- * - Dañado → estado = dañado
- *
- *
- * 6. REGLA DE UBICACIÓN:
- * ──────────────────────
- * - Alquilado → ubicacion = null
- * - Otros estados → ubicacion requerida
- *
- *
- * 7. PREVIEW EN TIEMPO REAL:
- * ──────────────────────────
- * Muestra cuántas unidades quedarán en origen
- * y si se va a consolidar o crear nuevo lote.
- */

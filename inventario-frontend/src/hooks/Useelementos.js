@@ -370,36 +370,15 @@ export const useGetEstadisticasElemento = (elementoId) => {
 export const useCreateElemento = () => {
   const queryClient = useQueryClient()
   
-  const { mutateAsync, isLoading, error } = useMutation({
-    mutationFn: elementosAPI.crear,
-    
-    onSuccess: (response) => {
-      // Invalidar cache para que se recargue la lista
-      const subcategoriaId = response.data?.categoria_id
-      
-      queryClient.invalidateQueries({ 
-        queryKey: ['elementos'] 
+  return useMutation({
+    mutationFn: (data) => elementosAPI.crear(data),
+    onSuccess: (_, data) => {
+      // Invalida lista de elementos de la subcategoría correspondiente
+      queryClient.invalidateQueries({
+        queryKey: ['elementos', 'subcategoria', data.categoria_id]
       })
-      
-      if (subcategoriaId) {
-        queryClient.invalidateQueries({ 
-          queryKey: ['elementos', 'subcategoria', subcategoriaId] 
-        })
-      }
-      
-      console.log('✅ Elemento creado exitosamente')
-    },
-    
-    onError: (error) => {
-      console.error('❌ Error al crear elemento:', error)
     }
   })
-  
-  return {
-    createElemento: mutateAsync,
-    isLoading,
-    error
-  }
 }
 
 /**
@@ -427,34 +406,18 @@ export const useCreateElemento = () => {
  */
 export const useUpdateElemento = () => {
   const queryClient = useQueryClient()
-  
-  const { mutateAsync, isLoading, error } = useMutation({
-    mutationFn: ({ id, ...data }) => elementosAPI.actualizar(id, data),
-    
-    onSuccess: (response, variables) => {
-      // Invalidar cache del elemento específico
-      queryClient.invalidateQueries({ 
-        queryKey: ['elementos', variables.id] 
+
+  return useMutation({
+    mutationFn: (data) => elementosAPI.actualizar(data.id, data),
+    onSuccess: (_, data) => {
+      queryClient.invalidateQueries({
+        queryKey: ['elementos', 'subcategoria', data.categoria_id]
       })
-      
-      // Invalidar lista de elementos
-      queryClient.invalidateQueries({ 
-        queryKey: ['elementos', 'subcategoria'] 
+      queryClient.invalidateQueries({
+        queryKey: ['elemento', data.id]
       })
-      
-      console.log('✅ Elemento actualizado exitosamente')
-    },
-    
-    onError: (error) => {
-      console.error('❌ Error al actualizar elemento:', error)
     }
   })
-  
-  return {
-    updateElemento: mutateAsync,
-    isLoading,
-    error
-  }
 }
 
 /**

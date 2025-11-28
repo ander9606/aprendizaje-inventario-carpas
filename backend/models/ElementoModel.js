@@ -178,52 +178,53 @@ class ElementoModel {
     // OBTENER ELEMENTOS POR SUBCATEGORÍA CON INFO
     // ============================================
     static async obtenerPorSubcategoriaConInfo(subcategoriaId) {
-        try {
-            // Obtener elementos
-            const queryElementos = `
-                SELECT
-                    e.id,
-                    e.nombre,
-                    e.descripcion,
-                    e.cantidad,
-                    e.requiere_series,
-                    e.estado,
-                    e.categoria_id AS subcategoria_id,
-                    m.nombre AS material,
-                    u.nombre AS unidad,
-                    u.abreviatura AS unidad_abrev
-                FROM elementos e
-                LEFT JOIN materiales m ON e.material_id = m.id
-                LEFT JOIN unidades u ON e.unidad_id = u.id
-                WHERE e.categoria_id = ?
-                ORDER BY e.nombre
-            `;
+    try {
+        // Obtener elementos
+        const queryElementos = `
+            SELECT
+                e.id,
+                e.nombre,
+                e.descripcion,
+                e.cantidad,
+                e.requiere_series,
+                e.estado,
+                e.categoria_id AS subcategoria_id,
+                m.nombre AS material,
+                u.nombre AS unidad,
+                u.abreviatura AS unidad_abrev
+            FROM elementos e
+            LEFT JOIN materiales m ON e.material_id = m.id
+            LEFT JOIN unidades u ON e.unidad_id = u.id
+            WHERE e.categoria_id = ?
+            ORDER BY e.nombre
+        `;
 
-            // Obtener info de la subcategoría
-            const querySubcategoria = `
-                SELECT
-                    c.id,
-                    c.nombre,
-                    c.icono,
-                    cp.id AS categoria_padre_id,
-                    cp.nombre AS categoria_padre_nombre
-                FROM categorias c
-                LEFT JOIN categorias cp ON c.padre_id = cp.id
-                WHERE c.id = ?
-            `;
+        // Obtener info de la subcategoría
+        const querySubcategoria = `
+            SELECT
+                c.id,
+                c.nombre,
+                c.emoji AS icono,  -- columna correcta
+                cp.id AS categoria_padre_id,
+                cp.nombre AS categoria_padre_nombre
+            FROM categorias c
+            LEFT JOIN categorias cp ON c.padre_id = cp.id
+            WHERE c.id = ?
+        `;
 
-            const [elementos] = await pool.query(queryElementos, [subcategoriaId]);
-            const [subcategoriaRows] = await pool.query(querySubcategoria, [subcategoriaId]);
-            const subcategoria = subcategoriaRows[0] || null;
+        const [elementos] = await pool.query(queryElementos, [subcategoriaId]);
+        const [subcategoriaRows] = await pool.query(querySubcategoria, [subcategoriaId]);
+        const subcategoria = subcategoriaRows[0] || null;
 
-            return {
-                elementos,
-                subcategoria
-            };
-        } catch (error) {
-            throw error;
-        }
+        return {
+            elementos,
+            subcategoria
+        };
+    } catch (error) {
+        throw error;
     }
+}
+
     
     // ============================================
     // OBTENER ELEMENTOS QUE REQUIEREN SERIES

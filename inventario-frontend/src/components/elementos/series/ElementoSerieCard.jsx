@@ -9,7 +9,7 @@ import SerieItem from './SerieItem'
 import EmptyState from '../../common/EmptyState'
 import AlertaBanner from '../../common/AlertaBanner'
 import Button from '../../common/Button'
-import { Plus, Package, AlertCircle } from 'lucide-react'
+import { Plus, Package } from 'lucide-react'
 import { useState } from 'react'
 
 /**

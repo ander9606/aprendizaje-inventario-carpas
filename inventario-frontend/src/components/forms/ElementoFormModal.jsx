@@ -8,338 +8,184 @@ import { toast } from 'sonner'
 import Modal from '../common/Modal'
 import Button from '../common/Button'
 import { useCreateElemento, useUpdateElemento } from '../../hooks/Useelementos'
+import { Edit3, Package } from 'lucide-react'
 
 /**
  * ============================================
  * COMPONENTE: ElementoFormModal
  * ============================================
  *
- * Modal para crear o editar un elemento.
+ * Modal simplificado para crear o editar un elemento.
  *
- * MODOS:
- * 1. CREAR: Si NO se pasa 'elemento' prop
- * 2. EDITAR: Si se pasa 'elemento' con datos existentes
- *
- * @param {boolean} isOpen - Si el modal está abierto
- * @param {function} onClose - Función para cerrar el modal
- * @param {function} onSuccess - Función que se llama después de guardar exitosamente
- * @param {number} subcategoriaId - ID de la subcategoría (obligatorio para crear)
- * @param {Object} elemento - Elemento a editar (opcional, si no se pasa, es modo crear)
- *
- * @example
- * // CREAR NUEVO
- * <ElementoFormModal
- *   isOpen={showModal}
- *   onClose={() => setShowModal(false)}
- *   onSuccess={handleSuccess}
- *   subcategoriaId={5}
- * />
- *
- * @example
- * // EDITAR EXISTENTE
- * <ElementoFormModal
- *   isOpen={showModal}
- *   onClose={() => setShowModal(false)}
- *   onSuccess={handleSuccess}
- *   elemento={elementoExistente}
- * />
+ * SIMPLIFICACIÓN:
+ * - Solo pedimos: nombre, descripción, tipo de gestión
+ * - Para LOTES: valores por defecto (cantidad=0, estado='bueno', ubicacion='Bodega')
+ * - Los detalles se configuran después en la página de detalle
  */
 function ElementoFormModal({
   isOpen,
   onClose,
   onSuccess,
   subcategoriaId,
-  elemento = null // Si es null = crear, si tiene datos = editar
+  elemento = null
 }) {
   // ============================================
-  // 1. DETERMINAR MODO (Crear vs Editar)
+  // 1. DETERMINAR MODO
   // ============================================
-
-  /**
-   * isEditMode: true si estamos editando, false si estamos creando
-   *
-   * LÓGICA:
-   * Si 'elemento' tiene un ID, estamos editando
-   */
   const isEditMode = elemento && elemento.id
 
   // ============================================
   // 2. ESTADOS DEL FORMULARIO
   // ============================================
-
-  /**
-   * formData: Objeto que guarda todos los valores del formulario
-   *
-   * CAMPOS:
-   * - nombre: Nombre del elemento (ej: "Carpa Doite 3x3")
-   * - descripcion: Descripción opcional
-   * - requiere_series: true = gestión por series, false = gestión por lotes
-   * - precio_alquiler: Precio de alquiler por día (opcional)
-   * - notas: Notas adicionales (opcional)
-   *
-   * NOTA: Los elementos NO tienen icono propio.
-   * Heredan el ícono de su subcategoría para mantener consistencia visual.
-   */
   const [formData, setFormData] = useState({
     nombre: '',
     descripcion: '',
     requiere_series: true,
-    precio_alquiler: '',
-    notas: ''
+    cantidad: 0  // Solo se usa para lotes
   })
 
-  /**
-   * errors: Objeto que guarda errores de validación
-   * Ejemplo: { nombre: 'El nombre es obligatorio' }
-   */
   const [errors, setErrors] = useState({})
 
   // ============================================
-  // 3. HOOKS DE MUTATIONS (React Query)
+  // 3. HOOKS DE MUTATIONS
   // ============================================
-
-  /**
-   * useCreateElemento: Mutation para crear elemento
-   *
-   * DEVUELVE:
-   * - mutate: Función para ejecutar la creación
-   * - isPending: true mientras se ejecuta
-   * - isError: true si hubo error
-   * - error: Objeto de error
-   */
   const createElemento = useCreateElemento()
-
-  /**
-   * useUpdateElemento: Mutation para actualizar elemento
-   *
-   * Similar a create, pero para actualizar
-   */
   const updateElemento = useUpdateElemento()
-
-  /**
-   * mutation: Selecciona la mutation correcta según el modo
-   */
   const mutation = isEditMode ? updateElemento : createElemento
 
   // ============================================
-  // 4. EFECTOS (useEffect)
+  // 4. EFECTOS
   // ============================================
-
-  /**
-   * EFECTO: Cargar datos del elemento al abrir en modo edición
-   *
-   * ¿CUÁNDO SE EJECUTA?
-   * - Al abrir el modal (isOpen cambia a true)
-   * - Cuando cambia 'elemento'
-   *
-   * ¿QUÉ HACE?
-   * Si estamos editando, carga los datos del elemento al formulario
-   */
   useEffect(() => {
     if (isOpen && isEditMode) {
-      // Cargar datos existentes al formulario
       setFormData({
         nombre: elemento.nombre || '',
         descripcion: elemento.descripcion || '',
         requiere_series: elemento.requiere_series ?? true,
-        precio_alquiler: elemento.precio_alquiler || '',
-        notas: elemento.notas || ''
+        cantidad: elemento.cantidad || 0
       })
     } else if (isOpen && !isEditMode) {
-      // Resetear formulario en modo crear
       setFormData({
         nombre: '',
         descripcion: '',
         requiere_series: true,
-        precio_alquiler: '',
-        notas: ''
+        cantidad: 0
       })
     }
-
-    // Limpiar errores al abrir
     setErrors({})
   }, [isOpen, elemento, isEditMode])
 
   // ============================================
-  // 5. FUNCIONES DE VALIDACIÓN
+  // 5. VALIDACIÓN
   // ============================================
-
-  /**
-   * validateForm: Valida todos los campos del formulario
-   *
-   * @returns {boolean} - true si es válido, false si tiene errores
-   *
-   * REGLAS DE VALIDACIÓN:
-   * - nombre: Obligatorio, mínimo 3 caracteres
-   * - precio_alquiler: Si se ingresa, debe ser número positivo
-   */
   const validateForm = () => {
     const newErrors = {}
 
-    // Validar nombre
     if (!formData.nombre.trim()) {
       newErrors.nombre = 'El nombre es obligatorio'
     } else if (formData.nombre.trim().length < 3) {
       newErrors.nombre = 'El nombre debe tener al menos 3 caracteres'
     }
 
-    // Validar precio (opcional, pero si existe debe ser válido)
-    if (formData.precio_alquiler) {
-      const precio = parseFloat(formData.precio_alquiler)
-      if (isNaN(precio) || precio < 0) {
-        newErrors.precio_alquiler = 'Ingresa un precio válido'
+    // Validar cantidad solo para lotes
+    if (!formData.requiere_series) {
+      if (formData.cantidad < 0) {
+        newErrors.cantidad = 'La cantidad no puede ser negativa'
       }
     }
 
-    // Guardar errores en el estado
     setErrors(newErrors)
-
-    // Retornar true si NO hay errores
     return Object.keys(newErrors).length === 0
   }
 
   // ============================================
-  // 6. HANDLERS (Manejadores de eventos)
+  // 6. HANDLERS
   // ============================================
-
-  /**
-   * handleInputChange: Maneja cambios en inputs de texto
-   *
-   * @param {Event} e - Evento del input
-   *
-   * ¿CÓMO FUNCIONA?
-   * 1. Extrae el 'name' y 'value' del input
-   * 2. Actualiza solo ese campo en formData
-   * 3. Limpia el error de ese campo si existe
-   *
-   * EJEMPLO:
-   * <input name="nombre" value={formData.nombre} onChange={handleInputChange} />
-   */
   const handleInputChange = (e) => {
     const { name, value } = e.target
-
-    // Actualizar el campo en formData
-    setFormData(prev => ({
-      ...prev,      // Mantener los otros campos
-      [name]: value // Actualizar solo este campo
-    }))
-
-    // Limpiar error de este campo
+    setFormData(prev => ({ ...prev, [name]: value }))
     if (errors[name]) {
-      setErrors(prev => ({
-        ...prev,
-        [name]: undefined
-      }))
+      setErrors(prev => ({ ...prev, [name]: undefined }))
     }
   }
 
-  /**
-   * handleCheckboxChange: Maneja cambios en checkboxes
-   *
-   * @param {Event} e - Evento del checkbox
-   *
-   * DIFERENCIA CON handleInputChange:
-   * Los checkboxes usan 'checked' en lugar de 'value'
-   */
-  const handleCheckboxChange = (e) => {
-    const { name, checked } = e.target
-
+  const handleCantidadChange = (e) => {
+    const value = e.target.value
     setFormData(prev => ({
       ...prev,
-      [name]: checked
+      cantidad: value === '' ? 0 : parseInt(value, 10) || 0
+    }))
+    if (errors.cantidad) {
+      setErrors(prev => ({ ...prev, cantidad: undefined }))
+    }
+  }
+
+  const handleTipoGestionChange = (requiereSeries) => {
+    if (isEditMode) {
+      toast.warning('No se puede cambiar el tipo de gestión una vez creado el elemento.')
+      return
+    }
+    setFormData(prev => ({
+      ...prev,
+      requiere_series: requiereSeries,
+      cantidad: requiereSeries ? 0 : prev.cantidad  // Reset cantidad si cambia a series
     }))
   }
 
-  /**
-   * handleSubmit: Maneja el envío del formulario
-   *
-   * @param {Event} e - Evento del formulario
-   *
-   * FLUJO:
-   * 1. Prevenir recarga de página
-   * 2. Validar formulario
-   * 3. Si es válido, preparar datos
-   * 4. Ejecutar mutation (crear o actualizar)
-   * 5. Manejar éxito o error
-   */
   const handleSubmit = (e) => {
-    e.preventDefault() // Evitar recarga de página
+    e.preventDefault()
 
-    // Validar formulario
     if (!validateForm()) {
-      // Si hay errores, mostrar toast y no continuar
       toast.error('Por favor corrige los errores del formulario')
       return
     }
 
-    // Preparar datos para enviar
+    // ============================================
+    // PREPARAR DATOS PARA EL BACKEND
+    // ============================================
     const dataToSend = {
       nombre: formData.nombre.trim(),
       descripcion: formData.descripcion.trim() || null,
       requiere_series: formData.requiere_series,
-      precio_alquiler: formData.precio_alquiler
-        ? parseFloat(formData.precio_alquiler)
-        : null,
-      notas: formData.notas.trim() || null
+      categoria_id: isEditMode
+        ? elemento.categoria_id
+        : parseInt(subcategoriaId, 10),
+      // Para SERIES: cantidad=0, sin ubicación
+      // Para LOTES: cantidad del form, ubicación=Bodega, estado=bueno
+      cantidad: formData.requiere_series ? 0 : (formData.cantidad || 0),
+      estado: 'bueno',
+      ubicacion: formData.requiere_series ? null : 'Bodega'
     }
 
-    // Si estamos creando, agregar subcategoria_id
-    if (!isEditMode) {
-      dataToSend.subcategoria_id = subcategoriaId
-    }
+    console.log('📤 Enviando datos al backend:', dataToSend)
 
-    // Ejecutar mutation
-    if (isEditMode) {
-      // ACTUALIZAR
-      updateElemento.mutate(
-        {
-          id: elemento.id,
-          data: dataToSend
-        },
-        {
-          // Callbacks de éxito/error
-          onSuccess: () => {
-            toast.success('Elemento actualizado exitosamente')
-            onSuccess() // Llamar callback del padre
-            onClose()   // Cerrar modal
-          },
-          onError: (error) => {
-            console.error('Error al actualizar:', error)
-            toast.error(error.message || 'Error al actualizar elemento')
-          }
-        }
-      )
-    } else {
-      // CREAR
-      createElemento.mutate(dataToSend, {
-        onSuccess: () => {
-          toast.success('Elemento creado exitosamente')
-          onSuccess()
-          onClose()
-        },
-        onError: (error) => {
-          console.error('Error al crear:', error)
-          toast.error(error.message || 'Error al crear elemento')
-        }
-      })
+    // ============================================
+    // EJECUTAR MUTATION
+   // ============================================
+    mutation.mutate(
+  isEditMode
+    ? { id: elemento.id, ...dataToSend }
+    : dataToSend,
+  {
+    onSuccess: () => {
+      toast.success(isEditMode ? 'Elemento actualizado' : 'Elemento creado')
+      onSuccess?.()
+      onClose()
+    },
+    onError: (error) => {
+      console.error('Error en la mutación:', error)
+      const mensaje = error.response?.data?.mensaje ||
+        error.message ||
+        'Error al guardar el elemento'
+      toast.error(mensaje)
     }
   }
-
-  /**
-   * handleCancel: Maneja el clic en cancelar
-   *
-   * ¿QUÉ HACE?
-   * 1. Cierra el modal
-   * 2. Resetea el formulario (los datos se resetean con useEffect)
-   */
-  const handleCancel = () => {
-    onClose()
+)
   }
 
   // ============================================
   // 7. RENDERIZADO
   // ============================================
-
   return (
     <Modal
       isOpen={isOpen}
@@ -347,14 +193,9 @@ function ElementoFormModal({
       title={isEditMode ? 'Editar Elemento' : 'Nuevo Elemento'}
       size="lg"
     >
-      {/* ============================================
-          FORMULARIO
-          ============================================ */}
       <form onSubmit={handleSubmit}>
 
-        {/* ============================================
-            CAMPO: Nombre
-            ============================================ */}
+        {/* CAMPO: Nombre */}
         <div className="mb-4">
           <label className="block text-sm font-medium text-slate-700 mb-2">
             Nombre del elemento *
@@ -374,17 +215,12 @@ function ElementoFormModal({
               }
             `}
           />
-          {/* Mostrar error si existe */}
           {errors.nombre && (
-            <p className="mt-1 text-sm text-red-600">
-              {errors.nombre}
-            </p>
+            <p className="mt-1 text-sm text-red-600">{errors.nombre}</p>
           )}
         </div>
 
-        {/* ============================================
-            CAMPO: Descripción (opcional)
-            ============================================ */}
+        {/* CAMPO: Descripción */}
         <div className="mb-4">
           <label className="block text-sm font-medium text-slate-700 mb-2">
             Descripción (opcional)
@@ -405,24 +241,17 @@ function ElementoFormModal({
           </p>
         </div>
 
-        {/* ============================================
-            CAMPO: Tipo de gestión (Series vs Lotes)
-            ============================================
-
-            IMPORTANTE: Solo se puede cambiar al CREAR
-            Una vez creado, no se puede cambiar el tipo
-            ============================================ */}
+        {/* CAMPO: Tipo de gestión */}
         <div className="mb-4">
           <label className="block text-sm font-medium text-slate-700 mb-3">
             Tipo de gestión *
           </label>
 
           <div className="space-y-3">
-            {/* Opción 1: Gestión por Series */}
+            {/* Opción: Series */}
             <label
               className={`
-                flex items-start gap-3 p-4 border-2 rounded-lg cursor-pointer
-                transition-all
+                flex items-start gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all
                 ${formData.requiere_series
                   ? 'border-blue-500 bg-blue-50'
                   : 'border-slate-200 hover:border-slate-300'
@@ -434,29 +263,28 @@ function ElementoFormModal({
                 type="radio"
                 name="requiere_series"
                 checked={formData.requiere_series === true}
-                onChange={() => !isEditMode && setFormData(prev => ({ ...prev, requiere_series: true }))}
+                onChange={() => handleTipoGestionChange(true)}
                 disabled={isEditMode}
                 className="mt-1"
               />
               <div className="flex-1">
                 <div className="font-medium text-slate-900 flex items-center gap-2">
-                  📋 Gestión por Series
+                  <Edit3 className="w-4 h-4 text-blue-600" />
+                  Gestión por Series
                   <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
                     Tracking individual
                   </span>
                 </div>
                 <p className="text-sm text-slate-600 mt-1">
-                  Cada unidad tiene número de serie único. Ideal para elementos importantes
-                  como carpas, proyectores, equipos de sonido.
+                  Cada unidad tiene número de serie único. Ideal para carpas, proyectores, equipos de sonido.
                 </p>
               </div>
             </label>
 
-            {/* Opción 2: Gestión por Lotes */}
+            {/* Opción: Lotes */}
             <label
               className={`
-                flex items-start gap-3 p-4 border-2 rounded-lg cursor-pointer
-                transition-all
+                flex items-start gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all
                 ${!formData.requiere_series
                   ? 'border-purple-500 bg-purple-50'
                   : 'border-slate-200 hover:border-slate-300'
@@ -468,26 +296,25 @@ function ElementoFormModal({
                 type="radio"
                 name="requiere_series"
                 checked={formData.requiere_series === false}
-                onChange={() => !isEditMode && setFormData(prev => ({ ...prev, requiere_series: false }))}
+                onChange={() => handleTipoGestionChange(false)}
                 disabled={isEditMode}
                 className="mt-1"
               />
               <div className="flex-1">
                 <div className="font-medium text-slate-900 flex items-center gap-2">
-                  📊 Gestión por Lotes
+                  <Package className="w-4 h-4 text-purple-600" />
+                  Gestión por Lotes
                   <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded">
                     Tracking por cantidad
                   </span>
                 </div>
                 <p className="text-sm text-slate-600 mt-1">
-                  Gestión por cantidad agrupada. Ideal para elementos genéricos
-                  como sillas, platos, vasos, estacas.
+                  Gestión por cantidad agrupada. Ideal para sillas, mástiles, postes, estacas.
                 </p>
               </div>
             </label>
           </div>
 
-          {/* Mensaje si está en modo edición */}
           {isEditMode && (
             <p className="mt-2 text-sm text-amber-600 flex items-center gap-2">
               <span>⚠️</span>
@@ -496,70 +323,66 @@ function ElementoFormModal({
           )}
         </div>
 
-        {/* ============================================
-            CAMPO: Precio de alquiler (opcional)
-            ============================================ */}
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-slate-700 mb-2">
-            Precio de alquiler (opcional)
-          </label>
-          <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">
-              $
-            </span>
+        {/* CAMPO: Cantidad inicial (solo para LOTES) */}
+        {!formData.requiere_series && !isEditMode && (
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Cantidad inicial *
+            </label>
             <input
               type="number"
-              name="precio_alquiler"
-              value={formData.precio_alquiler}
-              onChange={handleInputChange}
-              placeholder="0.00"
-              step="0.01"
+              name="cantidad"
+              value={formData.cantidad}
+              onChange={handleCantidadChange}
               min="0"
+              placeholder="0"
               className={`
-                w-full pl-8 pr-4 py-2 border rounded-lg
+                w-full px-4 py-2 border rounded-lg
                 focus:outline-none focus:ring-2
-                ${errors.precio_alquiler
+                ${errors.cantidad
                   ? 'border-red-300 focus:ring-red-500'
                   : 'border-slate-300 focus:ring-blue-500'
                 }
               `}
             />
-          </div>
-          {errors.precio_alquiler && (
-            <p className="mt-1 text-sm text-red-600">
-              {errors.precio_alquiler}
+            {errors.cantidad && (
+              <p className="mt-1 text-sm text-red-600">{errors.cantidad}</p>
+            )}
+            <p className="mt-1 text-xs text-slate-500">
+              💡 Se ubicarán en <strong>Bodega</strong> con estado <strong>Bueno</strong>
             </p>
-          )}
-        </div>
+          </div>
+        )}
 
-        {/* ============================================
-            CAMPO: Notas (opcional)
-            ============================================ */}
-        <div className="mb-6">
-          <label className="block text-sm font-medium text-slate-700 mb-2">
-            Notas adicionales (opcional)
-          </label>
-          <textarea
-            name="notas"
-            value={formData.notas}
-            onChange={handleInputChange}
-            placeholder="Información adicional, observaciones..."
-            rows={2}
-            className="
-              w-full px-4 py-2 border border-slate-300 rounded-lg
-              focus:outline-none focus:ring-2 focus:ring-blue-500
-            "
-          />
-        </div>
+        {/* MENSAJE INFORMATIVO */}
+        {!isEditMode && (
+          <div className={`
+            mb-4 p-4 rounded-lg border
+            ${formData.requiere_series
+              ? 'bg-blue-50 border-blue-200'
+              : 'bg-purple-50 border-purple-200'
+            }
+          `}>
+            {formData.requiere_series ? (
+              <p className="text-sm text-blue-700">
+                <strong>ℹ️ Gestión por Series:</strong> El elemento iniciará con 0 unidades.
+                Después podrás agregar series individuales con sus números únicos.
+              </p>
+            ) : (
+              <p className="text-sm text-purple-700">
+                <strong>ℹ️ Gestión por Lotes:</strong> Las {formData.cantidad || 0} unidades se ubicarán en <strong>Bodega</strong> con estado <strong>Bueno</strong>.
+                Después podrás agregar más lotes, mover cantidades y cambiar ubicaciones.
+              </p>
+            )}
+          </div>
+        )}
 
-        {/* ============================================
-            FOOTER: Botones de acción
-            ============================================ */}
+        {/* FOOTER */}
         <Modal.Footer>
           <Button
             type="button"
             variant="ghost"
-            onClick={handleCancel}
+            onClick={onClose}
             disabled={mutation.isPending}
           >
             Cancelar
@@ -581,54 +404,3 @@ function ElementoFormModal({
 }
 
 export default ElementoFormModal
-
-/**
- * ============================================
- * 🎓 CONCEPTOS CLAVE
- * ============================================
- *
- * 1. ESTADO DEL FORMULARIO:
- * ─────────────────────────
- * Usamos un objeto 'formData' que contiene todos los campos.
- * Esto es más limpio que tener useState() para cada campo.
- *
- *
- * 2. VALIDACIÓN:
- * ──────────────
- * - validateForm() revisa todos los campos
- * - Devuelve true/false
- * - Guarda errores en objeto 'errors'
- * - Mostramos errores debajo de cada campo
- *
- *
- * 3. MODO CREAR vs EDITAR:
- * ────────────────────────
- * - Detectamos con: isEditMode = !!elemento?.id
- * - Creamos título dinámico
- * - Usamos mutation diferente según modo
- * - En editar, cargamos datos existentes con useEffect
- *
- *
- * 4. MUTATIONS DE REACT QUERY:
- * ────────────────────────────
- * - createElemento.mutate(data, { onSuccess, onError })
- * - isPending para deshabilitar botón mientras guarda
- * - onSuccess para cerrar modal y recargar datos
- * - onError para mostrar mensaje de error
- *
- *
- * 5. CONTROLLED INPUTS:
- * ─────────────────────
- * Todos los inputs tienen:
- * - value={formData.campo}
- * - onChange={handleInputChange}
- *
- * React controla el valor del input (controlled component)
- *
- *
- * 6. PREVENCIÓN DE CAMBIO DE TIPO:
- * ─────────────────────────────────
- * Una vez creado, no se puede cambiar de series a lotes
- * porque ya puede tener datos asociados.
- * Usamos disabled={isEditMode} en los radio buttons.
- */
