@@ -16,6 +16,8 @@ import Breadcrumb from '../components/common/Breadcrum'
 import Button from '../components/common/Button'
 import Spinner from '../components/common/Spinner'
 import EmptyState from '../components/common/EmptyState'
+import { toast } from 'sonner'
+import ElementoFormModal from '../components/forms/ElementoFormModal'
 
 /**
  * PÁGINA: Subcategorias (Nivel 2)
@@ -110,7 +112,7 @@ export default function Subcategorias() {
   const [subcategoriaIdForElement, setSubcategoriaIdForElement] = useState(null)
   
   // ============================================
-  // HANDLERS: Modales
+  // HANDLERS: Modaes
   // ============================================
   
   /**
@@ -128,16 +130,12 @@ export default function Subcategorias() {
     setModalState({ ...modalState, editar: true })
   }
   
-  /**
-   * Abrir modal de crear elemento
-   * (Esto lo implementaremos en el Nivel 3)
-   */
+  /// Abrir modal de crear elemento 
   const handleCreateElemento = (subcategoriaId) => {
+    // Guardar el ID de la subcategoría seleccionada
     setSubcategoriaIdForElement(subcategoriaId)
+    // Abrir modal de crear elemento
     setModalState({ ...modalState, crearElemento: true })
-    
-    // Por ahora, solo mostrar un alert
-    alert(`Funcionalidad de crear elemento para subcategoría ${subcategoriaId} - Se implementará en Nivel 3`)
   }
   
   /**
@@ -153,6 +151,17 @@ export default function Subcategorias() {
     setSubcategoriaIdForElement(null)
   }
   
+  /**manejador de exito para ElementoFormModal
+   * al hacer una simulacion, forzamos un re-render pidiendo las subcategorias de nuevo
+   * luego lo cambiaremos ya que usamos react-query y este se encargara de actualizar la cache
+   */
+  const handleElementoSuccess = () => {
+    // Por ahora solo mostramos un alert
+    toast.success('Elemento creado exitosamente')
+    setSubcategoriaIdForElement(null)
+    // Aquí podríamos agregar lógica para refrescar la lista de elementos si es necesario
+  }
+
   /**
    * Volver al Dashboard
    */
@@ -294,6 +303,7 @@ export default function Subcategorias() {
               <SubcategoriaCard
                 key={subcategoria.id}
                 subcategoria={subcategoria}
+                categoriaId={categoriaId}
                 onEdit={handleEdit}
                 onCreateElemento={handleCreateElemento}
               />
@@ -337,9 +347,18 @@ export default function Subcategorias() {
         subcategoria={selectedSubcategoria}
       />
       
-      {/* Modal: Crear elemento - Lo implementaremos en Nivel 3 */}
-      {/* Por ahora solo mostramos un alert en handleCreateElemento */}
-      
+      {/* Modal: Crear elemento */}
+      {/* solo se monta si subcategoriaIdForElement tiene valor y el modal esta abierto isOpen(true) */}
+      {subcategoriaIdForElement && (
+        <ElementoFormModal
+          isOpen={modalState.crearElemento}
+          onClose={handleCloseModal}
+          //usamos el handler de exito para mostrar el toast minetras se implementa query
+          onSuccess={handleElementoSuccess}
+          subcategoriaId={subcategoriaIdForElement}
+          elemento = {null} // Crear nuevo elemento
+          />
+        )}
     </div>
   )
 }

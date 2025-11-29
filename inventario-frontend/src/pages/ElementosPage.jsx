@@ -109,6 +109,8 @@ function ElementosPage() {
     refetch
   } = useGetElementos(subcategoriaId)
 
+    console.log('Elementos cargados:', elementos)
+
   // ============================================
   // 4. HANDLERS - Funciones que manejan eventos
   // ============================================

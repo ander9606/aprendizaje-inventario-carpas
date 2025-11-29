@@ -30,6 +30,9 @@ router.get('/subcategoria/:subcategoriaId', elementoController.obtenerPorCategor
 // RUTAS CRUD ESTÁNDAR
 // ============================================
 
+
+
+
 // GET /api/elementos - Obtener todos
 router.get('/', elementoController.obtenerTodos);
 

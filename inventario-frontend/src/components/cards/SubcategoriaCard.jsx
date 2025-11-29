@@ -12,6 +12,7 @@ import { useUpdateCategoria, useDeleteCategoria } from '../../hooks/Usecategoria
 
 const SubcategoriaCard = ({ 
   subcategoria,
+  categoriaId,
   onEdit,
   onCreateElemento
 }) => {
@@ -27,8 +28,8 @@ const SubcategoriaCard = ({
   const deleteCategoria = useDeleteCategoria()
 
   // Navegar a elementos
-  const handleVerElementos = () => {
-    navigate(`/elementos/${subcategoria.id}`)
+   const handleVerElementos = () => {
+    navigate(`/categorias/${categoriaId}/subcategorias/${subcategoria.id}/elementos`)
   }
 
   // Crear elemento
