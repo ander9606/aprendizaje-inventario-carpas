@@ -8,6 +8,9 @@ import { toast } from 'sonner'
 import Modal from '../common/Modal'
 import Button from '../common/Button'
 import { useCreateElemento, useUpdateElemento } from '../../hooks/Useelementos'
+import { useGetMateriales } from '../../hooks/Usemateriales'
+import { useGetUnidades } from '../../hooks/Useunidades'
+import { ESTADOS } from '../../utils/constants'
 
 /**
  * ============================================
@@ -64,7 +67,15 @@ function ElementoFormModal({
   const isEditMode = elemento && elemento.id
 
   // ============================================
-  // 2. ESTADOS DEL FORMULARIO
+  // 2. HOOKS DE DATOS
+  // ============================================
+
+  // Obtener listas de materiales y unidades para los selects
+  const { materiales, isLoading: loadingMateriales } = useGetMateriales()
+  const { unidades, isLoading: loadingUnidades } = useGetUnidades()
+
+  // ============================================
+  // 3. ESTADOS DEL FORMULARIO
   // ============================================
 
   /**
@@ -74,8 +85,11 @@ function ElementoFormModal({
    * - nombre: Nombre del elemento (ej: "Carpa Doite 3x3")
    * - descripcion: Descripción opcional
    * - requiere_series: true = gestión por series, false = gestión por lotes
-   * - precio_alquiler: Precio de alquiler por día (opcional)
-   * - notas: Notas adicionales (opcional)
+   * - material_id: ID del material
+   * - unidad_id: ID de la unidad de medida
+   * - estado: Estado del elemento (nuevo, bueno, etc)
+   * - ubicacion: Ubicación física del elemento
+   * - fecha_ingreso: Fecha de ingreso del elemento
    *
    * NOTA: Los elementos NO tienen icono propio.
    * Heredan el ícono de su subcategoría para mantener consistencia visual.
@@ -83,7 +97,12 @@ function ElementoFormModal({
   const [formData, setFormData] = useState({
     nombre: '',
     descripcion: '',
-    requiere_series: true
+    requiere_series: true,
+    material_id: '',
+    unidad_id: '',
+    estado: ESTADOS.BUENO,
+    ubicacion: '',
+    fecha_ingreso: ''
   })
 
   /**
@@ -93,7 +112,7 @@ function ElementoFormModal({
   const [errors, setErrors] = useState({})
 
   // ============================================
-  // 3. HOOKS DE MUTATIONS (React Query)
+  // 4. HOOKS DE MUTATIONS (React Query)
   // ============================================
 
   /**
@@ -120,7 +139,7 @@ function ElementoFormModal({
   const mutation = isEditMode ? updateElemento : createElemento
 
   // ============================================
-  // 4. EFECTOS (useEffect)
+  // 5. EFECTOS (useEffect)
   // ============================================
 
   /**
@@ -139,14 +158,24 @@ function ElementoFormModal({
       setFormData({
         nombre: elemento.nombre || '',
         descripcion: elemento.descripcion || '',
-        requiere_series: elemento.requiere_series ?? true
+        requiere_series: elemento.requiere_series ?? true,
+        material_id: elemento.material_id || '',
+        unidad_id: elemento.unidad_id || '',
+        estado: elemento.estado || ESTADOS.BUENO,
+        ubicacion: elemento.ubicacion || '',
+        fecha_ingreso: elemento.fecha_ingreso || ''
       })
     } else if (isOpen && !isEditMode) {
       // Resetear formulario en modo crear
       setFormData({
         nombre: '',
         descripcion: '',
-        requiere_series: true
+        requiere_series: true,
+        material_id: '',
+        unidad_id: '',
+        estado: ESTADOS.BUENO,
+        ubicacion: '',
+        fecha_ingreso: ''
       })
     }
 
@@ -155,7 +184,7 @@ function ElementoFormModal({
   }, [isOpen, elemento, isEditMode])
 
   // ============================================
-  // 5. FUNCIONES DE VALIDACIÓN
+  // 6. FUNCIONES DE VALIDACIÓN
   // ============================================
 
   /**
@@ -185,7 +214,7 @@ function ElementoFormModal({
   }
 
   // ============================================
-  // 6. HANDLERS (Manejadores de eventos)
+  // 7. HANDLERS (Manejadores de eventos)
   // ============================================
 
   /**
@@ -262,7 +291,12 @@ function ElementoFormModal({
     const dataToSend = {
       nombre: formData.nombre.trim(),
       descripcion: formData.descripcion.trim() || null,
-      requiere_series: formData.requiere_series
+      requiere_series: formData.requiere_series,
+      material_id: formData.material_id || null,
+      unidad_id: formData.unidad_id || null,
+      estado: formData.estado || 'bueno',
+      ubicacion: formData.ubicacion.trim() || null,
+      fecha_ingreso: formData.fecha_ingreso || null
     }
 
     // Si estamos creando, agregar categoria_id (que es la subcategoría)
@@ -476,6 +510,123 @@ function ElementoFormModal({
               No se puede cambiar el tipo de gestión una vez creado el elemento
             </p>
           )}
+        </div>
+
+        {/* ============================================
+            CAMPO: Material (opcional)
+            ============================================ */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-slate-700 mb-2">
+            Material (opcional)
+          </label>
+          <select
+            name="material_id"
+            value={formData.material_id}
+            onChange={handleInputChange}
+            disabled={loadingMateriales}
+            className="
+              w-full px-4 py-2 border border-slate-300 rounded-lg
+              focus:outline-none focus:ring-2 focus:ring-blue-500
+            "
+          >
+            <option value="">Sin especificar</option>
+            {materiales.map((material) => (
+              <option key={material.id} value={material.id}>
+                {material.nombre}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* ============================================
+            CAMPO: Unidad de medida (opcional)
+            ============================================ */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-slate-700 mb-2">
+            Unidad de medida (opcional)
+          </label>
+          <select
+            name="unidad_id"
+            value={formData.unidad_id}
+            onChange={handleInputChange}
+            disabled={loadingUnidades}
+            className="
+              w-full px-4 py-2 border border-slate-300 rounded-lg
+              focus:outline-none focus:ring-2 focus:ring-blue-500
+            "
+          >
+            <option value="">Sin especificar</option>
+            {unidades.map((unidad) => (
+              <option key={unidad.id} value={unidad.id}>
+                {unidad.nombre} ({unidad.abreviatura})
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* ============================================
+            CAMPO: Estado (opcional)
+            ============================================ */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-slate-700 mb-2">
+            Estado inicial (opcional)
+          </label>
+          <select
+            name="estado"
+            value={formData.estado}
+            onChange={handleInputChange}
+            className="
+              w-full px-4 py-2 border border-slate-300 rounded-lg
+              focus:outline-none focus:ring-2 focus:ring-blue-500
+            "
+          >
+            <option value={ESTADOS.NUEVO}>Nuevo</option>
+            <option value={ESTADOS.BUENO}>Bueno</option>
+            <option value={ESTADOS.MANTENIMIENTO}>Mantenimiento</option>
+            <option value={ESTADOS.DANADO}>Dañado</option>
+          </select>
+        </div>
+
+        {/* ============================================
+            CAMPO: Ubicación (opcional)
+            ============================================ */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-slate-700 mb-2">
+            Ubicación (opcional)
+          </label>
+          <input
+            type="text"
+            name="ubicacion"
+            value={formData.ubicacion}
+            onChange={handleInputChange}
+            placeholder="Ej: Bodega principal"
+            className="
+              w-full px-4 py-2 border border-slate-300 rounded-lg
+              focus:outline-none focus:ring-2 focus:ring-blue-500
+            "
+          />
+          <p className="mt-1 text-xs text-slate-500">
+            Ubicación general del elemento
+          </p>
+        </div>
+
+        {/* ============================================
+            CAMPO: Fecha de ingreso (opcional)
+            ============================================ */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-slate-700 mb-2">
+            Fecha de ingreso (opcional)
+          </label>
+          <input
+            type="date"
+            name="fecha_ingreso"
+            value={formData.fecha_ingreso}
+            onChange={handleInputChange}
+            className="
+              w-full px-4 py-2 border border-slate-300 rounded-lg
+              focus:outline-none focus:ring-2 focus:ring-blue-500
+            "
+          />
         </div>
 
         {/* ============================================

@@ -8,8 +8,10 @@ import { toast } from 'sonner'
 import Modal from '../common/Modal'
 import Button from '../common/Button'
 import { EstadoBadge } from '../common/Badge'
+import UbicacionSelector from '../common/UbicacionSelector'
 import { ESTADOS, ESTADO_LABELS } from '../../utils/constants'
 import { useCreateSerie, useUpdateSerie } from '../../hooks/Useseries'
+import { useGetUbicacionesActivas } from '../../hooks/Useubicaciones'
 
 /**
  * ============================================
@@ -73,13 +75,18 @@ function SerieFormModal({
    * CAMPOS:
    * - numero_serie: Número de serie único (ej: "DOITE-001")
    * - estado: Estado de la serie ('nuevo', 'bueno', etc)
-   * - ubicacion: Ubicación física (ej: "Bodega A")
+   * - ubicacion_id: ID de la ubicación seleccionada
+   * - ubicacion: Nombre de la ubicación (se obtiene automáticamente del selector)
    */
   const [formData, setFormData] = useState({
     numero_serie: '',
     estado: ESTADOS.BUENO, // Estado por defecto
+    ubicacion_id: null,
     ubicacion: ''
   })
+
+  // Hook para obtener ubicaciones (necesario para resolver nombre)
+  const { ubicaciones } = useGetUbicacionesActivas()
 
   /**
    * errors: Errores de validación
@@ -116,6 +123,7 @@ function SerieFormModal({
       setFormData({
         numero_serie: serie.numero_serie || '',
         estado: serie.estado || ESTADOS.BUENO,
+        ubicacion_id: serie.ubicacion_id || null,
         ubicacion: serie.ubicacion || ''
       })
     } else if (isOpen && !isEditMode) {
@@ -123,6 +131,7 @@ function SerieFormModal({
       setFormData({
         numero_serie: '',
         estado: ESTADOS.BUENO,
+        ubicacion_id: null,
         ubicacion: ''
       })
     }
@@ -162,13 +171,13 @@ function SerieFormModal({
 
     // Validar ubicación
     // REGLA: Si NO está alquilado, DEBE tener ubicación
-    if (formData.estado !== ESTADOS.ALQUILADO && !formData.ubicacion.trim()) {
-      newErrors.ubicacion = 'La ubicación es obligatoria (excepto para alquilados)'
+    if (formData.estado !== ESTADOS.ALQUILADO && !formData.ubicacion_id) {
+      newErrors.ubicacion_id = 'La ubicación es obligatoria (excepto para alquilados)'
     }
 
     // Si está alquilado, ubicación debe ser null
-    if (formData.estado === ESTADOS.ALQUILADO && formData.ubicacion.trim()) {
-      newErrors.ubicacion = 'Las series alquiladas no tienen ubicación física'
+    if (formData.estado === ESTADOS.ALQUILADO && formData.ubicacion_id) {
+      newErrors.ubicacion_id = 'Las series alquiladas no tienen ubicación física'
     }
 
     setErrors(newErrors)
@@ -212,12 +221,37 @@ function SerieFormModal({
       ...prev,
       estado: nuevoEstado,
       // Si cambia a alquilado, limpiar ubicación
+      ubicacion_id: nuevoEstado === ESTADOS.ALQUILADO ? null : prev.ubicacion_id,
       ubicacion: nuevoEstado === ESTADOS.ALQUILADO ? '' : prev.ubicacion
     }))
 
     // Limpiar errores
     if (errors.estado) {
       setErrors(prev => ({ ...prev, estado: undefined }))
+    }
+  }
+
+  /**
+   * handleUbicacionChange: Maneja cambio de ubicación
+   *
+   * @param {string} ubicacionId - ID de la ubicación seleccionada
+   *
+   * LÓGICA:
+   * Guarda el ID y también el nombre de la ubicación para enviar al backend
+   */
+  const handleUbicacionChange = (ubicacionId) => {
+    // Encontrar la ubicación seleccionada
+    const ubicacionSeleccionada = ubicaciones.find(u => u.id === parseInt(ubicacionId))
+
+    setFormData(prev => ({
+      ...prev,
+      ubicacion_id: ubicacionId ? parseInt(ubicacionId) : null,
+      ubicacion: ubicacionSeleccionada?.nombre || ''
+    }))
+
+    // Limpiar errores
+    if (errors.ubicacion_id) {
+      setErrors(prev => ({ ...prev, ubicacion_id: undefined }))
     }
   }
 
@@ -276,6 +310,9 @@ function SerieFormModal({
       numero_serie: formData.numero_serie.trim(),
       estado: formData.estado,
       // Si está alquilado, ubicación es null
+      ubicacion_id: formData.estado === ESTADOS.ALQUILADO
+        ? null
+        : formData.ubicacion_id || null,
       ubicacion: formData.estado === ESTADOS.ALQUILADO
         ? null
         : formData.ubicacion.trim() || null
@@ -432,31 +469,14 @@ function SerieFormModal({
             ============================================ */}
         {formData.estado !== ESTADOS.ALQUILADO && (
           <div className="mb-4">
-            <label className="block text-sm font-medium text-slate-700 mb-2">
-              Ubicación *
-            </label>
-
-            <input
-              type="text"
-              name="ubicacion"
-              value={formData.ubicacion}
-              onChange={handleInputChange}
-              placeholder="Ej: Bodega A"
-              className={`
-                w-full px-4 py-2 border rounded-lg
-                focus:outline-none focus:ring-2
-                ${errors.ubicacion
-                  ? 'border-red-300 focus:ring-red-500'
-                  : 'border-slate-300 focus:ring-blue-500'
-                }
-              `}
+            <UbicacionSelector
+              value={formData.ubicacion_id}
+              onChange={handleUbicacionChange}
+              label="Ubicación"
+              placeholder="Selecciona una ubicación..."
+              required
+              error={errors.ubicacion_id}
             />
-
-            {errors.ubicacion && (
-              <p className="mt-1 text-sm text-red-600">
-                {errors.ubicacion}
-              </p>
-            )}
           </div>
         )}
 
