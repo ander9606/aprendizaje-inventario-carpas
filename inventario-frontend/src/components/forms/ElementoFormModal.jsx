@@ -35,17 +35,20 @@ function ElementoFormModal({
   const isEditMode = elemento && elemento.id
 
   // ============================================
-  // 2. ESTADOS DEL FORMULARIO
+  // 2. HOOKS DE DATOS
+  // ============================================
+
+  // Obtener listas de materiales y unidades para los selects
+  const { materiales, isLoading: loadingMateriales } = useGetMateriales()
+  const { unidades, isLoading: loadingUnidades } = useGetUnidades()
+
+  // ============================================
+  // 3. ESTADOS DEL FORMULARIO
   // ============================================
   const [formData, setFormData] = useState({
     nombre: '',
     descripcion: '',
-<<<<<<< HEAD
-    requiere_series: true,
-    cantidad: 0  // Solo se usa para lotes
-=======
     requiere_series: true
->>>>>>> a9100b0b2c322bf7343667b0c80415b92c023036
   })
 
   const [errors, setErrors] = useState({})
@@ -65,23 +68,15 @@ function ElementoFormModal({
       setFormData({
         nombre: elemento.nombre || '',
         descripcion: elemento.descripcion || '',
-<<<<<<< HEAD
-        requiere_series: elemento.requiere_series ?? true,
-        cantidad: elemento.cantidad || 0
-=======
         requiere_series: elemento.requiere_series ?? true
->>>>>>> a9100b0b2c322bf7343667b0c80415b92c023036
+
       })
     } else if (isOpen && !isEditMode) {
       setFormData({
         nombre: '',
         descripcion: '',
-<<<<<<< HEAD
-        requiere_series: true,
-        cantidad: 0
-=======
         requiere_series: true
->>>>>>> a9100b0b2c322bf7343667b0c80415b92c023036
+
       })
     }
     setErrors({})
@@ -99,17 +94,7 @@ function ElementoFormModal({
       newErrors.nombre = 'El nombre debe tener al menos 3 caracteres'
     }
 
-<<<<<<< HEAD
-    // Validar cantidad solo para lotes
-    if (!formData.requiere_series) {
-      if (formData.cantidad < 0) {
-        newErrors.cantidad = 'La cantidad no puede ser negativa'
-      }
-    }
-
-=======
     // Guardar errores en el estado
->>>>>>> a9100b0b2c322bf7343667b0c80415b92c023036
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
@@ -162,20 +147,6 @@ function ElementoFormModal({
     const dataToSend = {
       nombre: formData.nombre.trim(),
       descripcion: formData.descripcion.trim() || null,
-<<<<<<< HEAD
-      requiere_series: formData.requiere_series,
-      categoria_id: isEditMode
-        ? elemento.categoria_id
-        : parseInt(subcategoriaId, 10),
-      // Para SERIES: cantidad=0, sin ubicación
-      // Para LOTES: cantidad del form, ubicación=Bodega, estado=bueno
-      cantidad: formData.requiere_series ? 0 : (formData.cantidad || 0),
-      estado: 'bueno',
-      ubicacion: formData.requiere_series ? null : 'Bodega'
-    }
-
-    console.log('📤 Enviando datos al backend:', dataToSend)
-=======
       requiere_series: formData.requiere_series
     }
 
@@ -183,8 +154,6 @@ function ElementoFormModal({
     if (!isEditMode) {
       dataToSend.categoria_id = subcategoriaId
     }
->>>>>>> a9100b0b2c322bf7343667b0c80415b92c023036
-
     // ============================================
     // EJECUTAR MUTATION
    // ============================================
@@ -349,67 +318,126 @@ function ElementoFormModal({
           )}
         </div>
 
-<<<<<<< HEAD
-        {/* CAMPO: Cantidad inicial (solo para LOTES) */}
-        {!formData.requiere_series && !isEditMode && (
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-slate-700 mb-2">
-              Cantidad inicial *
-            </label>
-            <input
-              type="number"
-              name="cantidad"
-              value={formData.cantidad}
-              onChange={handleCantidadChange}
-              min="0"
-              placeholder="0"
-              className={`
-                w-full px-4 py-2 border rounded-lg
-                focus:outline-none focus:ring-2
-                ${errors.cantidad
-                  ? 'border-red-300 focus:ring-red-500'
-                  : 'border-slate-300 focus:ring-blue-500'
-                }
-              `}
-            />
-            {errors.cantidad && (
-              <p className="mt-1 text-sm text-red-600">{errors.cantidad}</p>
-            )}
-            <p className="mt-1 text-xs text-slate-500">
-              💡 Se ubicarán en <strong>Bodega</strong> con estado <strong>Bueno</strong>
-            </p>
-          </div>
-        )}
+        {/* ============================================
+            CAMPO: Material (opcional)
+            ============================================ */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-slate-700 mb-2">
+            Material (opcional)
+          </label>
+          <select
+            name="material_id"
+            value={formData.material_id}
+            onChange={handleInputChange}
+            disabled={loadingMateriales}
+            className="
+              w-full px-4 py-2 border border-slate-300 rounded-lg
+              focus:outline-none focus:ring-2 focus:ring-blue-500
+            "
+          >
+            <option value="">Sin especificar</option>
+            {materiales.map((material) => (
+              <option key={material.id} value={material.id}>
+                {material.nombre}
+              </option>
+            ))}
+          </select>
+        </div>
 
-        {/* MENSAJE INFORMATIVO */}
-        {!isEditMode && (
-          <div className={`
-            mb-4 p-4 rounded-lg border
-            ${formData.requiere_series
-              ? 'bg-blue-50 border-blue-200'
-              : 'bg-purple-50 border-purple-200'
-            }
-          `}>
-            {formData.requiere_series ? (
-              <p className="text-sm text-blue-700">
-                <strong>ℹ️ Gestión por Series:</strong> El elemento iniciará con 0 unidades.
-                Después podrás agregar series individuales con sus números únicos.
-              </p>
-            ) : (
-              <p className="text-sm text-purple-700">
-                <strong>ℹ️ Gestión por Lotes:</strong> Las {formData.cantidad || 0} unidades se ubicarán en <strong>Bodega</strong> con estado <strong>Bueno</strong>.
-                Después podrás agregar más lotes, mover cantidades y cambiar ubicaciones.
-              </p>
-            )}
-          </div>
-        )}
+        {/* ============================================
+            CAMPO: Unidad de medida (opcional)
+            ============================================ */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-slate-700 mb-2">
+            Unidad de medida (opcional)
+          </label>
+          <select
+            name="unidad_id"
+            value={formData.unidad_id}
+            onChange={handleInputChange}
+            disabled={loadingUnidades}
+            className="
+              w-full px-4 py-2 border border-slate-300 rounded-lg
+              focus:outline-none focus:ring-2 focus:ring-blue-500
+            "
+          >
+            <option value="">Sin especificar</option>
+            {unidades.map((unidad) => (
+              <option key={unidad.id} value={unidad.id}>
+                {unidad.nombre} ({unidad.abreviatura})
+              </option>
+            ))}
+          </select>
+        </div>
 
-        {/* FOOTER */}
-=======
+        {/* ============================================
+            CAMPO: Estado (opcional)
+            ============================================ */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-slate-700 mb-2">
+            Estado inicial (opcional)
+          </label>
+          <select
+            name="estado"
+            value={formData.estado}
+            onChange={handleInputChange}
+            className="
+              w-full px-4 py-2 border border-slate-300 rounded-lg
+              focus:outline-none focus:ring-2 focus:ring-blue-500
+            "
+          >
+            <option value={ESTADOS.NUEVO}>Nuevo</option>
+            <option value={ESTADOS.BUENO}>Bueno</option>
+            <option value={ESTADOS.MANTENIMIENTO}>Mantenimiento</option>
+            <option value={ESTADOS.DANADO}>Dañado</option>
+          </select>
+        </div>
+
+        {/* ============================================
+            CAMPO: Ubicación (opcional)
+            ============================================ */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-slate-700 mb-2">
+            Ubicación (opcional)
+          </label>
+          <input
+            type="text"
+            name="ubicacion"
+            value={formData.ubicacion}
+            onChange={handleInputChange}
+            placeholder="Ej: Bodega principal"
+            className="
+              w-full px-4 py-2 border border-slate-300 rounded-lg
+              focus:outline-none focus:ring-2 focus:ring-blue-500
+            "
+          />
+          <p className="mt-1 text-xs text-slate-500">
+            Ubicación general del elemento
+          </p>
+        </div>
+
+        {/* ============================================
+            CAMPO: Fecha de ingreso (opcional)
+            ============================================ */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-slate-700 mb-2">
+            Fecha de ingreso (opcional)
+          </label>
+          <input
+            type="date"
+            name="fecha_ingreso"
+            value={formData.fecha_ingreso}
+            onChange={handleInputChange}
+            className="
+              w-full px-4 py-2 border border-slate-300 rounded-lg
+              focus:outline-none focus:ring-2 focus:ring-blue-500
+            "
+          />
+        </div>
+
         {/* ============================================
             FOOTER: Botones de acción
             ============================================ */}
->>>>>>> a9100b0b2c322bf7343667b0c80415b92c023036
         <Modal.Footer>
           <Button
             type="button"

@@ -304,8 +304,8 @@ class ElementoModel {
             const query = `
                 INSERT INTO elementos
                 (nombre, descripcion, cantidad, requiere_series, categoria_id,
-                 estado, ubicacion, fecha_ingreso)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                 material_id, unidad_id, estado, ubicacion, fecha_ingreso)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `;
 
             const [result] = await pool.query(query, [
@@ -314,6 +314,8 @@ class ElementoModel {
                 cantidad || 0,
                 requiere_series || false,
                 categoria_id || null,
+                material_id || null,
+                unidad_id || null,
                 estado || 'bueno',
                 ubicacion || null,
                 fecha_ingreso || null
@@ -350,6 +352,8 @@ class ElementoModel {
                     cantidad = ?,
                     requiere_series = ?,
                     categoria_id = ?,
+                    material_id = ?,
+                    unidad_id = ?,
                     estado = ?,
                     ubicacion = ?,
                     fecha_ingreso = ?
@@ -362,6 +366,8 @@ class ElementoModel {
                 cantidad || 0,
                 requiere_series || false,
                 categoria_id || null,
+                material_id || null,
+                unidad_id || null,
                 estado || 'bueno',
                 ubicacion || null,
                 fecha_ingreso || null,
