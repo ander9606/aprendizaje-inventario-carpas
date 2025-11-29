@@ -8,8 +8,12 @@ import { toast } from 'sonner'
 import Modal from '../common/Modal'
 import Button from '../common/Button'
 import { EstadoBadge } from '../common/Badge'
+<<<<<<< HEAD
 import UbicacionSelector from '../common/UbicacionSelector'
 import { ESTADOS } from '../../utils/constants'
+=======
+import { ESTADOS, ESTADO_LABELS } from '../../utils/constants'
+>>>>>>> a9100b0b2c322bf7343667b0c80415b92c023036
 import { useCreateSerie, useUpdateSerie } from '../../hooks/Useseries'
 
 /**
@@ -75,13 +79,11 @@ function SerieFormModal({
    * - numero_serie: Número de serie único (ej: "DOITE-001")
    * - estado: Estado de la serie ('nuevo', 'bueno', etc)
    * - ubicacion: Ubicación física (ej: "Bodega A")
-   * - observaciones: Notas adicionales (opcional)
    */
   const [formData, setFormData] = useState({
     numero_serie: '',
     estado: ESTADOS.BUENO, // Estado por defecto
-    ubicacion: '',
-    observaciones: ''
+    ubicacion: ''
   })
 
   /**
@@ -122,16 +124,14 @@ function SerieFormModal({
       setFormData({
         numero_serie: serie.numero_serie || '',
         estado: serie.estado || ESTADOS.BUENO,
-        ubicacion: serie.ubicacion || '',
-        observaciones: serie.observaciones || ''
+        ubicacion: serie.ubicacion || ''
       })
     } else if (isOpen && !isEditMode) {
       // Modo crear: resetear
       setFormData({
         numero_serie: '',
         estado: ESTADOS.BUENO,
-        ubicacion: '',
-        observaciones: ''
+        ubicacion: ''
       })
     }
 
@@ -229,21 +229,6 @@ function SerieFormModal({
     }
   }
 
-  /**
-   * handleUbicacionChange: Maneja cambio de ubicación
-   *
-   * @param {string} nuevaUbicacion - La ubicación seleccionada
-   */
-  const handleUbicacionChange = (nuevaUbicacion) => {
-    setFormData(prev => ({
-      ...prev,
-      ubicacion: nuevaUbicacion
-    }))
-
-    if (errors.ubicacion) {
-      setErrors(prev => ({ ...prev, ubicacion: undefined }))
-    }
-  }
 
   /**
    * handleGenerarNumero: Genera número de serie automáticamente
@@ -301,8 +286,7 @@ function SerieFormModal({
       // Si está alquilado, ubicación es null
       ubicacion: formData.estado === ESTADOS.ALQUILADO
         ? null
-        : formData.ubicacion.trim(),
-      observaciones: formData.observaciones.trim() || null
+        : formData.ubicacion.trim() || null
     }
 
     // Si estamos creando, agregar elemento_id
@@ -455,10 +439,20 @@ function SerieFormModal({
               Ubicación *
             </label>
 
-            <UbicacionSelector
+            <input
+              type="text"
+              name="ubicacion"
               value={formData.ubicacion}
-              onChange={handleUbicacionChange}
-              placeholder="Selecciona una ubicación"
+              onChange={handleInputChange}
+              placeholder="Ej: Bodega A"
+              className={`
+                w-full px-4 py-2 border rounded-lg
+                focus:outline-none focus:ring-2
+                ${errors.ubicacion
+                  ? 'border-red-300 focus:ring-red-500'
+                  : 'border-slate-300 focus:ring-blue-500'
+                }
+              `}
             />
 
             {errors.ubicacion && (
@@ -478,26 +472,6 @@ function SerieFormModal({
             </p>
           </div>
         )}
-
-        {/* ============================================
-            CAMPO: Observaciones (opcional)
-            ============================================ */}
-        <div className="mb-6">
-          <label className="block text-sm font-medium text-slate-700 mb-2">
-            Observaciones (opcional)
-          </label>
-          <textarea
-            name="observaciones"
-            value={formData.observaciones}
-            onChange={handleInputChange}
-            placeholder="Notas adicionales sobre esta serie..."
-            rows={2}
-            className="
-              w-full px-4 py-2 border border-slate-300 rounded-lg
-              focus:outline-none focus:ring-2 focus:ring-blue-500
-            "
-          />
-        </div>
 
         {/* ============================================
             FOOTER: Botones

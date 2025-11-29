@@ -40,8 +40,12 @@ function ElementoFormModal({
   const [formData, setFormData] = useState({
     nombre: '',
     descripcion: '',
+<<<<<<< HEAD
     requiere_series: true,
     cantidad: 0  // Solo se usa para lotes
+=======
+    requiere_series: true
+>>>>>>> a9100b0b2c322bf7343667b0c80415b92c023036
   })
 
   const [errors, setErrors] = useState({})
@@ -61,15 +65,23 @@ function ElementoFormModal({
       setFormData({
         nombre: elemento.nombre || '',
         descripcion: elemento.descripcion || '',
+<<<<<<< HEAD
         requiere_series: elemento.requiere_series ?? true,
         cantidad: elemento.cantidad || 0
+=======
+        requiere_series: elemento.requiere_series ?? true
+>>>>>>> a9100b0b2c322bf7343667b0c80415b92c023036
       })
     } else if (isOpen && !isEditMode) {
       setFormData({
         nombre: '',
         descripcion: '',
+<<<<<<< HEAD
         requiere_series: true,
         cantidad: 0
+=======
+        requiere_series: true
+>>>>>>> a9100b0b2c322bf7343667b0c80415b92c023036
       })
     }
     setErrors({})
@@ -87,6 +99,7 @@ function ElementoFormModal({
       newErrors.nombre = 'El nombre debe tener al menos 3 caracteres'
     }
 
+<<<<<<< HEAD
     // Validar cantidad solo para lotes
     if (!formData.requiere_series) {
       if (formData.cantidad < 0) {
@@ -94,6 +107,9 @@ function ElementoFormModal({
       }
     }
 
+=======
+    // Guardar errores en el estado
+>>>>>>> a9100b0b2c322bf7343667b0c80415b92c023036
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
@@ -146,6 +162,7 @@ function ElementoFormModal({
     const dataToSend = {
       nombre: formData.nombre.trim(),
       descripcion: formData.descripcion.trim() || null,
+<<<<<<< HEAD
       requiere_series: formData.requiere_series,
       categoria_id: isEditMode
         ? elemento.categoria_id
@@ -158,6 +175,15 @@ function ElementoFormModal({
     }
 
     console.log('📤 Enviando datos al backend:', dataToSend)
+=======
+      requiere_series: formData.requiere_series
+    }
+
+    // Si estamos creando, agregar categoria_id (que es la subcategoría)
+    if (!isEditMode) {
+      dataToSend.categoria_id = subcategoriaId
+    }
+>>>>>>> a9100b0b2c322bf7343667b0c80415b92c023036
 
     // ============================================
     // EJECUTAR MUTATION
@@ -323,6 +349,7 @@ function ElementoFormModal({
           )}
         </div>
 
+<<<<<<< HEAD
         {/* CAMPO: Cantidad inicial (solo para LOTES) */}
         {!formData.requiere_series && !isEditMode && (
           <div className="mb-4">
@@ -378,6 +405,11 @@ function ElementoFormModal({
         )}
 
         {/* FOOTER */}
+=======
+        {/* ============================================
+            FOOTER: Botones de acción
+            ============================================ */}
+>>>>>>> a9100b0b2c322bf7343667b0c80415b92c023036
         <Modal.Footer>
           <Button
             type="button"
