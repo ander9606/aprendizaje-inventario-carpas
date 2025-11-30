@@ -167,7 +167,7 @@ const lotesAPI = {
    * })
    */
   moverCantidad: async (data) => {
-    const response = await api.post('/lotes/mover', data)
+    const response = await api.post('/lotes/movimiento', data)
     return response.data
   },
 
