@@ -68,16 +68,18 @@ export const useGetLotes = (elementoId) => {
     
     // Transformar datos para agregar estadísticas
     select: (response) => {
-      const lotes = response?.data || []
+      // El backend retorna: { success, elemento, estadisticas, lotes, total_lotes }
+      const lotes = response?.lotes || []
       const elemento = response?.elemento || null
-      
+      const estadisticasBackend = response?.estadisticas || {}
+
       // Calcular cantidad total
       const cantidad_total = lotes.reduce(
         (total, lote) => total + (lote.cantidad || 0),
         0
       )
-      
-      // Calcular estadísticas por estado
+
+      // Calcular estadísticas por estado (manualmente desde los lotes)
       const estadisticas = lotes.reduce((stats, lote) => {
         const estado = lote.estado || 'sin_estado'
         stats[estado] = (stats[estado] || 0) + (lote.cantidad || 0)
@@ -85,25 +87,26 @@ export const useGetLotes = (elementoId) => {
       }, {
         nuevo: 0,
         bueno: 0,
-        regular: 0,
-        malo: 0,
+        mantenimiento: 0,
+        danado: 0,
         alquilado: 0
       })
-      
+
       // Calcular distribución por ubicación
       const lotes_por_ubicacion = lotes.reduce((ubicaciones, lote) => {
         const ubicacion = lote.ubicacion || 'Sin ubicación'
         ubicaciones[ubicacion] = (ubicaciones[ubicacion] || 0) + (lote.cantidad || 0)
         return ubicaciones
       }, {})
-      
+
       // Calcular cantidad disponible para alquilar (nuevo + bueno)
       const cantidad_disponible = (estadisticas.nuevo || 0) + (estadisticas.bueno || 0)
-      
+
       return {
         lotes,
         elemento,
         estadisticas,
+        estadisticasBackend,
         lotes_por_ubicacion,
         cantidad_total,
         cantidad_disponible
