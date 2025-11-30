@@ -20,7 +20,6 @@ class LoteModel {
                     l.cantidad,
                     l.estado,
                     l.ubicacion,
-                    l.fecha_ingreso,
                     l.created_at,
                     e.nombre AS elemento_nombre,
                     e.descripcion AS elemento_descripcion,
@@ -51,7 +50,6 @@ class LoteModel {
                     l.cantidad,
                     l.estado,
                     l.ubicacion,
-                    l.fecha_ingreso,
                     l.created_at,
                     e.nombre AS elemento_nombre,
                     e.descripcion AS elemento_descripcion,
@@ -70,7 +68,7 @@ class LoteModel {
             }
 
             // Agregar ordenamiento
-            const validSortFields = ['lote_numero', 'cantidad', 'estado', 'fecha_ingreso', 'elemento_nombre'];
+            const validSortFields = ['lote_numero', 'cantidad', 'estado', 'elemento_nombre'];
             const sortField = validSortFields.includes(sortBy) ? sortBy : 'lote_numero';
 
             // Mapear campo de ordenamiento a columna real
@@ -155,7 +153,6 @@ class LoteModel {
                     l.cantidad,
                     l.estado,
                     l.ubicacion,
-                    l.fecha_ingreso,
                     l.created_at
                 FROM lotes l
                 WHERE l.elemento_id = ?
@@ -227,14 +224,13 @@ class LoteModel {
                 lote_numero,
                 cantidad,
                 estado,
-                ubicacion,
-                fecha_ingreso
+                ubicacion
             } = datos;
 
             const query = `
                 INSERT INTO lotes
-                (elemento_id, lote_numero, cantidad, estado, ubicacion, fecha_ingreso)
-                VALUES (?, ?, ?, ?, ?, ?)
+                (elemento_id, lote_numero, cantidad, estado, ubicacion)
+                VALUES (?, ?, ?, ?, ?)
             `;
 
             const [result] = await pool.query(query, [
@@ -242,8 +238,7 @@ class LoteModel {
                 lote_numero,
                 cantidad || 0,
                 estado || 'bueno',
-                ubicacion || null,
-                fecha_ingreso || null
+                ubicacion || null
             ]);
 
             return result.insertId;
