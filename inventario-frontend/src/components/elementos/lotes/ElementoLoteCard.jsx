@@ -9,7 +9,9 @@ import LoteUbicacionGroup from './LoteUbicacionGroup'
 import EmptyState from '../../common/EmptyState'
 import AlertaBanner from '../../common/AlertaBanner'
 import Button from '../../common/Button'
+import Spinner from '../../common/Spinner'
 import { Plus, Package, MapPin } from 'lucide-react'
+import { useGetLotes } from '../../../hooks/Uselotes'
 
 /**
  * Componente ElementoLoteCard - Card para elemento con gestión por lotes
@@ -56,14 +58,42 @@ export const ElementoLoteCard = ({
   onEditLote,
   onMoveLote,
   onDeleteLote,
+  disabled = false,
   className = '',
   ...props
 }) => {
+  // ============================================
+  // CARGAR LOTES USANDO EL HOOK
+  // ============================================
+  const {
+    lotes,
+    estadisticas,
+    lotes_por_ubicacion,
+    cantidad_total,
+    isLoading,
+    error
+  } = useGetLotes(elemento?.id)
+
+  // ============================================
+  // TRANSFORMAR LOTES A FORMATO DE UBICACIONES
+  // ============================================
+  const ubicaciones = Object.entries(lotes_por_ubicacion).map(([nombreUbicacion, cantidadUbicacion]) => {
+    // Filtrar los lotes de esta ubicación
+    const lotesDeUbicacion = lotes.filter(lote =>
+      (lote.ubicacion || 'Sin ubicación') === nombreUbicacion
+    )
+
+    return {
+      id: nombreUbicacion,
+      nombre: nombreUbicacion,
+      cantidad_total: cantidadUbicacion,
+      lotes: lotesDeUbicacion
+    }
+  })
+
   const {
     nombre,
     icono = '📦',
-    ubicaciones = [],
-    estadisticas = {},
     alertas = []
   } = elemento
 
@@ -71,10 +101,6 @@ export const ElementoLoteCard = ({
   // CALCULAR CANTIDAD TOTAL DE UBICACIONES
   // ============================================
   const totalUbicaciones = ubicaciones.length
-  const cantidadTotal = ubicaciones.reduce(
-    (sum, ub) => sum + (ub.cantidad_total || 0),
-    0
-  )
 
   // ============================================
   // OPCIONES DEL MENÚ DEL CARD
@@ -91,10 +117,55 @@ export const ElementoLoteCard = ({
     }
   ].filter(option => option.onClick)
 
+  // ============================================
+  // RENDERIZADO - Loading
+  // ============================================
+  if (isLoading) {
+    return (
+      <Card
+        title={nombre}
+        subtitle="Cargando..."
+        icon={icono}
+        variant="outlined"
+        className={className}
+      >
+        <Card.Content>
+          <div className="flex items-center justify-center py-8">
+            <Spinner />
+          </div>
+        </Card.Content>
+      </Card>
+    )
+  }
+
+  // ============================================
+  // RENDERIZADO - Error
+  // ============================================
+  if (error) {
+    return (
+      <Card
+        title={nombre}
+        subtitle="Error al cargar"
+        icon={icono}
+        menuOptions={menuOptions}
+        variant="outlined"
+        className={className}
+      >
+        <Card.Content>
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
+            <p className="text-red-700 text-sm">
+              {error?.message || 'Error desconocido'}
+            </p>
+          </div>
+        </Card.Content>
+      </Card>
+    )
+  }
+
   return (
     <Card
       title={nombre}
-      subtitle={`${cantidadTotal} unidades en ${totalUbicaciones} ${totalUbicaciones === 1 ? 'ubicación' : 'ubicaciones'}`}
+      subtitle={`${cantidad_total} unidades en ${totalUbicaciones} ${totalUbicaciones === 1 ? 'ubicación' : 'ubicaciones'}`}
       icon={icono}
       menuOptions={menuOptions}
       variant="outlined"
@@ -170,6 +241,7 @@ export const ElementoLoteCard = ({
               size="sm"
               icon={<Plus className="w-4 h-4" />}
               onClick={() => onAddLote(elemento)}
+              disabled={disabled}
             >
               Agregar lote
             </Button>
@@ -219,7 +291,7 @@ export const ElementoLoteCard = ({
             <div className="flex items-center justify-between text-sm text-slate-600 mt-1">
               <span>Cantidad total:</span>
               <span className="font-semibold text-slate-900">
-                {cantidadTotal} {cantidadTotal === 1 ? 'unidad' : 'unidades'}
+                {cantidad_total} {cantidad_total === 1 ? 'unidad' : 'unidades'}
               </span>
             </div>
           </div>
