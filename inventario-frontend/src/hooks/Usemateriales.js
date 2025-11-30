@@ -3,7 +3,8 @@
 // Maneja todas las operaciones con materiales
 // ============================================
 
-import { useQuery } from '@tantml:invoke>
+import { useQuery } from '@tanstack/react-query'
+
 import materialesAPI from '../api/apiMateriales'
 
 // ============================================

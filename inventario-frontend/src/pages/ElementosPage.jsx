@@ -1,6 +1,6 @@
 // ============================================
-// PÁGINA: ELEMENTOS
-// Lista de elementos de una subcategoría
+// PÁGINA: ELEMENTOS (VERSIÓN SIMPLIFICADA)
+// Las cards ahora cargan sus propios datos de series/lotes
 // ============================================
 
 import { useState } from 'react'
@@ -8,15 +8,20 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { Plus, ArrowLeft } from 'lucide-react'
 
 // Hooks personalizados
-import { useGetElementos } from '../hooks/Useelementos'
+import { useGetElementos, useDeleteElemento } from '../hooks/Useelementos'
+import { useDeleteLote } from '../hooks/Uselotes'
 
 // Componentes UI
 import Button from '../components/common/Button'
 import Spinner from '../components/common/Spinner'
 import EmptyState from '../components/common/EmptyState'
 import Breadcrumb from '../components/common/Breadcrum'
+
+// Cards de elementos (ahora cargan sus propios datos)
 import ElementoSerieCard from '../components/elementos/series/ElementoSerieCard'
 import ElementoLoteCard from '../components/elementos/lotes/ElementoLoteCard'
+
+// Modales
 import ElementoFormModal from '../components/forms/ElementoFormModal'
 import SerieFormModal from '../components/forms/SerieFormModal'
 import LoteFormModal from '../components/forms/LoteFormModal'
@@ -25,82 +30,30 @@ import LoteFormModal from '../components/forms/LoteFormModal'
  * ============================================
  * COMPONENTE PRINCIPAL: ElementosPage
  * ============================================
- *
- * Esta página muestra todos los elementos de una subcategoría.
- * Puede mostrar elementos gestionados por SERIE o por LOTE.
- *
- * FLUJO:
- * 1. Obtiene subcategoriaId de la URL
- * 2. Usa el hook useGetElementos para obtener los datos
- * 3. Muestra loading mientras carga
- * 4. Muestra EmptyState si no hay elementos
- * 5. Renderiza ElementoSerieCard o ElementoLoteCard según tipo
- *
- * RUTAS:
- * - /categorias/:categoriaId/subcategorias/:subcategoriaId/elementos
- *
- * @example
- * // URL: /categorias/1/subcategorias/5/elementos
- * // Muestra todos los elementos de la subcategoría 5
+ * 
+ * MEJORA: Las cards (ElementoSerieCard y ElementoLoteCard) ahora
+ * cargan sus propios datos de series/lotes usando sus respectivos
+ * hooks. Esto simplifica este componente y mejora el rendimiento
+ * gracias al cache de React Query.
  */
 function ElementosPage() {
   // ============================================
-  // 1. HOOKS DE REACT ROUTER
+  // HOOKS DE REACT ROUTER
   // ============================================
-
-  /**
-   * useParams: Obtiene parámetros de la URL
-   * En este caso: categoriaId y subcategoriaId
-   */
   const { categoriaId, subcategoriaId } = useParams()
-
-  /**
-   * useNavigate: Función para navegar programáticamente
-   * Ejemplo: navigate('/otra-pagina')
-   */
   const navigate = useNavigate()
 
   // ============================================
-  // 2. ESTADOS LOCALES
+  // ESTADOS LOCALES (Modales)
   // ============================================
-
-  /**
-   * Modal de crear elemento
-   * true = modal abierto, false = modal cerrado
-   */
   const [showElementoModal, setShowElementoModal] = useState(false)
-
-  /**
-   * Modal de agregar serie
-   * Guarda el elemento seleccionado para agregar serie
-   */
   const [elementoParaSerie, setElementoParaSerie] = useState(null)
-
-  /**
-   * Modal de mover lote
-   * Guarda los datos del lote a mover
-   */
   const [loteParaMover, setLoteParaMover] = useState(null)
+  const [elementoParaLote, setElementoParaLote] = useState(null)
 
   // ============================================
-  // 3. HOOK DE DATOS (React Query)
+  // HOOKS DE DATOS
   // ============================================
-
-  /**
-   * useGetElementos: Obtiene todos los elementos de la subcategoría
-   *
-   * DEVUELVE:
-   * - elementos: Array de elementos
-   * - subcategoria: Datos de la subcategoría (nombre, icono, etc)
-   * - isLoading: true mientras carga
-   * - error: Objeto de error si falla
-   * - refetch: Función para recargar datos manualmente
-   *
-   * NOTA: React Query maneja automáticamente:
-   * - Cache de datos
-   * - Reintentos si falla
-   * - Actualización automática cuando cambia subcategoriaId
-   */
   const {
     elementos = [],
     subcategoria,
@@ -109,224 +62,119 @@ function ElementosPage() {
     refetch
   } = useGetElementos(subcategoriaId)
 
-    console.log('Elementos cargados:', elementos)
+  const { 
+    deleteElemento, 
+    isLoading: isDeleting 
+  } = useDeleteElemento()
+
+  const {
+    deleteLote,
+    isLoading: isDeletingLote
+  } = useDeleteLote()
 
   // ============================================
-  // 4. HANDLERS - Funciones que manejan eventos
+  // HANDLERS - Navegación
   // ============================================
+  const handleGoBack = () => navigate(-1)
 
-  /**
-   * Handler: Volver a la página anterior
-   *
-   * ¿QUÉ HACE?
-   * Navega hacia atrás usando navigate(-1)
-   * Es como hacer click en el botón "Atrás" del navegador
-   */
-  const handleGoBack = () => {
-    navigate(-1)
-  }
-
-  /**
-   * Handler: Abrir modal para crear elemento
-   *
-   * ¿QUÉ HACE?
-   * Cambia el estado showElementoModal a true
-   * Esto hace que el modal se muestre en pantalla
-   */
-  const handleOpenCreateModal = () => {
-    setShowElementoModal(true)
-  }
-
-  /**
-   * Handler: Cerrar modal de elemento
-   *
-   * ¿QUÉ HACE?
-   * Cambia el estado showElementoModal a false
-   * El modal se oculta
-   */
-  const handleCloseElementoModal = () => {
-    setShowElementoModal(false)
-  }
-
-  /**
-   * Handler: Después de crear elemento exitosamente
-   *
-   * ¿QUÉ HACE?
-   * 1. Cierra el modal
-   * 2. Recarga los datos con refetch() para mostrar el nuevo elemento
-   *
-   * NOTA: refetch() viene del hook useGetElementos
-   */
+  // ============================================
+  // HANDLERS - Modal Elemento
+  // ============================================
+  const handleOpenCreateModal = () => setShowElementoModal(true)
+  const handleCloseElementoModal = () => setShowElementoModal(false)
   const handleElementoCreated = () => {
     setShowElementoModal(false)
     refetch()
   }
 
-  /**
-   * Handler: Editar un elemento
-   *
-   * @param {Object} elemento - El elemento a editar
-   *
-   * ¿QUÉ HACE?
-   * Navega a la página de detalle del elemento
-   * donde se puede ver toda la info y editar
-   */
+  // ============================================
+  // HANDLERS - Elemento CRUD
+  // ============================================
   const handleEditElemento = (elemento) => {
     navigate(`/categorias/${categoriaId}/subcategorias/${subcategoriaId}/elementos/${elemento.id}`)
   }
 
-  /**
-   * Handler: Eliminar un elemento
-   *
-   * @param {Object} elemento - El elemento a eliminar
-   *
-   * ¿QUÉ HACE?
-   * 1. Muestra confirmación
-   * 2. Si confirma, llama a la API para eliminar
-   * 3. Recarga los datos
-   *
-   * TODO: Implementar con mutation de React Query
-   */
-  const handleDeleteElemento = (elemento) => {
-    // Confirmación antes de eliminar
+  const handleDeleteElemento = async (elemento) => {
+    if (!elemento?.id) return
+
     const confirmar = window.confirm(
       `¿Estás seguro de eliminar "${elemento.nombre}"?\n\nEsta acción no se puede deshacer.`
     )
 
-    if (confirmar) {
-      // TODO: Aquí llamar a useDeleteElemento mutation
-      console.log('Eliminar elemento:', elemento)
+    if (!confirmar) return
+
+    try {
+      await deleteElemento(elemento.id)
+      refetch()
+    } catch (error) {
+      const mensaje = error.response?.data?.mensaje || error.message || 'Error desconocido'
+      alert(`No se pudo eliminar el elemento:\n\n${mensaje}`)
     }
   }
 
-  /**
-   * Handler: Abrir modal para agregar serie
-   *
-   * @param {Object} elemento - El elemento al que agregar serie
-   *
-   * ¿QUÉ HACE?
-   * 1. Guarda el elemento en el estado
-   * 2. Esto hace que se abra el modal de serie
-   */
-  const handleAddSerie = (elemento) => {
-    setElementoParaSerie(elemento)
-  }
-
-  /**
-   * Handler: Editar una serie
-   *
-   * @param {Object} serie - La serie a editar
-   *
-   * ¿QUÉ HACE?
-   * Abre el modal de edición de serie (pasando la serie existente)
-   */
+  // ============================================
+  // HANDLERS - Series
+  // ============================================
+  const handleAddSerie = (elemento) => setElementoParaSerie(elemento)
+  
   const handleEditSerie = (serie) => {
-    // TODO: Implementar modal de editar serie
     console.log('Editar serie:', serie)
+    // TODO: Abrir modal de edición de serie
   }
-
-  /**
-   * Handler: Eliminar una serie
-   *
-   * @param {Object} serie - La serie a eliminar
-   *
-   * ¿QUÉ HACE?
-   * 1. Muestra confirmación
-   * 2. Llama a la mutation para eliminar
-   * 3. React Query actualiza automáticamente la UI
-   */
+  
   const handleDeleteSerie = (serie) => {
-    const confirmar = window.confirm(
-      `¿Eliminar serie ${serie.numero_serie}?`
-    )
-
-    if (confirmar) {
-      // TODO: useDeleteSerie mutation
+    if (window.confirm(`¿Eliminar serie ${serie.numero_serie}?`)) {
       console.log('Eliminar serie:', serie)
+      // TODO: Llamar a useDeleteSerie
     }
   }
-
-  /**
-   * Handler: Mover serie a otra ubicación
-   *
-   * @param {Object} serie - La serie a mover
-   *
-   * ¿QUÉ HACE?
-   * Abre modal para seleccionar nueva ubicación
-   */
+  
   const handleMoveSerie = (serie) => {
-    // TODO: Implementar modal de mover serie
     console.log('Mover serie:', serie)
+    // TODO: Abrir modal de mover serie
   }
 
-  /**
-   * Handler: Abrir modal para agregar lote
-   *
-   * @param {Object} elemento - El elemento al que agregar lote
-   *
-   * ¿QUÉ HACE?
-   * Abre modal para ingresar cantidad, estado y ubicación
-   */
-  const handleAddLote = (elemento) => {
-    // TODO: Implementar modal de agregar lote
-    console.log('Agregar lote a:', elemento)
-  }
-
-  /**
-   * Handler: Editar cantidad de un lote
-   *
-   * @param {Object} lote - El lote a editar
-   * @param {string} ubicacion - La ubicación del lote
-   */
+  // ============================================
+  // HANDLERS - Lotes
+  // ============================================
+  const handleAddLote = (elemento) => setElementoParaLote(elemento)
+  
   const handleEditLote = (lote, ubicacion) => {
-    console.log('Editar lote:', lote, 'ubicación:', ubicacion)
+    console.log('Editar lote:', lote, 'en:', ubicacion)
+    // TODO: Abrir modal de edición de lote
   }
-
-  /**
-   * Handler: Mover cantidad de un lote
-   *
-   * @param {Object} lote - El lote origen
-   * @param {string} ubicacion - La ubicación origen
-   *
-   * ¿QUÉ HACE?
-   * 1. Guarda los datos del lote en el estado
-   * 2. Abre el modal de mover cantidad
-   */
+  
   const handleMoveLote = (lote, ubicacion) => {
     setLoteParaMover({ lote, ubicacion })
   }
+  
+  const handleDeleteLote = async (lote, ubicacion) => {
+    if (!lote?.id) {
+      console.error('Error: Lote sin ID', lote)
+      return
+    }
 
-  /**
-   * Handler: Eliminar un lote
-   *
-   * @param {Object} lote - El lote a eliminar
-   * @param {string} ubicacion - La ubicación del lote
-   */
-  const handleDeleteLote = (lote, ubicacion) => {
     const confirmar = window.confirm(
-      `¿Eliminar ${lote.cantidad} unidades en estado ${lote.estado}?`
+      `¿Eliminar ${lote.cantidad} unidades en estado "${lote.estado}" de "${ubicacion || 'Sin ubicación'}"?\n\nEsta acción no se puede deshacer.`
     )
 
-    if (confirmar) {
-      // TODO: useDeleteLote mutation
-      console.log('Eliminar lote:', lote)
+    if (!confirmar) return
+
+    try {
+      console.log('🗑️ Eliminando lote:', lote.id)
+      await deleteLote(lote.id)
+      console.log('✅ Lote eliminado exitosamente')
+      // React Query invalida automáticamente el cache de lotes
+    } catch (error) {
+      console.error('❌ Error al eliminar lote:', error)
+      const mensaje = error.response?.data?.mensaje || error.message || 'Error desconocido'
+      alert(`No se pudo eliminar el lote:\n\n${mensaje}`)
     }
   }
 
   // ============================================
-  // 5. BREADCRUMB (Migaja de pan)
+  // BREADCRUMB
   // ============================================
-
-  /**
-   * breadcrumbItems: Arreglo de rutas para navegación
-   *
-   * ESTRUCTURA:
-   * - label: Texto a mostrar
-   * - path: Ruta a la que navegar (opcional)
-   *
-   * EJEMPLO:
-   * Inicio > Categorías > Camping > Carpas > Elementos
-   */
   const breadcrumbItems = [
     { label: 'Inicio', path: '/' },
     { label: 'Categorías', path: '/categorias' },
@@ -338,17 +186,12 @@ function ElementosPage() {
       label: subcategoria?.nombre || 'Subcategoría',
       path: `/categorias/${categoriaId}/subcategorias/${subcategoriaId}`
     },
-    { label: 'Elementos' } // Última no tiene path (es la actual)
+    { label: 'Elementos' }
   ]
 
   // ============================================
-  // 6. RENDERIZADO CONDICIONAL
+  // RENDERIZADO - Loading
   // ============================================
-
-  /**
-   * LOADING: Mientras carga los datos
-   * Muestra un spinner centrado
-   */
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -357,10 +200,9 @@ function ElementosPage() {
     )
   }
 
-  /**
-   * ERROR: Si hubo un error al cargar
-   * Muestra mensaje de error con opción de reintentar
-   */
+  // ============================================
+  // RENDERIZADO - Error
+  // ============================================
   if (error) {
     return (
       <div className="container mx-auto px-4 py-8">
@@ -380,24 +222,17 @@ function ElementosPage() {
   }
 
   // ============================================
-  // 7. RENDERIZADO PRINCIPAL
+  // RENDERIZADO PRINCIPAL
   // ============================================
-
   return (
     <div className="container mx-auto px-4 py-6">
 
-      {/* ============================================
-          HEADER DE LA PÁGINA
-          ============================================ */}
+      {/* HEADER */}
       <div className="mb-6">
-        {/* Breadcrumb (navegación de migas) */}
         <Breadcrumb items={breadcrumbItems} className="mb-4" />
 
-        {/* Título y botones de acción */}
         <div className="flex items-center justify-between">
-          {/* Lado izquierdo: Botón volver + Título */}
           <div className="flex items-center gap-4">
-            {/* Botón para volver atrás */}
             <button
               onClick={handleGoBack}
               className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
@@ -406,10 +241,9 @@ function ElementosPage() {
               <ArrowLeft className="w-5 h-5 text-slate-600" />
             </button>
 
-            {/* Título con icono de subcategoría */}
             <div>
               <h1 className="text-3xl font-bold text-slate-900 flex items-center gap-3">
-                <span className="text-4xl">{subcategoria?.icono || '📦'}</span>
+                <span className="text-4xl">{subcategoria?.emoji || '📦'}</span>
                 {subcategoria?.nombre || 'Elementos'}
               </h1>
               <p className="text-slate-600 mt-1">
@@ -418,22 +252,28 @@ function ElementosPage() {
             </div>
           </div>
 
-          {/* Lado derecho: Botón crear elemento */}
           <Button
             variant="primary"
             icon={<Plus className="w-5 h-5" />}
             onClick={handleOpenCreateModal}
+            disabled={isDeleting || isDeletingLote}
           >
             Nuevo Elemento
           </Button>
         </div>
       </div>
 
-      {/* ============================================
-          LISTA DE ELEMENTOS
-          ============================================ */}
+      {/* Indicador de eliminación */}
+      {(isDeleting || isDeletingLote) && (
+        <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg flex items-center gap-2">
+          <Spinner size="sm" />
+          <span className="text-yellow-700">
+            {isDeleting ? 'Eliminando elemento...' : 'Eliminando lote...'}
+          </span>
+        </div>
+      )}
 
-      {/* Si no hay elementos, mostrar EmptyState */}
+      {/* LISTA DE ELEMENTOS */}
       {elementos.length === 0 ? (
         <EmptyState
           type="no-data"
@@ -446,72 +286,51 @@ function ElementosPage() {
           }}
         />
       ) : (
-        /* Grid de elementos */
         <div className="grid grid-cols-1 gap-6">
           {elementos.map((elemento) => {
+            // Datos base que pasan a las cards
+            // Las cards cargan sus propios lotes/series usando su ID
+            const elementoBase = {
+              id: elemento.id,
+              nombre: elemento.nombre,
+              icono: subcategoria?.emoji || '📦',
+              alertas: []
+            }
 
-            /**
-             * DECISIÓN: ¿Qué componente usar?
-             *
-             * Si requiere_series = true → ElementoSerieCard
-             * Si requiere_series = false → ElementoLoteCard
-             */
             if (elemento.requiere_series) {
               // ============================================
-              // ELEMENTO CON SERIES (tracking individual)
+              // ELEMENTO CON SERIES
+              // La card carga sus propias series automáticamente
               // ============================================
               return (
                 <ElementoSerieCard
                   key={elemento.id}
-                  elemento={{
-                    nombre: elemento.nombre,
-                    icono: subcategoria?.icono || '📦', // Usar icono de subcategoría
-                    series: elemento.series || [],
-                    estadisticas: {
-                      total: elemento.total_series || 0,
-                      disponible: elemento.series_disponibles || 0,
-                      alquilado: elemento.series_alquiladas || 0,
-                      mantenimiento: elemento.series_mantenimiento || 0,
-                      nuevo: elemento.series_nuevas || 0,
-                      danado: elemento.series_danadas || 0
-                    },
-                    alertas: [] // TODO: Calcular alertas de devolución
-                  }}
+                  elemento={elementoBase}
                   onEdit={() => handleEditElemento(elemento)}
                   onDelete={() => handleDeleteElemento(elemento)}
                   onAddSerie={() => handleAddSerie(elemento)}
                   onEditSerie={handleEditSerie}
                   onDeleteSerie={handleDeleteSerie}
                   onMoveSerie={handleMoveSerie}
+                  disabled={isDeleting || isDeletingLote}
                 />
               )
             } else {
               // ============================================
-              // ELEMENTO CON LOTES (tracking por cantidad)
+              // ELEMENTO CON LOTES
+              // La card carga sus propios lotes automáticamente
               // ============================================
               return (
                 <ElementoLoteCard
                   key={elemento.id}
-                  elemento={{
-                    nombre: elemento.nombre,
-                    icono: subcategoria?.icono || '📦', // Usar icono de subcategoría
-                    ubicaciones: elemento.lotes_por_ubicacion || [],
-                    estadisticas: {
-                      total: elemento.cantidad_total || 0,
-                      nuevo: elemento.cantidad_por_estado?.nuevo || 0,
-                      bueno: elemento.cantidad_por_estado?.bueno || 0,
-                      mantenimiento: elemento.cantidad_por_estado?.mantenimiento || 0,
-                      danado: elemento.cantidad_por_estado?.danado || 0,
-                      alquilado: elemento.cantidad_por_estado?.alquilado || 0
-                    },
-                    alertas: []
-                  }}
+                  elemento={elementoBase}
                   onEdit={() => handleEditElemento(elemento)}
                   onDelete={() => handleDeleteElemento(elemento)}
                   onAddLote={() => handleAddLote(elemento)}
                   onEditLote={handleEditLote}
                   onMoveLote={handleMoveLote}
                   onDeleteLote={handleDeleteLote}
+                  disabled={isDeleting || isDeletingLote}
                 />
               )
             }
@@ -520,9 +339,10 @@ function ElementosPage() {
       )}
 
       {/* ============================================
-          MODALES (se mostrarán cuando los estados cambien)
+          MODALES
           ============================================ */}
 
+      {/* Modal: Crear Elemento */}
       {showElementoModal && (
         <ElementoFormModal
           isOpen={showElementoModal}
@@ -532,6 +352,7 @@ function ElementosPage() {
         />
       )}
 
+      {/* Modal: Agregar Serie */}
       {elementoParaSerie && (
         <SerieFormModal
           isOpen={!!elementoParaSerie}
@@ -539,21 +360,26 @@ function ElementosPage() {
           elemento={elementoParaSerie}
           onSuccess={() => {
             setElementoParaSerie(null)
-            refetch()
+            // No necesita refetch, React Query invalida automáticamente
           }}
         />
       )}
 
-      {loteParaMover && (
+      {/* Modal: Agregar/Mover Lote */}
+      {(loteParaMover || elementoParaLote) && (
         <LoteFormModal
-          isOpen={!!loteParaMover}
-          onClose={() => setLoteParaMover(null)}
-          lote={loteParaMover.lote}
-          ubicacionOrigen={loteParaMover.ubicacion}
-          elemento={loteParaMover.elemento}
+          isOpen={!!(loteParaMover || elementoParaLote)}
+          onClose={() => {
+            setLoteParaMover(null)
+            setElementoParaLote(null)
+          }}
+          lote={loteParaMover?.lote}
+          ubicacionOrigen={loteParaMover?.ubicacion}
+          elemento={loteParaMover?.elemento || elementoParaLote}
           onSuccess={() => {
             setLoteParaMover(null)
-            refetch()
+            setElementoParaLote(null)
+            // No necesita refetch, React Query invalida automáticamente
           }}
         />
       )}
@@ -562,50 +388,3 @@ function ElementosPage() {
 }
 
 export default ElementosPage
-
-/**
- * ============================================
- * 🎓 CONCEPTOS CLAVE
- * ============================================
- *
- * 1. HOOKS DE REACT:
- * ──────────────────
- * - useState: Para manejar estado local (modales, selecciones)
- * - useParams: Para obtener parámetros de la URL
- * - useNavigate: Para navegar programáticamente
- *
- *
- * 2. REACT QUERY:
- * ───────────────
- * - useGetElementos: Hook personalizado que usa useQuery
- * - Maneja automáticamente: loading, error, cache, refetch
- * - No necesitas useEffect ni fetch manual
- *
- *
- * 3. RENDERIZADO CONDICIONAL:
- * ──────────────────────────
- * if (isLoading) return <Spinner />
- * if (error) return <Error />
- * if (!data) return <EmptyState />
- * return <Content />
- *
- *
- * 4. HANDLERS:
- * ───────────
- * Son funciones que manejan eventos del usuario
- * Ejemplo: onClick={handleEditElemento}
- *
- *
- * 5. PROPS DRILLING:
- * ─────────────────
- * Pasamos funciones (handlers) a componentes hijos
- * para que puedan comunicarse con el padre
- *
- *
- * 6. ELEMENTOS CON SERIES vs LOTES:
- * ─────────────────────────────────
- * - requiere_series = true → ElementoSerieCard
- * - requiere_series = false → ElementoLoteCard
- *
- * Cada uno tiene su propia estructura de datos
- */

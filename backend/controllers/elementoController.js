@@ -1,11 +1,12 @@
 // ============================================
-// CONTROLADOR: ELEMENTO
-// Incluye paginación, validaciones y logging
+// CONTROLADOR: ELEMENTO (VERSIÓN CORREGIDA)
+// Optimizado, limpio y con mejores prácticas
 // ============================================
 
 const ElementoModel = require('../models/ElementoModel');
 const AppError = require('../utils/AppError');
 const logger = require('../utils/logger');
+
 const {
     validateNombre,
     validateDescripcion,
@@ -15,183 +16,174 @@ const {
     validateEstado,
     validateTerminoBusqueda
 } = require('../utils/validators');
+
 const { MENSAJES_ERROR, MENSAJES_EXITO, ENTIDADES } = require('../config/constants');
-const { getPaginationParams, getPaginatedResponse, shouldPaginate, getSortParams } = require('../utils/pagination');
 
-/**
- * MEJORAS EN ESTA VERSIÓN:
- *
- * 1. Usa AppError para manejo centralizado de errores
- * 2. Usa validadores centralizados de utils/validators
- * 3. Usa constantes centralizadas de config/constants
- * 4. Logging estructurado con utils/logger
- * 5. Paginación opcional con infraestructura reutilizable
- * 6. Los errores se propagan al middleware global
- */
+const {
+    getPaginationParams,
+    getPaginatedResponse,
+    shouldPaginate,
+    getSortParams
+} = require('../utils/pagination');
 
 // ============================================
-// OBTENER TODOS LOS ELEMENTOS
+// LISTAR ELEMENTOS (con y sin paginación)
 // ============================================
 
-/**
- * GET /api/elementos
- *
- * Soporta paginación opcional:
- * - Sin params: Retorna todos los elementos
- * - Con ?page=1&limit=20: Retorna paginado
- * - Con ?search=carpa: Búsqueda por nombre
- * - Con ?sortBy=nombre&order=DESC: Ordenamiento
- * - Con ?paginate=false: Fuerza sin paginación
- */
 exports.obtenerTodos = async (req, res, next) => {
     try {
-        // Verificar si se debe paginar
-        if (shouldPaginate(req.query) && (req.query.page || req.query.limit)) {
-            // MODO PAGINADO
+        const paginar = shouldPaginate(req.query) && (req.query.page || req.query.limit);
+
+        if (paginar) {
             const { page, limit, offset } = getPaginationParams(req.query);
             const { sortBy, order } = getSortParams(req.query, 'nombre');
             const search = req.query.search || null;
 
-            logger.debug('elementoController.obtenerTodos', 'Modo paginado', {
+            logger.debug('elementoController.obtenerTodos', 'Listando con paginación', {
                 page, limit, offset, sortBy, order, search
             });
 
-            // Obtener datos y total
-            const elementos = await ElementoModel.obtenerConPaginacion({
-                limit,
-                offset,
-                sortBy,
-                order,
-                search
-            });
-            const total = await ElementoModel.contarTodos(search);
+            const [elementos, total] = await Promise.all([
+                ElementoModel.obtenerConPaginacion({ limit, offset, sortBy, order, search }),
+                ElementoModel.contarTodos(search)
+            ]);
 
-            // Retornar respuesta paginada
-            res.json(getPaginatedResponse(elementos, page, limit, total));
-        } else {
-            // MODO SIN PAGINACIÓN (retrocompatible)
-            const elementos = await ElementoModel.obtenerTodos();
-
-            res.json({
-                success: true,
-                data: elementos,
-                total: elementos.length
-            });
+            return res.json(getPaginatedResponse(elementos, page, limit, total));
         }
+
+        // MODO SIN PAGINACIÓN
+        const elementos = await ElementoModel.obtenerTodos();
+
+        res.json({
+            success: true,
+            data: elementos,
+            total: elementos.length
+        });
+
     } catch (error) {
+        logger.error('elementoController.obtenerTodos', error);
         next(error);
     }
 };
 
 // ============================================
-// OBTENER ELEMENTO POR ID
+// OBTENER POR ID
 // ============================================
 
-/**
- * GET /api/elementos/:id
- * Nota: El ID ya viene validado por el middleware validateId
- */
 exports.obtenerPorId = async (req, res, next) => {
     try {
         const { id } = req.params;
+        
+        // Validar ID
+        validateId(id, 'ID de elemento');
+        
         const elemento = await ElementoModel.obtenerPorId(id);
 
         if (!elemento) {
             throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO(ENTIDADES.ELEMENTO), 404);
         }
 
-        res.json({
-            success: true,
-            data: elemento
-        });
+        res.json({ success: true, data: elemento });
+
     } catch (error) {
+        logger.error('elementoController.obtenerPorId', error);
         next(error);
     }
 };
 
 // ============================================
-// OBTENER ELEMENTOS POR CATEGORÍA/SUBCATEGORÍA
+// OBTENER POR CATEGORÍA / SUBCATEGORÍA
 // ============================================
 
-/**
- * GET /api/elementos/categoria/:categoriaId
- * GET /api/elementos/subcategoria/:subcategoriaId
- *
- * Nota: Ambas rutas apuntan aquí. En el sistema de 3 niveles,
- * lo que llamamos "categoría" es técnicamente una "subcategoría"
- */
 exports.obtenerPorCategoria = async (req, res, next) => {
     try {
-        // Aceptar ambos parámetros para flexibilidad
         const { categoriaId, subcategoriaId } = req.params;
-        const id = categoriaId || subcategoriaId;
+        const id = subcategoriaId || categoriaId;
 
-        // Validar ID
+        if (!id) {
+            throw new AppError('Se requiere categoriaId o subcategoriaId', 400);
+        }
+
         validateId(id, 'ID de categoría/subcategoría');
 
-        // Si viene de la ruta /subcategoria, devolver con info completa
+        // Si es subcategoría, obtener con información adicional
         if (subcategoriaId) {
             const resultado = await ElementoModel.obtenerPorSubcategoriaConInfo(id);
 
-            res.json({
+            return res.json({
                 success: true,
                 data: resultado.elementos,
                 subcategoria: resultado.subcategoria,
                 total: resultado.elementos.length
             });
-        } else {
-            // Ruta simple /categoria, solo elementos
-            const elementos = await ElementoModel.obtenerPorCategoria(id);
-
-            res.json({
-                success: true,
-                data: elementos,
-                total: elementos.length
-            });
         }
+
+        // Si es categoría padre, incluir elementos de subcategorías
+        const elementos = await ElementoModel.obtenerPorCategoria(id);
+
+        res.json({
+            success: true,
+            data: elementos,
+            total: elementos.length
+        });
+
     } catch (error) {
+        logger.error('elementoController.obtenerPorCategoria', error);
         next(error);
     }
 };
 
 // ============================================
-// OBTENER ELEMENTOS CON SERIES
+// OBTENER ELEMENTOS DIRECTOS DE UNA CATEGORÍA
+// (Sin incluir subcategorías)
 // ============================================
 
-/**
- * GET /api/elementos/con-series
- */
-exports.obtenerConSeries = async (req, res, next) => {
+exports.obtenerDirectosPorCategoria = async (req, res, next) => {
+    try {
+        const { categoriaId } = req.params;
+
+        validateId(categoriaId, 'ID de categoría');
+
+        const elementos = await ElementoModel.obtenerDirectosPorCategoria(categoriaId);
+
+        res.json({
+            success: true,
+            data: elementos,
+            total: elementos.length
+        });
+
+    } catch (error) {
+        logger.error('elementoController.obtenerDirectosPorCategoria', error);
+        next(error);
+    }
+};
+
+// ============================================
+// ELEMENTOS CON SERIES
+// ============================================
+
+exports.obtenerConSeries = async (_req, res, next) => {
     try {
         const elementos = await ElementoModel.obtenerConSeries();
+        res.json({ success: true, data: elementos, total: elementos.length });
 
-        res.json({
-            success: true,
-            data: elementos,
-            total: elementos.length
-        });
     } catch (error) {
+        logger.error('elementoController.obtenerConSeries', error);
         next(error);
     }
 };
 
 // ============================================
-// OBTENER ELEMENTOS SIN SERIES
+// ELEMENTOS SIN SERIES
 // ============================================
 
-/**
- * GET /api/elementos/sin-series
- */
-exports.obtenerSinSeries = async (req, res, next) => {
+exports.obtenerSinSeries = async (_req, res, next) => {
     try {
         const elementos = await ElementoModel.obtenerSinSeries();
+        res.json({ success: true, data: elementos, total: elementos.length });
 
-        res.json({
-            success: true,
-            data: elementos,
-            total: elementos.length
-        });
     } catch (error) {
+        logger.error('elementoController.obtenerSinSeries', error);
         next(error);
     }
 };
@@ -200,25 +192,20 @@ exports.obtenerSinSeries = async (req, res, next) => {
 // BUSCAR ELEMENTOS
 // ============================================
 
-/**
- * GET /api/elementos/buscar?q=termino
- */
 exports.buscar = async (req, res, next) => {
     try {
-        const { q } = req.query;
-
-        // Validar término de búsqueda
-        const termino = validateTerminoBusqueda(q);
-
+        const termino = validateTerminoBusqueda(req.query.q);
         const elementos = await ElementoModel.buscarPorNombre(termino);
 
         res.json({
             success: true,
+            termino,
             data: elementos,
-            total: elementos.length,
-            termino
+            total: elementos.length
         });
+
     } catch (error) {
+        logger.error('elementoController.buscar', error);
         next(error);
     }
 };
@@ -227,78 +214,31 @@ exports.buscar = async (req, res, next) => {
 // CREAR ELEMENTO
 // ============================================
 
-/**
- * POST /api/elementos
- *
- * Body:
- * {
- *   "nombre": "Carpa 4x4",
- *   "descripcion": "Carpa grande para eventos",  // opcional
- *   "cantidad": 10,
- *   "requiere_series": true,  // opcional
- *   "categoria_id": 1,  // opcional
- *   "material_id": 1,  // opcional
- *   "unidad_id": 1,  // opcional
- *   "estado": "bueno",  // opcional
- *   "ubicacion": "Bodega principal",  // opcional
- *   "fecha_ingreso": "2024-01-15"  // opcional
- * }
- */
 exports.crear = async (req, res, next) => {
     try {
-        const {
-            nombre,
-            descripcion,
-            cantidad,
-            requiere_series,
-            categoria_id,
-            material_id,
-            unidad_id,
-            estado,
-            ubicacion,
-            fecha_ingreso
-        } = req.body;
+        const body = req.body;
+        logger.info('elementoController.crear', 'Creando elemento', { nombre: body.nombre });
 
-        logger.info('elementoController.crear', 'Creando nuevo elemento', { nombre });
-
-        // ============================================
         // VALIDACIONES
-        // ============================================
+        const data = {
+            nombre: validateNombre(body.nombre, ENTIDADES.ELEMENTO),
+            descripcion: validateDescripcion(body.descripcion),
+            cantidad: validateCantidad(body.cantidad, 'Cantidad', false),
+            requiere_series: validateBoolean(body.requiere_series, 'requiere_series', false),
+            estado: validateEstado(body.estado, false) || 'bueno',
+            ubicacion: body.ubicacion?.trim() || null,
+            fecha_ingreso: body.fecha_ingreso || null,
+            categoria_id: body.categoria_id ? validateId(body.categoria_id, 'categoria_id') : null,
+            material_id: body.material_id ? validateId(body.material_id, 'material_id') : null,
+            unidad_id: body.unidad_id ? validateId(body.unidad_id, 'unidad_id') : null
+        };
 
-        const nombreValidado = validateNombre(nombre, ENTIDADES.ELEMENTO);
-        const descripcionValidada = validateDescripcion(descripcion);
-        const cantidadValidada = validateCantidad(cantidad, 'Cantidad', false);
-        const requiereSeriesValidado = validateBoolean(requiere_series, 'requiere_series', false);
-        const estadoValidado = validateEstado(estado, false);
-
-        // Validar IDs si existen
-        if (categoria_id) validateId(categoria_id, 'categoria_id');
-        if (material_id) validateId(material_id, 'material_id');
-        if (unidad_id) validateId(unidad_id, 'unidad_id');
-
-        // ============================================
-        // CREAR ELEMENTO
-        // ============================================
-
-        const nuevoId = await ElementoModel.crear({
-            nombre: nombreValidado,
-            descripcion: descripcionValidada,
-            cantidad: cantidadValidada,
-            requiere_series: requiereSeriesValidado,
-            categoria_id: categoria_id || null,
-            material_id: material_id || null,
-            unidad_id: unidad_id || null,
-            estado: estadoValidado || 'bueno',
-            ubicacion: ubicacion || null,
-            fecha_ingreso: fecha_ingreso || null
-        });
-
-        // Obtener el elemento creado con todos sus datos
+        const nuevoId = await ElementoModel.crear(data);
         const elementoCreado = await ElementoModel.obtenerPorId(nuevoId);
 
-        logger.info('elementoController.crear', 'Elemento creado exitosamente', {
-            id: nuevoId,
-            nombre: nombreValidado
+        logger.info('elementoController.crear', 'Elemento creado exitosamente', { 
+            id: nuevoId, 
+            nombre: data.nombre 
         });
 
         res.status(201).json({
@@ -306,6 +246,7 @@ exports.crear = async (req, res, next) => {
             mensaje: MENSAJES_EXITO.CREADO(ENTIDADES.ELEMENTO),
             data: elementoCreado
         });
+
     } catch (error) {
         logger.error('elementoController.crear', error);
         next(error);
@@ -316,80 +257,69 @@ exports.crear = async (req, res, next) => {
 // ACTUALIZAR ELEMENTO
 // ============================================
 
-/**
- * PUT /api/elementos/:id
- *
- * Body: Mismo que crear
- */
 exports.actualizar = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const {
-            nombre,
-            descripcion,
-            cantidad,
-            requiere_series,
-            categoria_id,
-            material_id,
-            unidad_id,
-            estado,
-            ubicacion,
-            fecha_ingreso
-        } = req.body;
+        const body = req.body;
 
         logger.info('elementoController.actualizar', 'Actualizando elemento', { id });
 
-        // ============================================
-        // VALIDACIONES
-        // ============================================
+        // Validar ID
+        validateId(id, 'ID de elemento');
 
-        // Verificar que el elemento existe
-        const elementoExistente = await ElementoModel.obtenerPorId(id);
-        if (!elementoExistente) {
+        const existente = await ElementoModel.obtenerPorId(id);
+        if (!existente) {
             throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO(ENTIDADES.ELEMENTO), 404);
         }
 
-        const nombreValidado = validateNombre(nombre, ENTIDADES.ELEMENTO);
-        const descripcionValidada = validateDescripcion(descripcion);
-        const cantidadValidada = validateCantidad(cantidad, 'Cantidad', false);
-        const requiereSeriesValidado = validateBoolean(requiere_series, 'requiere_series', false);
-        const estadoValidado = validateEstado(estado, false);
+        // VALIDACIONES - Usar valores existentes como fallback si no se envían
+        const data = {
+            nombre: body.nombre !== undefined 
+                ? validateNombre(body.nombre, ENTIDADES.ELEMENTO) 
+                : existente.nombre,
+            descripcion: body.descripcion !== undefined 
+                ? validateDescripcion(body.descripcion) 
+                : existente.descripcion,
+            cantidad: body.cantidad !== undefined 
+                ? validateCantidad(body.cantidad, 'Cantidad', false) 
+                : existente.cantidad,
+            requiere_series: body.requiere_series !== undefined 
+                ? validateBoolean(body.requiere_series, 'requiere_series', false) 
+                : existente.requiere_series,
+            estado: body.estado !== undefined 
+                ? (validateEstado(body.estado, false) || 'bueno') 
+                : existente.estado,
+            ubicacion: body.ubicacion !== undefined 
+                ? (body.ubicacion?.trim() || null) 
+                : existente.ubicacion,
+            fecha_ingreso: body.fecha_ingreso !== undefined 
+                ? body.fecha_ingreso 
+                : existente.fecha_ingreso,
+            categoria_id: body.categoria_id !== undefined 
+                ? (body.categoria_id ? validateId(body.categoria_id, 'categoria_id') : null) 
+                : existente.categoria_id,
+            material_id: body.material_id !== undefined 
+                ? (body.material_id ? validateId(body.material_id, 'material_id') : null) 
+                : existente.material_id,
+            unidad_id: body.unidad_id !== undefined 
+                ? (body.unidad_id ? validateId(body.unidad_id, 'unidad_id') : null) 
+                : existente.unidad_id
+        };
 
-        // Validar IDs si existen
-        if (categoria_id) validateId(categoria_id, 'categoria_id');
-        if (material_id) validateId(material_id, 'material_id');
-        if (unidad_id) validateId(unidad_id, 'unidad_id');
+        await ElementoModel.actualizar(id, data);
+        const actualizado = await ElementoModel.obtenerPorId(id);
 
-        // ============================================
-        // ACTUALIZAR ELEMENTO
-        // ============================================
-
-        await ElementoModel.actualizar(id, {
-            nombre: nombreValidado,
-            descripcion: descripcionValidada,
-            cantidad: cantidadValidada,
-            requiere_series: requiereSeriesValidado,
-            categoria_id: categoria_id || null,
-            material_id: material_id || null,
-            unidad_id: unidad_id || null,
-            estado: estadoValidado || 'bueno',
-            ubicacion: ubicacion || null,
-            fecha_ingreso: fecha_ingreso || null
-        });
-
-        // Obtener el elemento actualizado
-        const elementoActualizado = await ElementoModel.obtenerPorId(id);
-
-        logger.info('elementoController.actualizar', 'Elemento actualizado exitosamente', {
-            id,
-            nombre: nombreValidado
+        logger.info('elementoController.actualizar', 'Elemento actualizado exitosamente', { 
+            id, 
+            nombre: data.nombre 
         });
 
         res.json({
             success: true,
             mensaje: MENSAJES_EXITO.ACTUALIZADO(ENTIDADES.ELEMENTO),
-            data: elementoActualizado
+            data: actualizado
         });
+
     } catch (error) {
         logger.error('elementoController.actualizar', error);
         next(error);
@@ -400,37 +330,35 @@ exports.actualizar = async (req, res, next) => {
 // ELIMINAR ELEMENTO
 // ============================================
 
-/**
- * DELETE /api/elementos/:id
- */
 exports.eliminar = async (req, res, next) => {
     try {
         const { id } = req.params;
 
         logger.info('elementoController.eliminar', 'Eliminando elemento', { id });
 
-        // Verificar que el elemento existe
-        const elemento = await ElementoModel.obtenerPorId(id);
-        if (!elemento) {
+        // Validar ID
+        validateId(id, 'ID de elemento');
+
+        const existente = await ElementoModel.obtenerPorId(id);
+        if (!existente) {
             throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO(ENTIDADES.ELEMENTO), 404);
         }
 
-        // Eliminar elemento
-        const filasAfectadas = await ElementoModel.eliminar(id);
-
-        if (filasAfectadas === 0) {
+        const filas = await ElementoModel.eliminar(id);
+        if (filas === 0) {
             throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO(ENTIDADES.ELEMENTO), 404);
         }
 
-        logger.info('elementoController.eliminar', 'Elemento eliminado exitosamente', {
-            id,
-            nombre: elemento.nombre
+        logger.info('elementoController.eliminar', 'Elemento eliminado exitosamente', { 
+            id, 
+            nombre: existente.nombre 
         });
 
         res.json({
             success: true,
             mensaje: MENSAJES_EXITO.ELIMINADO(ENTIDADES.ELEMENTO)
         });
+
     } catch (error) {
         logger.error('elementoController.eliminar', error);
         next(error);
