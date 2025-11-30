@@ -9,8 +9,10 @@ import SerieItem from './SerieItem'
 import EmptyState from '../../common/EmptyState'
 import AlertaBanner from '../../common/AlertaBanner'
 import Button from '../../common/Button'
+import Spinner from '../../common/Spinner'
 import { Plus, Package } from 'lucide-react'
 import { useState } from 'react'
+import { useGetSeries } from '../../../hooks/Useseries'
 
 /**
  * Componente ElementoSerieCard - Card para elemento con gestión por series
@@ -48,16 +50,26 @@ export const ElementoSerieCard = ({
   onEditSerie,
   onDeleteSerie,
   onMoveSerie,
+  disabled = false,
   className = '',
   ...props
 }) => {
   const [showAllSeries, setShowAllSeries] = useState(false)
 
+  // ============================================
+  // CARGAR SERIES USANDO EL HOOK
+  // ============================================
+  const {
+    series,
+    estadisticas,
+    total,
+    isLoading,
+    error
+  } = useGetSeries(elemento?.id)
+
   const {
     nombre,
     icono = '📦',
-    series = [],
-    estadisticas = {},
     alertas = []
   } = elemento
 
@@ -82,6 +94,51 @@ export const ElementoSerieCard = ({
   const ITEMS_PER_PAGE = 5
   const seriesToShow = showAllSeries ? series : series.slice(0, ITEMS_PER_PAGE)
   const hasMoreSeries = series.length > ITEMS_PER_PAGE
+
+  // ============================================
+  // RENDERIZADO - Loading
+  // ============================================
+  if (isLoading) {
+    return (
+      <Card
+        title={nombre}
+        subtitle="Cargando..."
+        icon={icono}
+        variant="outlined"
+        className={className}
+      >
+        <Card.Content>
+          <div className="flex items-center justify-center py-8">
+            <Spinner />
+          </div>
+        </Card.Content>
+      </Card>
+    )
+  }
+
+  // ============================================
+  // RENDERIZADO - Error
+  // ============================================
+  if (error) {
+    return (
+      <Card
+        title={nombre}
+        subtitle="Error al cargar"
+        icon={icono}
+        menuOptions={menuOptions}
+        variant="outlined"
+        className={className}
+      >
+        <Card.Content>
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
+            <p className="text-red-700 text-sm">
+              {error?.message || 'Error desconocido'}
+            </p>
+          </div>
+        </Card.Content>
+      </Card>
+    )
+  }
 
   return (
     <Card
@@ -117,7 +174,7 @@ export const ElementoSerieCard = ({
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
           <StatCard
             label="Total"
-            value={estadisticas.total || 0}
+            value={total || 0}
             color="gray"
             size="sm"
           />
@@ -156,6 +213,7 @@ export const ElementoSerieCard = ({
               size="sm"
               icon={<Plus className="w-4 h-4" />}
               onClick={() => onAddSerie(elemento)}
+              disabled={disabled}
             >
               Agregar serie
             </Button>
