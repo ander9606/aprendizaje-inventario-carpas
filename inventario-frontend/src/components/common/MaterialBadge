@@ -1,0 +1,124 @@
+// ============================================
+// COMPONENTE: MATERIAL BADGE
+// Badge pequeño para mostrar material
+// ============================================
+
+import { Package } from 'lucide-react'
+
+/**
+ * Componente MaterialBadge - Badge de material
+ *
+ * @param {string} material - Nombre del material
+ * @param {string} size - Tamaño: 'sm' | 'md' | 'lg'
+ * @param {boolean} showIcon - Mostrar ícono de material
+ * @param {string} variant - Variante visual: 'default' | 'outlined' | 'subtle'
+ * @param {function} onClick - Función al hacer click (opcional)
+ *
+ * @example
+ * <MaterialBadge material="Tubo 2m" />
+ * <MaterialBadge material="Lona Azul" size="sm" showIcon={false} />
+ * <MaterialBadge material="Cuerda Tensión" variant="outlined" onClick={handleClick} />
+ */
+export const MaterialBadge = ({
+  material,
+  size = 'md',
+  showIcon = true,
+  variant = 'default',
+  onClick,
+  className = '',
+  ...props
+}) => {
+
+  // ============================================
+  // ESTILOS BASE
+  // ============================================
+  const baseStyles = `
+    inline-flex items-center
+    font-medium rounded-full
+    transition-all duration-200
+  `
+
+  // ============================================
+  // ESTILOS POR TAMAÑO
+  // ============================================
+  const sizeStyles = {
+    sm: {
+      container: 'px-2 py-0.5 text-xs gap-1',
+      icon: 'w-3 h-3'
+    },
+    md: {
+      container: 'px-2.5 py-1 text-sm gap-1.5',
+      icon: 'w-3.5 h-3.5'
+    },
+    lg: {
+      container: 'px-3 py-1.5 text-base gap-2',
+      icon: 'w-4 h-4'
+    }
+  }
+
+  // ============================================
+  // ESTILOS POR VARIANTE
+  // ============================================
+  const variantStyles = {
+    default: `
+      bg-green-100 text-green-700 border border-green-200
+      ${onClick ? 'hover:bg-green-200 hover:border-green-300 cursor-pointer' : ''}
+    `,
+    outlined: `
+      bg-white text-green-700 border-2 border-green-300
+      ${onClick ? 'hover:bg-green-50 hover:border-green-400 cursor-pointer' : ''}
+    `,
+    subtle: `
+      bg-slate-100 text-slate-700 border border-slate-200
+      ${onClick ? 'hover:bg-slate-200 hover:border-slate-300 cursor-pointer' : ''}
+    `
+  }
+
+  const sizes = sizeStyles[size]
+
+  const badgeClasses = `
+    ${baseStyles}
+    ${sizes.container}
+    ${variantStyles[variant]}
+    ${className}
+  `
+
+  // ============================================
+  // COMPONENTE
+  // ============================================
+  const content = (
+    <>
+      {/* Ícono del material */}
+      {showIcon && (
+        <Package className={sizes.icon} />
+      )}
+
+      {/* Texto del material */}
+      <span className="truncate">
+        {material}
+      </span>
+    </>
+  )
+
+  // Clickeable → button
+  if (onClick) {
+    return (
+      <button
+        onClick={onClick}
+        className={badgeClasses}
+        {...props}
+      >
+        {content}
+      </button>
+    )
+  }
+
+  // No clickeable → span
+  return (
+    <span className={badgeClasses} {...props}>
+      {content}
+    </span>
+  )
+}
+
+export default MaterialBadge

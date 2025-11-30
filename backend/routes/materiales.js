@@ -1,43 +1,27 @@
 // ============================================
-// ROUTES: Materiales
-// Responsabilidad: Definir URLs de materiales
+// RUTAS: MATERIALES
 // ============================================
 
-const express = require('express');
-const router = express.Router();
-const materialController = require('../controllers/materialController');
+const express = require('express')
+const router = express.Router()
+const MaterialController = require('../controllers/materialController')
 
-// ============================================
-// RUTAS ESPECIALES (van primero)
-// ============================================
+// Obtener todos los materiales
+router.get('/', MaterialController.obtenerTodos)
 
-// GET /api/materiales/buscar?q=termino
-router.get('/buscar', materialController.buscar);
+// Obtener materiales activos
+router.get('/activos', MaterialController.obtenerActivos)
 
-// GET /api/materiales/mas-usados
-router.get('/mas-usados', materialController.obtenerMasUsados);
+// Obtener un material por ID
+router.get('/:id', MaterialController.obtenerPorId)
 
-// ============================================
-// RUTAS CRUD ESTÁNDAR
-// ============================================
+// Crear material
+router.post('/', MaterialController.crear)
 
-// GET /api/materiales - Obtener todos
-router.get('/', materialController.obtenerTodos);
+// Actualizar material
+router.put('/:id', MaterialController.actualizar)
 
-// GET /api/materiales/:id - Obtener uno por ID
-router.get('/:id', materialController.obtenerPorId);
+// Eliminar material
+router.delete('/:id', MaterialController.eliminar)
 
-// POST /api/materiales - Crear nuevo
-router.post('/', materialController.crear);
-
-// PUT /api/materiales/:id - Actualizar
-router.put('/:id', materialController.actualizar);
-
-// DELETE /api/materiales/:id - Eliminar
-router.delete('/:id', materialController.eliminar);
-
-// ============================================
-// EXPORTAR
-// ============================================
-
-module.exports = router;
+module.exports = router

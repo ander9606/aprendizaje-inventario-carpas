@@ -13,12 +13,10 @@ import AlertaBanner from '../../common/AlertaBanner'
 import Button from '../../common/Button'
 import Spinner from '../../common/Spinner'
 import { Plus, Package } from 'lucide-react'
-<<<<<<< HEAD
-import { useState } from 'react'
-=======
+
 
 // Hook para cargar series
->>>>>>> dff4483 (sincronizar ajustes)
+
 import { useGetSeries } from '../../../hooks/Useseries'
 
 /**
@@ -49,26 +47,11 @@ export const ElementoSerieCard = ({
   onMoveSerie,
   disabled = false,
   className = '',
-  disabled = false,
   ...props
 }) => {
   const [showAllSeries, setShowAllSeries] = useState(false)
 
-<<<<<<< HEAD
-  // ============================================
-  // CARGAR SERIES USANDO EL HOOK
-  // ============================================
-  const {
-    series,
-    estadisticas,
-    total,
-    isLoading,
-    error
-  } = useGetSeries(elemento?.id)
-
-=======
   // Extraer datos básicos del elemento
->>>>>>> dff4483 (sincronizar ajustes)
   const {
     id: elementoId,
     nombre,
@@ -115,55 +98,8 @@ export const ElementoSerieCard = ({
   const hasMoreSeries = series.length > ITEMS_PER_PAGE
 
   // ============================================
-<<<<<<< HEAD
-  // RENDERIZADO - Loading
-  // ============================================
-  if (isLoading) {
-    return (
-      <Card
-        title={nombre}
-        subtitle="Cargando..."
-        icon={icono}
-        variant="outlined"
-        className={className}
-      >
-        <Card.Content>
-          <div className="flex items-center justify-center py-8">
-            <Spinner />
-          </div>
-        </Card.Content>
-      </Card>
-    )
-  }
-
-  // ============================================
-  // RENDERIZADO - Error
-  // ============================================
-  if (error) {
-    return (
-      <Card
-        title={nombre}
-        subtitle="Error al cargar"
-        icon={icono}
-        menuOptions={menuOptions}
-        variant="outlined"
-        className={className}
-      >
-        <Card.Content>
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
-            <p className="text-red-700 text-sm">
-              {error?.message || 'Error desconocido'}
-            </p>
-          </div>
-        </Card.Content>
-      </Card>
-    )
-  }
-
-=======
   // RENDERIZADO
   // ============================================
->>>>>>> dff4483 (sincronizar ajustes)
   return (
     <Card
       title={nombre}
@@ -207,11 +143,7 @@ export const ElementoSerieCard = ({
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
           <StatCard
             label="Total"
-<<<<<<< HEAD
-            value={total || 0}
-=======
             value={isLoadingSeries ? '-' : total}
->>>>>>> dff4483 (sincronizar ajustes)
             color="gray"
             size="sm"
           />
