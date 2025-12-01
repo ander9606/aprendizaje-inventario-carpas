@@ -1,8 +1,10 @@
 // ============================================
-// COMPONENTE: ELEMENTO SERIE CARD
-// Card principal para elementos gestionados por serie
+// COMPONENTE: ELEMENTO SERIE CARD (MEJORADO)
+// Card para elementos gestionados por serie
+// Ahora carga sus propias series usando useGetSeries
 // ============================================
 
+import { useState } from 'react'
 import Card from '../../common/Card'
 import StatCard from '../../common/StatCard'
 import SerieItem from './SerieItem'
@@ -11,36 +13,29 @@ import AlertaBanner from '../../common/AlertaBanner'
 import Button from '../../common/Button'
 import Spinner from '../../common/Spinner'
 import { Plus, Package } from 'lucide-react'
-import { useState } from 'react'
+
+
+// Hook para cargar series
+
 import { useGetSeries } from '../../../hooks/Useseries'
 
 /**
  * Componente ElementoSerieCard - Card para elemento con gestión por series
+ * 
+ * MEJORA: Ahora carga automáticamente las series del elemento
+ * usando el hook useGetSeries, en lugar de esperar que vengan
+ * desde el componente padre.
  *
- * @param {object} elemento - Datos del elemento
+ * @param {object} elemento - Datos básicos del elemento
+ * @param {number} elemento.id - ID del elemento (REQUERIDO para cargar series)
  * @param {string} elemento.nombre - Nombre del elemento
  * @param {string} elemento.icono - Emoji del elemento
- * @param {array} elemento.series - Array de series (números de serie)
- * @param {object} elemento.estadisticas - Estadísticas del elemento
- * @param {array} elemento.alertas - Alertas del elemento (opcional)
  * @param {function} onEdit - Callback para editar elemento
  * @param {function} onDelete - Callback para eliminar elemento
  * @param {function} onAddSerie - Callback para agregar nueva serie
  * @param {function} onEditSerie - Callback para editar una serie
  * @param {function} onDeleteSerie - Callback para eliminar una serie
  * @param {function} onMoveSerie - Callback para mover serie de ubicación
- *
- * @example
- * <ElementoSerieCard
- *   elemento={{
- *     nombre: "Carpa Doite 4P",
- *     icono: "🏕️",
- *     series: [...],
- *     estadisticas: { total: 10, disponibles: 5, alquilados: 3, mantenimiento: 2 }
- *   }}
- *   onAddSerie={handleAddSerie}
- *   onEditSerie={handleEditSerie}
- * />
  */
 export const ElementoSerieCard = ({
   elemento,
@@ -56,22 +51,27 @@ export const ElementoSerieCard = ({
 }) => {
   const [showAllSeries, setShowAllSeries] = useState(false)
 
+  // Extraer datos básicos del elemento
+  const {
+    id: elementoId,
+    nombre,
+    icono = '📦',
+    alertas = []
+  } = elemento
+
   // ============================================
-  // CARGAR SERIES USANDO EL HOOK
+  // CARGAR SERIES DEL ELEMENTO
   // ============================================
   const {
     series,
     estadisticas,
     total,
-    isLoading,
-    error
-  } = useGetSeries(elemento?.id)
-
-  const {
-    nombre,
-    icono = '📦',
-    alertas = []
-  } = elemento
+    disponibles,
+    isLoading: isLoadingSeries,
+    error: errorSeries
+  } = useGetSeries(elementoId, {
+    enabled: !!elementoId  // Solo cargar si hay ID
+  })
 
   // ============================================
   // OPCIONES DEL MENÚ DEL CARD
@@ -79,12 +79,14 @@ export const ElementoSerieCard = ({
   const menuOptions = [
     {
       label: 'Editar elemento',
-      onClick: () => onEdit && onEdit(elemento)
+      onClick: () => onEdit && onEdit(elemento),
+      disabled: disabled
     },
     {
       label: 'Eliminar elemento',
       onClick: () => onDelete && onDelete(elemento),
-      danger: true
+      danger: true,
+      disabled: disabled
     }
   ].filter(option => option.onClick)
 
@@ -96,54 +98,12 @@ export const ElementoSerieCard = ({
   const hasMoreSeries = series.length > ITEMS_PER_PAGE
 
   // ============================================
-  // RENDERIZADO - Loading
+  // RENDERIZADO
   // ============================================
-  if (isLoading) {
-    return (
-      <Card
-        title={nombre}
-        subtitle="Cargando..."
-        icon={icono}
-        variant="outlined"
-        className={className}
-      >
-        <Card.Content>
-          <div className="flex items-center justify-center py-8">
-            <Spinner />
-          </div>
-        </Card.Content>
-      </Card>
-    )
-  }
-
-  // ============================================
-  // RENDERIZADO - Error
-  // ============================================
-  if (error) {
-    return (
-      <Card
-        title={nombre}
-        subtitle="Error al cargar"
-        icon={icono}
-        menuOptions={menuOptions}
-        variant="outlined"
-        className={className}
-      >
-        <Card.Content>
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
-            <p className="text-red-700 text-sm">
-              {error?.message || 'Error desconocido'}
-            </p>
-          </div>
-        </Card.Content>
-      </Card>
-    )
-  }
-
   return (
     <Card
       title={nombre}
-      subtitle={`${series.length} ${series.length === 1 ? 'serie' : 'series'}`}
+      subtitle={isLoadingSeries ? 'Cargando...' : `${total} ${total === 1 ? 'serie' : 'series'}`}
       icon={icono}
       menuOptions={menuOptions}
       variant="outlined"
@@ -169,30 +129,39 @@ export const ElementoSerieCard = ({
         )}
 
         {/* ============================================
+            ERROR AL CARGAR SERIES
+            ============================================ */}
+        {errorSeries && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+            Error al cargar series: {errorSeries.message}
+          </div>
+        )}
+
+        {/* ============================================
             ESTADÍSTICAS
             ============================================ */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
           <StatCard
             label="Total"
-            value={total || 0}
+            value={isLoadingSeries ? '-' : total}
             color="gray"
             size="sm"
           />
           <StatCard
             label="Disponible"
-            value={estadisticas.disponible || 0}
+            value={isLoadingSeries ? '-' : disponibles}
             color="green"
             size="sm"
           />
           <StatCard
             label="Alquilado"
-            value={estadisticas.alquilado || 0}
+            value={isLoadingSeries ? '-' : (estadisticas.alquilado || 0)}
             color="blue"
             size="sm"
           />
           <StatCard
             label="Mantenimiento"
-            value={estadisticas.mantenimiento || 0}
+            value={isLoadingSeries ? '-' : (estadisticas.mantenimiento || 0)}
             color="yellow"
             size="sm"
           />
@@ -223,7 +192,11 @@ export const ElementoSerieCard = ({
         {/* ============================================
             LISTA DE SERIES
             ============================================ */}
-        {series.length === 0 ? (
+        {isLoadingSeries ? (
+          <div className="flex items-center justify-center py-8">
+            <Spinner size="md" />
+          </div>
+        ) : series.length === 0 ? (
           <EmptyState
             type="no-data"
             title="Sin series registradas"

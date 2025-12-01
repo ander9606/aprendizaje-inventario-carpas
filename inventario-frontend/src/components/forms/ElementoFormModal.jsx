@@ -2,13 +2,16 @@
 // FORMULARIO: ELEMENTO
 // Modal para crear o editar un elemento
 // ============================================
-
-import { useState, useEffect } from 'react'
-import { toast } from 'sonner'
-import Modal from '../common/Modal'
-import Button from '../common/Button'
-import { useCreateElemento, useUpdateElemento } from '../../hooks/Useelementos'
-import { Edit3, Package } from 'lucide-react'
+import UbicacionSelector from "../common/UbicacionSelector";
+import { useState, useEffect } from "react";
+import { toast } from "sonner";
+import Modal from "../common/Modal";
+import Button from "../common/Button";
+import { useCreateElemento, useUpdateElemento } from "../../hooks/Useelementos";
+import { useGetMateriales } from "../../hooks/UseMateriales";
+import { useGetUnidades } from "../../hooks/UseUnidades";
+import { ESTADOS } from "../../utils/constants";
+import { Edit3, Package } from "lucide-react";
 
 /**
  * ============================================
@@ -27,38 +30,46 @@ function ElementoFormModal({
   onClose,
   onSuccess,
   subcategoriaId,
-  elemento = null
+  elemento = null,
 }) {
   // ============================================
   // 1. DETERMINAR MODO
   // ============================================
-  const isEditMode = elemento && elemento.id
+  const isEditMode = elemento && elemento.id;
 
   // ============================================
   // 2. HOOKS DE DATOS
   // ============================================
 
   // Obtener listas de materiales y unidades para los selects
-  const { materiales, isLoading: loadingMateriales } = useGetMateriales()
-  const { unidades, isLoading: loadingUnidades } = useGetUnidades()
+  const { materiales, isLoading: loadingMateriales } = useGetMateriales();
+  const { unidades, isLoading: loadingUnidades } = useGetUnidades();
 
   // ============================================
   // 3. ESTADOS DEL FORMULARIO
   // ============================================
   const [formData, setFormData] = useState({
-    nombre: '',
-    descripcion: '',
-    requiere_series: true
-  })
+    nombre: "",
+    descripcion: "",
+    requiere_series: true,
 
-  const [errors, setErrors] = useState({})
+    // nuevos campos necesarios
+    material_id: "",
+    unidad_id: "",
+    estado: ESTADOS.BUENO,
+    ubicacion: "",
+    fecha_ingreso: "",
+    cantidad: 0,
+  });
+
+  const [errors, setErrors] = useState({});
 
   // ============================================
   // 3. HOOKS DE MUTATIONS
   // ============================================
-  const createElemento = useCreateElemento()
-  const updateElemento = useUpdateElemento()
-  const mutation = isEditMode ? updateElemento : createElemento
+  const createElemento = useCreateElemento();
+  const updateElemento = useUpdateElemento();
+  const mutation = isEditMode ? updateElemento : createElemento;
 
   // ============================================
   // 4. EFECTOS
@@ -66,79 +77,93 @@ function ElementoFormModal({
   useEffect(() => {
     if (isOpen && isEditMode) {
       setFormData({
-        nombre: elemento.nombre || '',
-        descripcion: elemento.descripcion || '',
-        requiere_series: elemento.requiere_series ?? true
+        nombre: elemento.nombre || "",
+        descripcion: elemento.descripcion || "",
+        requiere_series: elemento.requiere_series ?? true,
 
-      })
+        // nuevos campos necesarios
+        material_id: elemento.material_id ?? "",
+        unidad_id: elemento.unidad_id ?? "",
+        estado: elemento.estado ?? ESTADOS.BUENO,
+        ubicacion: elemento.ubicacion ?? "",
+        fecha_ingreso: elemento.fecha_ingreso ?? "",
+        cantidad: elemento.cantidad ?? 0,
+      });
     } else if (isOpen && !isEditMode) {
       setFormData({
-        nombre: '',
-        descripcion: '',
-        requiere_series: true
-
-      })
+        nombre: "",
+        descripcion: "",
+        requiere_series: true,
+        // nuevos campos necesarios
+        material_id: "",
+        unidad_id: "",
+        estado: ESTADOS.BUENO,
+        ubicacion: "",
+        fecha_ingreso: "",
+        cantidad: 0,
+      });
     }
-    setErrors({})
-  }, [isOpen, elemento, isEditMode])
+    setErrors({});
+  }, [isOpen, elemento, isEditMode]);
 
   // ============================================
   // 5. VALIDACIÓN
   // ============================================
   const validateForm = () => {
-    const newErrors = {}
+    const newErrors = {};
 
     if (!formData.nombre.trim()) {
-      newErrors.nombre = 'El nombre es obligatorio'
+      newErrors.nombre = "El nombre es obligatorio";
     } else if (formData.nombre.trim().length < 3) {
-      newErrors.nombre = 'El nombre debe tener al menos 3 caracteres'
+      newErrors.nombre = "El nombre debe tener al menos 3 caracteres";
     }
 
-    // Guardar errores en el estado
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
-  }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   // ============================================
   // 6. HANDLERS
   // ============================================
   const handleInputChange = (e) => {
-    const { name, value } = e.target
-    setFormData(prev => ({ ...prev, [name]: value }))
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
     if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: undefined }))
+      setErrors((prev) => ({ ...prev, [name]: undefined }));
     }
-  }
+  };
 
   const handleCantidadChange = (e) => {
-    const value = e.target.value
-    setFormData(prev => ({
+    const value = e.target.value;
+    setFormData((prev) => ({
       ...prev,
-      cantidad: value === '' ? 0 : parseInt(value, 10) || 0
-    }))
+      cantidad: value === "" ? 0 : parseInt(value, 10) || 0,
+    }));
     if (errors.cantidad) {
-      setErrors(prev => ({ ...prev, cantidad: undefined }))
+      setErrors((prev) => ({ ...prev, cantidad: undefined }));
     }
-  }
+  };
 
   const handleTipoGestionChange = (requiereSeries) => {
     if (isEditMode) {
-      toast.warning('No se puede cambiar el tipo de gestión una vez creado el elemento.')
-      return
+      toast.warning(
+        "No se puede cambiar el tipo de gestión una vez creado el elemento."
+      );
+      return;
     }
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       requiere_series: requiereSeries,
-      cantidad: requiereSeries ? 0 : prev.cantidad  // Reset cantidad si cambia a series
-    }))
-  }
+      cantidad: requiereSeries ? 0 : prev.cantidad,
+    }));
+  };
 
   const handleSubmit = (e) => {
-    e.preventDefault()
+    e.preventDefault();
 
     if (!validateForm()) {
-      toast.error('Por favor corrige los errores del formulario')
-      return
+      toast.error("Por favor corrige los errores del formulario");
+      return;
     }
 
     // ============================================
@@ -147,46 +172,37 @@ function ElementoFormModal({
     const dataToSend = {
       nombre: formData.nombre.trim(),
       descripcion: formData.descripcion.trim() || null,
-      requiere_series: formData.requiere_series
-    }
+      requiere_series: formData.requiere_series,
+    };
 
-    // Si estamos creando, agregar categoria_id (que es la subcategoría)
     if (!isEditMode) {
-      dataToSend.categoria_id = subcategoriaId
-
-      // Solo para elementos nuevos SIN series: enviar datos iniciales del lote
-      if (!formData.requiere_series) {
-        dataToSend.cantidad = formData.cantidad || 0
-        dataToSend.estado = formData.estado || ESTADOS.BUENO
-        dataToSend.ubicacion = formData.ubicacion?.trim() || null
-        dataToSend.fecha_ingreso = formData.fecha_ingreso || null
-        dataToSend.material_id = formData.material_id || null
-        dataToSend.unidad_id = formData.unidad_id || null
-      }
+      dataToSend.categoria_id = subcategoriaId;
     }
+
     // ============================================
     // EJECUTAR MUTATION
-   // ============================================
+    // ============================================
     mutation.mutate(
-  isEditMode
-    ? { id: elemento.id, ...dataToSend }
-    : dataToSend,
-  {
-    onSuccess: () => {
-      toast.success(isEditMode ? 'Elemento actualizado' : 'Elemento creado')
-      onSuccess?.()
-      onClose()
-    },
-    onError: (error) => {
-      console.error('Error en la mutación:', error)
-      const mensaje = error.response?.data?.mensaje ||
-        error.message ||
-        'Error al guardar el elemento'
-      toast.error(mensaje)
-    }
-  }
-)
-  }
+      isEditMode ? { id: elemento.id, ...dataToSend } : dataToSend,
+      {
+        onSuccess: () => {
+          toast.success(
+            isEditMode ? "Elemento actualizado" : "Elemento creado"
+          );
+          onSuccess?.();
+          onClose();
+        },
+        onError: (error) => {
+          console.error("Error en la mutación:", error);
+          const mensaje =
+            error.response?.data?.mensaje ||
+            error.message ||
+            "Error al guardar el elemento";
+          toast.error(mensaje);
+        },
+      }
+    );
+  };
 
   // ============================================
   // 7. RENDERIZADO
@@ -195,11 +211,10 @@ function ElementoFormModal({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={isEditMode ? 'Editar Elemento' : 'Nuevo Elemento'}
+      title={isEditMode ? "Editar Elemento" : "Nuevo Elemento"}
       size="lg"
     >
       <form onSubmit={handleSubmit}>
-
         {/* CAMPO: Nombre */}
         <div className="mb-4">
           <label className="block text-sm font-medium text-slate-700 mb-2">
@@ -214,9 +229,10 @@ function ElementoFormModal({
             className={`
               w-full px-4 py-2 border rounded-lg
               focus:outline-none focus:ring-2
-              ${errors.nombre
-                ? 'border-red-300 focus:ring-red-500'
-                : 'border-slate-300 focus:ring-blue-500'
+              ${
+                errors.nombre
+                  ? "border-red-300 focus:ring-red-500"
+                  : "border-slate-300 focus:ring-blue-500"
               }
             `}
           />
@@ -257,11 +273,12 @@ function ElementoFormModal({
             <label
               className={`
                 flex items-start gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all
-                ${formData.requiere_series
-                  ? 'border-blue-500 bg-blue-50'
-                  : 'border-slate-200 hover:border-slate-300'
+                ${
+                  formData.requiere_series
+                    ? "border-blue-500 bg-blue-50"
+                    : "border-slate-200 hover:border-slate-300"
                 }
-                ${isEditMode ? 'opacity-50 cursor-not-allowed' : ''}
+                ${isEditMode ? "opacity-50 cursor-not-allowed" : ""}
               `}
             >
               <input
@@ -281,7 +298,8 @@ function ElementoFormModal({
                   </span>
                 </div>
                 <p className="text-sm text-slate-600 mt-1">
-                  Cada unidad tiene número de serie único. Ideal para carpas, proyectores, equipos de sonido.
+                  Cada unidad tiene número de serie único. Ideal para carpas,
+                  proyectores, equipos de sonido.
                 </p>
               </div>
             </label>
@@ -290,11 +308,12 @@ function ElementoFormModal({
             <label
               className={`
                 flex items-start gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all
-                ${!formData.requiere_series
-                  ? 'border-purple-500 bg-purple-50'
-                  : 'border-slate-200 hover:border-slate-300'
+                ${
+                  !formData.requiere_series
+                    ? "border-purple-500 bg-purple-50"
+                    : "border-slate-200 hover:border-slate-300"
                 }
-                ${isEditMode ? 'opacity-50 cursor-not-allowed' : ''}
+                ${isEditMode ? "opacity-50 cursor-not-allowed" : ""}
               `}
             >
               <input
@@ -314,7 +333,8 @@ function ElementoFormModal({
                   </span>
                 </div>
                 <p className="text-sm text-slate-600 mt-1">
-                  Gestión por cantidad agrupada. Ideal para sillas, mástiles, postes, estacas.
+                  Gestión por cantidad agrupada. Ideal para sillas, mástiles,
+                  postes, estacas.
                 </p>
               </div>
             </label>
@@ -381,100 +401,76 @@ function ElementoFormModal({
         </div>
 
         {/* ============================================
-            CAMPOS SOLO PARA ELEMENTOS SIN SERIES
-            Solo se muestran cuando requiere_series = false
+            CAMPO: Estado (opcional)
             ============================================ */}
-        {!formData.requiere_series && !isEditMode && (
-          <>
-            {/* Separador visual */}
-            <div className="my-6 border-t border-slate-200 pt-6">
-              <h3 className="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
-                <Package className="w-4 h-4" />
-                Stock Inicial (Opcional)
-              </h3>
-              <p className="text-sm text-slate-600 mb-4">
-                Si tienes unidades disponibles, ingresa la cantidad inicial. Se creará automáticamente el primer lote.
-              </p>
-            </div>
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-slate-700 mb-2">
+            Estado inicial (opcional)
+          </label>
+          <select
+            name="estado"
+            value={formData.estado}
+            onChange={handleInputChange}
+            className="
+              w-full px-4 py-2 border border-slate-300 rounded-lg
+              focus:outline-none focus:ring-2 focus:ring-blue-500
+            "
+          >
+            <option value={ESTADOS.NUEVO}>Nuevo</option>
+            <option value={ESTADOS.BUENO}>Bueno</option>
+            <option value={ESTADOS.MANTENIMIENTO}>Mantenimiento</option>
+            <option value={ESTADOS.DANADO}>Dañado</option>
+          </select>
+        </div>
 
-            {/* CAMPO: Cantidad inicial */}
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Cantidad inicial
-              </label>
-              <input
-                type="number"
-                name="cantidad"
-                value={formData.cantidad}
-                onChange={handleCantidadChange}
-                min="0"
-                placeholder="0"
-                className="
-                  w-full px-4 py-2 border border-slate-300 rounded-lg
-                  focus:outline-none focus:ring-2 focus:ring-blue-500
-                "
-              />
-              <p className="mt-1 text-xs text-slate-500">
-                💡 Cantidad de unidades disponibles al crear el elemento
-              </p>
-            </div>
+        {/* ============================================
+            CAMPO: Ubicación (opcional)
+            ============================================ */}
+        <UbicacionSelector
+          value={formData.ubicacion}
+          onChange={(ubicacion) =>
+            setFormData((prev) => ({ ...prev, ubicacion }))
+          }
+          placeholder="Ej: Bodega principal"
+        />
 
-            {/* CAMPO: Estado inicial */}
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Estado inicial
-              </label>
-              <select
-                name="estado"
-                value={formData.estado}
-                onChange={handleInputChange}
-                className="
-                  w-full px-4 py-2 border border-slate-300 rounded-lg
-                  focus:outline-none focus:ring-2 focus:ring-blue-500
-                "
-              >
-                <option value={ESTADOS.NUEVO}>Nuevo</option>
-                <option value={ESTADOS.BUENO}>Bueno</option>
-                <option value={ESTADOS.MANTENIMIENTO}>Mantenimiento</option>
-                <option value={ESTADOS.DANADO}>Dañado</option>
-              </select>
-            </div>
+        {/* ============================================
+            CAMPO: Fecha de ingreso (opcional)
+            ============================================ */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-slate-700 mb-2">
+            Fecha de ingreso (opcional)
+          </label>
+          <input
+            type="date"
+            name="fecha_ingreso"
+            value={formData.fecha_ingreso}
+            onChange={handleInputChange}
+            className="
+              w-full px-4 py-2 border border-slate-300 rounded-lg
+              focus:outline-none focus:ring-2 focus:ring-blue-500
+            "
+          />
+        </div>
 
-            {/* CAMPO: Ubicación inicial */}
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Ubicación inicial
-              </label>
-              <UbicacionSelector
-                value={formData.ubicacion}
-                onChange={(ubicacion) =>
-                  setFormData((prev) => ({ ...prev, ubicacion }))
-                }
-                placeholder="Selecciona la ubicación del stock inicial"
-              />
-              <p className="mt-1 text-xs text-slate-500">
-                💡 Ubicación donde se encuentra el stock inicial
-              </p>
-            </div>
-
-            {/* CAMPO: Fecha de ingreso */}
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Fecha de ingreso
-              </label>
-              <input
-                type="date"
-                name="fecha_ingreso"
-                value={formData.fecha_ingreso}
-                onChange={handleInputChange}
-                className="
-                  w-full px-4 py-2 border border-slate-300 rounded-lg
-                  focus:outline-none focus:ring-2 focus:ring-blue-500
-                "
-              />
-            </div>
-          </>
-        )}
+        {/* ============================================
+            CAMPO: Cantidad (nuevo)
+            ============================================ */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-slate-700 mb-2">
+            Cantidad
+          </label>
+          <input
+            type="number"
+            name="cantidad"
+            value={formData.cantidad}
+            onChange={handleCantidadChange}
+            className="
+              w-full px-4 py-2 border border-slate-300 rounded-lg
+              focus:outline-none focus:ring-2 focus:ring-blue-500
+            "
+          />
+        </div>
 
         {/* ============================================
             FOOTER: Botones de acción
@@ -488,20 +484,19 @@ function ElementoFormModal({
           >
             Cancelar
           </Button>
-          <Button
-            type="submit"
-            variant="primary"
-            disabled={mutation.isPending}
-          >
+          <Button type="submit" variant="primary" disabled={mutation.isPending}>
             {mutation.isPending
-              ? (isEditMode ? 'Guardando...' : 'Creando...')
-              : (isEditMode ? 'Guardar Cambios' : 'Crear Elemento')
-            }
+              ? isEditMode
+                ? "Guardando..."
+                : "Creando..."
+              : isEditMode
+              ? "Guardar Cambios"
+              : "Crear Elemento"}
           </Button>
         </Modal.Footer>
       </form>
     </Modal>
-  )
+  );
 }
 
-export default ElementoFormModal
+export default ElementoFormModal;
