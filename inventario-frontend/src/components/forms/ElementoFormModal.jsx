@@ -153,6 +153,16 @@ function ElementoFormModal({
     // Si estamos creando, agregar categoria_id (que es la subcategoría)
     if (!isEditMode) {
       dataToSend.categoria_id = subcategoriaId
+
+      // Solo para elementos nuevos SIN series: enviar datos iniciales del lote
+      if (!formData.requiere_series) {
+        dataToSend.cantidad = formData.cantidad || 0
+        dataToSend.estado = formData.estado || ESTADOS.BUENO
+        dataToSend.ubicacion = formData.ubicacion?.trim() || null
+        dataToSend.fecha_ingreso = formData.fecha_ingreso || null
+        dataToSend.material_id = formData.material_id || null
+        dataToSend.unidad_id = formData.unidad_id || null
+      }
     }
     // ============================================
     // EJECUTAR MUTATION
@@ -371,69 +381,100 @@ function ElementoFormModal({
         </div>
 
         {/* ============================================
-            CAMPO: Estado (opcional)
+            CAMPOS SOLO PARA ELEMENTOS SIN SERIES
+            Solo se muestran cuando requiere_series = false
             ============================================ */}
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-slate-700 mb-2">
-            Estado inicial (opcional)
-          </label>
-          <select
-            name="estado"
-            value={formData.estado}
-            onChange={handleInputChange}
-            className="
-              w-full px-4 py-2 border border-slate-300 rounded-lg
-              focus:outline-none focus:ring-2 focus:ring-blue-500
-            "
-          >
-            <option value={ESTADOS.NUEVO}>Nuevo</option>
-            <option value={ESTADOS.BUENO}>Bueno</option>
-            <option value={ESTADOS.MANTENIMIENTO}>Mantenimiento</option>
-            <option value={ESTADOS.DANADO}>Dañado</option>
-          </select>
-        </div>
+        {!formData.requiere_series && !isEditMode && (
+          <>
+            {/* Separador visual */}
+            <div className="my-6 border-t border-slate-200 pt-6">
+              <h3 className="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
+                <Package className="w-4 h-4" />
+                Stock Inicial (Opcional)
+              </h3>
+              <p className="text-sm text-slate-600 mb-4">
+                Si tienes unidades disponibles, ingresa la cantidad inicial. Se creará automáticamente el primer lote.
+              </p>
+            </div>
 
-        {/* ============================================
-            CAMPO: Ubicación (opcional)
-            ============================================ */}
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-slate-700 mb-2">
-            Ubicación (opcional)
-          </label>
-          <input
-            type="text"
-            name="ubicacion"
-            value={formData.ubicacion}
-            onChange={handleInputChange}
-            placeholder="Ej: Bodega principal"
-            className="
-              w-full px-4 py-2 border border-slate-300 rounded-lg
-              focus:outline-none focus:ring-2 focus:ring-blue-500
-            "
-          />
-          <p className="mt-1 text-xs text-slate-500">
-            Ubicación general del elemento
-          </p>
-        </div>
+            {/* CAMPO: Cantidad inicial */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Cantidad inicial
+              </label>
+              <input
+                type="number"
+                name="cantidad"
+                value={formData.cantidad}
+                onChange={handleCantidadChange}
+                min="0"
+                placeholder="0"
+                className="
+                  w-full px-4 py-2 border border-slate-300 rounded-lg
+                  focus:outline-none focus:ring-2 focus:ring-blue-500
+                "
+              />
+              <p className="mt-1 text-xs text-slate-500">
+                💡 Cantidad de unidades disponibles al crear el elemento
+              </p>
+            </div>
 
-        {/* ============================================
-            CAMPO: Fecha de ingreso (opcional)
-            ============================================ */}
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-slate-700 mb-2">
-            Fecha de ingreso (opcional)
-          </label>
-          <input
-            type="date"
-            name="fecha_ingreso"
-            value={formData.fecha_ingreso}
-            onChange={handleInputChange}
-            className="
-              w-full px-4 py-2 border border-slate-300 rounded-lg
-              focus:outline-none focus:ring-2 focus:ring-blue-500
-            "
-          />
-        </div>
+            {/* CAMPO: Estado inicial */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Estado inicial
+              </label>
+              <select
+                name="estado"
+                value={formData.estado}
+                onChange={handleInputChange}
+                className="
+                  w-full px-4 py-2 border border-slate-300 rounded-lg
+                  focus:outline-none focus:ring-2 focus:ring-blue-500
+                "
+              >
+                <option value={ESTADOS.NUEVO}>Nuevo</option>
+                <option value={ESTADOS.BUENO}>Bueno</option>
+                <option value={ESTADOS.MANTENIMIENTO}>Mantenimiento</option>
+                <option value={ESTADOS.DANADO}>Dañado</option>
+              </select>
+            </div>
+
+            {/* CAMPO: Ubicación inicial */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Ubicación inicial
+              </label>
+              <UbicacionSelector
+                value={formData.ubicacion}
+                onChange={(ubicacion) =>
+                  setFormData((prev) => ({ ...prev, ubicacion }))
+                }
+                placeholder="Selecciona la ubicación del stock inicial"
+              />
+              <p className="mt-1 text-xs text-slate-500">
+                💡 Ubicación donde se encuentra el stock inicial
+              </p>
+            </div>
+
+            {/* CAMPO: Fecha de ingreso */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Fecha de ingreso
+              </label>
+              <input
+                type="date"
+                name="fecha_ingreso"
+                value={formData.fecha_ingreso}
+                onChange={handleInputChange}
+                className="
+                  w-full px-4 py-2 border border-slate-300 rounded-lg
+                  focus:outline-none focus:ring-2 focus:ring-blue-500
+                "
+              />
+            </div>
+          </>
+        )}
 
         {/* ============================================
             FOOTER: Botones de acción

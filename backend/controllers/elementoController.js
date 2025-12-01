@@ -293,6 +293,31 @@ exports.crear = async (req, res, next) => {
             fecha_ingreso: fecha_ingreso || null
         });
 
+        // ============================================
+        // CREAR LOTE INICIAL AUTOMÁTICAMENTE
+        // Si el elemento NO requiere series Y tiene cantidad inicial > 0
+        // ============================================
+        if (!requiereSeriesValidado && cantidadValidada > 0) {
+            const LoteModel = require('../models/LoteModel');
+
+            logger.info('elementoController.crear', 'Creando lote inicial automático', {
+                elemento_id: nuevoId,
+                cantidad: cantidadValidada,
+                estado: estadoValidado || 'bueno',
+                ubicacion: ubicacion || 'Sin ubicación'
+            });
+
+            await LoteModel.crear({
+                elemento_id: nuevoId,
+                lote_numero: `LOTE-001`,
+                cantidad: cantidadValidada,
+                estado: estadoValidado || 'bueno',
+                ubicacion: ubicacion || 'Sin ubicación'
+            });
+
+            logger.info('elementoController.crear', 'Lote inicial creado exitosamente');
+        }
+
         // Obtener el elemento creado con todos sus datos
         const elementoCreado = await ElementoModel.obtenerPorId(nuevoId);
 

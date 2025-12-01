@@ -20,6 +20,7 @@ import ElementoLoteCard from '../components/elementos/lotes/ElementoLoteCard'
 import ElementoFormModal from '../components/forms/ElementoFormModal'
 import SerieFormModal from '../components/forms/SerieFormModal'
 import LoteFormModal from '../components/forms/LoteFormModal'
+import CrearLoteModal from '../components/forms/CrearLoteModal'
 
 /**
  * ============================================
@@ -81,6 +82,12 @@ function ElementosPage() {
    * Guarda los datos del lote a mover
    */
   const [loteParaMover, setLoteParaMover] = useState(null)
+
+  /**
+   * Modal de crear lote
+   * Guarda el elemento para crear un lote nuevo
+   */
+  const [elementoParaLote, setElementoParaLote] = useState(null)
 
   // ============================================
   // 3. HOOK DE DATOS (React Query)
@@ -265,11 +272,10 @@ function ElementosPage() {
    * @param {Object} elemento - El elemento al que agregar lote
    *
    * ¿QUÉ HACE?
-   * Abre modal para ingresar cantidad, estado y ubicación
+   * Abre el modal CrearLoteModal para crear un lote nuevo
    */
   const handleAddLote = (elemento) => {
-    // TODO: Implementar modal de agregar lote
-    console.log('Agregar lote a:', elemento)
+    setElementoParaLote(elemento)
   }
 
   /**
@@ -544,6 +550,20 @@ function ElementosPage() {
         />
       )}
 
+      {/* Modal: Crear Lote Nuevo */}
+      {elementoParaLote && !loteParaMover && (
+        <CrearLoteModal
+          isOpen={!!elementoParaLote}
+          onClose={() => setElementoParaLote(null)}
+          elemento={elementoParaLote}
+          onSuccess={() => {
+            setElementoParaLote(null)
+            refetch()
+          }}
+        />
+      )}
+
+      {/* Modal: Mover Lote Existente */}
       {loteParaMover && (
         <LoteFormModal
           isOpen={!!loteParaMover}
