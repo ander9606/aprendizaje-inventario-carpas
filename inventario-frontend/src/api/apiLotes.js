@@ -99,6 +99,30 @@ const lotesAPI = {
   },
 
   // ============================================
+  // CREAR LOTE
+  // ============================================
+
+  /**
+   * Crear un nuevo lote manualmente
+   *
+   * @param {Object} data - Datos del lote
+   * @returns {Promise} - Lote creado
+   *
+   * @example
+   * await lotesAPI.crear({
+   *   elemento_id: 2,
+   *   lote_numero: "LOTE-001",
+   *   cantidad: 50,
+   *   estado: "nuevo",
+   *   ubicacion: "Bodega A"
+   * })
+   */
+  crear: async (data) => {
+    const response = await api.post('/lotes', data)
+    return response.data
+  },
+
+  // ============================================
   // MOVER CANTIDAD
   // ============================================
   

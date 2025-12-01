@@ -25,6 +25,7 @@ import ElementoLoteCard from '../components/elementos/lotes/ElementoLoteCard'
 import ElementoFormModal from '../components/forms/ElementoFormModal'
 import SerieFormModal from '../components/forms/SerieFormModal'
 import LoteFormModal from '../components/forms/LoteFormModal'
+import CrearLoteModal from '../components/forms/CrearLoteModal'
 
 /**
  * ============================================
@@ -49,6 +50,12 @@ function ElementosPage() {
   const [showElementoModal, setShowElementoModal] = useState(false)
   const [elementoParaSerie, setElementoParaSerie] = useState(null)
   const [loteParaMover, setLoteParaMover] = useState(null)
+  const [elementoParaLote, setElementoParaLote] = useState(null)
+
+  /**
+   * Modal de crear lote
+   * Guarda el elemento para crear un lote nuevo
+   */
   const [elementoParaLote, setElementoParaLote] = useState(null)
 
   // ============================================
