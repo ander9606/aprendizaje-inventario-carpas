@@ -9,9 +9,6 @@ const MaterialController = require('../controllers/materialController')
 // Obtener todos los materiales
 router.get('/', MaterialController.obtenerTodos)
 
-// Obtener materiales activos
-router.get('/activos', MaterialController.obtenerActivos)
-
 // Obtener un material por ID
 router.get('/:id', MaterialController.obtenerPorId)
 
