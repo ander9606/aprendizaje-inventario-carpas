@@ -10,6 +10,7 @@ const logger = require('../utils/logger');
 const { validateCantidad, validateEstado, validateId } = require('../utils/validators');
 const { ESTADOS_VALIDOS, MENSAJES_ERROR, MENSAJES_EXITO, ENTIDADES } = require('../config/constants');
 const { pool } = require('../config/database');
+const { getPaginationParams, getPaginatedResponse, shouldPaginate, getSortParams } = require('../utils/pagination');
 
 // ============================================
 // OBTENER TODOS LOS LOTES
@@ -25,7 +26,6 @@ const { pool } = require('../config/database');
  * - Con ?sortBy=cantidad&order=DESC: Ordenamiento
  * - Con ?paginate=false: Fuerza sin paginación
  */
-const { getPaginationParams, getPaginatedResponse, shouldPaginate, getSortParams } = require('../utils/pagination');
 
 exports.obtenerTodos = async (req, res, next) => {
     try {
