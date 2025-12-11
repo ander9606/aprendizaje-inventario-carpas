@@ -50,7 +50,6 @@ function ElementosPage() {
   const [showElementoModal, setShowElementoModal] = useState(false)
   const [elementoParaSerie, setElementoParaSerie] = useState(null)
   const [loteParaMover, setLoteParaMover] = useState(null)
-  const [elementoParaLote, setElementoParaLote] = useState(null)
 
   /**
    * Modal de crear lote
