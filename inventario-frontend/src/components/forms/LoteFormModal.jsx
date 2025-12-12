@@ -68,15 +68,13 @@ function LoteFormModal({
    * CAMPOS:
    * - cantidad: Cantidad a mover (máximo: lote.cantidad)
    * - ubicacion_destino: Nueva ubicación
-   * - estado_destino: Nuevo estado
-   * - motivo: Razón del movimiento ('traslado', 'alquiler', 'devolucion', etc)
-   * - descripcion: Descripción detallada del movimiento
+   * - estado_destino: Nuevo estado (el motivo se infiere automáticamente)
+   * - descripcion: Descripción detallada del movimiento (opcional)
    */
   const [formData, setFormData] = useState({
     cantidad: '',
     ubicacion_destino: '',
     estado_destino: lote?.estado || ESTADOS.BUENO,
-    motivo: 'traslado',
     descripcion: ''
   })
 
@@ -99,30 +97,7 @@ function LoteFormModal({
   const { moverCantidad } = useMoverCantidad()
 
   // ============================================
-  // 3. CONSTANTES
-  // ============================================
-
-  /**
-   * MOTIVOS: Razones posibles para mover cantidad
-   *
-   * CATEGORÍAS:
-   * - Logística: Traslados entre ubicaciones
-   * - Operación: Alquileres y devoluciones
-   * - Mantenimiento: Reparaciones y daños
-   * - Inventario: Ajustes y conteos
-   */
-  const MOTIVOS = [
-    { value: 'traslado', label: '📦 Traslado entre ubicaciones' },
-    { value: 'alquiler', label: '🎯 Alquiler' },
-    { value: 'devolucion', label: '↩️ Devolución de alquiler' },
-    { value: 'reparacion', label: '🔧 Envío a mantenimiento' },
-    { value: 'danado', label: '⚠️ Marcado como dañado' },
-    { value: 'ajuste', label: '📊 Ajuste de inventario' },
-    { value: 'otro', label: '📝 Otro motivo' }
-  ]
-
-  // ============================================
-  // 4. EFECTOS
+  // 3. EFECTOS
   // ============================================
 
   /**
@@ -134,7 +109,6 @@ function LoteFormModal({
         cantidad: '',
         ubicacion_destino: '',
         estado_destino: lote.estado,
-        motivo: 'traslado',
         descripcion: ''
       })
       setErrors({})
@@ -175,7 +149,7 @@ function LoteFormModal({
    * - cantidad: Obligatoria, mayor a 0, no exceder disponible
    * - ubicacion_destino: Obligatoria si NO es alquilado
    * - estado_destino: Obligatorio
-   * - motivo: Obligatorio
+   * (El motivo se calcula automáticamente basado en el estado destino)
    */
   const validateForm = () => {
     const newErrors = {}
@@ -213,11 +187,6 @@ function LoteFormModal({
     // Validar estado
     if (!formData.estado_destino) {
       newErrors.estado_destino = 'Selecciona el estado destino'
-    }
-
-    // Validar motivo
-    if (!formData.motivo) {
-      newErrors.motivo = 'Selecciona el motivo del movimiento'
     }
 
     setErrors(newErrors)
@@ -299,46 +268,6 @@ function LoteFormModal({
   }
 
   /**
-   * handleMotivoChange: Maneja cambio de motivo
-   *
-   * AUTO-COMPLETAR:
-   * Según el motivo, puede auto-completar el estado destino
-   */
-  const handleMotivoChange = (e) => {
-    const motivo = e.target.value
-
-    setFormData(prev => {
-      const newData = { ...prev, motivo }
-
-      // Auto-completar estado según motivo
-      switch (motivo) {
-        case 'alquiler':
-          newData.estado_destino = ESTADOS.ALQUILADO
-          newData.ubicacion_destino = ''
-          break
-        case 'devolucion':
-          newData.estado_destino = ESTADOS.BUENO
-          break
-        case 'reparacion':
-          newData.estado_destino = ESTADOS.MANTENIMIENTO
-          break
-        case 'danado':
-          newData.estado_destino = ESTADOS.DANADO
-          break
-        default:
-          // Mantener estado actual
-          break
-      }
-
-      return newData
-    })
-
-    if (errors.motivo) {
-      setErrors(prev => ({ ...prev, motivo: undefined }))
-    }
-  }
-
-  /**
    * handleUsarTodo: Usa toda la cantidad disponible
    */
   const handleUsarTodo = () => {
@@ -364,6 +293,27 @@ function LoteFormModal({
       return
     }
 
+    // ============================================
+    // CALCULAR MOTIVO AUTOMÁTICAMENTE
+    // ============================================
+    // El motivo se infiere del estado destino seleccionado
+    let motivo;
+
+    if (formData.estado_destino === ESTADOS.ALQUILADO) {
+      motivo = 'alquiler';
+    } else if (formData.estado_destino === ESTADOS.MANTENIMIENTO) {
+      motivo = 'reparacion';
+    } else if (formData.estado_destino === ESTADOS.DANADO) {
+      motivo = 'danado';
+    } else if (formData.estado_destino === ESTADOS.BUENO && lote.estado === ESTADOS.ALQUILADO) {
+      motivo = 'devolucion';
+    } else if (formData.estado_destino === lote.estado) {
+      // Solo cambio de ubicación, mismo estado
+      motivo = 'traslado';
+    } else {
+      motivo = 'ajuste';
+    }
+
     // Preparar datos
     const dataToSend = {
       lote_origen_id: lote.id,
@@ -372,7 +322,7 @@ function LoteFormModal({
         ? null
         : formData.ubicacion_destino.trim(),
       estado_destino: formData.estado_destino,
-      motivo: formData.motivo,
+      motivo: motivo,
       descripcion: formData.descripcion.trim() || null
     }
 
@@ -588,37 +538,25 @@ function LoteFormModal({
         )}
 
         {/* ============================================
-            CAMPO: Motivo
+            INFORMACIÓN: Motivo automático
             ============================================ */}
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-slate-700 mb-2">
-            Motivo del movimiento *
-          </label>
-
-          <select
-            value={formData.motivo}
-            onChange={handleMotivoChange}
-            className={`
-              w-full px-4 py-2 border rounded-lg
-              focus:outline-none focus:ring-2
-              ${errors.motivo
-                ? 'border-red-300 focus:ring-red-500'
-                : 'border-slate-300 focus:ring-blue-500'
-              }
-            `}
-          >
-            {MOTIVOS.map((motivo) => (
-              <option key={motivo.value} value={motivo.value}>
-                {motivo.label}
-              </option>
-            ))}
-          </select>
-
-          {errors.motivo && (
-            <p className="mt-1 text-sm text-red-600">
-              {errors.motivo}
-            </p>
-          )}
+        <div className="mb-4 p-3 bg-slate-50 border border-slate-200 rounded-lg">
+          <p className="text-xs text-slate-600 flex items-start gap-2">
+            <span className="text-sm">💡</span>
+            <span>
+              <strong>El motivo se registra automáticamente:</strong>
+              {formData.estado_destino === ESTADOS.ALQUILADO && ' Alquiler'}
+              {formData.estado_destino === ESTADOS.MANTENIMIENTO && ' Reparación'}
+              {formData.estado_destino === ESTADOS.DANADO && ' Marcado como dañado'}
+              {formData.estado_destino === ESTADOS.BUENO && lote?.estado === ESTADOS.ALQUILADO && ' Devolución de alquiler'}
+              {formData.estado_destino === lote?.estado && ' Traslado entre ubicaciones'}
+              {!(formData.estado_destino === ESTADOS.ALQUILADO ||
+                 formData.estado_destino === ESTADOS.MANTENIMIENTO ||
+                 formData.estado_destino === ESTADOS.DANADO ||
+                 (formData.estado_destino === ESTADOS.BUENO && lote?.estado === ESTADOS.ALQUILADO) ||
+                 formData.estado_destino === lote?.estado) && ' Ajuste de inventario'}
+            </span>
+          </p>
         </div>
 
         {/* ============================================
