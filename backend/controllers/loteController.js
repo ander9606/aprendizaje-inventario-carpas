@@ -411,6 +411,19 @@ exports.actualizar = async (req, res, next) => {
         if (cantidad !== undefined) {
             const cantidadValidada = validateCantidad(cantidad, 'Cantidad', false);
             await LoteModel.actualizarCantidad(id, cantidadValidada);
+
+            // Si la cantidad queda en 0, eliminar el lote automáticamente
+            if (cantidadValidada === 0) {
+                await LoteModel.eliminar(id);
+                logger.info('loteController.actualizar', 'Lote eliminado automáticamente (cantidad = 0)', { id });
+
+                return res.json({
+                    success: true,
+                    mensaje: 'Lote actualizado y eliminado automáticamente (cantidad = 0)',
+                    data: null,
+                    lote_eliminado: true
+                });
+            }
         }
 
         // Si se proporciona ubicación, actualizar
