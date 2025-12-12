@@ -96,7 +96,7 @@ function LoteFormModal({
   // 2. HOOKS DE MUTATIONS
   // ============================================
 
-  const moverCantidad = useMoverCantidad()
+  const { moverCantidad } = useMoverCantidad()
 
   // ============================================
   // 3. CONSTANTES
