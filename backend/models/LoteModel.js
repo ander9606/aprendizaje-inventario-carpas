@@ -355,7 +355,7 @@ class LoteModel {
             } = datos;
 
             const query = `
-                INSERT INTO historial_lotes
+                INSERT INTO lotes_movimientos
                 (lote_origen_id, lote_destino_id, cantidad, motivo, descripcion,
                  estado_origen, estado_destino, ubicacion_origen, ubicacion_destino, costo_reparacion)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -390,11 +390,11 @@ class LoteModel {
                     h.*,
                     lo.lote_numero AS lote_origen_numero,
                     ld.lote_numero AS lote_destino_numero
-                FROM historial_lotes h
+                FROM lotes_movimientos h
                 LEFT JOIN lotes lo ON h.lote_origen_id = lo.id
                 LEFT JOIN lotes ld ON h.lote_destino_id = ld.id
                 WHERE h.lote_origen_id = ? OR h.lote_destino_id = ?
-                ORDER BY h.created_at DESC
+                ORDER BY h.fecha_movimiento DESC
             `;
 
             const [rows] = await pool.query(query, [loteId, loteId]);
