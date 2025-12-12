@@ -19,12 +19,16 @@ import { useQueryClient } from '@tanstack/react-query'
  * COMPONENTE: EditarLoteModal
  * ============================================
  *
- * Modal para editar la cantidad de un lote existente.
+ * Modal para REDUCIR o ELIMINAR la cantidad de un lote existente.
+ *
+ * IMPORTANTE: Este modal NO permite incrementar cantidades.
+ * Para agregar inventario nuevo, usar el botón "Agregar inventario" (CrearLoteModal).
  *
  * CASOS DE USO:
- * - Ajustes de inventario
- * - Correcciones
- * - Registrar pérdidas/robos
+ * - Ajustes de inventario (solo decrementos)
+ * - Correcciones de errores de captura
+ * - Registrar pérdidas, robos o daños
+ * - Eliminar lotes (cantidad = 0)
  *
  * @param {boolean} isOpen - Si el modal está abierto
  * @param {function} onClose - Función para cerrar
@@ -85,6 +89,8 @@ function EditarLoteModal({
 
       if (isNaN(cantidad) || cantidad < 0) {
         newErrors.cantidad = 'La cantidad debe ser 0 o mayor'
+      } else if (cantidad > lote.cantidad) {
+        newErrors.cantidad = `No puedes incrementar. Máximo: ${lote.cantidad}. Para agregar inventario usa el botón "Agregar inventario"`
       }
     }
 
@@ -154,10 +160,8 @@ function EditarLoteModal({
       // Mostrar mensaje según la acción
       if (nuevaCantidad === 0) {
         toast.success('Lote eliminado (cantidad = 0)')
-      } else if (nuevaCantidad > lote.cantidad) {
-        toast.success(`Incrementado de ${lote.cantidad} a ${nuevaCantidad}`)
       } else {
-        toast.success(`Reducido de ${lote.cantidad} a ${nuevaCantidad}`)
+        toast.success(`Cantidad ajustada de ${lote.cantidad} a ${nuevaCantidad}`)
       }
 
       onSuccess?.()
@@ -211,9 +215,12 @@ function EditarLoteModal({
             CAMPO: Nueva Cantidad
             ============================================ */}
         <div className="mb-4">
-          <label className="block text-sm font-medium text-slate-700 mb-2">
+          <label className="block text-sm font-medium text-slate-700 mb-1">
             Nueva cantidad *
           </label>
+          <p className="text-xs text-slate-500 mb-2">
+            Rango permitido: 0 - {lote.cantidad} (solo decrementos)
+          </p>
 
           <input
             type="number"
@@ -221,6 +228,7 @@ function EditarLoteModal({
             onChange={handleCantidadChange}
             placeholder="0"
             min="0"
+            max={lote.cantidad}
             className={`
               w-full px-4 py-2 border rounded-lg
               focus:outline-none focus:ring-2
@@ -241,21 +249,15 @@ function EditarLoteModal({
           {formData.cantidad && !errors.cantidad && diferencia !== 0 && (
             <div className={`
               mt-2 p-2 rounded-lg text-sm
-              ${diferencia > 0
-                ? 'bg-green-50 text-green-700'
-                : diferencia < 0
-                  ? 'bg-amber-50 text-amber-700'
-                  : 'bg-slate-50 text-slate-600'
+              ${nuevaCantidad === 0
+                ? 'bg-red-50 text-red-700'
+                : 'bg-amber-50 text-amber-700'
               }
             `}>
-              {diferencia > 0 && (
-                <span>✅ Se agregarán {diferencia} {diferencia === 1 ? 'unidad' : 'unidades'}</span>
-              )}
-              {diferencia < 0 && (
-                <span>⚠️ Se restarán {Math.abs(diferencia)} {Math.abs(diferencia) === 1 ? 'unidad' : 'unidades'}</span>
-              )}
-              {nuevaCantidad === 0 && (
+              {nuevaCantidad === 0 ? (
                 <span className="font-medium">🗑️ El lote será eliminado automáticamente</span>
+              ) : (
+                <span>⚠️ Se reducirán {Math.abs(diferencia)} {Math.abs(diferencia) === 1 ? 'unidad' : 'unidades'}</span>
               )}
             </div>
           )}
@@ -268,8 +270,11 @@ function EditarLoteModal({
           <p className="text-xs text-blue-700 flex items-start gap-2">
             <span className="text-sm">💡</span>
             <span>
-              <strong>Usa esta función para:</strong> Ajustes de inventario, correcciones, registrar pérdidas o robos.
-              Para mover entre ubicaciones usa el botón "Mover lotes".
+              <strong>Esta función solo permite reducir o eliminar:</strong> úsala para ajustes de inventario, correcciones, registrar pérdidas o robos.
+              <br /><br />
+              <strong>Para agregar inventario nuevo</strong> usa el botón "Agregar inventario".
+              <br />
+              <strong>Para mover entre ubicaciones</strong> usa el botón "Mover lotes".
             </span>
           </p>
         </div>
