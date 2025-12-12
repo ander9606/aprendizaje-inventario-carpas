@@ -51,8 +51,11 @@ export const useGetElementos = (subcategoriaId) => {
 
     // Transformar los datos antes de devolverlos
     select: (response) => {
+      console.log('🔍 [UseElementos] Respuesta completa:', response)
       const elementos = response?.data || []
       const subcategoria = response?.subcategoria || null
+      console.log('🔍 [UseElementos] Elementos extraídos:', elementos)
+      console.log('🔍 [UseElementos] Subcategoría extraída:', subcategoria)
 
       // Enriquecer cada elemento con totales calculados
       const elementosEnriquecidos = elementos.map(elemento => {
