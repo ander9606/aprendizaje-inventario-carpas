@@ -69,9 +69,14 @@ export const useGetLotes = (elementoId) => {
     // Transformar datos para agregar estadísticas
     select: (response) => {
       // El backend retorna: { success, elemento, estadisticas, lotes, total_lotes }
-      const lotes = response?.lotes || []
+      const lotesRaw = response?.lotes || []
       const elemento = response?.elemento || null
       const estadisticasBackend = response?.estadisticas || {}
+
+      // FILTRAR LOTES VACÍOS (cantidad <= 0)
+      // Los lotes con cantidad 0 deberían haberse eliminado en el backend,
+      // pero este filtro actúa como defensa adicional
+      const lotes = lotesRaw.filter(lote => lote.cantidad > 0)
 
       // Calcular cantidad total
       const cantidad_total = lotes.reduce(
