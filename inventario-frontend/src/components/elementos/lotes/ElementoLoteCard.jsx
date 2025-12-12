@@ -137,7 +137,7 @@ export const ElementoLoteCard = ({
         {/* ============================================
             ESTADÍSTICAS POR ESTADO
             ============================================ */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-4">
           <StatCard
             label="Total"
             value={isLoadingLotes ? '-' : cantidad_total}
@@ -157,6 +157,12 @@ export const ElementoLoteCard = ({
             size="sm"
           />
           <StatCard
+            label="Alquilado"
+            value={isLoadingLotes ? '-' : (estadisticas.alquilado || 0)}
+            color="blue"
+            size="sm"
+          />
+          <StatCard
             label="Mantenimiento"
             value={isLoadingLotes ? '-' : (estadisticas.mantenimiento || 0)}
             color="yellow"
@@ -164,7 +170,7 @@ export const ElementoLoteCard = ({
           />
           <StatCard
             label="Dañado"
-            value={isLoadingLotes ? '-' : (estadisticas.malo || estadisticas.dañado || 0)}
+            value={isLoadingLotes ? '-' : (estadisticas.malo || estadisticas.dañado || estadisticas.danado || 0)}
             color="red"
             size="sm"
           />
