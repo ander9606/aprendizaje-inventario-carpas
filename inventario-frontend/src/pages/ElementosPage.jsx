@@ -371,20 +371,29 @@ function ElementosPage() {
         />
       )}
 
-      {/* Modal: Agregar/Mover Lote */}
-      {(loteParaMover || elementoParaLote) && (
-        <LoteFormModal
-          isOpen={!!(loteParaMover || elementoParaLote)}
-          onClose={() => {
-            setLoteParaMover(null)
+      {/* Modal: Crear Lote Nuevo */}
+      {elementoParaLote && (
+        <CrearLoteModal
+          isOpen={!!elementoParaLote}
+          onClose={() => setElementoParaLote(null)}
+          elemento={elementoParaLote}
+          onSuccess={() => {
             setElementoParaLote(null)
+            // No necesita refetch, React Query invalida automáticamente
           }}
-          lote={loteParaMover?.lote}
-          ubicacionOrigen={loteParaMover?.ubicacion}
-          elemento={loteParaMover?.elemento || elementoParaLote}
+        />
+      )}
+
+      {/* Modal: Mover Cantidad entre Lotes */}
+      {loteParaMover && (
+        <LoteFormModal
+          isOpen={!!loteParaMover}
+          onClose={() => setLoteParaMover(null)}
+          lote={loteParaMover.lote}
+          ubicacionOrigen={loteParaMover.ubicacion}
+          elemento={loteParaMover.elemento}
           onSuccess={() => {
             setLoteParaMover(null)
-            setElementoParaLote(null)
             // No necesita refetch, React Query invalida automáticamente
           }}
         />

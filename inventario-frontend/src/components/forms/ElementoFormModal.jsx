@@ -497,25 +497,6 @@ function ElementoFormModal({
         </div>
 
         {/* ============================================
-            CAMPO: Cantidad (nuevo)
-            ============================================ */}
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-slate-700 mb-2">
-            Cantidad
-          </label>
-          <input
-            type="number"
-            name="cantidad"
-            value={formData.cantidad}
-            onChange={handleCantidadChange}
-            className="
-              w-full px-4 py-2 border border-slate-300 rounded-lg
-              focus:outline-none focus:ring-2 focus:ring-blue-500
-            "
-          />
-        </div>
-
-        {/* ============================================
             FOOTER: Botones de acción
             ============================================ */}
         <Modal.Footer>
