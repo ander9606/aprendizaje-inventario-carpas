@@ -1,113 +1,197 @@
-// ================================
-// HOOK DE MATERIALES
-// ================================
+// ============================================
+// CUSTOM HOOK: useMateriales
+// Maneja todas las operaciones con materiales
+// ============================================
 
-import { useState, useEffect } from "react";
-import materialesAPI from "../api/apiMateriales";
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import materialesAPI from '../api/apiMateriales'
 
-// ----------------------------------
-// OBTENER TODOS LOS MATERIALES
-// ----------------------------------
-export function useGetMateriales() {
-    const [materiales, setMateriales] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+/**
+ * ============================================
+ * HOOKS DE LECTURA (useQuery)
+ * ============================================
+ */
 
-    useEffect(() => {
-        materialesAPI.get("/materiales")
-            .then(res => {
-                setMateriales(res.data.data);
-                setLoading(false);
-            })
-            .catch(err => {
-                setError(err.response?.data?.message || "Error al cargar materiales");
-                setLoading(false);
-            });
-    }, []);
+/**
+ * Hook: Obtener todos los materiales
+ *
+ * @returns {Object} { materiales, isLoading, error, refetch }
+ *
+ * @example
+ * const { materiales, isLoading } = useGetMateriales()
+ */
+export const useGetMateriales = () => {
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ['materiales'],
+    queryFn: materialesAPI.obtenerTodos
+  })
 
-    return { materiales, loading, error };
+  return {
+    materiales: data?.data || [],
+    isLoading,
+    error,
+    refetch
+  }
 }
 
-// ----------------------------------
-// OBTENER MATERIAL POR ID
-// ----------------------------------
-export function useGetMaterialById(id) {
-    const [material, setMaterial] = useState(null);
-    const [loading, setLoading] = useState(true);
+/**
+ * Hook: Obtener un material específico
+ *
+ * @param {number} materialId - ID del material
+ * @returns {Object} { material, isLoading, error }
+ *
+ * @example
+ * const { material, isLoading } = useGetMaterial(1)
+ */
+export const useGetMaterial = (materialId) => {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['materiales', materialId],
+    queryFn: () => materialesAPI.obtenerPorId(materialId),
+    enabled: !!materialId
+  })
 
-    useEffect(() => {
-        if (!id) return;
-
-        materialesAPI.get(`/materiales/${id}`)
-            .then(res => {
-                setMaterial(res.data.data);
-                setLoading(false);
-            })
-            .catch(() => setLoading(false));
-    }, [id]);
-
-    return { material, loading };
+  return {
+    material: data?.data || null,
+    isLoading,
+    error
+  }
 }
 
-// ----------------------------------
-// CREAR MATERIAL
-// ----------------------------------
-export function useCreateMaterial() {
-    const [loading, setLoading] = useState(false);
+/**
+ * ============================================
+ * HOOKS DE ESCRITURA (useMutation)
+ * ============================================
+ */
 
-    const createMaterial = async (data) => {
-        setLoading(true);
-        try {
-            const res = await materialesAPI.post("/materiales", data);
-            setLoading(false);
-            return res.data;
-        } catch (err) {
-            setLoading(false);
-            throw err;
-        }
-    };
+/**
+ * Hook: Crear un nuevo material
+ *
+ * @returns {Object} { createMaterial, isLoading, error }
+ *
+ * @example
+ * const { createMaterial } = useCreateMaterial()
+ *
+ * await createMaterial({
+ *   nombre: "Lona",
+ *   descripcion: "Material impermeable"
+ * })
+ */
+export const useCreateMaterial = () => {
+  const queryClient = useQueryClient()
 
-    return { createMaterial, loading };
+  const { mutateAsync, isLoading, error } = useMutation({
+    mutationFn: materialesAPI.crear,
+
+    onSuccess: () => {
+      // Invalidar cache de materiales
+      queryClient.invalidateQueries({
+        queryKey: ['materiales']
+      })
+
+      console.log('✅ Material creado exitosamente')
+    },
+
+    onError: (error) => {
+      console.error('❌ Error al crear material:', error)
+    }
+  })
+
+  return {
+    createMaterial: mutateAsync,
+    isLoading,
+    error
+  }
 }
 
-// ----------------------------------
-// ACTUALIZAR MATERIAL
-// ----------------------------------
-export function useUpdateMaterial() {
-    const [loading, setLoading] = useState(false);
+/**
+ * Hook: Actualizar un material existente
+ *
+ * @returns {Object} { updateMaterial, isLoading, error }
+ *
+ * @example
+ * const { updateMaterial } = useUpdateMaterial()
+ *
+ * await updateMaterial({
+ *   id: 1,
+ *   nombre: "Lona Premium"
+ * })
+ */
+export const useUpdateMaterial = () => {
+  const queryClient = useQueryClient()
 
-    const updateMaterial = async (id, data) => {
-        setLoading(true);
-        try {
-            const res = await materialesAPI.put(`/materiales/${id}`, data);
-            setLoading(false);
-            return res.data;
-        } catch (err) {
-            setLoading(false);
-            throw err;
-        }
-    };
+  const { mutateAsync, isLoading, error } = useMutation({
+    mutationFn: ({ id, ...data }) => materialesAPI.actualizar(id, data),
 
-    return { updateMaterial, loading };
+    onSuccess: (_, variables) => {
+      // Invalidar cache del material específico
+      queryClient.invalidateQueries({
+        queryKey: ['materiales', variables.id]
+      })
+
+      // Invalidar lista de materiales
+      queryClient.invalidateQueries({
+        queryKey: ['materiales']
+      })
+
+      console.log('✅ Material actualizado exitosamente')
+    },
+
+    onError: (error) => {
+      console.error('❌ Error al actualizar material:', error)
+    }
+  })
+
+  return {
+    updateMaterial: mutateAsync,
+    isLoading,
+    error
+  }
 }
 
-// ----------------------------------
-// ELIMINAR MATERIAL
-// ----------------------------------
-export function useDeleteMaterial() {
-    const [loading, setLoading] = useState(false);
+/**
+ * Hook: Eliminar un material
+ *
+ * @returns {Object} { deleteMaterial, isLoading, error }
+ *
+ * @example
+ * const { deleteMaterial } = useDeleteMaterial()
+ *
+ * if (confirm('¿Eliminar material?')) {
+ *   await deleteMaterial(1)
+ * }
+ */
+export const useDeleteMaterial = () => {
+  const queryClient = useQueryClient()
 
-    const deleteMaterial = async (id) => {
-        setLoading(true);
-        try {
-            const res = await materialesAPI.delete(`/materiales/${id}`);
-            setLoading(false);
-            return res.data;
-        } catch (err) {
-            setLoading(false);
-            throw err;
-        }
-    };
+  const { mutateAsync, isLoading, error } = useMutation({
+    mutationFn: materialesAPI.eliminar,
 
-    return { deleteMaterial, loading };
+    onSuccess: () => {
+      // Invalidar cache de materiales
+      queryClient.invalidateQueries({
+        queryKey: ['materiales']
+      })
+
+      console.log('✅ Material eliminado exitosamente')
+    },
+
+    onError: (error) => {
+      console.error('❌ Error al eliminar material:', error)
+    }
+  })
+
+  return {
+    deleteMaterial: mutateAsync,
+    isLoading,
+    error
+  }
 }
+
+/**
+ * ============================================
+ * HOOK POR DEFECTO
+ * ============================================
+ */
+
+const useMateriales = useGetMateriales
+export default useMateriales
