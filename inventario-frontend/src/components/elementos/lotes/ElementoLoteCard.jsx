@@ -22,7 +22,7 @@ import { useGetLotes } from '../../../hooks/Uselotes'
 
 /**
  * Componente ElementoLoteCard - Card para elemento con gestión por lotes
- * 
+ *
  * MEJORA: Ahora carga automáticamente los lotes del elemento
  * usando el hook useGetLotes, en lugar de esperar que vengan
  * desde el componente padre.
@@ -34,7 +34,7 @@ import { useGetLotes } from '../../../hooks/Uselotes'
  * @param {function} onEdit - Callback para editar elemento
  * @param {function} onDelete - Callback para eliminar elemento
  * @param {function} onAddLote - Callback para agregar nuevo lote
- * @param {function} onEditLote - Callback para editar un lote
+ * @param {function} onDevolverBodega - Callback para devolver lote a bodega principal
  * @param {function} onMoveLote - Callback para mover lote
  * @param {function} onDeleteLote - Callback para eliminar un lote
  */
@@ -43,7 +43,7 @@ export const ElementoLoteCard = ({
   onEdit,
   onDelete,
   onAddLote,
-  onEditLote,
+  onDevolverBodega,
   onMoveLote,
   onDeleteLote,
   className = '',
@@ -250,7 +250,7 @@ export const ElementoLoteCard = ({
               <LoteUbicacionGroup
                 key={ubicacion.nombre || idx}
                 ubicacion={ubicacion}
-                onEditLote={(lote, ubicacion) => onEditLote && onEditLote(lote, ubicacion, elemento)}
+                onDevolverBodega={(lote, ubicacion) => onDevolverBodega && onDevolverBodega(lote, ubicacion, elemento)}
                 onMoveLote={(lote, ubicacion) => onMoveLote && onMoveLote(lote, ubicacion, elemento)}
                 onDeleteLote={onDeleteLote}
               />

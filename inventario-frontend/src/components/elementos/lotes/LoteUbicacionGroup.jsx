@@ -5,7 +5,7 @@
 
 import UbicacionBadge from '../../common/UbicacionBadge'
 import { EstadoBadge } from '../../common/Badge'
-import { MoreVertical, Edit2, Trash2, ArrowRight, Package } from 'lucide-react'
+import { MoreVertical, Trash2, ArrowRight, Package, RotateCcw } from 'lucide-react'
 import { useState } from 'react'
 
 /**
@@ -15,7 +15,7 @@ import { useState } from 'react'
  * @param {string} ubicacion.nombre - Nombre de la ubicación
  * @param {array} ubicacion.lotes - Array de lotes en esta ubicación
  * @param {number} ubicacion.cantidad_total - Cantidad total en esta ubicación
- * @param {function} onEditLote - Callback para editar un lote
+ * @param {function} onDevolverBodega - Callback para devolver a bodega principal
  * @param {function} onMoveLote - Callback para mover cantidad
  * @param {function} onDeleteLote - Callback para eliminar un lote
  * @param {boolean} compact - Vista compacta
@@ -30,13 +30,13 @@ import { useState } from 'react'
  *       { estado: "bueno", cantidad: 30 }
  *     ]
  *   }}
- *   onEditLote={handleEdit}
+ *   onDevolverBodega={handleDevolver}
  *   onMoveLote={handleMove}
  * />
  */
 export const LoteUbicacionGroup = ({
   ubicacion,
-  onEditLote,
+  onDevolverBodega,
   onMoveLote,
   onDeleteLote,
   compact = false,
@@ -148,7 +148,7 @@ export const LoteUbicacionGroup = ({
                 key={lote.id || idx}
                 lote={lote}
                 ubicacion={nombre}
-                onEdit={onEditLote}
+                onDevolverBodega={onDevolverBodega}
                 onMove={onMoveLote}
                 onDelete={onDeleteLote}
               />
@@ -167,18 +167,21 @@ export const LoteUbicacionGroup = ({
 const LoteItem = ({
   lote,
   ubicacion,
-  onEdit,
+  onDevolverBodega,
   onMove,
   onDelete
 }) => {
   const [menuOpen, setMenuOpen] = useState(false)
 
+  // Solo mostrar "Devolver a Bodega A" si NO está en Bodega A
+  const esBodegaA = ubicacion === 'Bodega A'
+
   const menuOptions = [
     {
-      label: 'Editar cantidad',
-      icon: Edit2,
-      onClick: () => onEdit && onEdit(lote, ubicacion),
-      show: !!onEdit
+      label: 'Devolver a Bodega A',
+      icon: RotateCcw,
+      onClick: () => onDevolverBodega && onDevolverBodega(lote, ubicacion),
+      show: !!onDevolverBodega && !esBodegaA // Solo mostrar si NO está en Bodega A
     },
     {
       label: 'Mover a otra ubicación',
