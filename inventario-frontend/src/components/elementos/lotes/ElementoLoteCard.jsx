@@ -4,6 +4,7 @@
 // Ahora carga sus propios lotes usando useGetLotes
 // ============================================
 
+import { useState } from 'react'
 import Card from '../../common/Card'
 import StatCard from '../../common/StatCard'
 import LoteUbicacionGroup from './LoteUbicacionGroup'
@@ -11,7 +12,10 @@ import EmptyState from '../../common/EmptyState'
 import AlertaBanner from '../../common/AlertaBanner'
 import Button from '../../common/Button'
 import Spinner from '../../common/Spinner'
-import { Plus, Package, MapPin } from 'lucide-react'
+import Modal from '../../common/Modal'
+import { EstadoBadge } from '../../common/Badge'
+import UbicacionBadge from '../../common/UbicacionBadge'
+import { Plus, Package, MapPin, ArrowRightLeft, ArrowRight } from 'lucide-react'
 
 // Hook para cargar lotes
 import { useGetLotes } from '../../../hooks/Uselotes'
@@ -53,6 +57,11 @@ export const ElementoLoteCard = ({
     icono = '📦',
     alertas = []
   } = elemento
+
+  // ============================================
+  // ESTADO LOCAL
+  // ============================================
+  const [mostrarSelectorLotes, setMostrarSelectorLotes] = useState(false)
 
   // ============================================
   // CARGAR LOTES DEL ELEMENTO
@@ -177,7 +186,7 @@ export const ElementoLoteCard = ({
         </div>
 
         {/* ============================================
-            HEADER: Título de sección + Botón agregar
+            HEADER: Título de sección + Botones de acción
             ============================================ */}
         <div className="flex items-center justify-between mb-3">
           <h4 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
@@ -185,18 +194,35 @@ export const ElementoLoteCard = ({
             Por ubicación
           </h4>
 
-          {onAddLote && (
-            <Button
-              variant="outline"
-              size="sm"
-              icon={<Plus className="w-4 h-4" />}
-              onClick={() => onAddLote(elemento)}
-              disabled={disabled}
-              title="Agregar inventario nuevo (compras, donaciones)"
-            >
-              Agregar inventario
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            {/* Botón: Mover entre lotes */}
+            {onMoveLote && lotes.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                icon={<ArrowRightLeft className="w-4 h-4" />}
+                onClick={() => setMostrarSelectorLotes(true)}
+                disabled={disabled}
+                title="Mover cantidad entre ubicaciones/estados"
+              >
+                Mover lotes
+              </Button>
+            )}
+
+            {/* Botón: Agregar inventario nuevo */}
+            {onAddLote && (
+              <Button
+                variant="outline"
+                size="sm"
+                icon={<Plus className="w-4 h-4" />}
+                onClick={() => onAddLote(elemento)}
+                disabled={disabled}
+                title="Agregar inventario nuevo (compras, donaciones)"
+              >
+                Agregar inventario
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* ============================================
@@ -235,7 +261,7 @@ export const ElementoLoteCard = ({
               <p className="text-xs text-blue-700 flex items-center gap-2">
                 <span className="text-base">💡</span>
                 <span>
-                  <strong>Para mover entre lotes:</strong> Expande una ubicación y usa el menú ⋮ de cada lote para trasladar, alquilar o cambiar estado
+                  <strong>Dos formas de mover:</strong> Usa el botón "Mover lotes" arriba para acceso rápido, o expande una ubicación y usa el menú ⋮ de cada lote
                 </span>
               </p>
             </div>
@@ -268,6 +294,76 @@ export const ElementoLoteCard = ({
           </div>
         )}
       </Card.Content>
+
+      {/* ============================================
+          MODAL: SELECTOR DE LOTES PARA MOVER
+          ============================================ */}
+      {mostrarSelectorLotes && (
+        <Modal
+          isOpen={mostrarSelectorLotes}
+          onClose={() => setMostrarSelectorLotes(false)}
+          title="Selecciona el lote que deseas mover"
+          size="md"
+        >
+          <div className="space-y-2 max-h-96 overflow-y-auto">
+            {lotes.length === 0 ? (
+              <p className="text-center text-slate-500 py-8">
+                No hay lotes disponibles para mover
+              </p>
+            ) : (
+              lotes.map((lote) => (
+                <button
+                  key={lote.id}
+                  onClick={() => {
+                    onMoveLote(lote, lote.ubicacion)
+                    setMostrarSelectorLotes(false)
+                  }}
+                  className="w-full p-4 bg-white border-2 border-slate-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all text-left group"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    {/* Ubicación y Estado */}
+                    <div className="flex items-center gap-3 flex-1">
+                      <UbicacionBadge ubicacion={lote.ubicacion || 'Sin ubicación'} />
+                      <EstadoBadge estado={lote.estado} />
+                    </div>
+
+                    {/* Cantidad */}
+                    <div className="flex items-center gap-3">
+                      <div className="text-right">
+                        <div className="text-2xl font-bold text-slate-900">
+                          {lote.cantidad}
+                        </div>
+                        <div className="text-xs text-slate-500">
+                          {lote.cantidad === 1 ? 'unidad' : 'unidades'}
+                        </div>
+                      </div>
+
+                      {/* Icono */}
+                      <ArrowRight className="w-5 h-5 text-slate-400 group-hover:text-blue-600 transition-colors" />
+                    </div>
+                  </div>
+
+                  {/* Número de lote */}
+                  {lote.lote_numero && (
+                    <div className="mt-2 text-xs text-slate-500">
+                      Lote: {lote.lote_numero}
+                    </div>
+                  )}
+                </button>
+              ))
+            )}
+          </div>
+
+          <Modal.Footer>
+            <Button
+              variant="ghost"
+              onClick={() => setMostrarSelectorLotes(false)}
+            >
+              Cancelar
+            </Button>
+          </Modal.Footer>
+        </Modal>
+      )}
     </Card>
   )
 }

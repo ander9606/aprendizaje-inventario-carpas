@@ -342,40 +342,40 @@ export const useGetHistorialLotes = (elementoId) => {
  */
 export const useMoverCantidad = () => {
   const queryClient = useQueryClient()
-  
-  const { mutateAsync, isLoading, error } = useMutation({
+
+  const mutation = useMutation({
     mutationFn: lotesAPI.moverCantidad,
-    
+
     onSuccess: (response) => {
       const elementoId = response.data?.elemento_id
-      
+
       // Invalidar lotes del elemento
-      queryClient.invalidateQueries({ 
-        queryKey: ['lotes', 'elemento', elementoId] 
+      queryClient.invalidateQueries({
+        queryKey: ['lotes', 'elemento', elementoId]
       })
-      
+
       // Invalidar elemento (para actualizar cantidad total)
-      queryClient.invalidateQueries({ 
-        queryKey: ['elementos', elementoId] 
+      queryClient.invalidateQueries({
+        queryKey: ['elementos', elementoId]
       })
-      
+
       // Invalidar lista de elementos (para actualizar stats)
-      queryClient.invalidateQueries({ 
-        queryKey: ['elementos', 'subcategoria'] 
+      queryClient.invalidateQueries({
+        queryKey: ['elementos', 'subcategoria']
       })
-      
+
       console.log('✅ Cantidad movida exitosamente')
     },
-    
+
     onError: (error) => {
       console.error('❌ Error al mover cantidad:', error)
     }
   })
-  
+
   return {
-    moverCantidad: mutateAsync,
-    isLoading,
-    error
+    moverCantidad: mutation,
+    isLoading: mutation.isPending,
+    error: mutation.error
   }
 }
 
