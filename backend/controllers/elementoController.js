@@ -4,6 +4,7 @@
 // ============================================
 
 const ElementoModel = require('../models/ElementoModel');
+const LoteModel = require('../models/LoteModel');
 const AppError = require('../utils/AppError');
 const logger = require('../utils/logger');
 
@@ -234,11 +235,40 @@ exports.crear = async (req, res, next) => {
         };
 
         const nuevoId = await ElementoModel.crear(data);
+
+        // ============================================
+        // CREAR LOTE INICIAL (si es gestión por lotes)
+        // ============================================
+        if (!data.requiere_series) {
+            const cantidadInicial = validateCantidad(body.cantidad_inicial, 'Cantidad inicial', false) || 0;
+            const estadoInicial = validateEstado(body.estado_inicial, false) || 'bueno';
+            const ubicacionInicial = body.ubicacion_inicial?.trim() || null;
+
+            if (cantidadInicial > 0) {
+                logger.info('elementoController.crear', 'Creando lote inicial automáticamente', {
+                    elementoId: nuevoId,
+                    cantidad: cantidadInicial,
+                    estado: estadoInicial,
+                    ubicacion: ubicacionInicial
+                });
+
+                await LoteModel.crear({
+                    elemento_id: nuevoId,
+                    lote_numero: `LOTE-${nuevoId}-001`,
+                    cantidad: cantidadInicial,
+                    estado: estadoInicial,
+                    ubicacion: ubicacionInicial
+                });
+
+                logger.info('elementoController.crear', 'Lote inicial creado exitosamente');
+            }
+        }
+
         const elementoCreado = await ElementoModel.obtenerPorId(nuevoId);
 
-        logger.info('elementoController.crear', 'Elemento creado exitosamente', { 
-            id: nuevoId, 
-            nombre: data.nombre 
+        logger.info('elementoController.crear', 'Elemento creado exitosamente', {
+            id: nuevoId,
+            nombre: data.nombre
         });
 
         res.status(201).json({

@@ -173,10 +173,19 @@ function ElementoFormModal({
       nombre: formData.nombre.trim(),
       descripcion: formData.descripcion.trim() || null,
       requiere_series: formData.requiere_series,
+      material_id: formData.material_id || null,
+      unidad_id: formData.unidad_id || null,
     };
 
     if (!isEditMode) {
       dataToSend.categoria_id = subcategoriaId;
+
+      // Si es gestión por LOTES, enviar datos iniciales
+      if (!formData.requiere_series) {
+        dataToSend.cantidad_inicial = formData.cantidad || 0;
+        dataToSend.estado_inicial = formData.estado || ESTADOS.BUENO;
+        dataToSend.ubicacion_inicial = formData.ubicacion || null;
+      }
     }
 
     // ============================================
@@ -435,6 +444,40 @@ function ElementoFormModal({
         />
 
         {/* ============================================
+            CAMPO: Cantidad inicial (solo para gestión por lotes)
+            ============================================ */}
+        {!formData.requiere_series && !isEditMode && (
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Cantidad inicial *
+            </label>
+            <input
+              type="number"
+              name="cantidad"
+              value={formData.cantidad}
+              onChange={handleCantidadChange}
+              min="0"
+              placeholder="Ej: 50"
+              className={`
+                w-full px-4 py-2 border rounded-lg
+                focus:outline-none focus:ring-2
+                ${
+                  errors.cantidad
+                    ? "border-red-300 focus:ring-red-500"
+                    : "border-slate-300 focus:ring-blue-500"
+                }
+              `}
+            />
+            {errors.cantidad && (
+              <p className="mt-1 text-sm text-red-600">{errors.cantidad}</p>
+            )}
+            <p className="mt-1 text-sm text-slate-500">
+              Número de unidades del primer lote
+            </p>
+          </div>
+        )}
+
+        {/* ============================================
             CAMPO: Fecha de ingreso (opcional)
             ============================================ */}
         <div className="mb-4">
@@ -446,25 +489,6 @@ function ElementoFormModal({
             name="fecha_ingreso"
             value={formData.fecha_ingreso}
             onChange={handleInputChange}
-            className="
-              w-full px-4 py-2 border border-slate-300 rounded-lg
-              focus:outline-none focus:ring-2 focus:ring-blue-500
-            "
-          />
-        </div>
-
-        {/* ============================================
-            CAMPO: Cantidad (nuevo)
-            ============================================ */}
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-slate-700 mb-2">
-            Cantidad
-          </label>
-          <input
-            type="number"
-            name="cantidad"
-            value={formData.cantidad}
-            onChange={handleCantidadChange}
             className="
               w-full px-4 py-2 border border-slate-300 rounded-lg
               focus:outline-none focus:ring-2 focus:ring-blue-500

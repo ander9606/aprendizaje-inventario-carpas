@@ -36,6 +36,7 @@ api.interceptors.request.use(
 api.interceptors.response.use(
     (response) => {
         console.log(`✅ [API] Respuesta recibida de ${response.config.url}`);
+        console.log(`📦 [API] Datos:`, response.data);
         return response;
     },
     (error) => {
