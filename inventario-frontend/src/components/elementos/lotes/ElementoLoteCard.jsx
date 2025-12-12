@@ -192,8 +192,9 @@ export const ElementoLoteCard = ({
               icon={<Plus className="w-4 h-4" />}
               onClick={() => onAddLote(elemento)}
               disabled={disabled}
+              title="Agregar inventario nuevo (compras, donaciones)"
             >
-              Agregar lote
+              Agregar inventario
             </Button>
           )}
         </div>
@@ -209,10 +210,10 @@ export const ElementoLoteCard = ({
           <EmptyState
             type="no-data"
             title="Sin lotes registrados"
-            description="Agrega el primer lote en una ubicación"
+            description="Agrega inventario nuevo mediante compras, donaciones o stock inicial"
             icon={Package}
             action={onAddLote && {
-              label: 'Agregar lote',
+              label: 'Agregar inventario',
               onClick: () => onAddLote(elemento),
               icon: <Plus />
             }}
@@ -228,6 +229,16 @@ export const ElementoLoteCard = ({
                 onDeleteLote={onDeleteLote}
               />
             ))}
+
+            {/* Ayuda: Cómo mover entre lotes */}
+            <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-xs text-blue-700 flex items-center gap-2">
+                <span className="text-base">💡</span>
+                <span>
+                  <strong>Para mover entre lotes:</strong> Expande una ubicación y usa el menú ⋮ de cada lote para trasladar, alquilar o cambiar estado
+                </span>
+              </p>
+            </div>
           </div>
         )}
 
