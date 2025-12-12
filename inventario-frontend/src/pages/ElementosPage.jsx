@@ -26,6 +26,7 @@ import ElementoFormModal from '../components/forms/ElementoFormModal'
 import SerieFormModal from '../components/forms/SerieFormModal'
 import LoteFormModal from '../components/forms/LoteFormModal'
 import CrearLoteModal from '../components/forms/CrearLoteModal'
+import EditarLoteModal from '../components/forms/EditarLoteModal'
 
 /**
  * ============================================
@@ -56,6 +57,12 @@ function ElementosPage() {
    * Guarda el elemento para crear un lote nuevo
    */
   const [elementoParaLote, setElementoParaLote] = useState(null)
+
+  /**
+   * Modal de editar lote
+   * Guarda el lote, ubicación y elemento para editar
+   */
+  const [loteParaEditar, setLoteParaEditar] = useState(null)
 
   // ============================================
   // HOOKS DE DATOS
@@ -145,13 +152,12 @@ function ElementosPage() {
   // ============================================
   const handleAddLote = (elemento) => setElementoParaLote(elemento)
   
-  const handleEditLote = (lote, ubicacion) => {
-    console.log('Editar lote:', lote, 'en:', ubicacion)
-    // TODO: Abrir modal de edición de lote
+  const handleEditLote = (lote, ubicacion, elemento) => {
+    setLoteParaEditar({ lote, ubicacion, elemento })
   }
   
-  const handleMoveLote = (lote, ubicacion) => {
-    setLoteParaMover({ lote, ubicacion })
+  const handleMoveLote = (lote, ubicacion, elemento) => {
+    setLoteParaMover({ lote, ubicacion, elemento })
   }
   
   const handleDeleteLote = async (lote, ubicacion) => {
@@ -394,6 +400,21 @@ function ElementosPage() {
           elemento={loteParaMover.elemento}
           onSuccess={() => {
             setLoteParaMover(null)
+            // No necesita refetch, React Query invalida automáticamente
+          }}
+        />
+      )}
+
+      {/* Modal: Editar Lote */}
+      {loteParaEditar && (
+        <EditarLoteModal
+          isOpen={!!loteParaEditar}
+          onClose={() => setLoteParaEditar(null)}
+          lote={loteParaEditar.lote}
+          ubicacion={loteParaEditar.ubicacion}
+          elemento={loteParaEditar.elemento}
+          onSuccess={() => {
+            setLoteParaEditar(null)
             // No necesita refetch, React Query invalida automáticamente
           }}
         />

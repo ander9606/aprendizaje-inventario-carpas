@@ -250,8 +250,8 @@ export const ElementoLoteCard = ({
               <LoteUbicacionGroup
                 key={ubicacion.nombre || idx}
                 ubicacion={ubicacion}
-                onEditLote={onEditLote}
-                onMoveLote={onMoveLote}
+                onEditLote={(lote, ubicacion) => onEditLote && onEditLote(lote, ubicacion, elemento)}
+                onMoveLote={(lote, ubicacion) => onMoveLote && onMoveLote(lote, ubicacion, elemento)}
                 onDeleteLote={onDeleteLote}
               />
             ))}
