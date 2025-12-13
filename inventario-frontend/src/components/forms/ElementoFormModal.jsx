@@ -8,8 +8,8 @@ import { toast } from "sonner";
 import Modal from "../common/Modal";
 import Button from "../common/Button";
 import { useCreateElemento, useUpdateElemento } from "../../hooks/Useelementos";
-import { useGetMateriales } from "../../hooks/UseMateriales";
-import { useGetUnidades } from "../../hooks/UseUnidades";
+import { useGetMateriales } from "../../hooks/Usemateriales";
+import { useGetUnidades } from "../../hooks/Useunidades";
 import { ESTADOS } from "../../utils/constants";
 import { Edit3, Package } from "lucide-react";
 
