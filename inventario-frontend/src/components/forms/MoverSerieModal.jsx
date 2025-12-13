@@ -117,6 +117,7 @@ function MoverSerieModal({
     try {
       // Actualizar la serie
       await seriesAPI.actualizar(serie.id, {
+        numero_serie: serie.numero_serie, // Backend requiere este campo siempre
         ubicacion: formData.ubicacion_destino,
         estado: formData.estado_destino,
         descripcion: formData.descripcion || `Movida desde ${serie.ubicacion} a ${formData.ubicacion_destino}`
