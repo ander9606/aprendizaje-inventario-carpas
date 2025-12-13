@@ -220,7 +220,7 @@ export const ElementoSerieCard = ({
                   onDevolverBodega={(serie) => onDevolverBodega && onDevolverBodega(serie, elemento)}
                   onEdit={onEditSerie}
                   onDelete={onDeleteSerie}
-                  onMove={onMoveSerie}
+                  onMove={(serie) => onMoveSerie && onMoveSerie(serie, elemento)}
                   compact
                 />
               ))}
