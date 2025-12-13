@@ -21,6 +21,12 @@ const ubicacionesAPI = {
     return response.data
   },
 
+  // Obtener ubicación principal
+  obtenerPrincipal: async () => {
+    const response = await api.get('/ubicaciones/principal')
+    return response.data
+  },
+
   // Obtener una ubicación por ID
   obtenerPorId: async (id) => {
     const response = await api.get(`/ubicaciones/${id}`)
@@ -40,6 +46,12 @@ const ubicacionesAPI = {
   // Actualizar ubicación
   actualizar: async (id, data) => {
     const response = await api.put(`/ubicaciones/${id}`, data)
+    return response.data
+  },
+
+  // Marcar como principal
+  marcarComoPrincipal: async (id) => {
+    const response = await api.patch(`/ubicaciones/${id}/marcar-principal`)
     return response.data
   },
 

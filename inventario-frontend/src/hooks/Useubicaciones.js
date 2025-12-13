@@ -71,6 +71,24 @@ export const useGetUbicacion = (id) => {
 }
 
 // ============================================
+// HOOK: useGetUbicacionPrincipal
+// Obtiene la ubicación principal
+// ============================================
+
+export const useGetUbicacionPrincipal = () => {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['ubicaciones', 'principal'],
+    queryFn: ubicacionesAPI.obtenerPrincipal
+  })
+
+  return {
+    ubicacion: data?.data || null,
+    isLoading,
+    error
+  }
+}
+
+// ============================================
 // HOOK: useCreateUbicacion
 // Crea una nueva ubicación
 // ============================================
@@ -96,6 +114,22 @@ export const useUpdateUbicacion = () => {
 
   return useMutation({
     mutationFn: ({ id, data }) => ubicacionesAPI.actualizar(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['ubicaciones'])
+    }
+  })
+}
+
+// ============================================
+// HOOK: useMarcarComoPrincipal
+// Marca una ubicación como principal
+// ============================================
+
+export const useMarcarComoPrincipal = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ubicacionesAPI.marcarComoPrincipal,
     onSuccess: () => {
       queryClient.invalidateQueries(['ubicaciones'])
     }

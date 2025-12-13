@@ -14,6 +14,9 @@ const ubicacionController = require('../controllers/ubicacionController');
 // GET /api/ubicaciones/activas - Obtener solo ubicaciones activas
 router.get('/activas', ubicacionController.obtenerActivas);
 
+// GET /api/ubicaciones/principal - Obtener ubicación principal
+router.get('/principal', ubicacionController.obtenerPrincipal);
+
 // GET /api/ubicaciones/inventario - Obtener ubicaciones con conteo de inventario
 router.get('/inventario', ubicacionController.obtenerConInventario);
 
@@ -38,6 +41,9 @@ router.post('/', ubicacionController.crear);
 
 // PUT /api/ubicaciones/:id - Actualizar ubicación
 router.put('/:id', ubicacionController.actualizar);
+
+// PATCH /api/ubicaciones/:id/marcar-principal - Marcar ubicación como principal
+router.patch('/:id/marcar-principal', ubicacionController.marcarComoPrincipal);
 
 // PATCH /api/ubicaciones/:id/desactivar - Desactivar ubicación (soft delete)
 router.patch('/:id/desactivar', ubicacionController.desactivar);
