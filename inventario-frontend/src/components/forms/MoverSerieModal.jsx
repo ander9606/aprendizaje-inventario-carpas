@@ -12,7 +12,8 @@ import Button from '../common/Button'
 import { EstadoBadge } from '../common/Badge'
 import UbicacionBadge from '../common/UbicacionBadge'
 import { seriesAPI } from '../../api'
-import { ESTADOS, UBICACIONES } from '../../utils/constants'
+import { ESTADOS } from '../../utils/constants'
+import { useGetUbicacionesActivas } from '../../hooks/Useubicaciones'
 
 /**
  * ============================================
@@ -47,6 +48,9 @@ function MoverSerieModal({
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const queryClient = useQueryClient()
+
+  // Cargar ubicaciones activas desde la base de datos
+  const { ubicaciones, isLoading: isLoadingUbicaciones } = useGetUbicacionesActivas()
 
   // ============================================
   // EFECTOS
@@ -200,6 +204,7 @@ function MoverSerieModal({
                 setErrors(prev => ({ ...prev, ubicacion_destino: undefined }))
               }
             }}
+            disabled={isLoadingUbicaciones}
             className={`
               w-full px-4 py-2 border rounded-lg
               focus:outline-none focus:ring-2
@@ -207,12 +212,15 @@ function MoverSerieModal({
                 ? 'border-red-300 focus:ring-red-500'
                 : 'border-slate-300 focus:ring-blue-500'
               }
+              ${isLoadingUbicaciones ? 'opacity-50 cursor-not-allowed' : ''}
             `}
           >
-            <option value="">Selecciona una ubicación</option>
-            {Object.values(UBICACIONES).map((ubicacion) => (
-              <option key={ubicacion} value={ubicacion}>
-                {ubicacion}
+            <option value="">
+              {isLoadingUbicaciones ? 'Cargando ubicaciones...' : 'Selecciona una ubicación'}
+            </option>
+            {ubicaciones.map((ubicacion) => (
+              <option key={ubicacion.id} value={ubicacion.nombre}>
+                {ubicacion.nombre}
               </option>
             ))}
           </select>
