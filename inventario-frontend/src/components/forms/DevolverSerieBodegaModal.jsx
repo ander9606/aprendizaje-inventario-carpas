@@ -52,6 +52,7 @@ function DevolverSerieBodegaModal({
     try {
       // Actualizar la serie con la nueva ubicación y estado
       await seriesAPI.actualizar(serie.id, {
+        numero_serie: serie.numero_serie, // Backend requiere este campo siempre
         ubicacion: 'Bodega A',
         estado: estadoDestino
       })
