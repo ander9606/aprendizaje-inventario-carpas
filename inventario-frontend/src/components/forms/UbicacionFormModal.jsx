@@ -37,7 +37,8 @@ const UbicacionFormModal = ({
     email: '',
     capacidad_estimada: '',
     observaciones: '',
-    activo: true
+    activo: true,
+    es_principal: false
   })
 
   const [errors, setErrors] = useState({})
@@ -70,7 +71,8 @@ const UbicacionFormModal = ({
         email: ubicacion.email || '',
         capacidad_estimada: ubicacion.capacidad_estimada || '',
         observaciones: ubicacion.observaciones || '',
-        activo: ubicacion.activo !== undefined ? ubicacion.activo : true
+        activo: ubicacion.activo !== undefined ? ubicacion.activo : true,
+        es_principal: ubicacion.es_principal || false
       })
     } else {
       // Resetear formulario en modo crear
@@ -84,7 +86,8 @@ const UbicacionFormModal = ({
         email: '',
         capacidad_estimada: '',
         observaciones: '',
-        activo: true
+        activo: true,
+        es_principal: false
       })
     }
     setErrors({})
@@ -159,7 +162,8 @@ const UbicacionFormModal = ({
       email: formData.email.trim() || null,
       capacidad_estimada: formData.capacidad_estimada ? parseInt(formData.capacidad_estimada) : null,
       observaciones: formData.observaciones.trim() || null,
-      activo: formData.activo
+      activo: formData.activo,
+      es_principal: formData.es_principal
     }
 
     try {
@@ -459,6 +463,32 @@ const UbicacionFormModal = ({
               Ubicación activa
             </label>
           </div>
+
+          {/* Marcar como Principal */}
+          <div className="flex items-center gap-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <input
+              type="checkbox"
+              name="es_principal"
+              id="es_principal"
+              checked={formData.es_principal}
+              onChange={handleChange}
+              disabled={isLoading || !formData.activo}
+              className="
+                w-4 h-4 text-yellow-600 border-slate-300 rounded
+                focus:ring-2 focus:ring-yellow-500
+                disabled:cursor-not-allowed
+              "
+            />
+            <label htmlFor="es_principal" className="text-sm font-medium text-slate-700 flex items-center gap-2">
+              <span>⭐</span>
+              Marcar como ubicación principal
+            </label>
+          </div>
+          <p className="text-xs text-slate-500 -mt-2">
+            {formData.es_principal
+              ? '✓ Esta será la ubicación principal del sistema. La anterior será desmarcada automáticamente.'
+              : 'La ubicación principal se usa como predeterminada en el sistema.'}
+          </p>
         </div>
 
         {/* ============================================
