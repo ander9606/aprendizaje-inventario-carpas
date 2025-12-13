@@ -5,7 +5,7 @@
 
 import { EstadoBadge } from '../../common/Badge'
 import UbicacionBadge from '../../common/UbicacionBadge'
-import { MoreVertical, Edit2, Trash2, MapPin, Package } from 'lucide-react'
+import { MoreVertical, Edit2, Trash2, MapPin, Package, RotateCcw } from 'lucide-react'
 import { useState } from 'react'
 
 /**
@@ -17,6 +17,7 @@ import { useState } from 'react'
  * @param {string} serie.ubicacion - Ubicación actual
  * @param {boolean} serie.con_alquiler - Si está alquilado
  * @param {object} serie.alquiler - Datos del alquiler (opcional)
+ * @param {function} onDevolverBodega - Callback para devolver a bodega principal
  * @param {function} onEdit - Callback para editar
  * @param {function} onDelete - Callback para eliminar
  * @param {function} onMove - Callback para mover de ubicación
@@ -31,6 +32,7 @@ import { useState } from 'react'
  *     ubicacion: "Bodega A",
  *     con_alquiler: false
  *   }}
+ *   onDevolverBodega={handleDevolver}
  *   onEdit={handleEdit}
  *   onDelete={handleDelete}
  *   onMove={handleMove}
@@ -38,6 +40,7 @@ import { useState } from 'react'
  */
 export const SerieItem = ({
   serie,
+  onDevolverBodega,
   onEdit,
   onDelete,
   onMove,
@@ -48,10 +51,19 @@ export const SerieItem = ({
 }) => {
   const [menuOpen, setMenuOpen] = useState(false)
 
+  // Solo mostrar "Devolver a Bodega A" si NO está en Bodega A
+  const esBodegaA = serie.ubicacion === 'Bodega A'
+
   // ============================================
   // OPCIONES DEL MENÚ
   // ============================================
   const menuOptions = [
+    {
+      label: 'Devolver a Bodega A',
+      icon: RotateCcw,
+      onClick: () => onDevolverBodega && onDevolverBodega(serie),
+      show: !!onDevolverBodega && !esBodegaA // Solo mostrar si NO está en Bodega A
+    },
     {
       label: 'Editar estado',
       icon: Edit2,
@@ -120,10 +132,10 @@ export const SerieItem = ({
             {menuOpen && (
               <>
                 <div
-                  className="fixed inset-0 z-10"
+                  className="fixed inset-0 z-40"
                   onClick={() => setMenuOpen(false)}
                 />
-                <div className="absolute right-0 mt-2 w-48 bg-white shadow-lg rounded-lg border border-slate-200 py-2 z-20">
+                <div className="absolute right-0 mt-2 w-48 bg-white shadow-xl rounded-lg border border-slate-200 py-2 z-50">
                   {menuOptions.map((option, idx) => {
                     const IconComp = option.icon
                     return (
@@ -199,10 +211,10 @@ export const SerieItem = ({
             {menuOpen && (
               <>
                 <div
-                  className="fixed inset-0 z-10"
+                  className="fixed inset-0 z-40"
                   onClick={() => setMenuOpen(false)}
                 />
-                <div className="absolute right-0 mt-2 w-48 bg-white shadow-lg rounded-lg border border-slate-200 py-2 z-20">
+                <div className="absolute right-0 mt-2 w-48 bg-white shadow-xl rounded-lg border border-slate-200 py-2 z-50">
                   {menuOptions.map((option, idx) => {
                     const IconComp = option.icon
                     return (

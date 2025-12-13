@@ -21,7 +21,7 @@ import { useGetSeries } from '../../../hooks/Useseries'
 
 /**
  * Componente ElementoSerieCard - Card para elemento con gestión por series
- * 
+ *
  * MEJORA: Ahora carga automáticamente las series del elemento
  * usando el hook useGetSeries, en lugar de esperar que vengan
  * desde el componente padre.
@@ -33,6 +33,7 @@ import { useGetSeries } from '../../../hooks/Useseries'
  * @param {function} onEdit - Callback para editar elemento
  * @param {function} onDelete - Callback para eliminar elemento
  * @param {function} onAddSerie - Callback para agregar nueva serie
+ * @param {function} onDevolverBodega - Callback para devolver serie a bodega principal
  * @param {function} onEditSerie - Callback para editar una serie
  * @param {function} onDeleteSerie - Callback para eliminar una serie
  * @param {function} onMoveSerie - Callback para mover serie de ubicación
@@ -42,6 +43,7 @@ export const ElementoSerieCard = ({
   onEdit,
   onDelete,
   onAddSerie,
+  onDevolverBodega,
   onEditSerie,
   onDeleteSerie,
   onMoveSerie,
@@ -215,6 +217,7 @@ export const ElementoSerieCard = ({
                 <SerieItem
                   key={serie.id || serie.numero_serie}
                   serie={serie}
+                  onDevolverBodega={(serie) => onDevolverBodega && onDevolverBodega(serie, elemento)}
                   onEdit={onEditSerie}
                   onDelete={onDeleteSerie}
                   onMove={onMoveSerie}
