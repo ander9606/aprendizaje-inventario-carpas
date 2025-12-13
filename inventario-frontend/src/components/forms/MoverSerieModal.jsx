@@ -11,6 +11,7 @@ import Modal from '../common/Modal'
 import Button from '../common/Button'
 import { EstadoBadge } from '../common/Badge'
 import UbicacionBadge from '../common/UbicacionBadge'
+import UbicacionSelector from '../common/UbicacionSelector'
 import { seriesAPI } from '../../api'
 import { ESTADOS } from '../../utils/constants'
 import { useGetUbicacionesActivas } from '../../hooks/Useubicaciones'
@@ -196,40 +197,19 @@ function MoverSerieModal({
             Ubicación destino *
           </label>
 
-          <select
+          <UbicacionSelector
             value={formData.ubicacion_destino}
-            onChange={(e) => {
-              setFormData(prev => ({ ...prev, ubicacion_destino: e.target.value }))
+            onChange={(ubicacion) => {
+              setFormData(prev => ({ ...prev, ubicacion_destino: ubicacion }))
               if (errors.ubicacion_destino) {
                 setErrors(prev => ({ ...prev, ubicacion_destino: undefined }))
               }
             }}
+            placeholder={isLoadingUbicaciones ? 'Cargando ubicaciones...' : 'Selecciona o escribe una ubicación'}
             disabled={isLoadingUbicaciones}
-            className={`
-              w-full px-4 py-2 border rounded-lg
-              focus:outline-none focus:ring-2
-              ${errors.ubicacion_destino
-                ? 'border-red-300 focus:ring-red-500'
-                : 'border-slate-300 focus:ring-blue-500'
-              }
-              ${isLoadingUbicaciones ? 'opacity-50 cursor-not-allowed' : ''}
-            `}
-          >
-            <option value="">
-              {isLoadingUbicaciones ? 'Cargando ubicaciones...' : 'Selecciona una ubicación'}
-            </option>
-            {ubicaciones.map((ubicacion) => (
-              <option key={ubicacion.id} value={ubicacion.nombre}>
-                {ubicacion.nombre}
-              </option>
-            ))}
-          </select>
-
-          {errors.ubicacion_destino && (
-            <p className="mt-1 text-sm text-red-600">
-              {errors.ubicacion_destino}
-            </p>
-          )}
+            error={errors.ubicacion_destino}
+            ubicaciones={ubicaciones.map(u => u.nombre)}
+          />
         </div>
 
         {/* ============================================
