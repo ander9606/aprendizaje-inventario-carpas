@@ -26,6 +26,7 @@ import ElementoFormModal from '../components/forms/ElementoFormModal'
 import SerieFormModal from '../components/forms/SerieFormModal'
 import LoteFormModal from '../components/forms/LoteFormModal'
 import CrearLoteModal from '../components/forms/CrearLoteModal'
+import DevolverBodegaModal from '../components/forms/DevolverBodegaModal'
 
 /**
  * ============================================
@@ -56,6 +57,12 @@ function ElementosPage() {
    * Guarda el elemento para crear un lote nuevo
    */
   const [elementoParaLote, setElementoParaLote] = useState(null)
+
+  /**
+   * Modal de devolver a bodega
+   * Guarda el lote, ubicación y elemento para devolver
+   */
+  const [loteParaDevolver, setLoteParaDevolver] = useState(null)
 
   // ============================================
   // HOOKS DE DATOS
@@ -144,14 +151,13 @@ function ElementosPage() {
   // HANDLERS - Lotes
   // ============================================
   const handleAddLote = (elemento) => setElementoParaLote(elemento)
-  
-  const handleEditLote = (lote, ubicacion) => {
-    console.log('Editar lote:', lote, 'en:', ubicacion)
-    // TODO: Abrir modal de edición de lote
+
+  const handleDevolverBodega = (lote, ubicacion, elemento) => {
+    setLoteParaDevolver({ lote, ubicacion, elemento })
   }
-  
-  const handleMoveLote = (lote, ubicacion) => {
-    setLoteParaMover({ lote, ubicacion })
+
+  const handleMoveLote = (lote, ubicacion, elemento) => {
+    setLoteParaMover({ lote, ubicacion, elemento })
   }
   
   const handleDeleteLote = async (lote, ubicacion) => {
@@ -333,7 +339,7 @@ function ElementosPage() {
                   onEdit={() => handleEditElemento(elemento)}
                   onDelete={() => handleDeleteElemento(elemento)}
                   onAddLote={() => handleAddLote(elemento)}
-                  onEditLote={handleEditLote}
+                  onDevolverBodega={handleDevolverBodega}
                   onMoveLote={handleMoveLote}
                   onDeleteLote={handleDeleteLote}
                   disabled={isDeleting || isDeletingLote}
@@ -394,6 +400,21 @@ function ElementosPage() {
           elemento={loteParaMover.elemento}
           onSuccess={() => {
             setLoteParaMover(null)
+            // No necesita refetch, React Query invalida automáticamente
+          }}
+        />
+      )}
+
+      {/* Modal: Devolver a Bodega */}
+      {loteParaDevolver && (
+        <DevolverBodegaModal
+          isOpen={!!loteParaDevolver}
+          onClose={() => setLoteParaDevolver(null)}
+          lote={loteParaDevolver.lote}
+          ubicacionOrigen={loteParaDevolver.ubicacion}
+          elemento={loteParaDevolver.elemento}
+          onSuccess={() => {
+            setLoteParaDevolver(null)
             // No necesita refetch, React Query invalida automáticamente
           }}
         />
