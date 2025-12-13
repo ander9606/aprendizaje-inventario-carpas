@@ -27,6 +27,7 @@ import SerieFormModal from '../components/forms/SerieFormModal'
 import LoteFormModal from '../components/forms/LoteFormModal'
 import CrearLoteModal from '../components/forms/CrearLoteModal'
 import DevolverBodegaModal from '../components/forms/DevolverBodegaModal'
+import DevolverSerieBodegaModal from '../components/forms/DevolverSerieBodegaModal'
 
 /**
  * ============================================
@@ -59,10 +60,16 @@ function ElementosPage() {
   const [elementoParaLote, setElementoParaLote] = useState(null)
 
   /**
-   * Modal de devolver a bodega
+   * Modal de devolver lote a bodega
    * Guarda el lote, ubicación y elemento para devolver
    */
   const [loteParaDevolver, setLoteParaDevolver] = useState(null)
+
+  /**
+   * Modal de devolver serie a bodega
+   * Guarda la serie y elemento para devolver
+   */
+  const [serieParaDevolver, setSerieParaDevolver] = useState(null)
 
   // ============================================
   // HOOKS DE DATOS
@@ -129,19 +136,23 @@ function ElementosPage() {
   // HANDLERS - Series
   // ============================================
   const handleAddSerie = (elemento) => setElementoParaSerie(elemento)
-  
+
+  const handleDevolverSerieBodega = (serie, elemento) => {
+    setSerieParaDevolver({ serie, elemento })
+  }
+
   const handleEditSerie = (serie) => {
     console.log('Editar serie:', serie)
     // TODO: Abrir modal de edición de serie
   }
-  
+
   const handleDeleteSerie = (serie) => {
     if (window.confirm(`¿Eliminar serie ${serie.numero_serie}?`)) {
       console.log('Eliminar serie:', serie)
       // TODO: Llamar a useDeleteSerie
     }
   }
-  
+
   const handleMoveSerie = (serie) => {
     console.log('Mover serie:', serie)
     // TODO: Abrir modal de mover serie
@@ -321,6 +332,7 @@ function ElementosPage() {
                   onEdit={() => handleEditElemento(elemento)}
                   onDelete={() => handleDeleteElemento(elemento)}
                   onAddSerie={() => handleAddSerie(elemento)}
+                  onDevolverBodega={handleDevolverSerieBodega}
                   onEditSerie={handleEditSerie}
                   onDeleteSerie={handleDeleteSerie}
                   onMoveSerie={handleMoveSerie}
@@ -405,7 +417,7 @@ function ElementosPage() {
         />
       )}
 
-      {/* Modal: Devolver a Bodega */}
+      {/* Modal: Devolver Lote a Bodega */}
       {loteParaDevolver && (
         <DevolverBodegaModal
           isOpen={!!loteParaDevolver}
@@ -415,6 +427,20 @@ function ElementosPage() {
           elemento={loteParaDevolver.elemento}
           onSuccess={() => {
             setLoteParaDevolver(null)
+            // No necesita refetch, React Query invalida automáticamente
+          }}
+        />
+      )}
+
+      {/* Modal: Devolver Serie a Bodega */}
+      {serieParaDevolver && (
+        <DevolverSerieBodegaModal
+          isOpen={!!serieParaDevolver}
+          onClose={() => setSerieParaDevolver(null)}
+          serie={serieParaDevolver.serie}
+          elemento={serieParaDevolver.elemento}
+          onSuccess={() => {
+            setSerieParaDevolver(null)
             // No necesita refetch, React Query invalida automáticamente
           }}
         />
