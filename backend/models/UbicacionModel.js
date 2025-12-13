@@ -6,14 +6,14 @@
 const { pool } = require('../config/database');
 
 class UbicacionModel {
-    
+
     // ============================================
     // OBTENER TODAS LAS UBICACIONES
     // ============================================
     static async obtenerTodas() {
         try {
             const query = `
-                SELECT 
+                SELECT
                     id,
                     nombre,
                     tipo,
@@ -25,26 +25,27 @@ class UbicacionModel {
                     capacidad_estimada,
                     observaciones,
                     activo,
+                    es_principal,
                     created_at,
                     updated_at
                 FROM ubicaciones
-                ORDER BY tipo, nombre
+                ORDER BY es_principal DESC, tipo, nombre
             `;
-            
+
             const [rows] = await pool.query(query);
             return rows;
         } catch (error) {
             throw error;
         }
     }
-    
+
     // ============================================
     // OBTENER SOLO UBICACIONES ACTIVAS
     // ============================================
     static async obtenerActivas() {
         try {
             const query = `
-                SELECT 
+                SELECT
                     id,
                     nombre,
                     tipo,
@@ -52,26 +53,27 @@ class UbicacionModel {
                     ciudad,
                     responsable,
                     telefono,
-                    activo
+                    activo,
+                    es_principal
                 FROM ubicaciones
                 WHERE activo = TRUE
-                ORDER BY tipo, nombre
+                ORDER BY es_principal DESC, tipo, nombre
             `;
-            
+
             const [rows] = await pool.query(query);
             return rows;
         } catch (error) {
             throw error;
         }
     }
-    
+
     // ============================================
     // OBTENER UBICACIÓN POR ID
     // ============================================
     static async obtenerPorId(id) {
         try {
             const query = `
-                SELECT 
+                SELECT
                     id,
                     nombre,
                     tipo,
@@ -83,26 +85,27 @@ class UbicacionModel {
                     capacidad_estimada,
                     observaciones,
                     activo,
+                    es_principal,
                     created_at,
                     updated_at
                 FROM ubicaciones
                 WHERE id = ?
             `;
-            
+
             const [rows] = await pool.query(query, [id]);
             return rows[0];
         } catch (error) {
             throw error;
         }
     }
-    
+
     // ============================================
-    // OBTENER UBICACIONES POR TIPO
+    // OBTENER UBICACIÓN PRINCIPAL
     // ============================================
-    static async obtenerPorTipo(tipo) {
+    static async obtenerPrincipal() {
         try {
             const query = `
-                SELECT 
+                SELECT
                     id,
                     nombre,
                     tipo,
@@ -110,19 +113,53 @@ class UbicacionModel {
                     ciudad,
                     responsable,
                     telefono,
-                    activo
+                    email,
+                    capacidad_estimada,
+                    observaciones,
+                    activo,
+                    es_principal,
+                    created_at,
+                    updated_at
+                FROM ubicaciones
+                WHERE es_principal = TRUE
+                LIMIT 1
+            `;
+
+            const [rows] = await pool.query(query);
+            return rows[0];
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    // ============================================
+    // OBTENER UBICACIONES POR TIPO
+    // ============================================
+    static async obtenerPorTipo(tipo) {
+        try {
+            const query = `
+                SELECT
+                    id,
+                    nombre,
+                    tipo,
+                    direccion,
+                    ciudad,
+                    responsable,
+                    telefono,
+                    activo,
+                    es_principal
                 FROM ubicaciones
                 WHERE tipo = ? AND activo = TRUE
-                ORDER BY nombre
+                ORDER BY es_principal DESC, nombre
             `;
-            
+
             const [rows] = await pool.query(query, [tipo]);
             return rows;
         } catch (error) {
             throw error;
         }
     }
-    
+
     // ============================================
     // OBTENER UBICACIÓN POR NOMBRE
     // ============================================
@@ -133,27 +170,28 @@ class UbicacionModel {
                 WHERE nombre = ?
                 LIMIT 1
             `;
-            
+
             const [rows] = await pool.query(query, [nombre]);
             return rows[0];
         } catch (error) {
             throw error;
         }
     }
-    
+
     // ============================================
     // OBTENER UBICACIONES CON INVENTARIO
     // ============================================
     static async obtenerConInventario() {
         try {
             const query = `
-                SELECT 
+                SELECT
                     u.id,
                     u.nombre,
                     u.tipo,
                     u.ciudad,
                     u.responsable,
                     u.activo,
+                    u.es_principal,
                     COALESCE(series.total_series, 0) as total_series,
                     COALESCE(lotes.total_unidades, 0) as total_unidades,
                     COALESCE(series.total_series, 0) + COALESCE(lotes.total_unidades, 0) as total_items
@@ -171,16 +209,16 @@ class UbicacionModel {
                     GROUP BY ubicacion_id
                 ) lotes ON u.id = lotes.ubicacion_id
                 WHERE u.activo = TRUE
-                ORDER BY total_items DESC, u.tipo, u.nombre
+                ORDER BY u.es_principal DESC, total_items DESC, u.tipo, u.nombre
             `;
-            
+
             const [rows] = await pool.query(query);
             return rows;
         } catch (error) {
             throw error;
         }
     }
-    
+
     // ============================================
     // OBTENER DETALLE DE INVENTARIO POR UBICACIÓN
     // ============================================
@@ -188,7 +226,7 @@ class UbicacionModel {
         try {
             // Obtener series en esta ubicación
             const querySeries = `
-                SELECT 
+                SELECT
                     e.nombre AS elemento_nombre,
                     s.estado,
                     COUNT(*) as cantidad
@@ -198,10 +236,10 @@ class UbicacionModel {
                 GROUP BY e.nombre, s.estado
                 ORDER BY e.nombre, s.estado
             `;
-            
+
             // Obtener lotes en esta ubicación
             const queryLotes = `
-                SELECT 
+                SELECT
                     e.nombre AS elemento_nombre,
                     l.estado,
                     SUM(l.cantidad) as cantidad
@@ -211,10 +249,10 @@ class UbicacionModel {
                 GROUP BY e.nombre, l.estado
                 ORDER BY e.nombre, l.estado
             `;
-            
+
             const [series] = await pool.query(querySeries, [id]);
             const [lotes] = await pool.query(queryLotes, [id]);
-            
+
             return {
                 series,
                 lotes
@@ -223,7 +261,7 @@ class UbicacionModel {
             throw error;
         }
     }
-    
+
     // ============================================
     // CREAR NUEVA UBICACIÓN
     // ============================================
@@ -239,16 +277,22 @@ class UbicacionModel {
                 email,
                 capacidad_estimada,
                 observaciones,
-                activo
+                activo,
+                es_principal
             } = datos;
-            
+
+            // Si se marca como principal, desmarcar las demás
+            if (es_principal) {
+                await pool.query('UPDATE ubicaciones SET es_principal = FALSE');
+            }
+
             const query = `
-                INSERT INTO ubicaciones 
-                (nombre, tipo, direccion, ciudad, responsable, telefono, 
-                 email, capacidad_estimada, observaciones, activo)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO ubicaciones
+                (nombre, tipo, direccion, ciudad, responsable, telefono,
+                 email, capacidad_estimada, observaciones, activo, es_principal)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `;
-            
+
             const [result] = await pool.query(query, [
                 nombre,
                 tipo || 'bodega',
@@ -259,15 +303,16 @@ class UbicacionModel {
                 email || null,
                 capacidad_estimada || null,
                 observaciones || null,
-                activo !== undefined ? activo : true
+                activo !== undefined ? activo : true,
+                es_principal || false
             ]);
-            
+
             return result.insertId;
         } catch (error) {
             throw error;
         }
     }
-    
+
     // ============================================
     // ACTUALIZAR UBICACIÓN
     // ============================================
@@ -283,11 +328,17 @@ class UbicacionModel {
                 email,
                 capacidad_estimada,
                 observaciones,
-                activo
+                activo,
+                es_principal
             } = datos;
-            
+
+            // Si se marca como principal, desmarcar las demás
+            if (es_principal) {
+                await pool.query('UPDATE ubicaciones SET es_principal = FALSE WHERE id != ?', [id]);
+            }
+
             const query = `
-                UPDATE ubicaciones 
+                UPDATE ubicaciones
                 SET nombre = ?,
                     tipo = ?,
                     direccion = ?,
@@ -297,10 +348,11 @@ class UbicacionModel {
                     email = ?,
                     capacidad_estimada = ?,
                     observaciones = ?,
-                    activo = ?
+                    activo = ?,
+                    es_principal = ?
                 WHERE id = ?
             `;
-            
+
             const [result] = await pool.query(query, [
                 nombre,
                 tipo || 'bodega',
@@ -312,20 +364,47 @@ class UbicacionModel {
                 capacidad_estimada || null,
                 observaciones || null,
                 activo !== undefined ? activo : true,
+                es_principal !== undefined ? es_principal : false,
                 id
             ]);
-            
+
             return result.affectedRows;
         } catch (error) {
             throw error;
         }
     }
-    
+
+    // ============================================
+    // MARCAR COMO PRINCIPAL
+    // ============================================
+    static async marcarComoPrincipal(id) {
+        try {
+            // Desmarcar todas las demás
+            await pool.query('UPDATE ubicaciones SET es_principal = FALSE WHERE id != ?', [id]);
+
+            // Marcar esta como principal
+            const [result] = await pool.query(
+                'UPDATE ubicaciones SET es_principal = TRUE WHERE id = ?',
+                [id]
+            );
+
+            return result.affectedRows;
+        } catch (error) {
+            throw error;
+        }
+    }
+
     // ============================================
     // DESACTIVAR UBICACIÓN (Soft Delete)
     // ============================================
     static async desactivar(id) {
         try {
+            // Verificar si es la ubicación principal
+            const ubicacion = await this.obtenerPorId(id);
+            if (ubicacion && ubicacion.es_principal) {
+                throw new Error('No se puede desactivar la ubicación principal. Marca otra como principal primero.');
+            }
+
             const [result] = await pool.query(
                 'UPDATE ubicaciones SET activo = FALSE WHERE id = ?',
                 [id]
@@ -335,7 +414,7 @@ class UbicacionModel {
             throw error;
         }
     }
-    
+
     // ============================================
     // ACTIVAR UBICACIÓN
     // ============================================
@@ -350,35 +429,41 @@ class UbicacionModel {
             throw error;
         }
     }
-    
+
     // ============================================
     // ELIMINAR UBICACIÓN (Hard Delete)
     // Solo si no tiene inventario asociado
     // ============================================
     static async eliminar(id) {
         try {
+            // Verificar si es la ubicación principal
+            const ubicacion = await this.obtenerPorId(id);
+            if (ubicacion && ubicacion.es_principal) {
+                throw new Error('No se puede eliminar la ubicación principal. Marca otra como principal primero.');
+            }
+
             // Verificar que no tenga inventario
             const querySeries = 'SELECT COUNT(*) as total FROM series WHERE ubicacion_id = ?';
             const queryLotes = 'SELECT COUNT(*) as total FROM lotes WHERE ubicacion_id = ?';
-            
+
             const [series] = await pool.query(querySeries, [id]);
             const [lotes] = await pool.query(queryLotes, [id]);
-            
+
             if (series[0].total > 0 || lotes[0].total > 0) {
                 throw new Error('No se puede eliminar una ubicación con inventario asociado');
             }
-            
+
             const [result] = await pool.query(
                 'DELETE FROM ubicaciones WHERE id = ?',
                 [id]
             );
-            
+
             return result.affectedRows;
         } catch (error) {
             throw error;
         }
     }
-    
+
     // ============================================
     // VERIFICAR SI NOMBRE EXISTE
     // ============================================
@@ -386,12 +471,12 @@ class UbicacionModel {
         try {
             let query = 'SELECT COUNT(*) as total FROM ubicaciones WHERE nombre = ?';
             const params = [nombre];
-            
+
             if (excluirId) {
                 query += ' AND id != ?';
                 params.push(excluirId);
             }
-            
+
             const [rows] = await pool.query(query, params);
             return rows[0].total > 0;
         } catch (error) {
