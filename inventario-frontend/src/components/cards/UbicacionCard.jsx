@@ -3,9 +3,10 @@
 // Muestra una tarjeta de ubicación
 // ============================================
 
-import { MapPin, Edit, Trash2, Package } from 'lucide-react'
+import { MapPin, Edit, Trash2, Package, Star } from 'lucide-react'
 import Card from '../common/Card'
 import Button from '../common/Button'
+import { useMarcarComoPrincipal } from '../../hooks/Useubicaciones'
 
 /**
  * UbicacionCard
@@ -13,8 +14,9 @@ import Button from '../common/Button'
  * Tarjeta que muestra una ubicación con:
  * - Tipo de ubicación
  * - Nombre
+ * - Badge de "Principal" si es la ubicación principal
  * - Información adicional
- * - Botones de editar y eliminar
+ * - Botones de editar, eliminar y marcar como principal
  *
  * @param {Object} ubicacion - Datos de la ubicación
  * @param {Function} onEdit - Callback para editar ubicación
@@ -25,6 +27,12 @@ const UbicacionCard = ({
   onEdit,
   onDelete
 }) => {
+
+  // ============================================
+  // HOOKS
+  // ============================================
+
+  const { mutateAsync: marcarComoPrincipal, isLoading: isMarcando } = useMarcarComoPrincipal()
 
   // ============================================
   // HELPERS
@@ -93,6 +101,22 @@ const UbicacionCard = ({
     }
   }
 
+  /**
+   * Marcar como principal
+   */
+  const handleMarcarComoPrincipal = async (e) => {
+    e.stopPropagation()
+
+    try {
+      await marcarComoPrincipal(ubicacion.id)
+      console.log('✅ Ubicación marcada como principal')
+    } catch (error) {
+      console.error('❌ Error al marcar como principal:', error)
+      const mensaje = error.response?.data?.message || 'No se pudo marcar como principal'
+      alert(mensaje)
+    }
+  }
+
   // ============================================
   // RENDER
   // ============================================
@@ -102,7 +126,7 @@ const UbicacionCard = ({
       variant="outlined"
       className={`hover:shadow-lg transition-all duration-200 ${
         !ubicacion.activo ? 'opacity-60' : ''
-      }`}
+      } ${ubicacion.es_principal ? 'ring-2 ring-yellow-400' : ''}`}
     >
       {/* ============================================
           HEADER: Tipo y nombre
@@ -115,16 +139,27 @@ const UbicacionCard = ({
           </div>
 
           <div className="flex-1 min-w-0">
-            {/* Badge del tipo */}
-            <div className="mb-2">
+            {/* Badges */}
+            <div className="mb-2 flex flex-wrap gap-2">
+              {/* Badge: Principal */}
+              {ubicacion.es_principal && (
+                <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-bold rounded-full bg-yellow-100 text-yellow-800 border border-yellow-300">
+                  <Star className="w-3 h-3 fill-yellow-500" />
+                  PRINCIPAL
+                </span>
+              )}
+
+              {/* Badge: Tipo */}
               <span className={`
                 inline-block px-2 py-1 text-xs font-medium rounded-full
                 bg-${color}-100 text-${color}-700
               `}>
                 {ubicacion.tipo}
               </span>
+
+              {/* Badge: Inactiva */}
               {!ubicacion.activo && (
-                <span className="ml-2 inline-block px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-700">
+                <span className="inline-block px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-700">
                   Inactiva
                 </span>
               )}
@@ -175,6 +210,24 @@ const UbicacionCard = ({
           FOOTER: Botones de acción
           ============================================ */}
       <Card.Footer>
+        {/* Botón: Marcar como principal (solo si NO es principal) */}
+        {!ubicacion.es_principal && ubicacion.activo && (
+          <div className="mb-3">
+            <Button
+              variant="secondary"
+              size="sm"
+              fullWidth
+              icon={<Star className="w-4 h-4" />}
+              onClick={handleMarcarComoPrincipal}
+              loading={isMarcando}
+              disabled={isMarcando}
+            >
+              Marcar como principal
+            </Button>
+          </div>
+        )}
+
+        {/* Botones: Editar y Eliminar */}
         <div className="flex gap-2 justify-between">
           {/* Botón: Editar */}
           <Button
