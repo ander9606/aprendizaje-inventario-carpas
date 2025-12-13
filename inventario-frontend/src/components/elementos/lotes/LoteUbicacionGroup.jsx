@@ -96,14 +96,16 @@ export const LoteUbicacionGroup = ({
   return (
     <div
       className={`
-        bg-white border border-slate-200 rounded-lg overflow-hidden
+        bg-white border border-slate-200 rounded-lg
         ${className}
       `}
       {...props}
     >
       {/* Header: Ubicación + Cantidad total */}
       <div
-        className="flex items-center justify-between p-4 bg-slate-50 border-b border-slate-200 cursor-pointer"
+        className={`flex items-center justify-between p-4 bg-slate-50 cursor-pointer ${
+          expandido ? 'border-b border-slate-200 rounded-t-lg' : 'rounded-lg'
+        }`}
         onClick={() => setExpandido(!expandido)}
       >
         {/* Ubicación */}
@@ -137,7 +139,7 @@ export const LoteUbicacionGroup = ({
 
       {/* Contenido expandible: Lista de lotes por estado */}
       {expandido && (
-        <div className="p-4 space-y-2">
+        <div className="p-4 space-y-2 rounded-b-lg">
           {lotes.length === 0 ? (
             <p className="text-sm text-slate-500 text-center py-4">
               No hay lotes en esta ubicación
