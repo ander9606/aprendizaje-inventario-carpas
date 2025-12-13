@@ -16,6 +16,19 @@ export const ESTADOS = {
 }
 
 // ============================================
+// UBICACIONES DISPONIBLES
+// ============================================
+// Ubicaciones predefinidas donde pueden estar los elementos
+export const UBICACIONES = {
+  BODEGA_A: 'Bodega A',
+  BODEGA_B: 'Bodega B',
+  BODEGA_C: 'Bodega C',
+  CLIENTE: 'Cliente',
+  MANTENIMIENTO_EXTERNO: 'Mantenimiento Externo',
+  EN_TRANSITO: 'En Tránsito'
+}
+
+// ============================================
 // COLORES PARA CADA ESTADO (Tailwind CSS)
 // ============================================
 // Cada estado tiene su color para badges y tarjetas
