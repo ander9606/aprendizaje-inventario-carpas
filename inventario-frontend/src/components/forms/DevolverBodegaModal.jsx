@@ -5,6 +5,7 @@
 
 import { useState } from 'react'
 import { toast } from 'sonner'
+import { useQueryClient } from '@tanstack/react-query'
 import { Package, CheckCircle, XCircle } from 'lucide-react'
 import Modal from '../common/Modal'
 import Button from '../common/Button'
@@ -38,6 +39,7 @@ function DevolverBodegaModal({
 }) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const { moverCantidad } = useMoverCantidad()
+  const queryClient = useQueryClient()
 
   // ============================================
   // HANDLERS
@@ -61,6 +63,17 @@ function DevolverBodegaModal({
       }
 
       await moverCantidad.mutateAsync(payload)
+
+      // Invalidar cache manualmente para asegurar actualización
+      queryClient.invalidateQueries({
+        queryKey: ['lotes', 'elemento', elemento.id]
+      })
+      queryClient.invalidateQueries({
+        queryKey: ['elementos', elemento.id]
+      })
+      queryClient.invalidateQueries({
+        queryKey: ['elementos', 'subcategoria']
+      })
 
       toast.success(
         `${lote.cantidad} ${lote.cantidad === 1 ? 'unidad devuelta' : 'unidades devueltas'} a Bodega A como "${estadoDestino}"`

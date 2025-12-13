@@ -230,10 +230,10 @@ const LoteItem = ({
           {menuOpen && (
             <>
               <div
-                className="fixed inset-0 z-10"
+                className="fixed inset-0 z-40"
                 onClick={() => setMenuOpen(false)}
               />
-              <div className="absolute right-0 mt-2 w-56 bg-white shadow-lg rounded-lg border border-slate-200 py-2 z-20">
+              <div className="absolute right-0 mt-2 w-56 bg-white shadow-xl rounded-lg border border-slate-200 py-2 z-50">
                 {menuOptions.map((option, idx) => {
                   const IconComp = option.icon
                   return (
