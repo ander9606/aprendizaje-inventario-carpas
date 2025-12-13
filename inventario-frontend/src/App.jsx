@@ -10,6 +10,7 @@ import Dashboard from './pages/Dashboard'
 import Subcategorias from './pages/Subcategorias'
 import ElementosPage from './pages/ElementosPage'
 import ElementoDetallePage from './pages/ElementoDetallePage'
+import UbicacionesPage from './pages/UbicacionesPage'
 
 /**
  * COMPONENTE: App
@@ -60,7 +61,16 @@ function App() {
         path="/categorias/:categoriaId/subcategorias/:subcategoriaId/elementos/:elementoId"
         element={<ElementoDetallePage />}
       />
-      
+
+      {/* ============================================
+          UBICACIONES: Gestión de ubicaciones
+          Ruta: /ubicaciones
+          ============================================ */}
+      <Route
+        path="/ubicaciones"
+        element={<UbicacionesPage />}
+      />
+
       {/* ============================================
           RUTA 404: Página no encontrada
           ============================================ */}

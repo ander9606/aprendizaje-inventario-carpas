@@ -4,10 +4,11 @@
 // ============================================
 
 import { useState } from 'react'
-import { Plus, Package } from 'lucide-react'
-import { 
+import { Plus, Package, MapPin } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import {
   useGetCategoriasPadre,
-  useDeleteCategoria 
+  useDeleteCategoria
 } from '../hooks/Usecategorias'
 import CategoriaPadreCard from '../components/cards/CategoriaPadreCard'
 import CategoriaFormModal from '../components/forms/CategoriaFormModal'
@@ -40,11 +41,13 @@ import EmptyState from '../components/common/EmptyState'
  * └─────────────────────────────────────────┘
  */
 export default function Dashboard() {
-  
+
+  const navigate = useNavigate()
+
   // ============================================
   // HOOKS: Obtener datos
   // ============================================
-  
+
   // Obtener categorías padre
   const { categoriasPadre, isLoading, error, refetch } = useGetCategoriasPadre()
   
@@ -181,15 +184,27 @@ export default function Dashboard() {
                 </p>
               </div>
             </div>
-            
-            {/* Botón de crear */}
-            <Button 
-              variant="primary"
-              icon={<Plus />}
-              onClick={handleOpenCrear}
-            >
-              Nueva Categoría
-            </Button>
+
+            {/* Botones de acciones */}
+            <div className="flex gap-3">
+              {/* Botón: Gestionar ubicaciones */}
+              <Button
+                variant="secondary"
+                icon={<MapPin />}
+                onClick={() => navigate('/ubicaciones')}
+              >
+                Ubicaciones
+              </Button>
+
+              {/* Botón: Crear categoría */}
+              <Button
+                variant="primary"
+                icon={<Plus />}
+                onClick={handleOpenCrear}
+              >
+                Nueva Categoría
+              </Button>
+            </div>
           </div>
         </div>
       </div>
