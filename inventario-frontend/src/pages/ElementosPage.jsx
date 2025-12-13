@@ -28,6 +28,7 @@ import LoteFormModal from '../components/forms/LoteFormModal'
 import CrearLoteModal from '../components/forms/CrearLoteModal'
 import DevolverBodegaModal from '../components/forms/DevolverBodegaModal'
 import DevolverSerieBodegaModal from '../components/forms/DevolverSerieBodegaModal'
+import MoverSerieModal from '../components/forms/MoverSerieModal'
 
 /**
  * ============================================
@@ -70,6 +71,12 @@ function ElementosPage() {
    * Guarda la serie y elemento para devolver
    */
   const [serieParaDevolver, setSerieParaDevolver] = useState(null)
+
+  /**
+   * Modal de mover serie
+   * Guarda la serie y elemento para mover
+   */
+  const [serieParaMover, setSerieParaMover] = useState(null)
 
   // ============================================
   // HOOKS DE DATOS
@@ -153,9 +160,8 @@ function ElementosPage() {
     }
   }
 
-  const handleMoveSerie = (serie) => {
-    console.log('Mover serie:', serie)
-    // TODO: Abrir modal de mover serie
+  const handleMoveSerie = (serie, elemento) => {
+    setSerieParaMover({ serie, elemento })
   }
 
   // ============================================
@@ -441,6 +447,20 @@ function ElementosPage() {
           elemento={serieParaDevolver.elemento}
           onSuccess={() => {
             setSerieParaDevolver(null)
+            // No necesita refetch, React Query invalida automáticamente
+          }}
+        />
+      )}
+
+      {/* Modal: Mover Serie */}
+      {serieParaMover && (
+        <MoverSerieModal
+          isOpen={!!serieParaMover}
+          onClose={() => setSerieParaMover(null)}
+          serie={serieParaMover.serie}
+          elemento={serieParaMover.elemento}
+          onSuccess={() => {
+            setSerieParaMover(null)
             // No necesita refetch, React Query invalida automáticamente
           }}
         />
