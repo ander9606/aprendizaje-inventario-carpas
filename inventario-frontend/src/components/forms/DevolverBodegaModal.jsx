@@ -6,13 +6,15 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { useQueryClient } from '@tanstack/react-query'
-import { Package, CheckCircle, XCircle } from 'lucide-react'
+import { Package, CheckCircle, XCircle, AlertTriangle } from 'lucide-react'
 import Modal from '../common/Modal'
 import Button from '../common/Button'
 import { EstadoBadge } from '../common/Badge'
 import UbicacionBadge from '../common/UbicacionBadge'
 import { useMoverCantidad } from '../../hooks/Uselotes'
+import { useGetUbicacionPrincipal } from '../../hooks/Useubicaciones'
 import { ESTADOS } from '../../utils/constants'
+import Spinner from '../common/Spinner'
 
 /**
  * ============================================
@@ -21,6 +23,8 @@ import { ESTADOS } from '../../utils/constants'
  *
  * Modal para devolver rápidamente un lote completo a la bodega principal.
  * Mueve toda la cantidad, dejando el origen en 0 (se elimina automáticamente).
+ *
+ * AHORA USA LA UBICACIÓN PRINCIPAL DINÁMICA del sistema.
  *
  * @param {boolean} isOpen - Si el modal está abierto
  * @param {function} onClose - Función para cerrar
@@ -42,6 +46,11 @@ function DevolverBodegaModal({
   const queryClient = useQueryClient()
 
   // ============================================
+  // OBTENER UBICACIÓN PRINCIPAL
+  // ============================================
+  const { ubicacion: ubicacionPrincipal, isLoading: isLoadingUbicacion } = useGetUbicacionPrincipal()
+
+  // ============================================
   // HANDLERS
   // ============================================
 
@@ -51,13 +60,18 @@ function DevolverBodegaModal({
       return
     }
 
+    if (!ubicacionPrincipal) {
+      toast.error('No hay ubicación principal configurada')
+      return
+    }
+
     setIsSubmitting(true)
 
     try {
       const payload = {
         lote_origen_id: lote.id,
         cantidad: lote.cantidad, // Toda la cantidad
-        ubicacion_destino: 'Bodega A',
+        ubicacion_destino: ubicacionPrincipal.nombre,
         estado_destino: estadoDestino,
         descripcion: `Devolución completa desde ${ubicacionOrigen || 'ubicación desconocida'}`
       }
@@ -76,7 +90,7 @@ function DevolverBodegaModal({
       })
 
       toast.success(
-        `${lote.cantidad} ${lote.cantidad === 1 ? 'unidad devuelta' : 'unidades devueltas'} a Bodega A como "${estadoDestino}"`
+        `${lote.cantidad} ${lote.cantidad === 1 ? 'unidad devuelta' : 'unidades devueltas'} a ${ubicacionPrincipal.nombre} como "${estadoDestino}"`
       )
 
       onSuccess?.()
@@ -96,11 +110,44 @@ function DevolverBodegaModal({
 
   if (!lote) return null
 
+  // Mostrar spinner mientras carga la ubicación principal
+  if (isLoadingUbicacion) {
+    return (
+      <Modal isOpen={isOpen} onClose={onClose} title="Cargando..." size="md">
+        <div className="flex justify-center items-center py-8">
+          <Spinner size="lg" text="Cargando ubicación principal..." />
+        </div>
+      </Modal>
+    )
+  }
+
+  // Advertencia si no hay ubicación principal
+  if (!ubicacionPrincipal) {
+    return (
+      <Modal isOpen={isOpen} onClose={onClose} title="Advertencia" size="md">
+        <div className="p-6 text-center">
+          <AlertTriangle className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-slate-900 mb-2">
+            No hay ubicación principal configurada
+          </h3>
+          <p className="text-sm text-slate-600 mb-6">
+            Configura una ubicación como principal desde el menú de Ubicaciones para poder usar esta función.
+          </p>
+          <Button onClick={onClose} variant="primary">
+            Entendido
+          </Button>
+        </div>
+      </Modal>
+    )
+  }
+
+  const nombreUbicacionPrincipal = ubicacionPrincipal.nombre
+
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Devolver a Bodega A"
+      title={`Devolver a ${nombreUbicacionPrincipal}`}
       size="md"
     >
       <div>
@@ -145,7 +192,7 @@ function DevolverBodegaModal({
             ============================================ */}
         <div className="mb-6">
           <p className="text-sm font-medium text-slate-700 mb-3 text-center">
-            ¿En qué estado quieres devolver a Bodega A?
+            ¿En qué estado quieres devolver a {nombreUbicacionPrincipal}?
           </p>
 
           <div className="grid grid-cols-2 gap-3">
@@ -196,11 +243,19 @@ function DevolverBodegaModal({
           <p className="text-xs text-blue-700 flex items-start gap-2">
             <span className="text-sm">💡</span>
             <span>
-              Al devolver, se moverán las <strong>{lote.cantidad} unidades</strong> a Bodega A,
+              Al devolver, se moverán las <strong>{lote.cantidad} unidades</strong> a {nombreUbicacionPrincipal},
               y el lote actual quedará en 0 (se eliminará automáticamente).
             </span>
           </p>
         </div>
+
+        {/* Badge de ubicación principal */}
+        {ubicacionPrincipal.es_principal && (
+          <div className="mb-4 flex items-center justify-center gap-2 text-xs text-slate-600">
+            <span>⭐</span>
+            <span>Ubicación principal del sistema</span>
+          </div>
+        )}
 
         {/* ============================================
             FOOTER: Botón Cancelar
