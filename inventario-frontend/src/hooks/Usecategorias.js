@@ -155,22 +155,24 @@ export const useUpdateCategoria = () => {
 
 export const useDeleteCategoria = () => {
   const queryClient = useQueryClient()
-  
+
   const { mutate, mutateAsync, isLoading, error } = useMutation({
     mutationFn: categoriasAPI.eliminar,
-    
+
     onSuccess: () => {
+      // Invalidar TODAS las queries relacionadas con categorías
       queryClient.invalidateQueries({ queryKey: ['categorias'] })
       queryClient.invalidateQueries({ queryKey: ['categorias', 'padres'] })
-      
+      queryClient.invalidateQueries({ queryKey: ['categorias', 'subcategorias'] })
+
       console.log('✅', SUCCESS_MESSAGES.CATEGORIA_ELIMINADA)
     },
-    
+
     onError: (error) => {
       console.error('❌ Error al eliminar categoría:', error)
     }
   })
-  
+
   return {
     deleteCategoria: mutateAsync,
     deleteCategoriaSync: mutate,
