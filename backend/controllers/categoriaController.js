@@ -348,6 +348,12 @@ exports.eliminar = async (req, res, next) => {
 
     // Verificar que no tenga elementos
     const tieneElementos = await CategoriaModel.tieneElementos(id);
+    logger.info('categoriaController.eliminar', 'Verificación de elementos', {
+      id,
+      tieneElementos,
+      categoria_nombre: categoria.nombre
+    });
+
     if (tieneElementos) {
       throw new AppError(
         'No se puede eliminar una categoría que tiene elementos asociados',
