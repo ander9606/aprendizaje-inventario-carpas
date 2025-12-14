@@ -164,11 +164,13 @@ const SubcategoriaCard = ({
           </Button>
 
           {/* Eliminar */}
-          <Button 
+          <Button
             variant="ghost"
             size="sm"
             icon={<Trash2 className="w-4 h-4" />}
             onClick={handleDelete}
+            loading={deleteCategoria.isLoading}
+            disabled={deleteCategoria.isLoading}
             className="flex-1"
           >
             Eliminar
