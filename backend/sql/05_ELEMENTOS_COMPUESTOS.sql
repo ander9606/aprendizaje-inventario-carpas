@@ -3,10 +3,54 @@
 -- Base de datos: inventario_carpas
 -- Fecha: Diciembre 2024
 -- Autor: Anderson Moreno (Anchi)
+-- Versión: 2.0 - Con tabla categorias_productos separada
 -- ============================================================
 
 -- ============================================================
--- 1. TABLA PRINCIPAL: elementos_compuestos
+-- 1. TABLA DE CATEGORÍAS PARA PRODUCTOS: categorias_productos
+-- ============================================================
+-- Categorías SEPARADAS para productos de alquiler (Carpas, Salas, Parasoles)
+-- Diferente a 'categorias' que es para componentes del inventario
+
+CREATE TABLE IF NOT EXISTS categorias_productos (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+
+    -- Identificación
+    nombre VARCHAR(100) NOT NULL COMMENT 'Ej: Carpas, Salas Lounge, Parasoles',
+    emoji VARCHAR(10) COMMENT 'Emoji para identificación visual',
+    descripcion TEXT,
+
+    -- Jerarquía (permite subcategorías)
+    padre_id INT DEFAULT NULL COMMENT 'NULL=categoría principal, ID=subcategoría',
+
+    -- Campos específicos para productos de alquiler
+    precio_base DECIMAL(12,2) COMMENT 'Precio sugerido para productos de esta categoría',
+    deposito_sugerido DECIMAL(12,2) COMMENT 'Depósito sugerido',
+    dias_minimos INT DEFAULT 1 COMMENT 'Días mínimos de alquiler',
+
+    -- Control
+    activo BOOLEAN DEFAULT TRUE,
+    orden INT DEFAULT 0 COMMENT 'Para ordenar en la UI',
+
+    -- Timestamps
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    -- Foreign Keys (self-reference para jerarquía)
+    CONSTRAINT fk_categoria_producto_padre
+        FOREIGN KEY (padre_id) REFERENCES categorias_productos(id) ON DELETE SET NULL,
+
+    -- Índices
+    INDEX idx_catprod_padre (padre_id),
+    INDEX idx_catprod_activo (activo),
+    INDEX idx_catprod_orden (orden)
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+COMMENT='Categorías para productos de alquiler (separadas de las categorías de componentes)';
+
+
+-- ============================================================
+-- 2. TABLA PRINCIPAL: elementos_compuestos
 -- ============================================================
 -- Almacena los productos finales armados listos para alquilar
 -- Ejemplos: Carpa 10x10 #001, Sala Lounge #001, Parasol Grande #001
@@ -30,8 +74,8 @@ CREATE TABLE IF NOT EXISTS elementos_compuestos (
     precio_alquiler DECIMAL(12,2) COMMENT 'Precio base de alquiler',
     deposito DECIMAL(12,2) COMMENT 'Depósito requerido',
 
-    -- Categorización opcional
-    categoria_id INT COMMENT 'Para organizar por tipo (Carpas, Salas, etc.)',
+    -- Categorización (referencia a categorias_productos, NO a categorias)
+    categoria_id INT COMMENT 'Categoría del producto (Carpas, Salas, etc.)',
 
     -- Extras
     imagen_url VARCHAR(500),
@@ -45,7 +89,7 @@ CREATE TABLE IF NOT EXISTS elementos_compuestos (
     CONSTRAINT fk_compuesto_ubicacion
         FOREIGN KEY (ubicacion_id) REFERENCES ubicaciones(id) ON DELETE SET NULL,
     CONSTRAINT fk_compuesto_categoria
-        FOREIGN KEY (categoria_id) REFERENCES categorias(id) ON DELETE SET NULL,
+        FOREIGN KEY (categoria_id) REFERENCES categorias_productos(id) ON DELETE SET NULL,
 
     -- Índices
     INDEX idx_compuesto_estado (estado),
@@ -57,7 +101,7 @@ COMMENT='Productos finales compuestos listos para alquilar (carpas armadas, sala
 
 
 -- ============================================================
--- 2. TABLA DE RELACIÓN: compuesto_componentes
+-- 3. TABLA DE RELACIÓN: compuesto_componentes
 -- ============================================================
 -- Define qué componentes tiene cada producto compuesto
 -- Puede ser tipo 'serie' (componente individual) o 'lote' (por cantidad)
@@ -108,7 +152,7 @@ COMMENT='Relación entre productos compuestos y sus componentes individuales';
 
 
 -- ============================================================
--- 3. TABLA DE ALQUILERES: compuesto_alquileres
+-- 4. TABLA DE ALQUILERES: compuesto_alquileres
 -- ============================================================
 -- Registra el historial de cada alquiler de un producto compuesto
 
@@ -165,7 +209,7 @@ COMMENT='Historial de alquileres de productos compuestos';
 
 
 -- ============================================================
--- 4. TABLA DE DETALLE DE DEVOLUCIÓN: compuesto_devolucion_detalle
+-- 5. TABLA DE DETALLE DE DEVOLUCIÓN: compuesto_devolucion_detalle
 -- ============================================================
 -- Registra el estado de cada componente al momento de devolución
 
@@ -201,7 +245,7 @@ COMMENT='Detalle del estado de cada componente al momento de devolución';
 
 
 -- ============================================================
--- 5. MODIFICAR TABLA SERIES: Agregar referencia a compuesto
+-- 6. MODIFICAR TABLA SERIES: Agregar referencia a compuesto
 -- ============================================================
 -- Agregar columna para marcar qué series están asignadas a un compuesto
 
@@ -263,30 +307,74 @@ DEALLOCATE PREPARE addIdxStmt;
 
 
 -- ============================================================
--- 6. DATOS DE EJEMPLO (para pruebas)
+-- 7. DATOS DE EJEMPLO: Categorías de Productos
 -- ============================================================
 
-INSERT INTO elementos_compuestos (nombre, codigo, descripcion, estado, precio_alquiler, deposito) VALUES
-('Carpa 10x10 Premium #001', 'CARPA-10X10-001', 'Carpa blanca premium con tela náutica resistente al agua. Incluye mástiles, postes y accesorios.', 'disponible', 500000.00, 200000.00),
-('Carpa 10x10 Premium #002', 'CARPA-10X10-002', 'Carpa blanca premium con tela náutica resistente al agua. Incluye mástiles, postes y accesorios.', 'disponible', 500000.00, 200000.00),
-('Sala Lounge Elegance #001', 'SALA-ELEG-001', 'Sala lounge completa con sofás blancos, mesa de centro y cojines decorativos.', 'disponible', 350000.00, 150000.00)
+INSERT INTO categorias_productos (nombre, emoji, descripcion, precio_base, deposito_sugerido, dias_minimos, orden) VALUES
+('Carpas', '🎪', 'Carpas de todos los tamaños para eventos', 400000.00, 150000.00, 1, 1),
+('Salas Lounge', '🛋️', 'Mobiliario de sala para ambientación', 300000.00, 100000.00, 1, 2),
+('Parasoles', '☂️', 'Parasoles y sombrillas para exteriores', 150000.00, 50000.00, 1, 3),
+('Stands', '🏢', 'Estructuras para ferias y exposiciones', 500000.00, 200000.00, 2, 4),
+('Tarimas', '🎭', 'Plataformas y escenarios', 350000.00, 150000.00, 1, 5)
+ON DUPLICATE KEY UPDATE nombre = VALUES(nombre);
+
+-- Subcategorías de Carpas
+INSERT INTO categorias_productos (nombre, emoji, descripcion, padre_id, precio_base, dias_minimos, orden) VALUES
+('Carpas 10x10', '🎪', 'Carpas de 10x10 metros',
+    (SELECT id FROM (SELECT id FROM categorias_productos WHERE nombre = 'Carpas' LIMIT 1) AS t),
+    500000.00, 1, 1),
+('Carpas 5x5', '🎪', 'Carpas de 5x5 metros',
+    (SELECT id FROM (SELECT id FROM categorias_productos WHERE nombre = 'Carpas' LIMIT 1) AS t),
+    300000.00, 1, 2),
+('Carpas 3x3', '🎪', 'Carpas de 3x3 metros',
+    (SELECT id FROM (SELECT id FROM categorias_productos WHERE nombre = 'Carpas' LIMIT 1) AS t),
+    200000.00, 1, 3)
 ON DUPLICATE KEY UPDATE nombre = VALUES(nombre);
 
 
 -- ============================================================
--- 7. VERIFICACIÓN FINAL
+-- 8. DATOS DE EJEMPLO: Productos Compuestos
 -- ============================================================
 
-SELECT '========================================' AS '';
-SELECT '  TABLAS CREADAS EXITOSAMENTE' AS 'RESULTADO';
-SELECT '========================================' AS '';
+-- Obtener el ID de la categoría "Carpas 10x10"
+SET @cat_carpa_10x10 = (SELECT id FROM categorias_productos WHERE nombre = 'Carpas 10x10' LIMIT 1);
+SET @cat_sala = (SELECT id FROM categorias_productos WHERE nombre = 'Salas Lounge' LIMIT 1);
 
+INSERT INTO elementos_compuestos (nombre, codigo, descripcion, estado, precio_alquiler, deposito, categoria_id) VALUES
+('Carpa 10x10 Premium #001', 'CARPA-10X10-001', 'Carpa blanca premium con tela náutica resistente al agua. Incluye mástiles, postes y accesorios.', 'disponible', 500000.00, 200000.00, @cat_carpa_10x10),
+('Carpa 10x10 Premium #002', 'CARPA-10X10-002', 'Carpa blanca premium con tela náutica resistente al agua. Incluye mástiles, postes y accesorios.', 'disponible', 500000.00, 200000.00, @cat_carpa_10x10),
+('Sala Lounge Elegance #001', 'SALA-ELEG-001', 'Sala lounge completa con sofás blancos, mesa de centro y cojines decorativos.', 'disponible', 350000.00, 150000.00, @cat_sala)
+ON DUPLICATE KEY UPDATE nombre = VALUES(nombre);
+
+
+-- ============================================================
+-- 9. VERIFICACIÓN FINAL
+-- ============================================================
+
+SELECT '========================================================' AS '';
+SELECT '  ✅ TABLAS CREADAS EXITOSAMENTE' AS 'RESULTADO';
+SELECT '========================================================' AS '';
+
+SELECT '' AS '';
+SELECT 'NUEVAS TABLAS:' AS 'INFO';
 SELECT TABLE_NAME, TABLE_COMMENT
 FROM INFORMATION_SCHEMA.TABLES
 WHERE TABLE_SCHEMA = DATABASE()
-AND TABLE_NAME LIKE '%compuesto%'
+AND (TABLE_NAME LIKE '%compuesto%' OR TABLE_NAME = 'categorias_productos')
 ORDER BY TABLE_NAME;
 
 SELECT '' AS '';
-SELECT 'Productos de ejemplo insertados:' AS 'DATOS DE PRUEBA';
-SELECT id, nombre, codigo, estado, precio_alquiler FROM elementos_compuestos;
+SELECT 'CATEGORÍAS DE PRODUCTOS:' AS 'DATOS';
+SELECT id, CONCAT(COALESCE(emoji, ''), ' ', nombre) AS categoria,
+       CASE WHEN padre_id IS NULL THEN 'Principal' ELSE 'Subcategoría' END AS tipo,
+       CONCAT('$', FORMAT(COALESCE(precio_base, 0), 0)) AS precio_base
+FROM categorias_productos
+ORDER BY COALESCE(padre_id, id), orden;
+
+SELECT '' AS '';
+SELECT 'PRODUCTOS DE EJEMPLO:' AS 'DATOS';
+SELECT ec.id, ec.nombre, ec.codigo, ec.estado,
+       CONCAT('$', FORMAT(ec.precio_alquiler, 0)) AS precio,
+       cp.nombre AS categoria
+FROM elementos_compuestos ec
+LEFT JOIN categorias_productos cp ON ec.categoria_id = cp.id;
