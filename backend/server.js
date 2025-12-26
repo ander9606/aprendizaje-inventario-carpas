@@ -11,14 +11,21 @@ const { testConnection } = require('./config/database');
 const { errorHandler, notFound } = require('./middleware/errorHandler');
 const httpLogger = require('./middleware/httpLogger');
 
-// Importar rutas
+// Importar rutas - Inventario
 const categoriasRoutes = require('./routes/categorias');
 const elementosRoutes = require('./routes/elementos');
 const seriesRoutes = require('./routes/series');
 const lotesRoutes = require('./routes/lotes');
 const materialesRoutes = require('./routes/materiales');
 const unidadesRoutes = require('./routes/unidades');
-const ubicacionesRoutes = require('./routes/ubicaciones');  
+const ubicacionesRoutes = require('./routes/ubicaciones');
+
+// Importar rutas - Productos y Alquileres
+const categoriasProductosRoutes = require('./routes/categoriasProductos');
+const elementosCompuestosRoutes = require('./routes/elementosCompuestos');
+const clientesRoutes = require('./routes/clientes');
+const cotizacionesRoutes = require('./routes/cotizaciones');
+const alquileresRoutes = require('./routes/alquileres');  
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -55,29 +62,45 @@ app.use('/api/', limiter); // Aplicar rate limiting solo a rutas /api/
 
 // Ruta raíz
 app.get('/', (req, res) => {
-    res.json({ 
+    res.json({
         nombre: 'API de Inventario de Carpas',
-        version: '2.0.0',
-        endpoints: [
-            '/api/categorias',
-            '/api/elementos',
-            '/api/series',
-            '/api/lotes',
-            '/api/ubicaciones',  // ← NUEVO
-            '/api/materiales',
-            '/api/unidades'
-        ]
+        version: '3.0.0',
+        modulos: {
+            inventario: [
+                '/api/categorias',
+                '/api/elementos',
+                '/api/series',
+                '/api/lotes',
+                '/api/ubicaciones',
+                '/api/materiales',
+                '/api/unidades'
+            ],
+            alquileres: [
+                '/api/categorias-productos',
+                '/api/elementos-compuestos',
+                '/api/clientes',
+                '/api/cotizaciones',
+                '/api/alquileres'
+            ]
+        }
     });
 });
 
-// Registrar rutas
+// Registrar rutas - Inventario
 app.use('/api/categorias', categoriasRoutes);
 app.use('/api/elementos', elementosRoutes);
 app.use('/api/series', seriesRoutes);
 app.use('/api/lotes', lotesRoutes);
-app.use('/api/ubicaciones', ubicacionesRoutes);  
+app.use('/api/ubicaciones', ubicacionesRoutes);
 app.use('/api/materiales', materialesRoutes);
 app.use('/api/unidades', unidadesRoutes);
+
+// Registrar rutas - Productos y Alquileres
+app.use('/api/categorias-productos', categoriasProductosRoutes);
+app.use('/api/elementos-compuestos', elementosCompuestosRoutes);
+app.use('/api/clientes', clientesRoutes);
+app.use('/api/cotizaciones', cotizacionesRoutes);
+app.use('/api/alquileres', alquileresRoutes);
 
 // ============================================
 // MANEJO DE ERRORES
@@ -97,7 +120,8 @@ const startServer = async () => {
         app.listen(PORT, () => {
             console.log('\n✅ Servidor iniciado');
             console.log(`🌐 http://localhost:${PORT}`);
-            console.log(`📦 Módulos: Categorías, Elementos, Series, Lotes, Ubicaciones, Materiales, Unidades\n`);
+            console.log(`📦 Inventario: Categorías, Elementos, Series, Lotes, Ubicaciones`);
+            console.log(`🏷️  Alquileres: Productos, Clientes, Cotizaciones, Alquileres\n`);
         });
     } catch (error) {
         console.error('\n❌ Error al iniciar:', error.message);
