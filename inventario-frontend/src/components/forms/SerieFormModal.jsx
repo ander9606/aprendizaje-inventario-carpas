@@ -5,6 +5,7 @@
 
 import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
+import { MapPin } from 'lucide-react'
 import Modal from '../common/Modal'
 import Button from '../common/Button'
 import { EstadoBadge } from '../common/Badge'
@@ -467,14 +468,34 @@ function SerieFormModal({
             ============================================ */}
         {formData.estado !== ESTADOS.ALQUILADO && (
           <div className="mb-4">
-            <UbicacionSelector
-              value={formData.ubicacion_id}
-              onChange={handleUbicacionChange}
-              label="Ubicación"
-              placeholder="Selecciona una ubicación..."
-              required
-              error={errors.ubicacion_id}
-            />
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Ubicación *
+            </label>
+            <div className="relative">
+              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <select
+                value={formData.ubicacion_id || ''}
+                onChange={(e) => handleUbicacionChange(e.target.value)}
+                className={`
+                  w-full pl-10 pr-4 py-2 border rounded-lg appearance-none
+                  focus:outline-none focus:ring-2
+                  ${errors.ubicacion_id
+                    ? 'border-red-300 focus:ring-red-500'
+                    : 'border-slate-300 focus:ring-blue-500'
+                  }
+                `}
+              >
+                <option value="">Selecciona una ubicación...</option>
+                {ubicaciones.map((ubicacion) => (
+                  <option key={ubicacion.id} value={ubicacion.id}>
+                    {ubicacion.nombre}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {errors.ubicacion_id && (
+              <p className="mt-1 text-sm text-red-600">{errors.ubicacion_id}</p>
+            )}
           </div>
         )}
 
