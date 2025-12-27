@@ -12,22 +12,22 @@ const { errorHandler, notFound } = require('./middleware/errorHandler');
 const httpLogger = require('./middleware/httpLogger');
 
 // Importar rutas - Inventario (Stock físico)
-const categoriasRoutes = require('./routes/categorias');
-const elementosRoutes = require('./routes/elementos');
-const seriesRoutes = require('./routes/series');
-const lotesRoutes = require('./routes/lotes');
-const materialesRoutes = require('./routes/materiales');
-const unidadesRoutes = require('./routes/unidades');
-const ubicacionesRoutes = require('./routes/ubicaciones');
+const categoriasRoutes = require('./modules/inventario/routes/categorias');
+const elementosRoutes = require('./modules/inventario/routes/elementos');
+const seriesRoutes = require('./modules/inventario/routes/series');
+const lotesRoutes = require('./modules/inventario/routes/lotes');
+const materialesRoutes = require('./modules/inventario/routes/materiales');
+const unidadesRoutes = require('./modules/inventario/routes/unidades');
+const ubicacionesRoutes = require('./modules/inventario/routes/ubicaciones');
 
 // Importar rutas - Productos (Plantillas/Elementos Compuestos)
-const categoriasProductosRoutes = require('./routes/categoriasProductos');
-const elementosCompuestosRoutes = require('./routes/elementosCompuestos');
+const categoriasProductosRoutes = require('./modules/productos/routes/categoriasProductos');
+const elementosCompuestosRoutes = require('./modules/productos/routes/elementosCompuestos');
 
 // Importar rutas - Alquileres (Operación comercial)
-const clientesRoutes = require('./routes/clientes');
-const cotizacionesRoutes = require('./routes/cotizaciones');
-const alquileresRoutes = require('./routes/alquileres');  
+const clientesRoutes = require('./modules/alquileres/routes/clientes');
+const cotizacionesRoutes = require('./modules/alquileres/routes/cotizaciones');
+const alquileresRoutes = require('./modules/alquileres/routes/alquileres');  
 
 const app = express();
 const PORT = process.env.PORT || 3000;
