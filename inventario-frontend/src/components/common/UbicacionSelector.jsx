@@ -40,8 +40,8 @@ const UbicacionSelector = ({
   // ============================================
   
   const [isOpen, setIsOpen] = useState(false)
-  const [inputValue, setInputValue] = useState(value)
-  
+  const [inputValue, setInputValue] = useState(value || '')
+
   // Ubicaciones predefinidas (puedes cargarlas de la API después)
   const ubicacionesPredefinidas = ubicaciones || [
     'Bodega A',
@@ -54,10 +54,11 @@ const UbicacionSelector = ({
     'Vehículo 1',
     'Vehículo 2'
   ]
-  
+
   // Filtrar ubicaciones según el input
+  const searchTerm = (inputValue || '').toLowerCase()
   const ubicacionesFiltradas = ubicacionesPredefinidas.filter(
-    ub => ub.toLowerCase().includes(inputValue.toLowerCase())
+    ub => ub && ub.toLowerCase().includes(searchTerm)
   )
   
   // ============================================
@@ -66,7 +67,7 @@ const UbicacionSelector = ({
   
   // Sincronizar cuando cambia el value externo
   useEffect(() => {
-    setInputValue(value)
+    setInputValue(value || '')
   }, [value])
   
   // ============================================
