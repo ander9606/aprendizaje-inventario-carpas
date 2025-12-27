@@ -11,7 +11,7 @@ const { testConnection } = require('./config/database');
 const { errorHandler, notFound } = require('./middleware/errorHandler');
 const httpLogger = require('./middleware/httpLogger');
 
-// Importar rutas - Inventario
+// Importar rutas - Inventario (Stock físico)
 const categoriasRoutes = require('./routes/categorias');
 const elementosRoutes = require('./routes/elementos');
 const seriesRoutes = require('./routes/series');
@@ -20,9 +20,11 @@ const materialesRoutes = require('./routes/materiales');
 const unidadesRoutes = require('./routes/unidades');
 const ubicacionesRoutes = require('./routes/ubicaciones');
 
-// Importar rutas - Productos y Alquileres
+// Importar rutas - Productos (Plantillas/Elementos Compuestos)
 const categoriasProductosRoutes = require('./routes/categoriasProductos');
 const elementosCompuestosRoutes = require('./routes/elementosCompuestos');
+
+// Importar rutas - Alquileres (Operación comercial)
 const clientesRoutes = require('./routes/clientes');
 const cotizacionesRoutes = require('./routes/cotizaciones');
 const alquileresRoutes = require('./routes/alquileres');  
@@ -75,9 +77,11 @@ app.get('/', (req, res) => {
                 '/api/materiales',
                 '/api/unidades'
             ],
-            alquileres: [
+            productos: [
                 '/api/categorias-productos',
-                '/api/elementos-compuestos',
+                '/api/elementos-compuestos'
+            ],
+            alquileres: [
                 '/api/clientes',
                 '/api/cotizaciones',
                 '/api/alquileres'
@@ -86,7 +90,7 @@ app.get('/', (req, res) => {
     });
 });
 
-// Registrar rutas - Inventario
+// Registrar rutas - Inventario (Stock físico)
 app.use('/api/categorias', categoriasRoutes);
 app.use('/api/elementos', elementosRoutes);
 app.use('/api/series', seriesRoutes);
@@ -95,9 +99,11 @@ app.use('/api/ubicaciones', ubicacionesRoutes);
 app.use('/api/materiales', materialesRoutes);
 app.use('/api/unidades', unidadesRoutes);
 
-// Registrar rutas - Productos y Alquileres
+// Registrar rutas - Productos (Plantillas)
 app.use('/api/categorias-productos', categoriasProductosRoutes);
 app.use('/api/elementos-compuestos', elementosCompuestosRoutes);
+
+// Registrar rutas - Alquileres (Operación comercial)
 app.use('/api/clientes', clientesRoutes);
 app.use('/api/cotizaciones', cotizacionesRoutes);
 app.use('/api/alquileres', alquileresRoutes);
@@ -121,7 +127,8 @@ const startServer = async () => {
             console.log('\n✅ Servidor iniciado');
             console.log(`🌐 http://localhost:${PORT}`);
             console.log(`📦 Inventario: Categorías, Elementos, Series, Lotes, Ubicaciones`);
-            console.log(`🏷️  Alquileres: Productos, Clientes, Cotizaciones, Alquileres\n`);
+            console.log(`🏗️  Productos: Categorías Productos, Elementos Compuestos`);
+            console.log(`🏷️  Alquileres: Clientes, Cotizaciones, Alquileres\n`);
         });
     } catch (error) {
         console.error('\n❌ Error al iniciar:', error.message);
