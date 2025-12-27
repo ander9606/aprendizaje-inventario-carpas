@@ -8,6 +8,7 @@ import { toast } from 'sonner'
 import Modal from '../common/Modal'
 import Button from '../common/Button'
 import { EstadoBadge } from '../common/Badge'
+import UbicacionSelector from '../common/UbicacionSelector'
 import { ESTADOS, ESTADO_LABELS } from '../../utils/constants'
 
 import { useCreateSerie, useUpdateSerie } from '../../hooks/Useseries'
