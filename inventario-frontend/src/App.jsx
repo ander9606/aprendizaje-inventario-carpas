@@ -5,23 +5,31 @@
 
 import { Routes, Route } from 'react-router-dom'
 
-// Importar páginas
+// Importar páginas - Inventario Individual
 import Dashboard from './pages/Dashboard'
 import Subcategorias from './pages/Subcategorias'
 import ElementosPage from './pages/ElementosPage'
 import ElementoDetallePage from './pages/ElementoDetallePage'
 import UbicacionesPage from './pages/UbicacionesPage'
 
+// Importar páginas - Productos de Alquiler
+import ProductosPage from './pages/ProductosPage'
+import ElementosCompuestosPage from './pages/ElementosCompuestosPage'
+
 /**
  * COMPONENTE: App
  *
  * Este componente define las rutas de la aplicación.
  *
- * RUTAS:
+ * RUTAS INVENTARIO INDIVIDUAL:
  * /                                                                                  → Dashboard (Nivel 1: Categorías padre)
  * /categorias/:categoriaId                                                           → Subcategorias (Nivel 2: Subcategorías)
  * /categorias/:categoriaId/subcategorias/:subcategoriaId/elementos                   → Elementos (Nivel 3: Elementos)
  * /categorias/:categoriaId/subcategorias/:subcategoriaId/elementos/:elementoId       → Detalle de Elemento (Nivel 4)
+ *
+ * RUTAS PRODUCTOS DE ALQUILER:
+ * /productos                                                                         → Navegación entre módulos
+ * /productos/alquiler                                                                → Elementos Compuestos
  */
 function App() {
   return (
@@ -72,10 +80,28 @@ function App() {
       />
 
       {/* ============================================
+          PRODUCTOS: Navegación entre módulos
+          Ruta: /productos
+          ============================================ */}
+      <Route
+        path="/productos"
+        element={<ProductosPage />}
+      />
+
+      {/* ============================================
+          ELEMENTOS COMPUESTOS: Plantillas de alquiler
+          Ruta: /productos/alquiler
+          ============================================ */}
+      <Route
+        path="/productos/alquiler"
+        element={<ElementosCompuestosPage />}
+      />
+
+      {/* ============================================
           RUTA 404: Página no encontrada
           ============================================ */}
-      <Route 
-        path="*" 
+      <Route
+        path="*"
         element={
           <div className="min-h-screen flex items-center justify-center">
             <div className="text-center">
@@ -94,7 +120,7 @@ function App() {
               </a>
             </div>
           </div>
-        } 
+        }
       />
     </Routes>
   )
