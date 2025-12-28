@@ -43,33 +43,77 @@ const UbicacionCard = ({
    */
   const getEmojiPorTipo = (tipo) => {
     const emojis = {
+      // Almacenamiento
       bodega: '🏢',
-      finca: '🌾',
-      evento: '🎪',
       taller: '🔧',
       transito: '🚚',
+      // Lugares de eventos
+      finca: '🌾',
+      hacienda: '🏡',
+      jardin: '🎊',
+      club: '🏌️',
+      hotel: '🏨',
+      playa: '🏖️',
+      parque: '🌳',
+      residencia: '🏠',
+      evento: '🎪',
+      // Otros
       otro: '📍'
     }
     return emojis[tipo] || '📍'
   }
 
   /**
-   * Obtener color según el tipo de ubicación
+   * Obtener estilo del badge según el tipo de ubicación
+   * Usamos clases completas para que Tailwind las incluya en el build
    */
-  const getColorPorTipo = (tipo) => {
-    const colores = {
-      bodega: 'blue',
-      finca: 'green',
-      evento: 'purple',
-      taller: 'orange',
-      transito: 'yellow',
-      otro: 'gray'
+  const getBadgeStyle = (tipo) => {
+    const estilos = {
+      // Almacenamiento
+      bodega: 'bg-blue-100 text-blue-700',
+      taller: 'bg-orange-100 text-orange-700',
+      transito: 'bg-yellow-100 text-yellow-700',
+      // Lugares de eventos
+      finca: 'bg-green-100 text-green-700',
+      hacienda: 'bg-amber-100 text-amber-700',
+      jardin: 'bg-pink-100 text-pink-700',
+      club: 'bg-emerald-100 text-emerald-700',
+      hotel: 'bg-indigo-100 text-indigo-700',
+      playa: 'bg-cyan-100 text-cyan-700',
+      parque: 'bg-lime-100 text-lime-700',
+      residencia: 'bg-rose-100 text-rose-700',
+      evento: 'bg-purple-100 text-purple-700',
+      // Otros
+      otro: 'bg-gray-100 text-gray-700'
     }
-    return colores[tipo] || 'gray'
+    return estilos[tipo] || 'bg-gray-100 text-gray-700'
   }
 
-  const color = getColorPorTipo(ubicacion.tipo)
+  /**
+   * Obtener nombre legible del tipo
+   */
+  const getNombreTipo = (tipo) => {
+    const nombres = {
+      bodega: 'Bodega',
+      taller: 'Taller',
+      transito: 'Tránsito',
+      finca: 'Finca',
+      hacienda: 'Hacienda',
+      jardin: 'Jardín',
+      club: 'Club',
+      hotel: 'Hotel',
+      playa: 'Playa',
+      parque: 'Parque',
+      residencia: 'Residencia',
+      evento: 'Evento',
+      otro: 'Otro'
+    }
+    return nombres[tipo] || tipo
+  }
+
+  const badgeStyle = getBadgeStyle(ubicacion.tipo)
   const emoji = getEmojiPorTipo(ubicacion.tipo)
+  const nombreTipo = getNombreTipo(ubicacion.tipo)
 
   // ============================================
   // HANDLERS
@@ -151,10 +195,10 @@ const UbicacionCard = ({
 
               {/* Badge: Tipo */}
               <span className={`
-                inline-block px-2 py-1 text-xs font-medium rounded-full
-                bg-${color}-100 text-${color}-700
+                inline-block px-2 py-1 text-xs font-medium rounded-full capitalize
+                ${badgeStyle}
               `}>
-                {ubicacion.tipo}
+                {nombreTipo}
               </span>
 
               {/* Badge: Inactiva */}

@@ -5,11 +5,12 @@
 
 import { useState, useEffect } from 'react'
 import { MapPin, ChevronDown, Plus, X } from 'lucide-react'
+import { useGetUbicacionesActivas } from '../../hooks/Useubicaciones'
 
 /**
  * Componente UbicacionSelector - Selector de ubicación
  *
- * Permite seleccionar una ubicación de una lista predefinida
+ * Permite seleccionar una ubicación de una lista obtenida desde la API
  * o escribir una nueva ubicación personalizada.
  *
  * @param {string} value - Valor actual de la ubicación
@@ -17,7 +18,7 @@ import { MapPin, ChevronDown, Plus, X } from 'lucide-react'
  * @param {string} placeholder - Placeholder del input
  * @param {boolean} disabled - Si está deshabilitado
  * @param {string} error - Mensaje de error (opcional)
- * @param {Array} ubicaciones - Lista de ubicaciones (opcional, usa predefinidas si no se pasa)
+ * @param {Array} ubicaciones - Lista de ubicaciones (opcional, si no se pasa carga desde API)
  *
  * @example
  * <UbicacionSelector
@@ -36,29 +37,25 @@ const UbicacionSelector = ({
   className = ''
 }) => {
   // ============================================
+  // HOOK: Obtener ubicaciones desde API
+  // ============================================
+
+  const { ubicaciones: ubicacionesAPI, isLoading } = useGetUbicacionesActivas()
+
+  // ============================================
   // ESTADO LOCAL
   // ============================================
-  
+
   const [isOpen, setIsOpen] = useState(false)
-  const [inputValue, setInputValue] = useState(value || '')
+  const [inputValue, setInputValue] = useState(value)
 
-  // Ubicaciones predefinidas (puedes cargarlas de la API después)
-  const ubicacionesPredefinidas = ubicaciones || [
-    'Bodega A',
-    'Bodega B',
-    'Bodega Principal',
-    'Taller',
-    'Almacén',
-    'Oficina',
-    'Exhibición',
-    'Vehículo 1',
-    'Vehículo 2'
-  ]
-
+  // Usar ubicaciones pasadas como prop o las de la API
+  // Extraer solo los nombres de las ubicaciones de la API
+  const ubicacionesList = ubicaciones || ubicacionesAPI.map(u => u.nombre)
+  
   // Filtrar ubicaciones según el input
-  const searchTerm = (inputValue || '').toLowerCase()
-  const ubicacionesFiltradas = ubicacionesPredefinidas.filter(
-    ub => ub && ub.toLowerCase().includes(searchTerm)
+  const ubicacionesFiltradas = ubicacionesList.filter(
+    ub => ub.toLowerCase().includes(inputValue.toLowerCase())
   )
   
   // ============================================
@@ -182,7 +179,15 @@ const UbicacionSelector = ({
       {/* Dropdown de opciones */}
       {isOpen && !disabled && (
         <div className="absolute z-20 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-          {ubicacionesFiltradas.length > 0 ? (
+          {/* Estado de carga */}
+          {isLoading && !ubicaciones && (
+            <div className="px-4 py-3 text-center">
+              <p className="text-sm text-slate-500">Cargando ubicaciones...</p>
+            </div>
+          )}
+
+          {/* Lista de ubicaciones */}
+          {!isLoading && ubicacionesFiltradas.length > 0 ? (
             <>
               {ubicacionesFiltradas.map((ubicacion) => (
                 <button
@@ -215,20 +220,22 @@ const UbicacionSelector = ({
                 </button>
               )}
             </>
-          ) : (
+          ) : !isLoading && (
             <div className="px-4 py-3 text-center">
               <p className="text-sm text-slate-500 mb-2">
-                No se encontró "{inputValue}"
+                {inputValue ? `No se encontró "${inputValue}"` : 'No hay ubicaciones registradas'}
               </p>
-              <button
-                type="button"
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => handleSelectUbicacion(inputValue)}
-                className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1 mx-auto"
-              >
-                <Plus className="w-4 h-4" />
-                Crear ubicación "{inputValue}"
-              </button>
+              {inputValue && (
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => handleSelectUbicacion(inputValue)}
+                  className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1 mx-auto"
+                >
+                  <Plus className="w-4 h-4" />
+                  Crear ubicación "{inputValue}"
+                </button>
+              )}
             </div>
           )}
         </div>
