@@ -24,11 +24,21 @@ const ESTADOS_VALIDOS = Object.values(ESTADOS);
 // ============================================
 
 const TIPOS_UBICACION = {
+  // Almacenamiento
   BODEGA: 'bodega',
-  FINCA: 'finca',
-  EVENTO: 'evento',
   TALLER: 'taller',
   TRANSITO: 'transito',
+  // Lugares de Eventos
+  FINCA: 'finca',
+  HACIENDA: 'hacienda',
+  JARDIN: 'jardin',
+  CLUB: 'club',
+  HOTEL: 'hotel',
+  PLAYA: 'playa',
+  PARQUE: 'parque',
+  RESIDENCIA: 'residencia',
+  EVENTO: 'evento',
+  // Otros
   OTRO: 'otro'
 };
 
