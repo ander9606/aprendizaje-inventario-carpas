@@ -122,7 +122,13 @@ const ENTIDADES = {
   LOTE: 'Lote',
   UBICACION: 'Ubicación',
   MATERIAL: 'Material',
-  UNIDAD: 'Unidad'
+  UNIDAD: 'Unidad',
+  // Productos y Alquileres
+  CATEGORIA_PRODUCTO: 'Categoría de producto',
+  ELEMENTO_COMPUESTO: 'Elemento compuesto',
+  CLIENTE: 'Cliente',
+  COTIZACION: 'Cotización',
+  ALQUILER: 'Alquiler'
 };
 
 // ============================================

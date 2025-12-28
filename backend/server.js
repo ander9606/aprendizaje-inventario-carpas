@@ -11,14 +11,23 @@ const { testConnection } = require('./config/database');
 const { errorHandler, notFound } = require('./middleware/errorHandler');
 const httpLogger = require('./middleware/httpLogger');
 
-// Importar rutas
-const categoriasRoutes = require('./routes/categorias');
-const elementosRoutes = require('./routes/elementos');
-const seriesRoutes = require('./routes/series');
-const lotesRoutes = require('./routes/lotes');
-const materialesRoutes = require('./routes/materiales');
-const unidadesRoutes = require('./routes/unidades');
-const ubicacionesRoutes = require('./routes/ubicaciones');  
+// Importar rutas - Inventario (Stock físico)
+const categoriasRoutes = require('./modules/inventario/routes/categorias');
+const elementosRoutes = require('./modules/inventario/routes/elementos');
+const seriesRoutes = require('./modules/inventario/routes/series');
+const lotesRoutes = require('./modules/inventario/routes/lotes');
+const materialesRoutes = require('./modules/inventario/routes/materiales');
+const unidadesRoutes = require('./modules/inventario/routes/unidades');
+const ubicacionesRoutes = require('./modules/inventario/routes/ubicaciones');
+
+// Importar rutas - Productos (Plantillas/Elementos Compuestos)
+const categoriasProductosRoutes = require('./modules/productos/routes/categoriasProductos');
+const elementosCompuestosRoutes = require('./modules/productos/routes/elementosCompuestos');
+
+// Importar rutas - Alquileres (Operación comercial)
+const clientesRoutes = require('./modules/alquileres/routes/clientes');
+const cotizacionesRoutes = require('./modules/alquileres/routes/cotizaciones');
+const alquileresRoutes = require('./modules/alquileres/routes/alquileres');  
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -55,29 +64,49 @@ app.use('/api/', limiter); // Aplicar rate limiting solo a rutas /api/
 
 // Ruta raíz
 app.get('/', (req, res) => {
-    res.json({ 
+    res.json({
         nombre: 'API de Inventario de Carpas',
-        version: '2.0.0',
-        endpoints: [
-            '/api/categorias',
-            '/api/elementos',
-            '/api/series',
-            '/api/lotes',
-            '/api/ubicaciones',  // ← NUEVO
-            '/api/materiales',
-            '/api/unidades'
-        ]
+        version: '3.0.0',
+        modulos: {
+            inventario: [
+                '/api/categorias',
+                '/api/elementos',
+                '/api/series',
+                '/api/lotes',
+                '/api/ubicaciones',
+                '/api/materiales',
+                '/api/unidades'
+            ],
+            productos: [
+                '/api/categorias-productos',
+                '/api/elementos-compuestos'
+            ],
+            alquileres: [
+                '/api/clientes',
+                '/api/cotizaciones',
+                '/api/alquileres'
+            ]
+        }
     });
 });
 
-// Registrar rutas
+// Registrar rutas - Inventario (Stock físico)
 app.use('/api/categorias', categoriasRoutes);
 app.use('/api/elementos', elementosRoutes);
 app.use('/api/series', seriesRoutes);
 app.use('/api/lotes', lotesRoutes);
-app.use('/api/ubicaciones', ubicacionesRoutes);  
+app.use('/api/ubicaciones', ubicacionesRoutes);
 app.use('/api/materiales', materialesRoutes);
 app.use('/api/unidades', unidadesRoutes);
+
+// Registrar rutas - Productos (Plantillas)
+app.use('/api/categorias-productos', categoriasProductosRoutes);
+app.use('/api/elementos-compuestos', elementosCompuestosRoutes);
+
+// Registrar rutas - Alquileres (Operación comercial)
+app.use('/api/clientes', clientesRoutes);
+app.use('/api/cotizaciones', cotizacionesRoutes);
+app.use('/api/alquileres', alquileresRoutes);
 
 // ============================================
 // MANEJO DE ERRORES
@@ -97,7 +126,9 @@ const startServer = async () => {
         app.listen(PORT, () => {
             console.log('\n✅ Servidor iniciado');
             console.log(`🌐 http://localhost:${PORT}`);
-            console.log(`📦 Módulos: Categorías, Elementos, Series, Lotes, Ubicaciones, Materiales, Unidades\n`);
+            console.log(`📦 Inventario: Categorías, Elementos, Series, Lotes, Ubicaciones`);
+            console.log(`🏗️  Productos: Categorías Productos, Elementos Compuestos`);
+            console.log(`🏷️  Alquileres: Clientes, Cotizaciones, Alquileres\n`);
         });
     } catch (error) {
         console.error('\n❌ Error al iniciar:', error.message);

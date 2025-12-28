@@ -3,7 +3,7 @@
 // Clase + soporte para emoji + relaciones
 // ============================================
 
-const { pool } = require('../config/database');
+const { pool } = require('../../../config/database');
 
 class CategoriaModel {
 
@@ -164,7 +164,6 @@ class CategoriaModel {
       [id]
     );
     const total = rows[0].total;
-    console.log(`[DEBUG] tieneElementos(${id}): total=${total}, result=${total > 0}`);
 
     // Si es una categoría padre, también verificar subcategorías
     const [subcategoriasRows] = await pool.query(
@@ -173,14 +172,11 @@ class CategoriaModel {
     );
 
     if (subcategoriasRows.length > 0) {
-      console.log(`[DEBUG] Categoría ${id} tiene ${subcategoriasRows.length} subcategorías`);
-      // Verificar elementos en subcategorías
       for (const subcat of subcategoriasRows) {
         const [elementosEnSubcat] = await pool.query(
           'SELECT COUNT(*) AS total FROM elementos WHERE categoria_id = ?',
           [subcat.id]
         );
-        console.log(`[DEBUG] Subcategoría ${subcat.id} tiene ${elementosEnSubcat[0].total} elementos`);
         if (elementosEnSubcat[0].total > 0) {
           return true;
         }

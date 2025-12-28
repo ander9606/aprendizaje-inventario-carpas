@@ -3,7 +3,7 @@
 // ============================================
 
 const MaterialModel = require('../models/MaterialModel')
-const AppError = require('../utils/AppError')
+const AppError = require('../../../utils/AppError')
 
 class MaterialController {
 

@@ -3,7 +3,7 @@
 // Responsabilidad: Consultas SQL de lotes
 // ============================================
 
-const { pool } = require('../config/database');
+const { pool } = require('../../../config/database');
 
 class LoteModel {
 

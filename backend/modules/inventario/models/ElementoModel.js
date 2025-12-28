@@ -3,7 +3,7 @@
 // Responsabilidad: Consultas SQL de elementos
 // ============================================
 
-const { pool } = require('../config/database');
+const { pool } = require('../../../config/database');
 
 class ElementoModel {
     

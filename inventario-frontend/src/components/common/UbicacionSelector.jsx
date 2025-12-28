@@ -64,7 +64,7 @@ const UbicacionSelector = ({
   
   // Sincronizar cuando cambia el value externo
   useEffect(() => {
-    setInputValue(value)
+    setInputValue(value || '')
   }, [value])
   
   // ============================================

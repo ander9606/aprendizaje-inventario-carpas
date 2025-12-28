@@ -6,7 +6,7 @@
 const express = require('express');
 const router = express.Router();
 const categoriaController = require('../controllers/categoriaController');
-const { validateId } = require('../middleware/validator');
+const { validateId } = require('../../../middleware/validator');
 
 // ============================================
 // DEFINIR RUTAS
