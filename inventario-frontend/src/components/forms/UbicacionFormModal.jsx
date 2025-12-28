@@ -266,12 +266,25 @@ const UbicacionFormModal = ({
                 disabled:bg-slate-100 disabled:cursor-not-allowed
               "
             >
-              <option value="bodega">🏢 Bodega</option>
-              <option value="finca">🌾 Finca</option>
-              <option value="evento">🎪 Evento</option>
-              <option value="taller">🔧 Taller</option>
-              <option value="transito">🚚 Tránsito</option>
-              <option value="otro">📍 Otro</option>
+              <optgroup label="Almacenamiento">
+                <option value="bodega">🏢 Bodega</option>
+                <option value="taller">🔧 Taller</option>
+                <option value="transito">🚚 Tránsito</option>
+              </optgroup>
+              <optgroup label="Lugares de Eventos">
+                <option value="finca">🌾 Finca</option>
+                <option value="hacienda">🏡 Hacienda / Quinta</option>
+                <option value="jardin">🎊 Jardín de Eventos</option>
+                <option value="club">🏌️ Club</option>
+                <option value="hotel">🏨 Hotel / Resort</option>
+                <option value="playa">🏖️ Playa</option>
+                <option value="parque">🌳 Parque</option>
+                <option value="residencia">🏠 Residencia Particular</option>
+                <option value="evento">🎪 Evento Temporal</option>
+              </optgroup>
+              <optgroup label="Otros">
+                <option value="otro">📍 Otro</option>
+              </optgroup>
             </select>
           </div>
         </div>
