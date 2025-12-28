@@ -10,5 +10,8 @@ export { default as lotesAPI } from './apiLotes'
 export { default as materialesAPI } from './apiMateriales'
 export { default as unidadesAPI } from './apiUnidades'
 
+// Módulo de productos (elementos compuestos)
+export { categoriasProductosAPI, elementosCompuestosAPI } from './apiProductos'
+
 // También exportar la instancia de axios por si se necesita
 export { default as api } from './Axios.config'
