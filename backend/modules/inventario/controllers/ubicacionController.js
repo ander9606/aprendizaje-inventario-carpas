@@ -6,6 +6,28 @@
 const UbicacionModel = require('../models/UbicacionModel');
 
 // ============================================
+// TIPOS DE UBICACIÓN VÁLIDOS
+// ============================================
+const TIPOS_VALIDOS = [
+    // Almacenamiento
+    'bodega',
+    'taller',
+    'transito',
+    // Lugares de eventos
+    'finca',
+    'hacienda',
+    'jardin',
+    'club',
+    'hotel',
+    'playa',
+    'parque',
+    'residencia',
+    'evento',
+    // Otros
+    'otro'
+];
+
+// ============================================
 // OBTENER TODAS LAS UBICACIONES
 // ============================================
 exports.obtenerTodas = async (req, res) => {
@@ -112,11 +134,10 @@ exports.obtenerPorTipo = async (req, res) => {
         const { tipo } = req.params;
 
         // Validar tipo
-        const tiposValidos = ['bodega', 'finca', 'evento', 'taller', 'transito', 'otro'];
-        if (!tiposValidos.includes(tipo)) {
+        if (!TIPOS_VALIDOS.includes(tipo)) {
             return res.status(400).json({
                 success: false,
-                message: `Tipo no válido. Debe ser uno de: ${tiposValidos.join(', ')}`
+                message: `Tipo no válido. Debe ser uno de: ${TIPOS_VALIDOS.join(', ')}`
             });
         }
 
@@ -221,14 +242,11 @@ exports.crear = async (req, res) => {
         }
 
         // Validar tipo si viene
-        if (tipo) {
-            const tiposValidos = ['bodega', 'finca', 'evento', 'taller', 'transito', 'otro'];
-            if (!tiposValidos.includes(tipo)) {
-                return res.status(400).json({
-                    success: false,
-                    message: `Tipo no válido. Debe ser uno de: ${tiposValidos.join(', ')}`
-                });
-            }
+        if (tipo && !TIPOS_VALIDOS.includes(tipo)) {
+            return res.status(400).json({
+                success: false,
+                message: `Tipo no válido. Debe ser uno de: ${TIPOS_VALIDOS.join(', ')}`
+            });
         }
 
         const nuevoId = await UbicacionModel.crear(req.body);
@@ -286,14 +304,11 @@ exports.actualizar = async (req, res) => {
         }
 
         // Validar tipo si viene
-        if (tipo) {
-            const tiposValidos = ['bodega', 'finca', 'evento', 'taller', 'transito', 'otro'];
-            if (!tiposValidos.includes(tipo)) {
-                return res.status(400).json({
-                    success: false,
-                    message: `Tipo no válido. Debe ser uno de: ${tiposValidos.join(', ')}`
-                });
-            }
+        if (tipo && !TIPOS_VALIDOS.includes(tipo)) {
+            return res.status(400).json({
+                success: false,
+                message: `Tipo no válido. Debe ser uno de: ${TIPOS_VALIDOS.join(', ')}`
+            });
         }
 
         await UbicacionModel.actualizar(id, req.body);
