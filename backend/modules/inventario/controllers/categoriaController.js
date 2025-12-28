@@ -4,11 +4,11 @@
 // ============================================
 
 const CategoriaModel = require('../models/CategoriaModel');
-const AppError = require('../utils/AppError');
-const logger = require('../utils/logger');
-const { validateNombre, validateEmoji, validateId } = require('../utils/validators');
-const { MENSAJES_ERROR, MENSAJES_EXITO, ENTIDADES } = require('../config/constants');
-const { getPaginationParams, getPaginatedResponse, shouldPaginate, getSortParams } = require('../utils/pagination');
+const AppError = require('../../../utils/AppError');
+const logger = require('../../../utils/logger');
+const { validateNombre, validateEmoji, validateId } = require('../../../utils/validators');
+const { MENSAJES_ERROR, MENSAJES_EXITO, ENTIDADES } = require('../../../config/constants');
+const { getPaginationParams, getPaginatedResponse, shouldPaginate, getSortParams } = require('../../../utils/pagination');
 
 /**
  * MEJORAS EN ESTA VERSIÓN:

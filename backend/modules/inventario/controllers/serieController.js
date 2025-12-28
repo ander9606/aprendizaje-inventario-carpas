@@ -5,15 +5,15 @@
 
 const SerieModel = require('../models/SerieModel');
 const ElementoModel = require('../models/ElementoModel');
-const AppError = require('../utils/AppError');
-const logger = require('../utils/logger');
+const AppError = require('../../../utils/AppError');
+const logger = require('../../../utils/logger');
 const {
     validateRequired,
     validateId,
     validateEstado
-} = require('../utils/validators');
-const { MENSAJES_ERROR, MENSAJES_EXITO, ENTIDADES, ESTADOS_VALIDOS } = require('../config/constants');
-const { getPaginationParams, getPaginatedResponse, shouldPaginate, getSortParams } = require('../utils/pagination');
+} = require('../../../utils/validators');
+const { MENSAJES_ERROR, MENSAJES_EXITO, ENTIDADES, ESTADOS_VALIDOS } = require('../../../config/constants');
+const { getPaginationParams, getPaginatedResponse, shouldPaginate, getSortParams } = require('../../../utils/pagination');
 
 /**
  * MEJORAS EN ESTA VERSIÓN:

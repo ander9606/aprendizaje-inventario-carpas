@@ -5,8 +5,8 @@
 
 const ElementoModel = require('../models/ElementoModel');
 const LoteModel = require('../models/LoteModel');
-const AppError = require('../utils/AppError');
-const logger = require('../utils/logger');
+const AppError = require('../../../utils/AppError');
+const logger = require('../../../utils/logger');
 
 const {
     validateNombre,
@@ -16,16 +16,16 @@ const {
     validateId,
     validateEstado,
     validateTerminoBusqueda
-} = require('../utils/validators');
+} = require('../../../utils/validators');
 
-const { MENSAJES_ERROR, MENSAJES_EXITO, ENTIDADES } = require('../config/constants');
+const { MENSAJES_ERROR, MENSAJES_EXITO, ENTIDADES } = require('../../../config/constants');
 
 const {
     getPaginationParams,
     getPaginatedResponse,
     shouldPaginate,
     getSortParams
-} = require('../utils/pagination');
+} = require('../../../utils/pagination');
 
 // ============================================
 // LISTAR ELEMENTOS (con y sin paginación)

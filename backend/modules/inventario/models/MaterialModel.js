@@ -2,7 +2,7 @@
 // MODELO: MATERIALES
 // ============================================
 
-const { pool } = require('../config/database')
+const { pool } = require('../../../config/database')
 
 class MaterialModel {
 

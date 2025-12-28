@@ -3,7 +3,7 @@
 // Clase + soporte para emoji + relaciones
 // ============================================
 
-const { pool } = require('../config/database');
+const { pool } = require('../../../config/database');
 
 class CategoriaModel {
 

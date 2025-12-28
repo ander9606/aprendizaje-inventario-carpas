@@ -3,7 +3,7 @@
 // Responsabilidad: Consultas SQL de unidades
 // ============================================
 
-const { pool } = require('../config/database');
+const { pool } = require('../../../config/database');
 
 class UnidadModel {
     
