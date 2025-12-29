@@ -4,7 +4,7 @@
 // ============================================
 
 import { useState } from 'react'
-import { Plus, Package, MapPin } from 'lucide-react'
+import { Plus, Package, MapPin, Tent } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import {
   useGetCategoriasPadre,
@@ -187,6 +187,16 @@ export default function Dashboard() {
 
             {/* Botones de acciones */}
             <div className="flex gap-3">
+              {/* Botón: Productos de Alquiler */}
+              <Button
+                variant="secondary"
+                icon={<Tent />}
+                onClick={() => navigate('/productos/alquiler')}
+                className="bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
+              >
+                Productos Alquiler
+              </Button>
+
               {/* Botón: Gestionar ubicaciones */}
               <Button
                 variant="secondary"
