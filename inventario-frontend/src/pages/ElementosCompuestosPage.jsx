@@ -31,6 +31,7 @@ import {
 // Componentes comunes
 import Button from '../components/common/Button'
 import Modal from '../components/common/Modal'
+import ElementoCompuestoFormModal from '../components/forms/ElementoCompuestoFormModal'
 
 /**
  * ElementosCompuestosPage
@@ -359,24 +360,16 @@ function ElementosCompuestosPage() {
           )}
         </Modal>
 
-        {/* TODO: Modal de formulario (multi-paso) */}
-        {showFormModal && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4">
-              <h2 className="text-xl font-bold mb-4">
-                {elementoToEdit ? 'Editar Plantilla' : 'Nueva Plantilla'}
-              </h2>
-              <p className="text-slate-600 mb-4">
-                El formulario multi-paso se implementará a continuación.
-              </p>
-              <div className="flex justify-end gap-3">
-                <Button variant="ghost" onClick={() => setShowFormModal(false)}>
-                  Cerrar
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
+        {/* Modal de formulario (multi-paso) */}
+        <ElementoCompuestoFormModal
+          isOpen={showFormModal}
+          onClose={() => {
+            setShowFormModal(false)
+            setElementoToEdit(null)
+          }}
+          onSuccess={handleFormSuccess}
+          elemento={elementoToEdit}
+        />
       </div>
     </div>
   )
