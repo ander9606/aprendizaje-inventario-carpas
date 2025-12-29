@@ -10,15 +10,14 @@ import {
   Tent,
   Plus,
   Search,
-  ChevronDown,
-  ChevronRight,
   ArrowLeft,
   Package,
   Layers,
   DollarSign,
   Edit,
   Trash2,
-  Eye
+  Eye,
+  FolderOpen
 } from 'lucide-react'
 
 // Hooks
@@ -31,13 +30,14 @@ import {
 // Componentes comunes
 import Button from '../components/common/Button'
 import Modal from '../components/common/Modal'
+import Card from '../components/common/Card'
 import ElementoCompuestoFormModal from '../components/forms/ElementoCompuestoFormModal'
 
 /**
  * ElementosCompuestosPage
  *
  * Página principal para gestionar elementos compuestos (plantillas de alquiler).
- * Muestra elementos agrupados por categoría con opciones de crear, editar y eliminar.
+ * Muestra categorías como tarjetas clickeables para ver sus elementos.
  */
 function ElementosCompuestosPage() {
   const navigate = useNavigate()
@@ -46,8 +46,7 @@ function ElementosCompuestosPage() {
   // ESTADOS
   // ============================================
   const [searchTerm, setSearchTerm] = useState('')
-  const [selectedCategoria, setSelectedCategoria] = useState('')
-  const [expandedCategorias, setExpandedCategorias] = useState({})
+  const [selectedCategoria, setSelectedCategoria] = useState(null)
   const [showFormModal, setShowFormModal] = useState(false)
   const [elementoToEdit, setElementoToEdit] = useState(null)
   const [elementoToDelete, setElementoToDelete] = useState(null)
@@ -64,31 +63,21 @@ function ElementosCompuestosPage() {
   // FUNCIONES AUXILIARES
   // ============================================
 
-  // Agrupar elementos por categoría
-  const elementosPorCategoria = elementos.reduce((acc, elemento) => {
-    const catId = elemento.categoria_id || 'sin-categoria'
-    if (!acc[catId]) {
-      acc[catId] = []
-    }
-    acc[catId].push(elemento)
-    return acc
-  }, {})
-
-  // Filtrar elementos
-  const filtrarElementos = (lista) => {
-    if (!searchTerm) return lista
-    return lista.filter(el =>
-      el.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      el.codigo?.toLowerCase().includes(searchTerm.toLowerCase())
-    )
+  // Contar elementos por categoría
+  const contarElementosPorCategoria = (categoriaId) => {
+    return elementos.filter(el => el.categoria_id === categoriaId).length
   }
 
-  // Toggle categoría expandida
-  const toggleCategoria = (catId) => {
-    setExpandedCategorias(prev => ({
-      ...prev,
-      [catId]: !prev[catId]
-    }))
+  // Obtener elementos de una categoría
+  const getElementosDeCategoria = (categoriaId) => {
+    let lista = elementos.filter(el => el.categoria_id === categoriaId)
+    if (searchTerm) {
+      lista = lista.filter(el =>
+        el.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        el.codigo?.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    }
+    return lista
   }
 
   // Formatear precio
@@ -137,6 +126,15 @@ function ElementosCompuestosPage() {
     refetch()
   }
 
+  const handleSelectCategoria = (categoria) => {
+    setSelectedCategoria(categoria)
+  }
+
+  const handleBackToCategorias = () => {
+    setSelectedCategoria(null)
+    setSearchTerm('')
+  }
+
   // ============================================
   // RENDERIZADO
   // ============================================
@@ -150,21 +148,24 @@ function ElementosCompuestosPage() {
         {/* Header */}
         <div className="mb-6">
           <button
-            onClick={() => navigate('/productos')}
+            onClick={() => selectedCategoria ? handleBackToCategorias() : navigate('/productos')}
             className="flex items-center gap-2 text-slate-600 hover:text-slate-900 mb-4 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span>Volver a Productos</span>
+            <span>{selectedCategoria ? 'Volver a Categorías' : 'Volver a Productos'}</span>
           </button>
 
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold text-slate-900 flex items-center gap-3">
                 <Tent className="w-8 h-8 text-emerald-600" />
-                Elementos Compuestos
+                {selectedCategoria ? selectedCategoria.nombre : 'Productos de Alquiler'}
               </h1>
               <p className="text-slate-600 mt-1">
-                Plantillas de productos para cotizar y alquilar
+                {selectedCategoria
+                  ? `${getElementosDeCategoria(selectedCategoria.id).length} plantilla(s) en esta categoría`
+                  : 'Plantillas de productos para cotizar y alquilar'
+                }
               </p>
             </div>
 
@@ -179,139 +180,93 @@ function ElementosCompuestosPage() {
           </div>
         </div>
 
-        {/* Filtros */}
-        <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4 mb-6">
-          <div className="flex flex-col md:flex-row gap-4">
-            {/* Búsqueda */}
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Buscar por nombre o código..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              />
-            </div>
-
-            {/* Filtro por categoría */}
-            <div className="w-full md:w-64">
-              <select
-                value={selectedCategoria}
-                onChange={(e) => setSelectedCategoria(e.target.value)}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              >
-                <option value="">Todas las categorías</option>
-                {categorias.map(cat => (
-                  <option key={cat.id} value={cat.id}>{cat.nombre}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-        </div>
-
         {/* Estado de carga */}
         {isLoading && (
           <div className="text-center py-12">
             <div className="animate-spin w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-            <p className="text-slate-600">Cargando elementos...</p>
+            <p className="text-slate-600">Cargando...</p>
           </div>
         )}
 
-        {/* Lista vacía */}
-        {!isLoading && elementos.length === 0 && (
-          <div className="text-center py-12 bg-white rounded-lg border border-slate-200">
-            <Tent className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-slate-900 mb-2">
-              No hay elementos compuestos
-            </h3>
-            <p className="text-slate-600 mb-6">
-              Crea tu primera plantilla de producto para empezar a cotizar
-            </p>
-            <Button variant="primary" onClick={handleCrear}>
-              <Plus className="w-4 h-4 mr-2" />
-              Crear Plantilla
-            </Button>
-          </div>
-        )}
-
-        {/* Lista de elementos por categoría */}
-        {!isLoading && elementos.length > 0 && (
-          <div className="space-y-4">
-            {categorias
-              .filter(cat => !selectedCategoria || cat.id === parseInt(selectedCategoria))
-              .map(categoria => {
-                const elementosDeCategoria = filtrarElementos(elementosPorCategoria[categoria.id] || [])
-                if (elementosDeCategoria.length === 0) return null
-
-                const isExpanded = expandedCategorias[categoria.id] !== false
-
-                return (
-                  <div
+        {/* ============================================
+            VISTA DE CATEGORÍAS (cuando no hay categoría seleccionada)
+            ============================================ */}
+        {!isLoading && !selectedCategoria && (
+          <>
+            {categorias.length === 0 ? (
+              <div className="text-center py-12 bg-white rounded-lg border border-slate-200">
+                <Layers className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-slate-900 mb-2">
+                  No hay categorías de productos
+                </h3>
+                <p className="text-slate-600 mb-6">
+                  Primero crea categorías para organizar tus plantillas
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {categorias.map((categoria) => (
+                  <CategoriaProductoCard
                     key={categoria.id}
-                    className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden"
-                  >
-                    {/* Header de categoría */}
-                    <button
-                      onClick={() => toggleCategoria(categoria.id)}
-                      className="w-full px-4 py-3 flex items-center justify-between bg-slate-50 hover:bg-slate-100 transition-colors"
-                    >
-                      <div className="flex items-center gap-3">
-                        {isExpanded ? (
-                          <ChevronDown className="w-5 h-5 text-slate-500" />
-                        ) : (
-                          <ChevronRight className="w-5 h-5 text-slate-500" />
-                        )}
-                        <Layers className="w-5 h-5 text-emerald-600" />
-                        <span className="font-medium text-slate-900">
-                          {categoria.nombre}
-                        </span>
-                        <span className="text-sm text-slate-500">
-                          ({elementosDeCategoria.length})
-                        </span>
-                      </div>
-                    </button>
-
-                    {/* Lista de elementos */}
-                    {isExpanded && (
-                      <div className="p-4 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                        {elementosDeCategoria.map(elemento => (
-                          <ElementoCompuestoCard
-                            key={elemento.id}
-                            elemento={elemento}
-                            onVer={() => handleVer(elemento)}
-                            onEditar={() => handleEditar(elemento)}
-                            onEliminar={() => setElementoToDelete(elemento)}
-                            formatPrecio={formatPrecio}
-                          />
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
-
-            {/* Elementos sin categoría */}
-            {elementosPorCategoria['sin-categoria']?.length > 0 && (
-              <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
-                <div className="px-4 py-3 bg-slate-50">
-                  <span className="font-medium text-slate-900">Sin categoría</span>
-                </div>
-                <div className="p-4 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                  {filtrarElementos(elementosPorCategoria['sin-categoria']).map(elemento => (
-                    <ElementoCompuestoCard
-                      key={elemento.id}
-                      elemento={elemento}
-                      onVer={() => handleVer(elemento)}
-                      onEditar={() => handleEditar(elemento)}
-                      onEliminar={() => setElementoToDelete(elemento)}
-                      formatPrecio={formatPrecio}
-                    />
-                  ))}
-                </div>
+                    categoria={categoria}
+                    cantidadElementos={contarElementosPorCategoria(categoria.id)}
+                    onClick={() => handleSelectCategoria(categoria)}
+                  />
+                ))}
               </div>
             )}
-          </div>
+          </>
+        )}
+
+        {/* ============================================
+            VISTA DE ELEMENTOS (cuando hay categoría seleccionada)
+            ============================================ */}
+        {!isLoading && selectedCategoria && (
+          <>
+            {/* Buscador */}
+            <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4 mb-6">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Buscar por nombre o código..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+            </div>
+
+            {/* Lista de elementos */}
+            {getElementosDeCategoria(selectedCategoria.id).length === 0 ? (
+              <div className="text-center py-12 bg-white rounded-lg border border-slate-200">
+                <Tent className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-slate-900 mb-2">
+                  No hay plantillas en esta categoría
+                </h3>
+                <p className="text-slate-600 mb-6">
+                  Crea tu primera plantilla para empezar a cotizar
+                </p>
+                <Button variant="primary" onClick={handleCrear}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Crear Plantilla
+                </Button>
+              </div>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {getElementosDeCategoria(selectedCategoria.id).map(elemento => (
+                  <ElementoCompuestoCard
+                    key={elemento.id}
+                    elemento={elemento}
+                    onVer={() => handleVer(elemento)}
+                    onEditar={() => handleEditar(elemento)}
+                    onEliminar={() => setElementoToDelete(elemento)}
+                    formatPrecio={formatPrecio}
+                  />
+                ))}
+              </div>
+            )}
+          </>
         )}
 
         {/* Modal de confirmación de eliminación */}
@@ -376,12 +331,61 @@ function ElementosCompuestosPage() {
 }
 
 // ============================================
+// COMPONENTE: Tarjeta de Categoría de Producto
+// ============================================
+
+function CategoriaProductoCard({ categoria, cantidadElementos, onClick }) {
+  return (
+    <Card
+      variant="outlined"
+      className="hover:shadow-lg transition-all duration-200 cursor-pointer hover:border-emerald-300"
+      onClick={onClick}
+    >
+      <Card.Header>
+        <div className="flex items-center gap-3">
+          <div className="text-4xl">
+            {categoria.emoji || '📦'}
+          </div>
+          <Card.Title className="flex-1">
+            {categoria.nombre}
+          </Card.Title>
+        </div>
+        {categoria.descripcion && (
+          <Card.Description>
+            {categoria.descripcion}
+          </Card.Description>
+        )}
+      </Card.Header>
+
+      <Card.Content>
+        <div className="flex items-center gap-2 text-slate-600">
+          <Tent className="w-5 h-5" />
+          <span className="font-medium">
+            {cantidadElementos} plantilla{cantidadElementos !== 1 ? 's' : ''}
+          </span>
+        </div>
+      </Card.Content>
+
+      <Card.Footer>
+        <Button
+          variant="primary"
+          fullWidth
+          icon={<FolderOpen />}
+        >
+          Ver Plantillas
+        </Button>
+      </Card.Footer>
+    </Card>
+  )
+}
+
+// ============================================
 // COMPONENTE: Tarjeta de Elemento Compuesto
 // ============================================
 
 function ElementoCompuestoCard({ elemento, onVer, onEditar, onEliminar, formatPrecio }) {
   return (
-    <div className="border border-slate-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+    <div className="bg-white border border-slate-200 rounded-lg p-4 hover:shadow-md transition-shadow">
       {/* Header */}
       <div className="flex items-start justify-between mb-3">
         <div>

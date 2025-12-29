@@ -255,7 +255,16 @@ function ElementoCompuestoFormModal({
       onSuccess?.()
       onClose()
     } catch (error) {
-      toast.error(error.response?.data?.mensaje || 'Error al guardar')
+      // Manejar errores específicos
+      const mensaje = error.response?.data?.message || error.response?.data?.mensaje
+
+      if (mensaje?.includes('Duplicate entry') && mensaje?.includes('codigo')) {
+        toast.error('El código ya existe. Usa un código diferente.')
+        setErrors(prev => ({ ...prev, codigo: 'Este código ya está en uso' }))
+        setCurrentStep(1) // Volver al paso 1 para corregir
+      } else {
+        toast.error(mensaje || 'Error al guardar la plantilla')
+      }
     }
   }
 
