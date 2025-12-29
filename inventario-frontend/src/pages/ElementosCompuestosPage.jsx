@@ -36,6 +36,7 @@ import Button from '../components/common/Button'
 import Modal from '../components/common/Modal'
 import Card from '../components/common/Card'
 import ElementoCompuestoFormModal from '../components/forms/ElementoCompuestoFormModal'
+import CategoriaProductoFormModal from '../components/forms/CategoriaProductoFormModal'
 
 /**
  * ElementosCompuestosPage
@@ -55,11 +56,13 @@ function ElementosCompuestosPage() {
   const [elementoToEdit, setElementoToEdit] = useState(null)
   const [elementoToDelete, setElementoToDelete] = useState(null)
   const [elementoToView, setElementoToView] = useState(null)
+  const [showCategoriaModal, setShowCategoriaModal] = useState(false)
+  const [categoriaToEdit, setCategoriaToEdit] = useState(null)
 
   // ============================================
   // HOOKS DE DATOS
   // ============================================
-  const { categorias, isLoading: loadingCategorias } = useGetCategoriasProductos()
+  const { categorias, isLoading: loadingCategorias, refetch: refetchCategorias } = useGetCategoriasProductos()
   const { elementos, isLoading: loadingElementos, refetch } = useGetElementosCompuestos()
   const { deleteElemento, isPending: isDeleting } = useDeleteElementoCompuesto()
 
@@ -139,6 +142,17 @@ function ElementosCompuestosPage() {
     setSearchTerm('')
   }
 
+  const handleCrearCategoria = () => {
+    setCategoriaToEdit(null)
+    setShowCategoriaModal(true)
+  }
+
+  const handleCategoriaSuccess = () => {
+    setShowCategoriaModal(false)
+    setCategoriaToEdit(null)
+    refetchCategorias()
+  }
+
   // ============================================
   // RENDERIZADO
   // ============================================
@@ -173,14 +187,26 @@ function ElementosCompuestosPage() {
               </p>
             </div>
 
-            <Button
-              variant="primary"
-              onClick={handleCrear}
-              className="flex items-center gap-2"
-            >
-              <Plus className="w-4 h-4" />
-              Nueva Plantilla
-            </Button>
+            <div className="flex gap-3">
+              {!selectedCategoria && (
+                <Button
+                  variant="outline"
+                  onClick={handleCrearCategoria}
+                  className="flex items-center gap-2 border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                >
+                  <FolderOpen className="w-4 h-4" />
+                  Nueva Categoría
+                </Button>
+              )}
+              <Button
+                variant="primary"
+                onClick={handleCrear}
+                className="flex items-center gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                Nueva Plantilla
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -206,6 +232,14 @@ function ElementosCompuestosPage() {
                 <p className="text-slate-600 mb-6">
                   Primero crea categorías para organizar tus plantillas
                 </p>
+                <Button
+                  variant="primary"
+                  onClick={handleCrearCategoria}
+                  className="bg-emerald-600 hover:bg-emerald-700"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Crear Primera Categoría
+                </Button>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -328,6 +362,17 @@ function ElementosCompuestosPage() {
           }}
           onSuccess={handleFormSuccess}
           elemento={elementoToEdit}
+        />
+
+        {/* Modal de categoría */}
+        <CategoriaProductoFormModal
+          isOpen={showCategoriaModal}
+          onClose={() => {
+            setShowCategoriaModal(false)
+            setCategoriaToEdit(null)
+          }}
+          onSuccess={handleCategoriaSuccess}
+          categoria={categoriaToEdit}
         />
       </div>
     </div>

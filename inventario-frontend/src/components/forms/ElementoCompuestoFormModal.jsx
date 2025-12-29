@@ -22,6 +22,7 @@ import {
 
 import Modal from '../common/Modal'
 import Button from '../common/Button'
+import CategoriaProductoFormModal from './CategoriaProductoFormModal'
 
 // Hooks
 import { useGetCategoriasProductos } from '../../hooks/UseCategoriasProductos'
@@ -68,12 +69,13 @@ function ElementoCompuestoFormModal({
   const [componentesAdicionales, setComponentesAdicionales] = useState([])
 
   const [errors, setErrors] = useState({})
+  const [showCategoriaModal, setShowCategoriaModal] = useState(false)
 
   // ============================================
   // HOOKS DE DATOS
   // ============================================
 
-  const { categorias, isLoading: loadingCategorias } = useGetCategoriasProductos()
+  const { categorias, isLoading: loadingCategorias, refetch: refetchCategorias } = useGetCategoriasProductos()
   const { elementos: elementosInventario, isLoading: loadingElementos } = useGetTodosElementos()
 
   const { createElemento, isPending: isCreating } = useCreateElementoCompuesto()
@@ -356,6 +358,7 @@ function ElementoCompuestoFormModal({
   // ============================================
 
   return (
+    <>
     <Modal
       isOpen={isOpen}
       onClose={onClose}
@@ -378,6 +381,7 @@ function ElementoCompuestoFormModal({
             categorias={categorias}
             loadingCategorias={loadingCategorias}
             onChange={handleInputChange}
+            onOpenCategoriaModal={() => setShowCategoriaModal(true)}
           />
         )}
 
@@ -452,6 +456,17 @@ function ElementoCompuestoFormModal({
         </div>
       </Modal.Footer>
     </Modal>
+
+    {/* Modal para crear nueva categoría */}
+    <CategoriaProductoFormModal
+      isOpen={showCategoriaModal}
+      onClose={() => setShowCategoriaModal(false)}
+      onSuccess={() => {
+        setShowCategoriaModal(false)
+        refetchCategorias()
+      }}
+    />
+    </>
   )
 }
 
@@ -510,7 +525,7 @@ function StepIndicator({ steps, currentStep, onStepClick }) {
 // PASO 1: Información Básica
 // ============================================
 
-function Step1InfoBasica({ formData, errors, categorias, loadingCategorias, onChange }) {
+function Step1InfoBasica({ formData, errors, categorias, loadingCategorias, onChange, onOpenCategoriaModal }) {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2 mb-4">
@@ -523,22 +538,32 @@ function Step1InfoBasica({ formData, errors, categorias, loadingCategorias, onCh
         <label className="block text-sm font-medium text-slate-700 mb-1">
           Categoría *
         </label>
-        <select
-          name="categoria_id"
-          value={formData.categoria_id}
-          onChange={onChange}
-          disabled={loadingCategorias}
-          className={`
-            w-full px-4 py-2 border rounded-lg
-            focus:outline-none focus:ring-2 focus:ring-emerald-500
-            ${errors.categoria_id ? 'border-red-300' : 'border-slate-300'}
-          `}
-        >
-          <option value="">Selecciona una categoría...</option>
-          {categorias.map(cat => (
-            <option key={cat.id} value={cat.id}>{cat.nombre}</option>
-          ))}
-        </select>
+        <div className="flex gap-2">
+          <select
+            name="categoria_id"
+            value={formData.categoria_id}
+            onChange={onChange}
+            disabled={loadingCategorias}
+            className={`
+              flex-1 px-4 py-2 border rounded-lg
+              focus:outline-none focus:ring-2 focus:ring-emerald-500
+              ${errors.categoria_id ? 'border-red-300' : 'border-slate-300'}
+            `}
+          >
+            <option value="">Selecciona una categoría...</option>
+            {categorias.map(cat => (
+              <option key={cat.id} value={cat.id}>{cat.emoji || '📦'} {cat.nombre}</option>
+            ))}
+          </select>
+          <button
+            type="button"
+            onClick={onOpenCategoriaModal}
+            className="px-3 py-2 bg-emerald-50 text-emerald-700 border border-emerald-300 rounded-lg hover:bg-emerald-100 transition-colors flex items-center gap-1"
+            title="Crear nueva categoría"
+          >
+            <Plus className="w-4 h-4" />
+          </button>
+        </div>
         {errors.categoria_id && (
           <p className="mt-1 text-sm text-red-600">{errors.categoria_id}</p>
         )}
