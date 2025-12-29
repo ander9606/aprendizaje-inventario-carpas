@@ -238,7 +238,7 @@ function DevolverSerieBodegaModal({
         </div>
 
         {/* Badge de ubicación principal */}
-        {ubicacionPrincipal.es_principal && (
+        {!!ubicacionPrincipal.es_principal && (
           <div className="mb-4 flex items-center justify-center gap-2 text-xs text-slate-600">
             <span>⭐</span>
             <span>Ubicación principal del sistema</span>

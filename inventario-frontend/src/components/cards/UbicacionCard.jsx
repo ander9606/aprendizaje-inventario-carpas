@@ -186,7 +186,7 @@ const UbicacionCard = ({
             {/* Badges */}
             <div className="mb-2 flex flex-wrap gap-2">
               {/* Badge: Principal */}
-              {ubicacion.es_principal && (
+              {!!ubicacion.es_principal && (
                 <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-bold rounded-full bg-yellow-100 text-yellow-800 border border-yellow-300">
                   <Star className="w-3 h-3 fill-yellow-500" />
                   PRINCIPAL
