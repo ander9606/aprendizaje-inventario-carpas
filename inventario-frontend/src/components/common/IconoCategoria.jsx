@@ -1,17 +1,26 @@
-export function IconoCategoria({
-  value,
-  size = 32,
-  className = ''
-}) {
-  if (!value) return null
+// ============================================
+// COMPONENTE: IconoCategoria
+// Renderiza un emoji como icono de categoría
+// ============================================
 
-  return (
-    <span
-      style={{ fontSize: size }}
-      className={`inline-flex items-center justify-center ${className}`}
-      aria-hidden="true"
-    >
-      {value}
-    </span>
-  )
+/**
+ * Componente que renderiza un emoji como icono
+ *
+ * @param {string} value - El emoji a mostrar
+ * @param {string} className - Clases CSS adicionales
+ * @param {number} size - Tamaño del emoji (para compatibilidad)
+ *
+ * @example
+ * <IconoCategoria value="🎪" className="text-4xl" />
+ */
+export function IconoCategoria({ value, className = '',  }) {
+  // Si no hay valor, mostrar emoji por defecto
+  if (!value) {
+    return <span className={className}>📦</span>
+  }
+
+  // Renderizar el emoji
+  return <span className={className}>{value}</span>
 }
+
+export default IconoCategoria
