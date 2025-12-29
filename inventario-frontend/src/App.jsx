@@ -5,6 +5,9 @@
 
 import { Routes, Route } from 'react-router-dom'
 
+// Importar páginas - Dashboard principal
+import ModulosDashboard from './pages/ModulosDashboard'
+
 // Importar páginas - Inventario Individual
 import Dashboard from './pages/Dashboard'
 import Subcategorias from './pages/Subcategorias'
@@ -21,80 +24,127 @@ import ElementosCompuestosPage from './pages/ElementosCompuestosPage'
  *
  * Este componente define las rutas de la aplicación.
  *
+ * RUTAS PRINCIPALES:
+ * /                                                                                  → Dashboard de Módulos
+ *
  * RUTAS INVENTARIO INDIVIDUAL:
- * /                                                                                  → Dashboard (Nivel 1: Categorías padre)
- * /categorias/:categoriaId                                                           → Subcategorias (Nivel 2: Subcategorías)
- * /categorias/:categoriaId/subcategorias/:subcategoriaId/elementos                   → Elementos (Nivel 3: Elementos)
- * /categorias/:categoriaId/subcategorias/:subcategoriaId/elementos/:elementoId       → Detalle de Elemento (Nivel 4)
+ * /inventario                                                                        → Dashboard Inventario (Categorías padre)
+ * /inventario/categorias/:categoriaId                                                → Subcategorias (Nivel 2)
+ * /inventario/categorias/:categoriaId/subcategorias/:subcategoriaId/elementos        → Elementos (Nivel 3)
+ * /inventario/categorias/:categoriaId/subcategorias/:subcategoriaId/elementos/:id    → Detalle de Elemento (Nivel 4)
+ * /inventario/ubicaciones                                                            → Gestión de ubicaciones
  *
  * RUTAS PRODUCTOS DE ALQUILER:
  * /productos                                                                         → Navegación entre módulos
  * /productos/alquiler                                                                → Elementos Compuestos
+ *
+ * RUTAS ALQUILERES (futuro):
+ * /alquileres                                                                        → Dashboard de Alquileres
  */
 function App() {
   return (
     <Routes>
       {/* ============================================
-          NIVEL 1: Dashboard (Categorías Padre)
+          DASHBOARD DE MÓDULOS
           Ruta: /
           ============================================ */}
       <Route
         path="/"
-        element={<Dashboard />}
+        element={<ModulosDashboard />}
       />
 
       {/* ============================================
-          NIVEL 2: Subcategorías
-          Ruta: /categorias/:categoriaId
+          INVENTARIO INDIVIDUAL
           ============================================ */}
+
+      {/* Dashboard de Inventario (Categorías Padre) */}
+      <Route
+        path="/inventario"
+        element={<Dashboard />}
+      />
+
+      {/* Subcategorías */}
+      <Route
+        path="/inventario/categorias/:categoriaId"
+        element={<Subcategorias />}
+      />
+
+      {/* Elementos */}
+      <Route
+        path="/inventario/categorias/:categoriaId/subcategorias/:subcategoriaId/elementos"
+        element={<ElementosPage />}
+      />
+
+      {/* Detalle de Elemento */}
+      <Route
+        path="/inventario/categorias/:categoriaId/subcategorias/:subcategoriaId/elementos/:elementoId"
+        element={<ElementoDetallePage />}
+      />
+
+      {/* Ubicaciones */}
+      <Route
+        path="/inventario/ubicaciones"
+        element={<UbicacionesPage />}
+      />
+
+      {/* Rutas antiguas - Redirección temporal para compatibilidad */}
       <Route
         path="/categorias/:categoriaId"
         element={<Subcategorias />}
       />
-
-      {/* ============================================
-          NIVEL 3: Elementos
-          Ruta: /categorias/:categoriaId/subcategorias/:subcategoriaId/elementos
-          ============================================ */}
       <Route
         path="/categorias/:categoriaId/subcategorias/:subcategoriaId/elementos"
         element={<ElementosPage />}
       />
-
-      {/* ============================================
-          NIVEL 4: Detalle de Elemento
-          Ruta: /categorias/:categoriaId/subcategorias/:subcategoriaId/elementos/:elementoId
-          ============================================ */}
       <Route
         path="/categorias/:categoriaId/subcategorias/:subcategoriaId/elementos/:elementoId"
         element={<ElementoDetallePage />}
       />
-
-      {/* ============================================
-          UBICACIONES: Gestión de ubicaciones
-          Ruta: /ubicaciones
-          ============================================ */}
       <Route
         path="/ubicaciones"
         element={<UbicacionesPage />}
       />
 
       {/* ============================================
-          PRODUCTOS: Navegación entre módulos
-          Ruta: /productos
+          PRODUCTOS DE ALQUILER
           ============================================ */}
+
+      {/* Navegación entre módulos de productos */}
       <Route
         path="/productos"
         element={<ProductosPage />}
       />
 
-      {/* ============================================
-          ELEMENTOS COMPUESTOS: Plantillas de alquiler
-          Ruta: /productos/alquiler
-          ============================================ */}
+      {/* Elementos Compuestos (Plantillas de alquiler) */}
       <Route
         path="/productos/alquiler"
         element={<ElementosCompuestosPage />}
+      />
+
+      {/* ============================================
+          ALQUILERES (Futuro)
+          ============================================ */}
+      <Route
+        path="/alquileres"
+        element={
+          <div className="min-h-screen flex items-center justify-center bg-slate-50">
+            <div className="text-center">
+              <div className="text-6xl mb-4">🚧</div>
+              <h1 className="text-2xl font-bold text-slate-900 mb-2">
+                Módulo en Desarrollo
+              </h1>
+              <p className="text-slate-600 mb-6">
+                El módulo de Alquileres estará disponible próximamente
+              </p>
+              <a
+                href="/"
+                className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Volver al inicio
+              </a>
+            </div>
+          </div>
+        }
       />
 
       {/* ============================================

@@ -29,7 +29,7 @@ const SubcategoriaCard = ({
 
   // Navegar a elementos
    const handleVerElementos = () => {
-    navigate(`/categorias/${categoriaId}/subcategorias/${subcategoria.id}/elementos`)
+    navigate(`/inventario/categorias/${categoriaId}/subcategorias/${subcategoria.id}/elementos`)
   }
 
   // Crear elemento

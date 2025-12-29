@@ -4,7 +4,7 @@
 // ============================================
 
 import { useState } from 'react'
-import { Plus, Package, MapPin, Tent } from 'lucide-react'
+import { Plus, Package, MapPin, Home, ArrowLeft } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import {
   useGetCategoriasPadre,
@@ -171,13 +171,22 @@ export default function Dashboard() {
           ============================================ */}
       <div className="bg-white border-b border-slate-200 sticky top-0 z-10 shadow-sm">
         <div className="container mx-auto px-6 py-4">
+          {/* Navegación superior */}
+          <button
+            onClick={() => navigate('/')}
+            className="flex items-center gap-2 text-slate-600 hover:text-slate-900 mb-3 transition-colors text-sm"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Volver a Módulos</span>
+          </button>
+
           <div className="flex items-center justify-between">
             {/* Título */}
             <div className="flex items-center gap-3">
               <Package className="w-8 h-8 text-blue-600" />
               <div>
                 <h1 className="text-2xl font-bold text-slate-900">
-                  Sistema de Inventario
+                  Inventario Individual
                 </h1>
                 <p className="text-sm text-slate-600">
                   Gestiona tus categorías y elementos
@@ -187,21 +196,11 @@ export default function Dashboard() {
 
             {/* Botones de acciones */}
             <div className="flex gap-3">
-              {/* Botón: Productos de Alquiler */}
-              <Button
-                variant="secondary"
-                icon={<Tent />}
-                onClick={() => navigate('/productos/alquiler')}
-                className="bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
-              >
-                Productos Alquiler
-              </Button>
-
               {/* Botón: Gestionar ubicaciones */}
               <Button
                 variant="secondary"
                 icon={<MapPin />}
-                onClick={() => navigate('/ubicaciones')}
+                onClick={() => navigate('/inventario/ubicaciones')}
               >
                 Ubicaciones
               </Button>

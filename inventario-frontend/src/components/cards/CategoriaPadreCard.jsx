@@ -61,7 +61,7 @@ const CategoriaPadreCard = ({
    * Navegar a la página de subcategorías
    */
   const handleVerSubcategorias = () => {
-    navigate(`/categorias/${categoria.id}`)
+    navigate(`/inventario/categorias/${categoria.id}`)
   }
   
   /**

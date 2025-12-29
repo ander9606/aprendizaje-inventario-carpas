@@ -166,11 +166,11 @@ function ElementosCompuestosPage() {
         {/* Header */}
         <div className="mb-6">
           <button
-            onClick={() => selectedCategoria ? handleBackToCategorias() : navigate('/productos')}
+            onClick={() => selectedCategoria ? handleBackToCategorias() : navigate('/')}
             className="flex items-center gap-2 text-slate-600 hover:text-slate-900 mb-4 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span>{selectedCategoria ? 'Volver a Categorías' : 'Volver a Productos'}</span>
+            <span>{selectedCategoria ? 'Volver a Categorías' : 'Volver a Módulos'}</span>
           </button>
 
           <div className="flex items-center justify-between">
