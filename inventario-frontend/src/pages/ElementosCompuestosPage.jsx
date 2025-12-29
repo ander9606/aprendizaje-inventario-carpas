@@ -455,7 +455,7 @@ function ElementoCompuestoDetalle({ elemento, formatPrecio }) {
   const { componentes, isLoading } = useGetComponentesAgrupados(elemento?.id)
 
   const fijos = componentes?.fijos || []
-  const alternativas = componentes?.alternativas || {}
+  const alternativas = componentes?.alternativas || []
   const adicionales = componentes?.adicionales || []
 
   return (
@@ -524,7 +524,7 @@ function ElementoCompuestoDetalle({ elemento, formatPrecio }) {
               )}
 
               {/* Grupos de Alternativas */}
-              {Object.keys(alternativas).length > 0 && (
+              {alternativas.length > 0 && (
                 <div className="p-3 bg-amber-50 rounded-lg">
                   <div className="flex items-center gap-2 mb-2">
                     <RefreshCw className="w-4 h-4 text-amber-600" />
@@ -533,13 +533,13 @@ function ElementoCompuestoDetalle({ elemento, formatPrecio }) {
                       Intercambiables
                     </span>
                   </div>
-                  {Object.entries(alternativas).map(([grupo, opciones]) => (
-                    <div key={grupo} className="mb-2 last:mb-0">
+                  {alternativas.map((grupo, grupoIdx) => (
+                    <div key={grupoIdx} className="mb-2 last:mb-0">
                       <p className="text-sm font-medium text-slate-700 mb-1">
-                        {grupo} (requiere {opciones[0]?.cantidad || 1}):
+                        {grupo.nombre} (requiere {grupo.cantidad_requerida || 1}):
                       </p>
                       <ul className="ml-4 space-y-1">
-                        {opciones.map((opt, idx) => (
+                        {(grupo.opciones || []).map((opt, idx) => (
                           <li key={idx} className="flex items-center gap-2 text-sm">
                             {opt.es_default ? (
                               <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
@@ -589,7 +589,7 @@ function ElementoCompuestoDetalle({ elemento, formatPrecio }) {
               )}
 
               {/* Sin componentes */}
-              {fijos.length === 0 && Object.keys(alternativas).length === 0 && adicionales.length === 0 && (
+              {fijos.length === 0 && alternativas.length === 0 && adicionales.length === 0 && (
                 <div className="text-center py-4 text-slate-500">
                   <Package className="w-8 h-8 mx-auto mb-2 opacity-50" />
                   <p>Esta plantilla no tiene componentes definidos</p>
