@@ -141,7 +141,8 @@ function ElementoCompuestoFormModal({
       setComponentesFijos(fijos)
 
       // Cargar grupos de alternativas (el backend devuelve un array de grupos)
-      const alternativasArray = componentesExistentes.alternativas || []
+      const alternativasData = componentesExistentes.alternativas
+      const alternativasArray = Array.isArray(alternativasData) ? alternativasData : []
       const grupos = alternativasArray.map(grupo => {
         return {
           nombre: grupo.nombre,
