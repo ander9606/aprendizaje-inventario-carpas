@@ -25,7 +25,7 @@ import Button from '../common/Button'
 
 // Hooks
 import { useGetCategoriasProductos } from '../../hooks/UseCategoriasProductos'
-import { useGetElementos } from '../../hooks/Useelementos'
+import { useGetTodosElementos } from '../../hooks/Useelementos'
 import {
   useCreateElementoCompuesto,
   useUpdateElementoCompuesto,
@@ -73,7 +73,7 @@ function ElementoCompuestoFormModal({
   // ============================================
 
   const { categorias, isLoading: loadingCategorias } = useGetCategoriasProductos()
-  const { elementos: elementosInventario, isLoading: loadingElementos } = useGetElementos()
+  const { elementos: elementosInventario, isLoading: loadingElementos } = useGetTodosElementos()
 
   const { createElemento, isPending: isCreating } = useCreateElementoCompuesto()
   const { updateElemento, isPending: isUpdating } = useUpdateElementoCompuesto()

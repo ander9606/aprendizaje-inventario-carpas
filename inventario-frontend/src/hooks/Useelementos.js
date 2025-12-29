@@ -332,6 +332,43 @@ export const useGetEstadisticasElemento = (elementoId) => {
 }
 
 /**
+ * Hook: Obtener TODOS los elementos del inventario
+ *
+ * @returns {Object} { elementos, isLoading, error, refetch }
+ *
+ * @example
+ * const { elementos, isLoading } = useGetTodosElementos()
+ *
+ * ÚTIL PARA:
+ * - Formularios de elementos compuestos
+ * - Seleccionar componentes de diferentes categorías
+ * - Búsqueda global de elementos
+ */
+export const useGetTodosElementos = () => {
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ['elementos', 'todos'],
+    queryFn: () => elementosAPI.obtenerTodos(),
+    select: (response) => {
+      const elementos = response?.data || []
+      return elementos.map(elemento => ({
+        ...elemento,
+        // Calcular cantidad disponible según tipo
+        cantidad_disponible: elemento.requiere_series
+          ? (elemento.series_disponibles || elemento.total_series || 0)
+          : (elemento.cantidad_total || elemento.total_cantidad || 0)
+      }))
+    }
+  })
+
+  return {
+    elementos: data || [],
+    isLoading,
+    error,
+    refetch
+  }
+}
+
+/**
  * ============================================
  * HOOKS DE ESCRITURA (useMutation)
  * ============================================
