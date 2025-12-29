@@ -8,7 +8,7 @@ import { Folder, Plus, Edit, Trash2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import Card from '../common/Card'
 import Button from '../common/Button'
-import EmojiPicker from '../common/Emojipicker'
+import EmojiPicker, { IconoCategoria } from '../common/Emojipicker'
 import { useUpdateCategoria, useDeleteCategoria } from '../../hooks/Usecategorias'
 
 /**
@@ -190,19 +190,24 @@ const CategoriaPadreCard = ({
           ============================================ */}
       <Card.Header>
         <div className="flex items-center gap-3">
-          {/* 
-            EMOJI CLICKEABLE
+          {/*
+            EMOJI/ICONO CLICKEABLE
             - Muestra emojiActual (para actualización optimista)
+            - Soporta emojis Unicode e iconos Lucide
             - Al hacer clic, abre el EmojiPicker
             - Efecto hover para indicar que es clickeable
           */}
           <button
             onClick={() => setMostrarEmojiPicker(true)}
-            className="text-4xl cursor-pointer hover:scale-110 transition-transform"
-            title="Click para cambiar el emoji"
+            className="cursor-pointer hover:scale-110 transition-transform flex items-center justify-center"
+            title="Click para cambiar el icono"
             type="button"
           >
-            {emojiActual}
+            <IconoCategoria
+              value={emojiActual}
+              className="text-4xl text-slate-700"
+              size={40}
+            />
           </button>
           
           {/* Nombre de la categoría */}
