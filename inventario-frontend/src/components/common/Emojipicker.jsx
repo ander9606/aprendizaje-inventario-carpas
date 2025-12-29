@@ -8,6 +8,9 @@ import { Search, X } from 'lucide-react'
 import { useEmojiPicker } from '../../hooks/useEmojiPicker'
 import { EMOJI_CATEGORIES } from '../../constants/emojiCategories'
 
+// Re-exportar IconoCategoria para compatibilidad
+export { IconoCategoria } from './IconoCategoria'
+
 export default function EmojiPicker({
   open,
   onSelect,
