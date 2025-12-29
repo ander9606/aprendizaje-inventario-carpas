@@ -29,7 +29,8 @@ import { useGetTodosElementos } from '../../hooks/Useelementos'
 import {
   useCreateElementoCompuesto,
   useUpdateElementoCompuesto,
-  useActualizarComponentes
+  useActualizarComponentes,
+  useGetComponentesAgrupados
 } from '../../hooks/UseElementosCompuestos'
 
 // ============================================
@@ -79,12 +80,18 @@ function ElementoCompuestoFormModal({
   const { updateElemento, isPending: isUpdating } = useUpdateElementoCompuesto()
   const { actualizarComponentes, isPending: isUpdatingComponentes } = useActualizarComponentes()
 
+  // Cargar componentes existentes si estamos editando
+  const { componentes: componentesExistentes, isLoading: loadingComponentes } = useGetComponentesAgrupados(
+    isEditMode && isOpen ? elemento?.id : null
+  )
+
   const isPending = isCreating || isUpdating || isUpdatingComponentes
 
   // ============================================
   // EFECTOS
   // ============================================
 
+  // Cargar datos básicos del elemento
   useEffect(() => {
     if (isOpen) {
       if (isEditMode) {
@@ -97,10 +104,6 @@ function ElementoCompuestoFormModal({
           precio_base: elemento.precio_base || '',
           deposito: elemento.deposito || ''
         })
-        // TODO: Cargar componentes existentes
-        setComponentesFijos([])
-        setGruposAlternativas([])
-        setComponentesAdicionales([])
       } else {
         // Resetear formulario
         setFormData({
@@ -119,6 +122,55 @@ function ElementoCompuestoFormModal({
       setErrors({})
     }
   }, [isOpen, elemento, isEditMode])
+
+  // Cargar componentes existentes cuando se obtienen del servidor
+  useEffect(() => {
+    if (isEditMode && componentesExistentes && elementosInventario.length > 0) {
+      // Cargar componentes fijos
+      const fijos = (componentesExistentes.fijos || []).map(comp => {
+        const elementoInfo = elementosInventario.find(e => e.id === comp.elemento_id)
+        return {
+          elemento_id: comp.elemento_id,
+          nombre: elementoInfo?.nombre || comp.elemento_nombre || 'Elemento',
+          cantidad: comp.cantidad,
+          requiere_series: elementoInfo?.requiere_series || false
+        }
+      })
+      setComponentesFijos(fijos)
+
+      // Cargar grupos de alternativas
+      const alternativas = componentesExistentes.alternativas || {}
+      const grupos = Object.entries(alternativas).map(([nombreGrupo, opciones]) => {
+        const cantidadTotal = opciones[0]?.cantidad || 1
+        return {
+          nombre: nombreGrupo,
+          cantidad_total: cantidadTotal,
+          opciones: opciones.map(opt => {
+            const elementoInfo = elementosInventario.find(e => e.id === opt.elemento_id)
+            return {
+              elemento_id: opt.elemento_id,
+              nombre: elementoInfo?.nombre || opt.elemento_nombre || 'Elemento',
+              es_default: opt.es_default || false,
+              precio_adicional: opt.precio_adicional || 0
+            }
+          })
+        }
+      })
+      setGruposAlternativas(grupos)
+
+      // Cargar componentes adicionales
+      const adicionales = (componentesExistentes.adicionales || []).map(comp => {
+        const elementoInfo = elementosInventario.find(e => e.id === comp.elemento_id)
+        return {
+          elemento_id: comp.elemento_id,
+          nombre: elementoInfo?.nombre || comp.elemento_nombre || 'Elemento',
+          cantidad: comp.cantidad,
+          precio_adicional: comp.precio_adicional || 0
+        }
+      })
+      setComponentesAdicionales(adicionales)
+    }
+  }, [isEditMode, componentesExistentes, elementosInventario])
 
   // ============================================
   // PASOS DEL FORMULARIO
