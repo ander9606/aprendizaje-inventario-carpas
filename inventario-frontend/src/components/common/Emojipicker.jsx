@@ -682,9 +682,6 @@ const EmojiPicker = ({ selectedEmoji, onSelect, onClose }) => {
       }, {})
     : LUCIDE_CATEGORIES
 
-  // Detectar si el valor seleccionado es un icono Lucide
-  const isLucideSelected = selectedEmoji?.startsWith('lucide:')
-  
   // ============================================
   // HANDLER: Seleccionar emoji
   // ============================================
