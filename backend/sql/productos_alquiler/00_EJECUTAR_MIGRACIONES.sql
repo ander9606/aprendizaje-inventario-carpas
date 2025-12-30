@@ -4,14 +4,28 @@
 --
 -- ORDEN DE EJECUCIÓN:
 --
--- 1. 08_modificar_cotizaciones.sql    - Modifica tabla cotizaciones
--- 2. 09_cotizacion_productos.sql      - Crea tabla cotizacion_productos
+-- 1. 08_modificar_cotizaciones.sql       - Modifica tabla cotizaciones
+-- 2. 09_cotizacion_productos.sql         - Crea tabla cotizacion_productos
 -- 3. 10_modificar_cotizacion_detalles.sql - Modifica cotizacion_detalles
--- 4. 11_alquiler_elementos.sql        - Crea tabla alquiler_elementos
--- 5. 12_tarifas_transporte.sql        - Crea tabla tarifas_transporte
--- 6. 13_indices_alquileres.sql        - Índices adicionales
+-- 4. 11_alquiler_elementos.sql           - Crea tabla alquiler_elementos
+-- 5. 12_tarifas_transporte.sql           - Crea tabla tarifas_transporte
+-- 6. 13_indices_alquileres.sql           - Índices adicionales
+-- 7. 14_cotizacion_transportes.sql       - Crea tabla cotizacion_transportes
 --
 -- ============================================================
+-- ESTRUCTURA FINAL:
+--
+-- cotizaciones
+--   └── cotizacion_productos (múltiples productos)
+--   │     └── cotizacion_detalles (componentes elegidos)
+--   └── cotizacion_transportes (servicio de transporte)
+--
+-- alquileres
+--   └── alquiler_elementos (series/lotes asignados)
+--
+-- tarifas_transporte (catálogo de precios por ciudad)
+-- ============================================================
+--
 -- IMPORTANTE:
 -- - Hacer backup de la BD antes de ejecutar
 -- - Si tienes datos en cotizaciones con compuesto_id, migrarlos primero
