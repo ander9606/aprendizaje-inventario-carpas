@@ -110,9 +110,9 @@ export default function Dashboard() {
 
   const hasSearchResults = searchResults.categorias.length > 0 || searchResults.elementos.length > 0
 
-  // Navegar a un elemento
+  // Navegar a la página de elementos (donde están las tarjetas)
   const handleGoToElemento = (elemento) => {
-    navigate(`/inventario/categorias/${elemento.categoria_padre_id}/subcategorias/${elemento.categoria_id}/elementos/${elemento.id}`)
+    navigate(`/inventario/categorias/${elemento.categoria_padre_id}/subcategorias/${elemento.categoria_id}/elementos`)
     setSearchTerm('')
     setShowSearchResults(false)
   }
