@@ -7,6 +7,7 @@ const AlquilerModel = require('../models/AlquilerModel');
 const AlquilerElementoModel = require('../models/AlquilerElementoModel');
 const CotizacionModel = require('../models/CotizacionModel');
 const SerieModel = require('../../inventario/models/SerieModel');
+const LoteModel = require('../../inventario/models/LoteModel');
 const AppError = require('../../../utils/AppError');
 const logger = require('../../../utils/logger');
 
@@ -308,21 +309,34 @@ exports.marcarSalida = async (req, res, next) => {
     // Obtener ubicación del evento desde la cotización
     const cotizacion = await CotizacionModel.obtenerPorId(alquiler.cotizacion_id);
 
-    // Cambiar estado de SERIES a 'alquilado' y actualizar ubicación
+    // Cambiar estado de SERIES y LOTES a 'alquilado'
     let seriesActualizadas = 0;
+    let lotesMovidos = 0;
+
     for (const elem of elementosAsignados) {
       if (elem.serie_id) {
-        // Cambiar estado a 'alquilado' con ubicación del evento
+        // SERIES: Cambiar estado a 'alquilado' con ubicación del evento
         await SerieModel.cambiarEstado(
           elem.serie_id,
           'alquilado',
-          cotizacion.evento_ciudad || null,  // ubicacion texto
-          null  // ubicacion_id - podría ser la ubicación del evento si existe
+          cotizacion.evento_ciudad || null,
+          null
         );
         seriesActualizadas++;
       }
-      // Para lotes: el tracking está en alquiler_elementos
-      // La disponibilidad se calcula restando de ahí
+
+      if (elem.lote_id && elem.cantidad_lote) {
+        // LOTES: Mover cantidad a estado 'alquilado'
+        const loteAlquiladoId = await LoteModel.moverParaAlquiler(
+          elem.lote_id,
+          elem.cantidad_lote,
+          id
+        );
+
+        // Guardar referencia al lote alquilado para el retorno
+        await AlquilerElementoModel.actualizarLoteAlquilado(elem.id, loteAlquiladoId);
+        lotesMovidos++;
+      }
     }
 
     await AlquilerModel.marcarActivo(id, {
@@ -333,6 +347,7 @@ exports.marcarSalida = async (req, res, next) => {
     logger.info('alquilerController.marcarSalida', 'Alquiler marcado como activo', {
       id,
       seriesActualizadas,
+      lotesMovidos,
       totalElementos: elementosAsignados.length
     });
 
@@ -342,6 +357,7 @@ exports.marcarSalida = async (req, res, next) => {
       success: true,
       mensaje: 'Salida registrada exitosamente',
       series_actualizadas: seriesActualizadas,
+      lotes_movidos: lotesMovidos,
       data: alquilerActualizado
     });
   } catch (error) {
@@ -386,7 +402,6 @@ exports.registrarRetornoElemento = async (req, res, next) => {
 
     // Restaurar estado y ubicación de SERIES
     if (asignacion.serie_id) {
-      // Mapear estado_retorno a estado de serie
       let nuevoEstadoSerie = 'disponible';
       if (estado_retorno === 'dañado') {
         nuevoEstadoSerie = 'mantenimiento';
@@ -394,11 +409,10 @@ exports.registrarRetornoElemento = async (req, res, next) => {
         nuevoEstadoSerie = 'baja';
       }
 
-      // Restaurar ubicación original
       await SerieModel.cambiarEstado(
         asignacion.serie_id,
         nuevoEstadoSerie,
-        null, // ubicacion texto
+        null,
         asignacion.ubicacion_original_id
       );
 
@@ -406,6 +420,23 @@ exports.registrarRetornoElemento = async (req, res, next) => {
         serieId: asignacion.serie_id,
         nuevoEstado: nuevoEstadoSerie,
         ubicacionOriginal: asignacion.ubicacion_original_id
+      });
+    }
+
+    // Restaurar cantidad de LOTES
+    if (asignacion.lote_alquilado_id && asignacion.cantidad_lote) {
+      await LoteModel.retornarDeAlquiler(
+        asignacion.lote_alquilado_id,
+        asignacion.cantidad_lote,
+        estado_retorno,
+        asignacion.ubicacion_original_id,
+        id
+      );
+
+      logger.info('alquilerController.registrarRetornoElemento', 'Lote retornado', {
+        loteAlquiladoId: asignacion.lote_alquilado_id,
+        cantidad: asignacion.cantidad_lote,
+        estadoRetorno: estado_retorno
       });
     }
 

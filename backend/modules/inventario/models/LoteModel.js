@@ -403,6 +403,140 @@ class LoteModel {
             throw error;
         }
     }
+
+    // ============================================
+    // MOVER CANTIDAD PARA ALQUILER
+    // Mueve cantidad de un lote a estado 'alquilado'
+    // Retorna el ID del lote destino
+    // ============================================
+    static async moverParaAlquiler(loteOrigenId, cantidad, alquilerId) {
+        try {
+            const loteOrigen = await this.obtenerPorId(loteOrigenId);
+            if (!loteOrigen) {
+                throw new Error('Lote origen no encontrado');
+            }
+
+            if (loteOrigen.cantidad < cantidad) {
+                throw new Error(`Cantidad insuficiente en lote. Disponible: ${loteOrigen.cantidad}, Solicitado: ${cantidad}`);
+            }
+
+            // Buscar o crear lote destino con estado 'alquilado'
+            let loteDestino = await this.buscarLoteEspecifico(
+                loteOrigen.elemento_id,
+                'alquilado',
+                null  // ubicación null para alquilados
+            );
+
+            let loteDestinoId;
+
+            if (loteDestino) {
+                await this.sumarCantidad(loteDestino.id, cantidad);
+                loteDestinoId = loteDestino.id;
+            } else {
+                loteDestinoId = await this.crear({
+                    elemento_id: loteOrigen.elemento_id,
+                    cantidad: cantidad,
+                    estado: 'alquilado',
+                    ubicacion: null,
+                    lote_numero: `ALQUILER-${alquilerId}-${Date.now()}`
+                });
+            }
+
+            // Restar del lote origen
+            await this.restarCantidad(loteOrigenId, cantidad);
+
+            // Registrar movimiento
+            await this.registrarMovimiento({
+                lote_origen_id: loteOrigenId,
+                lote_destino_id: loteDestinoId,
+                cantidad: cantidad,
+                motivo: 'alquiler',
+                descripcion: `Alquiler #${alquilerId}`,
+                estado_origen: loteOrigen.estado,
+                estado_destino: 'alquilado',
+                ubicacion_origen: loteOrigen.ubicacion,
+                ubicacion_destino: null
+            });
+
+            // Si lote origen quedó vacío, no eliminarlo (mantener para historial)
+
+            return loteDestinoId;
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    // ============================================
+    // RETORNAR CANTIDAD DE ALQUILER
+    // Mueve cantidad de 'alquilado' de vuelta a estado original
+    // ============================================
+    static async retornarDeAlquiler(loteAlquiladoId, cantidad, estadoRetorno, ubicacionDestinoId, alquilerId) {
+        try {
+            const loteAlquilado = await this.obtenerPorId(loteAlquiladoId);
+            if (!loteAlquilado) {
+                throw new Error('Lote alquilado no encontrado');
+            }
+
+            if (loteAlquilado.cantidad < cantidad) {
+                throw new Error(`Cantidad insuficiente. Disponible: ${loteAlquilado.cantidad}`);
+            }
+
+            // Mapear estado de retorno a estado de lote
+            let estadoLote = 'disponible';
+            if (estadoRetorno === 'dañado') estadoLote = 'mantenimiento';
+            if (estadoRetorno === 'perdido') estadoLote = 'baja';
+
+            // Obtener nombre de ubicación
+            let ubicacionNombre = null;
+            if (ubicacionDestinoId) {
+                const [ubic] = await pool.query('SELECT nombre FROM ubicaciones WHERE id = ?', [ubicacionDestinoId]);
+                if (ubic.length > 0) ubicacionNombre = ubic[0].nombre;
+            }
+
+            // Buscar o crear lote destino
+            let loteDestino = await this.buscarLoteEspecifico(
+                loteAlquilado.elemento_id,
+                estadoLote,
+                ubicacionNombre
+            );
+
+            let loteDestinoId;
+
+            if (loteDestino) {
+                await this.sumarCantidad(loteDestino.id, cantidad);
+                loteDestinoId = loteDestino.id;
+            } else {
+                loteDestinoId = await this.crear({
+                    elemento_id: loteAlquilado.elemento_id,
+                    cantidad: cantidad,
+                    estado: estadoLote,
+                    ubicacion: ubicacionNombre,
+                    ubicacion_id: ubicacionDestinoId,
+                    lote_numero: `RETORNO-${alquilerId}-${Date.now()}`
+                });
+            }
+
+            // Restar del lote alquilado
+            await this.restarCantidad(loteAlquiladoId, cantidad);
+
+            // Registrar movimiento
+            await this.registrarMovimiento({
+                lote_origen_id: loteAlquiladoId,
+                lote_destino_id: loteDestinoId,
+                cantidad: cantidad,
+                motivo: 'retorno_alquiler',
+                descripcion: `Retorno alquiler #${alquilerId}`,
+                estado_origen: 'alquilado',
+                estado_destino: estadoLote,
+                ubicacion_origen: null,
+                ubicacion_destino: ubicacionNombre
+            });
+
+            return loteDestinoId;
+        } catch (error) {
+            throw error;
+        }
+    }
 }
 
 module.exports = LoteModel;

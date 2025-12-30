@@ -50,12 +50,15 @@ class AlquilerElementoModel {
       SELECT
         ae.*,
         e.nombre AS elemento_nombre,
+        e.requiere_series,
         s.numero_serie,
-        l.lote_numero
+        l.lote_numero,
+        la.lote_numero AS lote_alquilado_numero
       FROM alquiler_elementos ae
       INNER JOIN elementos e ON ae.elemento_id = e.id
       LEFT JOIN series s ON ae.serie_id = s.id
       LEFT JOIN lotes l ON ae.lote_id = l.id
+      LEFT JOIN lotes la ON ae.lote_alquilado_id = la.id
       WHERE ae.id = ?
     `;
     const [rows] = await pool.query(query, [id]);
@@ -155,6 +158,20 @@ class AlquilerElementoModel {
       WHERE alquiler_id = ? AND estado_retorno IS NULL
     `;
     const [result] = await pool.query(query, [estadoRetorno, alquilerId]);
+    return result;
+  }
+
+  // ============================================
+  // ACTUALIZAR LOTE ALQUILADO
+  // Guarda el ID del lote con estado 'alquilado' para tracking
+  // ============================================
+  static async actualizarLoteAlquilado(id, loteAlquiladoId) {
+    const query = `
+      UPDATE alquiler_elementos
+      SET lote_alquilado_id = ?
+      WHERE id = ?
+    `;
+    const [result] = await pool.query(query, [loteAlquiladoId, id]);
     return result;
   }
 
