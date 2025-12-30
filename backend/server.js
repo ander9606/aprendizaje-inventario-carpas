@@ -27,7 +27,8 @@ const elementosCompuestosRoutes = require('./modules/productos/routes/elementosC
 // Importar rutas - Alquileres (Operación comercial)
 const clientesRoutes = require('./modules/alquileres/routes/clientes');
 const cotizacionesRoutes = require('./modules/alquileres/routes/cotizaciones');
-const alquileresRoutes = require('./modules/alquileres/routes/alquileres');  
+const alquileresRoutes = require('./modules/alquileres/routes/alquileres');
+const tarifasTransporteRoutes = require('./modules/alquileres/routes/tarifasTransporte');  
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -84,7 +85,8 @@ app.get('/', (req, res) => {
             alquileres: [
                 '/api/clientes',
                 '/api/cotizaciones',
-                '/api/alquileres'
+                '/api/alquileres',
+                '/api/tarifas-transporte'
             ]
         }
     });
@@ -107,6 +109,7 @@ app.use('/api/elementos-compuestos', elementosCompuestosRoutes);
 app.use('/api/clientes', clientesRoutes);
 app.use('/api/cotizaciones', cotizacionesRoutes);
 app.use('/api/alquileres', alquileresRoutes);
+app.use('/api/tarifas-transporte', tarifasTransporteRoutes);
 
 // ============================================
 // MANEJO DE ERRORES
