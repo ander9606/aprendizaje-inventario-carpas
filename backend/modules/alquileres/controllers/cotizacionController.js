@@ -9,6 +9,7 @@ const CotizacionTransporteModel = require('../models/CotizacionTransporteModel')
 const ClienteModel = require('../models/ClienteModel');
 const TarifaTransporteModel = require('../models/TarifaTransporteModel');
 const AlquilerModel = require('../models/AlquilerModel');
+const DisponibilidadModel = require('../models/DisponibilidadModel');
 const AppError = require('../../../utils/AppError');
 const logger = require('../../../utils/logger');
 
@@ -433,12 +434,44 @@ exports.cambiarEstado = async (req, res, next) => {
 };
 
 // ============================================
+// VERIFICAR DISPONIBILIDAD
+// ============================================
+exports.verificarDisponibilidad = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { fecha_inicio, fecha_fin } = req.query;
+
+    const cotizacion = await CotizacionModel.obtenerPorId(id);
+    if (!cotizacion) {
+      throw new AppError('Cotización no encontrada', 404);
+    }
+
+    // Usar fechas del query o de la cotización
+    const fechaInicio = fecha_inicio || cotizacion.fecha_evento;
+    const fechaFin = fecha_fin || cotizacion.fecha_fin_evento || cotizacion.fecha_evento;
+
+    const disponibilidad = await DisponibilidadModel.verificarDisponibilidadCotizacion(
+      id,
+      fechaInicio,
+      fechaFin
+    );
+
+    res.json({
+      success: true,
+      data: disponibilidad
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ============================================
 // APROBAR Y CREAR ALQUILER
 // ============================================
 exports.aprobarYCrearAlquiler = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { fecha_salida, fecha_retorno_esperado, deposito_cobrado, notas_salida } = req.body;
+    const { fecha_salida, fecha_retorno_esperado, deposito_cobrado, notas_salida, forzar } = req.body;
 
     const cotizacion = await CotizacionModel.obtenerCompleta(id);
     if (!cotizacion) {
@@ -459,14 +492,50 @@ exports.aprobarYCrearAlquiler = async (req, res, next) => {
       throw new AppError('Esta cotización ya tiene un alquiler asociado', 400);
     }
 
+    // Determinar fechas del alquiler
+    const fechaSalida = fecha_salida || cotizacion.fecha_evento;
+    const fechaRetorno = fecha_retorno_esperado || cotizacion.fecha_fin_evento || cotizacion.fecha_evento;
+
+    // Verificar disponibilidad de elementos
+    const disponibilidad = await DisponibilidadModel.verificarDisponibilidadCotizacion(
+      id,
+      fechaSalida,
+      fechaRetorno
+    );
+
+    // Si hay problemas de disponibilidad
+    if (disponibilidad.hay_problemas) {
+      const elementosFaltantes = disponibilidad.elementos
+        .filter(e => e.estado === 'insuficiente')
+        .map(e => `${e.elemento_nombre}: necesita ${e.cantidad_requerida}, disponibles ${e.disponibles} (faltan ${e.faltantes})`);
+
+      // Si no se forzó la aprobación, alertar
+      if (!forzar) {
+        return res.status(409).json({
+          success: false,
+          mensaje: 'Hay elementos insuficientes para esta fecha',
+          advertencia: true,
+          disponibilidad: disponibilidad,
+          elementos_faltantes: elementosFaltantes,
+          accion_requerida: 'Envía forzar: true para aprobar de todas formas'
+        });
+      }
+
+      // Si se forzó, registrar advertencia
+      logger.warn('cotizacionController.aprobarYCrearAlquiler', 'Aprobación forzada con elementos insuficientes', {
+        cotizacionId: id,
+        elementosFaltantes
+      });
+    }
+
     // Aprobar cotización
     await CotizacionModel.actualizarEstado(id, 'aprobada');
 
-    // Crear alquiler
+    // Crear alquiler con fechas de la cotización
     const resultadoAlquiler = await AlquilerModel.crear({
       cotizacion_id: id,
-      fecha_salida: fecha_salida || cotizacion.fecha_evento,
-      fecha_retorno_esperado: fecha_retorno_esperado || cotizacion.fecha_fin_evento,
+      fecha_salida: fechaSalida,
+      fecha_retorno_esperado: fechaRetorno,
       total: cotizacion.total,
       deposito_cobrado,
       notas_salida
@@ -476,12 +545,17 @@ exports.aprobarYCrearAlquiler = async (req, res, next) => {
 
     logger.info('cotizacionController.aprobarYCrearAlquiler', 'Cotización aprobada y alquiler creado', {
       cotizacionId: id,
-      alquilerId: alquiler.id
+      alquilerId: alquiler.id,
+      conAdvertencias: disponibilidad.hay_problemas
     });
 
     res.json({
       success: true,
-      mensaje: 'Cotización aprobada y alquiler creado exitosamente',
+      mensaje: disponibilidad.hay_problemas
+        ? 'Cotización aprobada con advertencias de disponibilidad'
+        : 'Cotización aprobada y alquiler creado exitosamente',
+      advertencia: disponibilidad.hay_problemas,
+      disponibilidad: disponibilidad.hay_problemas ? disponibilidad : undefined,
       data: alquiler
     });
   } catch (error) {

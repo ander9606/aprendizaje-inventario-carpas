@@ -22,6 +22,9 @@ router.get('/:id', validateId(), cotizacionController.obtenerPorId);
 // GET /api/cotizaciones/:id/completa - Obtener completa (productos + transporte)
 router.get('/:id/completa', validateId(), cotizacionController.obtenerCompleta);
 
+// GET /api/cotizaciones/:id/disponibilidad - Verificar disponibilidad de elementos
+router.get('/:id/disponibilidad', validateId(), cotizacionController.verificarDisponibilidad);
+
 // POST /api/cotizaciones - Crear
 router.post('/', cotizacionController.crear);
 
