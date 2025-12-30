@@ -24,7 +24,8 @@ class ElementoCompuestoModel {
         ec.created_at,
         ec.updated_at,
         cp.nombre AS categoria_nombre,
-        cp.emoji AS categoria_emoji
+        cp.emoji AS categoria_emoji,
+        (SELECT COUNT(*) FROM compuesto_componentes cc WHERE cc.compuesto_id = ec.id) AS total_componentes
       FROM elementos_compuestos ec
       LEFT JOIN categorias_productos cp ON ec.categoria_id = cp.id
       ORDER BY ec.nombre
@@ -39,18 +40,19 @@ class ElementoCompuestoModel {
   static async obtenerPorCategoria(categoriaId) {
     const query = `
       SELECT
-        id,
-        categoria_id,
-        nombre,
-        codigo,
-        descripcion,
-        precio_base,
-        deposito,
-        activo,
-        created_at
-      FROM elementos_compuestos
-      WHERE categoria_id = ? AND activo = TRUE
-      ORDER BY nombre
+        ec.id,
+        ec.categoria_id,
+        ec.nombre,
+        ec.codigo,
+        ec.descripcion,
+        ec.precio_base,
+        ec.deposito,
+        ec.activo,
+        ec.created_at,
+        (SELECT COUNT(*) FROM compuesto_componentes cc WHERE cc.compuesto_id = ec.id) AS total_componentes
+      FROM elementos_compuestos ec
+      WHERE ec.categoria_id = ? AND ec.activo = TRUE
+      ORDER BY ec.nombre
     `;
     const [rows] = await pool.query(query, [categoriaId]);
     return rows;
@@ -102,7 +104,7 @@ class ElementoCompuestoModel {
         cc.precio_adicional,
         cc.orden,
         e.nombre AS elemento_nombre,
-        e.codigo AS elemento_codigo,
+        e.requiere_series,
         c.nombre AS elemento_categoria,
         c.emoji AS elemento_emoji
       FROM compuesto_componentes cc

@@ -22,14 +22,16 @@ import {
 
 import Modal from '../common/Modal'
 import Button from '../common/Button'
+import CategoriaProductoFormModal from './CategoriaProductoFormModal'
 
 // Hooks
 import { useGetCategoriasProductos } from '../../hooks/UseCategoriasProductos'
-import { useGetElementos } from '../../hooks/Useelementos'
+import { useGetTodosElementos } from '../../hooks/Useelementos'
 import {
   useCreateElementoCompuesto,
   useUpdateElementoCompuesto,
-  useActualizarComponentes
+  useActualizarComponentes,
+  useGetComponentesAgrupados
 } from '../../hooks/UseElementosCompuestos'
 
 // ============================================
@@ -67,17 +69,23 @@ function ElementoCompuestoFormModal({
   const [componentesAdicionales, setComponentesAdicionales] = useState([])
 
   const [errors, setErrors] = useState({})
+  const [showCategoriaModal, setShowCategoriaModal] = useState(false)
 
   // ============================================
   // HOOKS DE DATOS
   // ============================================
 
-  const { categorias, isLoading: loadingCategorias } = useGetCategoriasProductos()
-  const { elementos: elementosInventario, isLoading: loadingElementos } = useGetElementos()
+  const { categorias, isLoading: loadingCategorias, refetch: refetchCategorias } = useGetCategoriasProductos()
+  const { elementos: elementosInventario, isLoading: loadingElementos } = useGetTodosElementos()
 
   const { createElemento, isPending: isCreating } = useCreateElementoCompuesto()
   const { updateElemento, isPending: isUpdating } = useUpdateElementoCompuesto()
   const { actualizarComponentes, isPending: isUpdatingComponentes } = useActualizarComponentes()
+
+  // Cargar componentes existentes si estamos editando
+  const { componentes: componentesExistentes, isLoading: loadingComponentes } = useGetComponentesAgrupados(
+    isEditMode && isOpen ? elemento?.id : null
+  )
 
   const isPending = isCreating || isUpdating || isUpdatingComponentes
 
@@ -85,6 +93,7 @@ function ElementoCompuestoFormModal({
   // EFECTOS
   // ============================================
 
+  // Cargar datos básicos del elemento
   useEffect(() => {
     if (isOpen) {
       if (isEditMode) {
@@ -97,10 +106,6 @@ function ElementoCompuestoFormModal({
           precio_base: elemento.precio_base || '',
           deposito: elemento.deposito || ''
         })
-        // TODO: Cargar componentes existentes
-        setComponentesFijos([])
-        setGruposAlternativas([])
-        setComponentesAdicionales([])
       } else {
         // Resetear formulario
         setFormData({
@@ -119,6 +124,55 @@ function ElementoCompuestoFormModal({
       setErrors({})
     }
   }, [isOpen, elemento, isEditMode])
+
+  // Cargar componentes existentes cuando se obtienen del servidor
+  useEffect(() => {
+    if (isEditMode && componentesExistentes && elementosInventario.length > 0) {
+      // Cargar componentes fijos
+      const fijos = (componentesExistentes.fijos || []).map(comp => {
+        const elementoInfo = elementosInventario.find(e => e.id === comp.elemento_id)
+        return {
+          elemento_id: comp.elemento_id,
+          nombre: elementoInfo?.nombre || comp.elemento_nombre || 'Elemento',
+          cantidad: comp.cantidad,
+          requiere_series: elementoInfo?.requiere_series || false
+        }
+      })
+      setComponentesFijos(fijos)
+
+      // Cargar grupos de alternativas (el backend devuelve un array de grupos)
+      const alternativasData = componentesExistentes.alternativas
+      const alternativasArray = Array.isArray(alternativasData) ? alternativasData : []
+      const grupos = alternativasArray.map(grupo => {
+        return {
+          nombre: grupo.nombre,
+          cantidad_total: grupo.cantidad_requerida || 1,
+          opciones: (grupo.opciones || []).map(opt => {
+            const elementoInfo = elementosInventario.find(e => e.id === opt.elemento_id)
+            return {
+              elemento_id: opt.elemento_id,
+              nombre: elementoInfo?.nombre || opt.elemento_nombre || 'Elemento',
+              es_default: opt.es_default || false,
+              precio_adicional: opt.precio_adicional || 0
+            }
+          })
+        }
+      })
+      setGruposAlternativas(grupos)
+
+      // Cargar componentes adicionales
+      const adicionales = (componentesExistentes.adicionales || []).map(comp => {
+        const elementoInfo = elementosInventario.find(e => e.id === comp.elemento_id)
+        return {
+          elemento_id: comp.elemento_id,
+          nombre: elementoInfo?.nombre || comp.elemento_nombre || 'Elemento',
+          cantidad: comp.cantidad,
+          precio_adicional: comp.precio_adicional || 0
+        }
+      })
+      setComponentesAdicionales(adicionales)
+    }
+  }, [isEditMode, componentesExistentes, elementosInventario])
 
   // ============================================
   // PASOS DEL FORMULARIO
@@ -255,7 +309,16 @@ function ElementoCompuestoFormModal({
       onSuccess?.()
       onClose()
     } catch (error) {
-      toast.error(error.response?.data?.mensaje || 'Error al guardar')
+      // Manejar errores específicos
+      const mensaje = error.response?.data?.message || error.response?.data?.mensaje
+
+      if (mensaje?.includes('Duplicate entry') && mensaje?.includes('codigo')) {
+        toast.error('El código ya existe. Usa un código diferente.')
+        setErrors(prev => ({ ...prev, codigo: 'Este código ya está en uso' }))
+        setCurrentStep(1) // Volver al paso 1 para corregir
+      } else {
+        toast.error(mensaje || 'Error al guardar la plantilla')
+      }
     }
   }
 
@@ -296,6 +359,7 @@ function ElementoCompuestoFormModal({
   // ============================================
 
   return (
+    <>
     <Modal
       isOpen={isOpen}
       onClose={onClose}
@@ -318,6 +382,7 @@ function ElementoCompuestoFormModal({
             categorias={categorias}
             loadingCategorias={loadingCategorias}
             onChange={handleInputChange}
+            onOpenCategoriaModal={() => setShowCategoriaModal(true)}
           />
         )}
 
@@ -392,6 +457,17 @@ function ElementoCompuestoFormModal({
         </div>
       </Modal.Footer>
     </Modal>
+
+    {/* Modal para crear nueva categoría */}
+    <CategoriaProductoFormModal
+      isOpen={showCategoriaModal}
+      onClose={() => setShowCategoriaModal(false)}
+      onSuccess={() => {
+        setShowCategoriaModal(false)
+        refetchCategorias()
+      }}
+    />
+    </>
   )
 }
 
@@ -450,7 +526,7 @@ function StepIndicator({ steps, currentStep, onStepClick }) {
 // PASO 1: Información Básica
 // ============================================
 
-function Step1InfoBasica({ formData, errors, categorias, loadingCategorias, onChange }) {
+function Step1InfoBasica({ formData, errors, categorias, loadingCategorias, onChange, onOpenCategoriaModal }) {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2 mb-4">
@@ -463,22 +539,32 @@ function Step1InfoBasica({ formData, errors, categorias, loadingCategorias, onCh
         <label className="block text-sm font-medium text-slate-700 mb-1">
           Categoría *
         </label>
-        <select
-          name="categoria_id"
-          value={formData.categoria_id}
-          onChange={onChange}
-          disabled={loadingCategorias}
-          className={`
-            w-full px-4 py-2 border rounded-lg
-            focus:outline-none focus:ring-2 focus:ring-emerald-500
-            ${errors.categoria_id ? 'border-red-300' : 'border-slate-300'}
-          `}
-        >
-          <option value="">Selecciona una categoría...</option>
-          {categorias.map(cat => (
-            <option key={cat.id} value={cat.id}>{cat.nombre}</option>
-          ))}
-        </select>
+        <div className="flex gap-2">
+          <select
+            name="categoria_id"
+            value={formData.categoria_id}
+            onChange={onChange}
+            disabled={loadingCategorias}
+            className={`
+              flex-1 px-4 py-2 border rounded-lg
+              focus:outline-none focus:ring-2 focus:ring-emerald-500
+              ${errors.categoria_id ? 'border-red-300' : 'border-slate-300'}
+            `}
+          >
+            <option value="">Selecciona una categoría...</option>
+            {categorias.map(cat => (
+              <option key={cat.id} value={cat.id}>{cat.emoji || '📦'} {cat.nombre}</option>
+            ))}
+          </select>
+          <button
+            type="button"
+            onClick={onOpenCategoriaModal}
+            className="px-3 py-2 bg-emerald-50 text-emerald-700 border border-emerald-300 rounded-lg hover:bg-emerald-100 transition-colors flex items-center gap-1"
+            title="Crear nueva categoría"
+          >
+            <Plus className="w-4 h-4" />
+          </button>
+        </div>
         {errors.categoria_id && (
           <p className="mt-1 text-sm text-red-600">{errors.categoria_id}</p>
         )}

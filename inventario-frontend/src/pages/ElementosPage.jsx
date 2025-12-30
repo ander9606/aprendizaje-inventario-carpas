@@ -118,7 +118,7 @@ function ElementosPage() {
   // HANDLERS - Elemento CRUD
   // ============================================
   const handleEditElemento = (elemento) => {
-    navigate(`/categorias/${categoriaId}/subcategorias/${subcategoriaId}/elementos/${elemento.id}`)
+    navigate(`/inventario/categorias/${categoriaId}/subcategorias/${subcategoriaId}/elementos/${elemento.id}`)
   }
 
   const handleDeleteElemento = async (elemento) => {
@@ -205,15 +205,14 @@ function ElementosPage() {
   // BREADCRUMB
   // ============================================
   const breadcrumbItems = [
-    { label: 'Inicio', path: '/' },
-    { label: 'Categorías', path: '/categorias' },
+    { label: 'Inventario', path: '/inventario' },
     {
       label: subcategoria?.categoria_padre_nombre || 'Categoría',
-      path: `/categorias/${categoriaId}`
+      path: `/inventario/categorias/${categoriaId}`
     },
     {
       label: subcategoria?.nombre || 'Subcategoría',
-      path: `/categorias/${categoriaId}/subcategorias/${subcategoriaId}`
+      path: `/inventario/categorias/${categoriaId}/subcategorias/${subcategoriaId}`
     },
     { label: 'Elementos' }
   ]

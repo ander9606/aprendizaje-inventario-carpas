@@ -97,12 +97,21 @@ export const useGetLotes = (elementoId) => {
         alquilado: 0
       })
 
-      // Calcular distribución por ubicación
-      const lotes_por_ubicacion = lotes.reduce((ubicaciones, lote) => {
+      // Calcular distribución por ubicación (agrupando lotes en array)
+      const ubicacionesMap = {}
+      lotes.forEach(lote => {
         const ubicacion = lote.ubicacion || 'Sin ubicación'
-        ubicaciones[ubicacion] = (ubicaciones[ubicacion] || 0) + (lote.cantidad || 0)
-        return ubicaciones
-      }, {})
+        if (!ubicacionesMap[ubicacion]) {
+          ubicacionesMap[ubicacion] = {
+            nombre: ubicacion,
+            lotes: [],
+            cantidad_total: 0
+          }
+        }
+        ubicacionesMap[ubicacion].lotes.push(lote)
+        ubicacionesMap[ubicacion].cantidad_total += (lote.cantidad || 0)
+      })
+      const lotes_por_ubicacion = Object.values(ubicacionesMap)
 
       // Calcular cantidad disponible para alquilar (nuevo + bueno)
       const cantidad_disponible = (estadisticas.nuevo || 0) + (estadisticas.bueno || 0)
@@ -129,7 +138,7 @@ export const useGetLotes = (elementoId) => {
       malo: 0,
       alquilado: 0
     },
-    lotes_por_ubicacion: data?.lotes_por_ubicacion || {},
+    lotes_por_ubicacion: data?.lotes_por_ubicacion || [],
     cantidad_total: data?.cantidad_total || 0,
     cantidad_disponible: data?.cantidad_disponible || 0,
     isLoading,

@@ -100,7 +100,7 @@ export const useGetComponentesAgrupados = (elementoId) => {
   return {
     componentes: data?.data?.componentes || {
       fijos: [],
-      alternativas: {},
+      alternativas: [],
       adicionales: []
     },
     elemento: data?.data?.elemento || null,

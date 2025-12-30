@@ -163,10 +163,10 @@ export default function Subcategorias() {
   }
 
   /**
-   * Volver al Dashboard
+   * Volver al Dashboard de Inventario
    */
   const handleGoBack = () => {
-    navigate('/')
+    navigate('/inventario')
   }
   
   // ============================================
@@ -210,13 +210,13 @@ export default function Subcategorias() {
   
   const breadcrumbItems = [
     {
-      label: 'Inicio',
-      path: '/',
-      icon: '🏠'
+      label: 'Inventario',
+      path: '/inventario',
+      icon: '📦'
     },
     {
       label: categoria.nombre,
-      path: `/categorias/${categoria.id}`,
+      path: `/inventario/categorias/${categoria.id}`,
       icon: categoria.emoji || '📦'
     }
   ]

@@ -23,7 +23,7 @@ class CompuestoComponenteModel {
         cc.precio_adicional,
         cc.orden,
         e.nombre AS elemento_nombre,
-        e.codigo AS elemento_codigo,
+        e.requiere_series,
         c.nombre AS elemento_categoria,
         c.emoji AS elemento_emoji
       FROM compuesto_componentes cc
@@ -75,7 +75,7 @@ class CompuestoComponenteModel {
       SELECT
         cc.*,
         e.nombre AS elemento_nombre,
-        e.codigo AS elemento_codigo
+        e.requiere_series
       FROM compuesto_componentes cc
       INNER JOIN elementos e ON cc.elemento_id = e.id
       WHERE cc.id = ?

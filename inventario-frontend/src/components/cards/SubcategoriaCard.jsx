@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom'
 import Card from '../common/Card'
 import Button from '../common/Button'
 import EmojiPicker from '../common/Emojipicker'
+import { IconoCategoria } from '../common/IconoCategoria'
 import { useUpdateCategoria, useDeleteCategoria } from '../../hooks/Usecategorias'
 
 const SubcategoriaCard = ({ 
@@ -29,7 +30,7 @@ const SubcategoriaCard = ({
 
   // Navegar a elementos
    const handleVerElementos = () => {
-    navigate(`/categorias/${categoriaId}/subcategorias/${subcategoria.id}/elementos`)
+    navigate(`/inventario/categorias/${categoriaId}/subcategorias/${subcategoria.id}/elementos`)
   }
 
   // Crear elemento
@@ -91,18 +92,22 @@ const SubcategoriaCard = ({
       {/* HEADER */}
       <Card.Header>
         <div className="flex items-center gap-3">
-          
-          {/* Emoji */}
+
+          {/* Emoji/Icono */}
           <button
             onClick={(e) => {
               e.stopPropagation()
               setMostrarEmojiPicker(true)
             }}
-            className="text-4xl cursor-pointer hover:scale-110 transition-transform"
-            title="Cambiar emoji"
+            className="cursor-pointer hover:scale-110 transition-transform flex items-center justify-center"
+            title="Cambiar icono"
             type="button"
           >
-            {emojiActual}
+            <IconoCategoria
+              value={emojiActual}
+              className="text-4xl text-slate-700"
+              size={40}
+            />
           </button>
 
           {/* Nombre */}

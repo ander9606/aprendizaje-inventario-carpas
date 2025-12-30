@@ -211,7 +211,7 @@ function ElementoDetallePage() {
    * Handler: Volver a la lista de elementos
    */
   const handleGoBack = () => {
-    navigate(`/categorias/${categoriaId}/subcategorias/${subcategoriaId}/elementos`)
+    navigate(`/inventario/categorias/${categoriaId}/subcategorias/${subcategoriaId}/elementos`)
   }
 
   /**
@@ -252,7 +252,7 @@ function ElementoDetallePage() {
       deleteElemento.mutate(elementoId, {
         onSuccess: () => {
           toast.success('Elemento eliminado exitosamente')
-          navigate(`/categorias/${categoriaId}/subcategorias/${subcategoriaId}/elementos`)
+          navigate(`/inventario/categorias/${categoriaId}/subcategorias/${subcategoriaId}/elementos`)
         },
         onError: (error) => {
           toast.error(error.message || 'Error al eliminar elemento')
@@ -365,19 +365,18 @@ function ElementoDetallePage() {
   // ============================================
 
   const breadcrumbItems = [
-    { label: 'Inicio', path: '/' },
-    { label: 'Categorías', path: '/categorias' },
+    { label: 'Inventario', path: '/inventario' },
     {
       label: elemento?.categoria_padre_nombre || 'Categoría',
-      path: `/categorias/${categoriaId}`
+      path: `/inventario/categorias/${categoriaId}`
     },
     {
       label: elemento?.subcategoria_nombre || 'Subcategoría',
-      path: `/categorias/${categoriaId}/subcategorias/${subcategoriaId}`
+      path: `/inventario/categorias/${categoriaId}/subcategorias/${subcategoriaId}`
     },
     {
       label: 'Elementos',
-      path: `/categorias/${categoriaId}/subcategorias/${subcategoriaId}/elementos`
+      path: `/inventario/categorias/${categoriaId}/subcategorias/${subcategoriaId}/elementos`
     },
     { label: elemento?.nombre || 'Detalle' }
   ]
