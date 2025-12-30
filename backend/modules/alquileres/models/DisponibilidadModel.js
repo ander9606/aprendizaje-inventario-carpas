@@ -16,7 +16,7 @@ class DisponibilidadModel {
       SELECT
         cc.elemento_id,
         e.nombre AS elemento_nombre,
-        e.tipo AS elemento_tipo,
+        e.requiere_series,
         SUM(cc.cantidad * cp.cantidad) AS cantidad_requerida
       FROM cotizacion_productos cp
       INNER JOIN compuesto_componentes cc ON cp.compuesto_id = cc.compuesto_id
@@ -24,7 +24,7 @@ class DisponibilidadModel {
       WHERE cp.cotizacion_id = ?
         AND cc.tipo IN ('fijo', 'alternativa')
         AND (cc.tipo = 'fijo' OR cc.es_default = TRUE)
-      GROUP BY cc.elemento_id, e.nombre, e.tipo
+      GROUP BY cc.elemento_id, e.nombre, e.requiere_series
       ORDER BY e.nombre
     `;
     const [rows] = await pool.query(query, [cotizacionId]);
@@ -33,66 +33,58 @@ class DisponibilidadModel {
 
   // ============================================
   // OBTENER STOCK TOTAL POR ELEMENTO
-  // Total de series/lotes disponibles (estado = 'disponible')
+  // Respeta requiere_series: TRUE = series, FALSE = lotes
   // ============================================
-  static async obtenerStockTotal(elementoId) {
-    // Para series (elementos con seguimiento individual)
-    const [series] = await pool.query(`
-      SELECT COUNT(*) AS total
-      FROM series
-      WHERE elemento_id = ? AND estado = 'disponible'
-    `, [elementoId]);
-
-    // Para lotes (elementos con cantidad)
-    const [lotes] = await pool.query(`
-      SELECT COALESCE(SUM(cantidad), 0) AS total
-      FROM lotes
-      WHERE elemento_id = ? AND estado = 'disponible'
-    `, [elementoId]);
-
-    return {
-      series: parseInt(series[0].total),
-      lotes: parseInt(lotes[0].total),
-      total: parseInt(series[0].total) + parseInt(lotes[0].total)
-    };
+  static async obtenerStockTotal(elementoId, requiereSeries) {
+    if (requiereSeries) {
+      // Contar series disponibles
+      const [result] = await pool.query(`
+        SELECT COUNT(*) AS total
+        FROM series
+        WHERE elemento_id = ? AND estado = 'disponible'
+      `, [elementoId]);
+      return parseInt(result[0].total);
+    } else {
+      // Sumar cantidad de lotes disponibles
+      const [result] = await pool.query(`
+        SELECT COALESCE(SUM(cantidad), 0) AS total
+        FROM lotes
+        WHERE elemento_id = ? AND estado = 'disponible'
+      `, [elementoId]);
+      return parseInt(result[0].total);
+    }
   }
 
   // ============================================
-  // OBTENER ELEMENTOS OCUPADOS EN RANGO DE FECHAS
-  // Series/lotes asignados a alquileres activos/programados en esas fechas
+  // OBTENER CANTIDAD OCUPADA EN RANGO DE FECHAS
+  // Respeta requiere_series: TRUE = series, FALSE = lotes
   // ============================================
-  static async obtenerElementosOcupados(elementoId, fechaInicio, fechaFin) {
-    // Series ocupadas
-    const [seriesOcupadas] = await pool.query(`
-      SELECT COUNT(DISTINCT ae.serie_id) AS total
-      FROM alquiler_elementos ae
-      INNER JOIN alquileres a ON ae.alquiler_id = a.id
-      WHERE ae.elemento_id = ?
-        AND ae.serie_id IS NOT NULL
-        AND a.estado IN ('programado', 'activo')
-        AND NOT (
-          a.fecha_retorno_esperado < ? OR a.fecha_salida > ?
-        )
-    `, [elementoId, fechaInicio, fechaFin]);
-
-    // Cantidad de lotes ocupados
-    const [lotesOcupados] = await pool.query(`
-      SELECT COALESCE(SUM(ae.cantidad_lote), 0) AS total
-      FROM alquiler_elementos ae
-      INNER JOIN alquileres a ON ae.alquiler_id = a.id
-      WHERE ae.elemento_id = ?
-        AND ae.lote_id IS NOT NULL
-        AND a.estado IN ('programado', 'activo')
-        AND NOT (
-          a.fecha_retorno_esperado < ? OR a.fecha_salida > ?
-        )
-    `, [elementoId, fechaInicio, fechaFin]);
-
-    return {
-      series: parseInt(seriesOcupadas[0].total),
-      lotes: parseInt(lotesOcupados[0].total),
-      total: parseInt(seriesOcupadas[0].total) + parseInt(lotesOcupados[0].total)
-    };
+  static async obtenerCantidadOcupada(elementoId, requiereSeries, fechaInicio, fechaFin) {
+    if (requiereSeries) {
+      // Contar series ocupadas en el rango
+      const [result] = await pool.query(`
+        SELECT COUNT(DISTINCT ae.serie_id) AS total
+        FROM alquiler_elementos ae
+        INNER JOIN alquileres a ON ae.alquiler_id = a.id
+        WHERE ae.elemento_id = ?
+          AND ae.serie_id IS NOT NULL
+          AND a.estado IN ('programado', 'activo')
+          AND NOT (a.fecha_retorno_esperado < ? OR a.fecha_salida > ?)
+      `, [elementoId, fechaInicio, fechaFin]);
+      return parseInt(result[0].total);
+    } else {
+      // Sumar cantidad de lotes ocupada en el rango
+      const [result] = await pool.query(`
+        SELECT COALESCE(SUM(ae.cantidad_lote), 0) AS total
+        FROM alquiler_elementos ae
+        INNER JOIN alquileres a ON ae.alquiler_id = a.id
+        WHERE ae.elemento_id = ?
+          AND ae.lote_id IS NOT NULL
+          AND a.estado IN ('programado', 'activo')
+          AND NOT (a.fecha_retorno_esperado < ? OR a.fecha_salida > ?)
+      `, [elementoId, fechaInicio, fechaFin]);
+      return parseInt(result[0].total);
+    }
   }
 
   // ============================================
@@ -106,15 +98,19 @@ class DisponibilidadModel {
     let hayProblemas = false;
 
     for (const elemento of elementosRequeridos) {
-      const stockTotal = await this.obtenerStockTotal(elemento.elemento_id);
-      const ocupados = await this.obtenerElementosOcupados(
+      const requiereSeries = elemento.requiere_series === 1 || elemento.requiere_series === true;
+
+      const stockTotal = await this.obtenerStockTotal(elemento.elemento_id, requiereSeries);
+      const ocupados = await this.obtenerCantidadOcupada(
         elemento.elemento_id,
+        requiereSeries,
         fechaInicio,
         fechaFin
       );
 
-      const disponibles = stockTotal.total - ocupados.total;
-      const faltantes = Math.max(0, elemento.cantidad_requerida - disponibles);
+      const disponibles = stockTotal - ocupados;
+      const cantidadRequerida = parseInt(elemento.cantidad_requerida);
+      const faltantes = Math.max(0, cantidadRequerida - disponibles);
       const tieneProblema = faltantes > 0;
 
       if (tieneProblema) hayProblemas = true;
@@ -122,10 +118,10 @@ class DisponibilidadModel {
       analisis.push({
         elemento_id: elemento.elemento_id,
         elemento_nombre: elemento.elemento_nombre,
-        elemento_tipo: elemento.elemento_tipo,
-        cantidad_requerida: parseInt(elemento.cantidad_requerida),
-        stock_total: stockTotal.total,
-        ocupados_en_fecha: ocupados.total,
+        requiere_series: requiereSeries,
+        cantidad_requerida: cantidadRequerida,
+        stock_total: stockTotal,
+        ocupados_en_fecha: ocupados,
         disponibles: disponibles,
         faltantes: faltantes,
         estado: tieneProblema ? 'insuficiente' : 'ok'
@@ -148,10 +144,10 @@ class DisponibilidadModel {
 
   // ============================================
   // OBTENER SERIES DISPONIBLES PARA ELEMENTO EN FECHAS
-  // Lista de series específicas que se pueden asignar
+  // Solo para elementos con requiere_series = TRUE
   // ============================================
-  static async obtenerSeriesDisponibles(elementoId, fechaInicio, fechaFin) {
-    const query = `
+  static async obtenerSeriesDisponibles(elementoId, fechaInicio, fechaFin, limite = null) {
+    let query = `
       SELECT
         s.id,
         s.numero_serie,
@@ -172,13 +168,18 @@ class DisponibilidadModel {
         )
       ORDER BY s.numero_serie
     `;
+
+    if (limite) {
+      query += ` LIMIT ${parseInt(limite)}`;
+    }
+
     const [rows] = await pool.query(query, [elementoId, fechaInicio, fechaFin]);
     return rows;
   }
 
   // ============================================
   // OBTENER LOTES DISPONIBLES PARA ELEMENTO EN FECHAS
-  // Lista de lotes con cantidad disponible
+  // Solo para elementos con requiere_series = FALSE
   // ============================================
   static async obtenerLotesDisponibles(elementoId, fechaInicio, fechaFin) {
     const query = `
@@ -203,15 +204,105 @@ class DisponibilidadModel {
       WHERE l.elemento_id = ?
         AND l.estado = 'disponible'
       HAVING (l.cantidad - cantidad_ocupada) > 0
-      ORDER BY l.lote_numero
+      ORDER BY (l.cantidad - cantidad_ocupada) DESC
     `;
     const [rows] = await pool.query(query, [fechaInicio, fechaFin, elementoId]);
 
-    // Calcular cantidad disponible
     return rows.map(lote => ({
       ...lote,
       cantidad_disponible: lote.cantidad_total - lote.cantidad_ocupada
     }));
+  }
+
+  // ============================================
+  // ASIGNAR ELEMENTOS AUTOMÁTICAMENTE
+  // Selecciona series/lotes disponibles para cada elemento requerido
+  // ============================================
+  static async asignarAutomaticamente(cotizacionId, fechaInicio, fechaFin) {
+    const elementosRequeridos = await this.obtenerElementosRequeridos(cotizacionId);
+    const asignaciones = [];
+    const advertencias = [];
+
+    for (const elemento of elementosRequeridos) {
+      const requiereSeries = elemento.requiere_series === 1 || elemento.requiere_series === true;
+      const cantidadRequerida = parseInt(elemento.cantidad_requerida);
+
+      if (requiereSeries) {
+        // Asignar series específicas
+        const seriesDisponibles = await this.obtenerSeriesDisponibles(
+          elemento.elemento_id,
+          fechaInicio,
+          fechaFin,
+          cantidadRequerida
+        );
+
+        for (const serie of seriesDisponibles) {
+          asignaciones.push({
+            elemento_id: elemento.elemento_id,
+            elemento_nombre: elemento.elemento_nombre,
+            serie_id: serie.id,
+            numero_serie: serie.numero_serie,
+            ubicacion_original_id: serie.ubicacion_id,
+            lote_id: null,
+            cantidad_lote: null
+          });
+        }
+
+        if (seriesDisponibles.length < cantidadRequerida) {
+          advertencias.push({
+            elemento_id: elemento.elemento_id,
+            elemento_nombre: elemento.elemento_nombre,
+            requerido: cantidadRequerida,
+            asignado: seriesDisponibles.length,
+            faltante: cantidadRequerida - seriesDisponibles.length
+          });
+        }
+      } else {
+        // Asignar de lotes
+        const lotesDisponibles = await this.obtenerLotesDisponibles(
+          elemento.elemento_id,
+          fechaInicio,
+          fechaFin
+        );
+
+        let cantidadPendiente = cantidadRequerida;
+
+        for (const lote of lotesDisponibles) {
+          if (cantidadPendiente <= 0) break;
+
+          const cantidadAsignar = Math.min(cantidadPendiente, lote.cantidad_disponible);
+
+          asignaciones.push({
+            elemento_id: elemento.elemento_id,
+            elemento_nombre: elemento.elemento_nombre,
+            serie_id: null,
+            numero_serie: null,
+            lote_id: lote.id,
+            lote_numero: lote.lote_numero,
+            cantidad_lote: cantidadAsignar,
+            ubicacion_original_id: lote.ubicacion_id
+          });
+
+          cantidadPendiente -= cantidadAsignar;
+        }
+
+        if (cantidadPendiente > 0) {
+          advertencias.push({
+            elemento_id: elemento.elemento_id,
+            elemento_nombre: elemento.elemento_nombre,
+            requerido: cantidadRequerida,
+            asignado: cantidadRequerida - cantidadPendiente,
+            faltante: cantidadPendiente
+          });
+        }
+      }
+    }
+
+    return {
+      asignaciones,
+      advertencias,
+      hay_advertencias: advertencias.length > 0
+    };
   }
 }
 

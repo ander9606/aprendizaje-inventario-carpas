@@ -50,6 +50,9 @@ router.post('/:id/cancelar', validateId(), alquilerController.cancelar);
 // POST /api/alquileres/:id/elementos - Asignar elementos
 router.post('/:id/elementos', validateId(), alquilerController.asignarElementos);
 
+// PUT /api/alquileres/:id/elementos/:asignacionId - Cambiar elemento asignado
+router.put('/:id/elementos/:asignacionId', validateId(), alquilerController.cambiarElementoAsignado);
+
 // POST /api/alquileres/:id/elementos/:elementoId/retorno - Registrar retorno de elemento
 router.post('/:id/elementos/:elementoId/retorno', validateId(), alquilerController.registrarRetornoElemento);
 

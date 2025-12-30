@@ -9,6 +9,7 @@ const CotizacionTransporteModel = require('../models/CotizacionTransporteModel')
 const ClienteModel = require('../models/ClienteModel');
 const TarifaTransporteModel = require('../models/TarifaTransporteModel');
 const AlquilerModel = require('../models/AlquilerModel');
+const AlquilerElementoModel = require('../models/AlquilerElementoModel');
 const DisponibilidadModel = require('../models/DisponibilidadModel');
 const AppError = require('../../../utils/AppError');
 const logger = require('../../../utils/logger');
@@ -541,21 +542,37 @@ exports.aprobarYCrearAlquiler = async (req, res, next) => {
       notas_salida
     });
 
-    const alquiler = await AlquilerModel.obtenerCompleto(resultadoAlquiler.insertId);
+    const alquilerId = resultadoAlquiler.insertId;
+
+    // Asignar elementos automáticamente
+    const asignacion = await DisponibilidadModel.asignarAutomaticamente(
+      id,
+      fechaSalida,
+      fechaRetorno
+    );
+
+    // Guardar asignaciones en alquiler_elementos
+    if (asignacion.asignaciones.length > 0) {
+      await AlquilerElementoModel.asignarMultiples(alquilerId, asignacion.asignaciones);
+    }
+
+    const alquiler = await AlquilerModel.obtenerCompleto(alquilerId);
 
     logger.info('cotizacionController.aprobarYCrearAlquiler', 'Cotización aprobada y alquiler creado', {
       cotizacionId: id,
       alquilerId: alquiler.id,
-      conAdvertencias: disponibilidad.hay_problemas
+      elementosAsignados: asignacion.asignaciones.length,
+      conAdvertencias: asignacion.hay_advertencias
     });
 
     res.json({
       success: true,
-      mensaje: disponibilidad.hay_problemas
+      mensaje: asignacion.hay_advertencias
         ? 'Cotización aprobada con advertencias de disponibilidad'
         : 'Cotización aprobada y alquiler creado exitosamente',
-      advertencia: disponibilidad.hay_problemas,
-      disponibilidad: disponibilidad.hay_problemas ? disponibilidad : undefined,
+      advertencia: asignacion.hay_advertencias,
+      elementos_asignados: asignacion.asignaciones.length,
+      advertencias: asignacion.hay_advertencias ? asignacion.advertencias : undefined,
       data: alquiler
     });
   } catch (error) {

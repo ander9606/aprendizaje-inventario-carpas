@@ -200,6 +200,81 @@ exports.asignarElementos = async (req, res, next) => {
 };
 
 // ============================================
+// CAMBIAR ELEMENTO ASIGNADO
+// Permite cambiar una serie/lote por otra disponible
+// ============================================
+exports.cambiarElementoAsignado = async (req, res, next) => {
+  try {
+    const { id, asignacionId } = req.params;
+    const { nueva_serie_id, nuevo_lote_id, nueva_cantidad_lote } = req.body;
+
+    const alquiler = await AlquilerModel.obtenerPorId(id);
+    if (!alquiler) {
+      throw new AppError('Alquiler no encontrado', 404);
+    }
+
+    if (alquiler.estado !== 'programado') {
+      throw new AppError('Solo se pueden cambiar elementos en alquileres programados', 400);
+    }
+
+    const asignacionActual = await AlquilerElementoModel.obtenerPorId(asignacionId);
+    if (!asignacionActual || asignacionActual.alquiler_id !== parseInt(id)) {
+      throw new AppError('Asignación no encontrada en este alquiler', 404);
+    }
+
+    // Si es cambio de serie
+    if (nueva_serie_id) {
+      // Verificar que la nueva serie no esté en otro alquiler
+      const enAlquiler = await AlquilerElementoModel.serieEnAlquilerActivo(nueva_serie_id);
+      if (enAlquiler) {
+        throw new AppError('La nueva serie ya está asignada a otro alquiler', 400);
+      }
+
+      // Eliminar asignación actual y crear nueva
+      await AlquilerElementoModel.eliminar(asignacionId);
+      await AlquilerElementoModel.asignarSerie({
+        alquiler_id: id,
+        elemento_id: asignacionActual.elemento_id,
+        serie_id: nueva_serie_id,
+        estado_salida: asignacionActual.estado_salida,
+        ubicacion_original_id: asignacionActual.ubicacion_original_id
+      });
+    }
+
+    // Si es cambio de lote
+    if (nuevo_lote_id) {
+      await AlquilerElementoModel.eliminar(asignacionId);
+      await AlquilerElementoModel.asignarLote({
+        alquiler_id: id,
+        elemento_id: asignacionActual.elemento_id,
+        lote_id: nuevo_lote_id,
+        cantidad_lote: nueva_cantidad_lote || asignacionActual.cantidad_lote,
+        estado_salida: asignacionActual.estado_salida,
+        ubicacion_original_id: asignacionActual.ubicacion_original_id
+      });
+    }
+
+    logger.info('alquilerController.cambiarElementoAsignado', 'Elemento cambiado', {
+      alquilerId: id,
+      asignacionId,
+      nuevaSerie: nueva_serie_id,
+      nuevoLote: nuevo_lote_id
+    });
+
+    const alquilerActualizado = await AlquilerModel.obtenerCompleto(id);
+
+    res.json({
+      success: true,
+      mensaje: 'Elemento cambiado exitosamente',
+      data: alquilerActualizado
+    });
+  } catch (error) {
+    logger.error('alquilerController.cambiarElementoAsignado', error);
+    next(error);
+  }
+};
+
+// ============================================
 // MARCAR SALIDA (activo)
 // ============================================
 exports.marcarSalida = async (req, res, next) => {
