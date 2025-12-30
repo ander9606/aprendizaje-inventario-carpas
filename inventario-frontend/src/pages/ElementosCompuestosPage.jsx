@@ -24,7 +24,7 @@ import {
 } from 'lucide-react'
 
 // Hooks
-import { useGetCategoriasProductos } from '../hooks/UseCategoriasProductos'
+import { useGetCategoriasProductos, useDeleteCategoriaProducto } from '../hooks/UseCategoriasProductos'
 import {
   useGetElementosCompuestos,
   useDeleteElementoCompuesto,
@@ -65,6 +65,7 @@ function ElementosCompuestosPage() {
   const { categorias, isLoading: loadingCategorias, refetch: refetchCategorias } = useGetCategoriasProductos()
   const { elementos, isLoading: loadingElementos, refetch } = useGetElementosCompuestos()
   const { deleteElemento, isPending: isDeleting } = useDeleteElementoCompuesto()
+  const { deleteCategoria, isPending: isDeletingCategoria } = useDeleteCategoriaProducto()
 
   // ============================================
   // FUNCIONES AUXILIARES
@@ -151,6 +152,38 @@ function ElementosCompuestosPage() {
     setShowCategoriaModal(false)
     setCategoriaToEdit(null)
     refetchCategorias()
+  }
+
+  const handleEditarCategoria = (categoria, e) => {
+    e?.stopPropagation()
+    setCategoriaToEdit(categoria)
+    setShowCategoriaModal(true)
+  }
+
+  const handleEliminarCategoria = async (categoria, e) => {
+    e?.stopPropagation()
+
+    // Verificar si tiene elementos
+    const cantidadElementos = contarElementosPorCategoria(categoria.id)
+    if (cantidadElementos > 0) {
+      toast.error(`No se puede eliminar. Esta categoría tiene ${cantidadElementos} plantilla(s) asociada(s).`)
+      return
+    }
+
+    const confirmacion = confirm(
+      `¿Estás seguro de eliminar la categoría "${categoria.nombre}"?\n\nEsta acción no se puede deshacer.`
+    )
+
+    if (confirmacion) {
+      try {
+        await deleteCategoria(categoria.id)
+        toast.success('Categoría eliminada exitosamente')
+        refetchCategorias()
+      } catch (error) {
+        console.error('Error al eliminar categoría:', error)
+        toast.error(error.response?.data?.mensaje || 'Error al eliminar la categoría')
+      }
+    }
   }
 
   // ============================================
@@ -249,6 +282,9 @@ function ElementosCompuestosPage() {
                     categoria={categoria}
                     cantidadElementos={contarElementosPorCategoria(categoria.id)}
                     onClick={() => handleSelectCategoria(categoria)}
+                    onEdit={handleEditarCategoria}
+                    onDelete={handleEliminarCategoria}
+                    isDeleting={isDeletingCategoria}
                   />
                 ))}
               </div>
@@ -383,12 +419,11 @@ function ElementosCompuestosPage() {
 // COMPONENTE: Tarjeta de Categoría de Producto
 // ============================================
 
-function CategoriaProductoCard({ categoria, cantidadElementos, onClick }) {
+function CategoriaProductoCard({ categoria, cantidadElementos, onClick, onEdit, onDelete, isDeleting }) {
   return (
     <Card
       variant="outlined"
-      className="hover:shadow-lg transition-all duration-200 cursor-pointer hover:border-emerald-300"
-      onClick={onClick}
+      className="hover:shadow-lg transition-all duration-200 hover:border-emerald-300"
     >
       <Card.Header>
         <div className="flex items-center gap-3">
@@ -416,13 +451,40 @@ function CategoriaProductoCard({ categoria, cantidadElementos, onClick }) {
       </Card.Content>
 
       <Card.Footer>
+        {/* Botón principal */}
         <Button
           variant="primary"
           fullWidth
           icon={<FolderOpen />}
+          onClick={onClick}
+          className="mb-3"
         >
           Ver Plantillas
         </Button>
+
+        {/* Botones secundarios */}
+        <div className="flex gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            icon={<Edit className="w-4 h-4" />}
+            onClick={(e) => onEdit(categoria, e)}
+            className="flex-1"
+          >
+            Editar
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            icon={<Trash2 className="w-4 h-4" />}
+            onClick={(e) => onDelete(categoria, e)}
+            loading={isDeleting}
+            disabled={isDeleting}
+            className="flex-1 text-red-600 hover:bg-red-50"
+          >
+            Eliminar
+          </Button>
+        </div>
       </Card.Footer>
     </Card>
   )
