@@ -1,35 +1,27 @@
 -- ============================================================
--- TABLA: tarifas_transporte
--- Precio por tipo de camión y ubicación/ciudad
+-- TABLA 12: tarifas_transporte
+-- Precio por tipo de camión y ciudad
 -- ============================================================
 
 CREATE TABLE IF NOT EXISTS tarifas_transporte (
     id INT PRIMARY KEY AUTO_INCREMENT,
-
-    -- Tipo de camión
-    tipo_camion VARCHAR(100) NOT NULL,  -- Ej: 'Camión 350', 'Turbo', 'Sencillo'
-
-    -- Ciudad destino
+    tipo_camion VARCHAR(100) NOT NULL,
     ciudad VARCHAR(100) NOT NULL,
-
-    -- Precio por camión (ida y vuelta)
     precio DECIMAL(12,2) NOT NULL,
 
     activo BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
-    -- Tipo de camión + ciudad debe ser único
     UNIQUE KEY uk_tipo_ciudad (tipo_camion, ciudad)
 
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Índices
 CREATE INDEX idx_tarifa_ciudad ON tarifas_transporte(ciudad);
 CREATE INDEX idx_tarifa_tipo ON tarifas_transporte(tipo_camion);
 
 -- ============================================================
--- DATOS DE EJEMPLO (ajustar según tus tarifas reales)
+-- DATOS DE EJEMPLO
 -- ============================================================
 
 INSERT INTO tarifas_transporte (tipo_camion, ciudad, precio) VALUES
