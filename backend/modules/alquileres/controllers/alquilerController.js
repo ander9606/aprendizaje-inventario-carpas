@@ -5,6 +5,8 @@
 
 const AlquilerModel = require('../models/AlquilerModel');
 const AlquilerElementoModel = require('../models/AlquilerElementoModel');
+const CotizacionModel = require('../models/CotizacionModel');
+const SerieModel = require('../../inventario/models/SerieModel');
 const AppError = require('../../../utils/AppError');
 const logger = require('../../../utils/logger');
 
@@ -291,10 +293,36 @@ exports.marcarSalida = async (req, res, next) => {
       throw new AppError('Solo se puede marcar salida en alquileres programados', 400);
     }
 
-    // Si vienen elementos, asignarlos
+    // Si vienen elementos adicionales, asignarlos
     if (elementos && elementos.length > 0) {
       await AlquilerElementoModel.asignarMultiples(id, elementos);
-      // TODO: Cambiar estado de series/lotes a 'alquilado'
+    }
+
+    // Obtener elementos asignados al alquiler
+    const elementosAsignados = await AlquilerElementoModel.obtenerPorAlquiler(id);
+
+    if (elementosAsignados.length === 0) {
+      throw new AppError('El alquiler no tiene elementos asignados', 400);
+    }
+
+    // Obtener ubicación del evento desde la cotización
+    const cotizacion = await CotizacionModel.obtenerPorId(alquiler.cotizacion_id);
+
+    // Cambiar estado de SERIES a 'alquilado' y actualizar ubicación
+    let seriesActualizadas = 0;
+    for (const elem of elementosAsignados) {
+      if (elem.serie_id) {
+        // Cambiar estado a 'alquilado' con ubicación del evento
+        await SerieModel.cambiarEstado(
+          elem.serie_id,
+          'alquilado',
+          cotizacion.evento_ciudad || null,  // ubicacion texto
+          null  // ubicacion_id - podría ser la ubicación del evento si existe
+        );
+        seriesActualizadas++;
+      }
+      // Para lotes: el tracking está en alquiler_elementos
+      // La disponibilidad se calcula restando de ahí
     }
 
     await AlquilerModel.marcarActivo(id, {
@@ -302,13 +330,18 @@ exports.marcarSalida = async (req, res, next) => {
       notas_salida
     });
 
-    logger.info('alquilerController.marcarSalida', 'Alquiler marcado como activo', { id });
+    logger.info('alquilerController.marcarSalida', 'Alquiler marcado como activo', {
+      id,
+      seriesActualizadas,
+      totalElementos: elementosAsignados.length
+    });
 
     const alquilerActualizado = await AlquilerModel.obtenerCompleto(id);
 
     res.json({
       success: true,
       mensaje: 'Salida registrada exitosamente',
+      series_actualizadas: seriesActualizadas,
       data: alquilerActualizado
     });
   } catch (error) {
@@ -339,13 +372,42 @@ exports.registrarRetornoElemento = async (req, res, next) => {
       throw new AppError(`Estado inválido. Valores: ${estadosValidos.join(', ')}`, 400);
     }
 
+    // Obtener la asignación antes de registrar retorno
+    const asignacion = await AlquilerElementoModel.obtenerPorId(elementoId);
+    if (!asignacion) {
+      throw new AppError('Asignación no encontrada', 404);
+    }
+
     await AlquilerElementoModel.registrarRetorno(elementoId, {
       estado_retorno,
       costo_dano,
       notas_retorno
     });
 
-    // TODO: Restaurar estado y ubicación del elemento
+    // Restaurar estado y ubicación de SERIES
+    if (asignacion.serie_id) {
+      // Mapear estado_retorno a estado de serie
+      let nuevoEstadoSerie = 'disponible';
+      if (estado_retorno === 'dañado') {
+        nuevoEstadoSerie = 'mantenimiento';
+      } else if (estado_retorno === 'perdido') {
+        nuevoEstadoSerie = 'baja';
+      }
+
+      // Restaurar ubicación original
+      await SerieModel.cambiarEstado(
+        asignacion.serie_id,
+        nuevoEstadoSerie,
+        null, // ubicacion texto
+        asignacion.ubicacion_original_id
+      );
+
+      logger.info('alquilerController.registrarRetornoElemento', 'Serie restaurada', {
+        serieId: asignacion.serie_id,
+        nuevoEstado: nuevoEstadoSerie,
+        ubicacionOriginal: asignacion.ubicacion_original_id
+      });
+    }
 
     // Actualizar costo de daños del alquiler
     await AlquilerModel.actualizarCostoDanos(id);
