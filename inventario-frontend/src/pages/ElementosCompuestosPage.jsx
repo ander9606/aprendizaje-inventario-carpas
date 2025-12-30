@@ -24,7 +24,7 @@ import {
 } from 'lucide-react'
 
 // Hooks
-import { useGetCategoriasProductos, useDeleteCategoriaProducto } from '../hooks/UseCategoriasProductos'
+import { useGetCategoriasProductos, useDeleteCategoriaProducto, useUpdateCategoriaProducto } from '../hooks/UseCategoriasProductos'
 import {
   useGetElementosCompuestos,
   useDeleteElementoCompuesto,
@@ -35,6 +35,7 @@ import {
 import Button from '../components/common/Button'
 import Modal from '../components/common/Modal'
 import Card from '../components/common/Card'
+import EmojiPicker from '../components/common/Emojipicker'
 import ElementoCompuestoFormModal from '../components/forms/ElementoCompuestoFormModal'
 import CategoriaProductoFormModal from '../components/forms/CategoriaProductoFormModal'
 
@@ -420,6 +421,43 @@ function ElementosCompuestosPage() {
 // ============================================
 
 function CategoriaProductoCard({ categoria, cantidadElementos, onClick, onEdit, onDelete, isDeleting }) {
+  // Estado local para el emoji picker
+  const [mostrarEmojiPicker, setMostrarEmojiPicker] = useState(false)
+  const [emojiActual, setEmojiActual] = useState(categoria.emoji || '📦')
+
+  // Hook para actualizar categoría
+  const updateCategoria = useUpdateCategoriaProducto()
+
+  /**
+   * Handler para cuando se selecciona un nuevo emoji
+   */
+  const handleSeleccionarEmoji = (nuevoEmoji) => {
+    // Actualización optimista en la UI
+    setEmojiActual(nuevoEmoji)
+    setMostrarEmojiPicker(false)
+
+    // Llamar a la API
+    updateCategoria.updateCategoriaSync(
+      {
+        id: categoria.id,
+        nombre: categoria.nombre,
+        emoji: nuevoEmoji,
+        descripcion: categoria.descripcion
+      },
+      {
+        onSuccess: () => {
+          toast.success('Emoji actualizado')
+        },
+        onError: (error) => {
+          console.error('Error al actualizar emoji:', error)
+          toast.error('No se pudo actualizar el emoji')
+          // Revertir al emoji original
+          setEmojiActual(categoria.emoji || '📦')
+        }
+      }
+    )
+  }
+
   return (
     <Card
       variant="outlined"
@@ -427,9 +465,15 @@ function CategoriaProductoCard({ categoria, cantidadElementos, onClick, onEdit, 
     >
       <Card.Header>
         <div className="flex items-center gap-3">
-          <div className="text-4xl">
-            {categoria.emoji || '📦'}
-          </div>
+          {/* Emoji clickeable para editar */}
+          <button
+            onClick={() => setMostrarEmojiPicker(true)}
+            className="text-4xl cursor-pointer hover:scale-110 transition-transform"
+            title="Click para cambiar el emoji"
+            type="button"
+          >
+            {emojiActual}
+          </button>
           <Card.Title className="flex-1">
             {categoria.nombre}
           </Card.Title>
@@ -486,6 +530,15 @@ function CategoriaProductoCard({ categoria, cantidadElementos, onClick, onEdit, 
           </Button>
         </div>
       </Card.Footer>
+
+      {/* EmojiPicker Modal */}
+      {mostrarEmojiPicker && (
+        <EmojiPicker
+          open={mostrarEmojiPicker}
+          onSelect={handleSeleccionarEmoji}
+          onClose={() => setMostrarEmojiPicker(false)}
+        />
+      )}
     </Card>
   )
 }
