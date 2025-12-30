@@ -3,13 +3,14 @@
 // Nivel 1: Vista principal de categorías padre
 // ============================================
 
-import { useState } from 'react'
-import { Plus, Package, MapPin, Home, ArrowLeft } from 'lucide-react'
+import { useState, useMemo } from 'react'
+import { Plus, Package, MapPin, ArrowLeft, Search, X, Layers, ChevronRight } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import {
   useGetCategoriasPadre,
   useDeleteCategoria
 } from '../hooks/Usecategorias'
+import { useGetTodosElementos } from '../hooks/Useelementos'
 import CategoriaPadreCard from '../components/cards/CategoriaPadreCard'
 import CategoriaFormModal from '../components/forms/CategoriaFormModal'
 import SubcategoriaFormModal from '../components/forms/SubcategoriaFormModal'
@@ -50,26 +51,84 @@ export default function Dashboard() {
 
   // Obtener categorías padre
   const { categoriasPadre, isLoading, error, refetch } = useGetCategoriasPadre()
-  
+
+  // Obtener todos los elementos para búsqueda
+  const { elementos: todosElementos, isLoading: loadingElementos } = useGetTodosElementos()
+
   // Hook para eliminar
   const { deleteCategoria, isLoading: isDeleting } = useDeleteCategoria()
-  
+
   // ============================================
-  // STATE: Control de modales
+  // STATE: Control de modales y búsqueda
   // ============================================
-  
+
+  // Estado de búsqueda
+  const [searchTerm, setSearchTerm] = useState('')
+  const [showSearchResults, setShowSearchResults] = useState(false)
+
   // Estado para controlar qué modal está abierto
   const [modalState, setModalState] = useState({
     crear: false,
     editar: false,
     crearSubcategoria: false
   })
-  
+
   // Categoría seleccionada para editar
   const [selectedCategoria, setSelectedCategoria] = useState(null)
-  
+
   // ID de categoría padre para crear subcategoría
   const [parentCategoriaId, setParentCategoriaId] = useState(null)
+
+  // ============================================
+  // BÚSQUEDA: Filtrar categorías y elementos
+  // ============================================
+
+  const searchResults = useMemo(() => {
+    if (!searchTerm.trim() || searchTerm.length < 2) {
+      return { categorias: [], elementos: [] }
+    }
+
+    const term = searchTerm.toLowerCase().trim()
+
+    // Buscar en categorías (padre y subcategorías)
+    const categoriasEncontradas = categoriasPadre.filter(cat =>
+      cat.nombre.toLowerCase().includes(term) ||
+      cat.subcategorias?.some(sub => sub.nombre.toLowerCase().includes(term))
+    )
+
+    // Buscar en elementos
+    const elementosEncontrados = todosElementos.filter(el =>
+      el.nombre.toLowerCase().includes(term) ||
+      el.descripcion?.toLowerCase().includes(term)
+    ).slice(0, 10) // Limitar a 10 resultados
+
+    return {
+      categorias: categoriasEncontradas,
+      elementos: elementosEncontrados
+    }
+  }, [searchTerm, categoriasPadre, todosElementos])
+
+  const hasSearchResults = searchResults.categorias.length > 0 || searchResults.elementos.length > 0
+
+  // Navegar a un elemento
+  const handleGoToElemento = (elemento) => {
+    navigate(`/inventario/categorias/${elemento.categoria_padre_id}/subcategorias/${elemento.categoria_id}/elementos/${elemento.id}`)
+    setSearchTerm('')
+    setShowSearchResults(false)
+  }
+
+  // Navegar a una categoría
+  const handleGoToCategoria = (categoria) => {
+    navigate(`/inventario/categorias/${categoria.id}`)
+    setSearchTerm('')
+    setShowSearchResults(false)
+  }
+
+  // Limpiar búsqueda
+  const handleClearSearch = () => {
+    setSearchTerm('')
+    setShowSearchResults(false)
+  }
   
   // ============================================
   // HANDLERS: Acciones de categorías
@@ -222,6 +281,120 @@ export default function Dashboard() {
           CONTENIDO PRINCIPAL
           ============================================ */}
       <div className="container mx-auto px-6 py-8">
+
+        {/* ============================================
+            BUSCADOR GLOBAL
+            ============================================ */}
+        <div className="mb-6 relative">
+          <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Buscar categorías o elementos..."
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value)
+                  setShowSearchResults(e.target.value.length >= 2)
+                }}
+                onFocus={() => searchTerm.length >= 2 && setShowSearchResults(true)}
+                className="w-full pl-11 pr-10 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg"
+              />
+              {searchTerm && (
+                <button
+                  onClick={handleClearSearch}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-slate-100 rounded-full transition-colors"
+                >
+                  <X className="w-4 h-4 text-slate-400" />
+                </button>
+              )}
+            </div>
+
+            {/* Resultados de búsqueda */}
+            {showSearchResults && searchTerm.length >= 2 && (
+              <div className="mt-3 border-t border-slate-200 pt-3">
+                {loadingElementos ? (
+                  <div className="flex items-center justify-center py-4">
+                    <Spinner size="sm" />
+                    <span className="ml-2 text-slate-600">Buscando...</span>
+                  </div>
+                ) : hasSearchResults ? (
+                  <div className="space-y-4">
+                    {/* Categorías encontradas */}
+                    {searchResults.categorias.length > 0 && (
+                      <div>
+                        <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+                          Categorías ({searchResults.categorias.length})
+                        </h4>
+                        <div className="space-y-1">
+                          {searchResults.categorias.map(cat => (
+                            <button
+                              key={cat.id}
+                              onClick={() => handleGoToCategoria(cat)}
+                              className="w-full flex items-center gap-3 p-2 hover:bg-blue-50 rounded-lg transition-colors text-left"
+                            >
+                              <span className="text-2xl">{cat.emoji || '📦'}</span>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium text-slate-900 truncate">{cat.nombre}</p>
+                                <p className="text-sm text-slate-500">
+                                  {cat.subcategorias?.length || 0} subcategorías
+                                </p>
+                              </div>
+                              <ChevronRight className="w-4 h-4 text-slate-400" />
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Elementos encontrados */}
+                    {searchResults.elementos.length > 0 && (
+                      <div>
+                        <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+                          Elementos ({searchResults.elementos.length})
+                        </h4>
+                        <div className="space-y-1">
+                          {searchResults.elementos.map(el => (
+                            <button
+                              key={el.id}
+                              onClick={() => handleGoToElemento(el)}
+                              className="w-full flex items-center gap-3 p-2 hover:bg-blue-50 rounded-lg transition-colors text-left"
+                            >
+                              <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center">
+                                <Layers className="w-5 h-5 text-slate-500" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium text-slate-900 truncate">{el.nombre}</p>
+                                <p className="text-sm text-slate-500 truncate">
+                                  {el.categoria_padre_nombre || 'Sin categoría'} → {el.categoria_nombre || 'Sin subcategoría'}
+                                </p>
+                              </div>
+                              <div className="text-right">
+                                <span className={`text-xs px-2 py-1 rounded-full ${
+                                  el.requiere_series
+                                    ? 'bg-purple-100 text-purple-700'
+                                    : 'bg-green-100 text-green-700'
+                                }`}>
+                                  {el.requiere_series ? 'Series' : 'Cantidad'}
+                                </span>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-center py-4 text-slate-500">
+                    <Search className="w-8 h-8 mx-auto mb-2 text-slate-300" />
+                    <p>No se encontraron resultados para "{searchTerm}"</p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* Título de sección */}
         <div className="mb-6">
           <h2 className="text-xl font-semibold text-slate-900 mb-1">
