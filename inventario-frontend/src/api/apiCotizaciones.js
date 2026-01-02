@@ -2,7 +2,7 @@
 // API: Cotizaciones
 // ============================================
 
-import api from './axios';
+import api from './Axios.config';
 
 export const apiCotizaciones = {
   obtenerTodas: async () => {

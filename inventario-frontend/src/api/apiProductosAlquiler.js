@@ -2,7 +2,7 @@
 // API: Productos de Alquiler (Elementos Compuestos)
 // ============================================
 
-import api from './axios';
+import api from './Axios.config';
 
 export const apiProductosAlquiler = {
   obtenerTodos: async () => {

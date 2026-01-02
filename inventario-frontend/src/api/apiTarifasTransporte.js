@@ -2,7 +2,7 @@
 // API: Tarifas de Transporte
 // ============================================
 
-import api from './axios';
+import api from './Axios.config';
 
 export const apiTarifasTransporte = {
   obtenerTodas: async () => {

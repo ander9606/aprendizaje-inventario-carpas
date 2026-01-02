@@ -2,7 +2,7 @@
 // API: Clientes
 // ============================================
 
-import api from './axios';
+import api from './Axios.config';
 
 export const apiClientes = {
   obtenerTodos: async () => {
