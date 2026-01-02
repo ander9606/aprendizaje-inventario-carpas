@@ -54,14 +54,14 @@ export default function ModulosDashboard() {
     {
       id: 'alquileres',
       nombre: 'Alquileres',
-      descripcion: 'Gestiona contratos, reservas y seguimiento de alquileres activos.',
+      descripcion: 'Gestiona clientes, cotizaciones y alquileres de productos.',
       icon: Calendar,
       color: 'purple',
       ruta: '/alquileres',
-      estado: 'proximamente',
+      estado: 'activo',
       stats: [
-        { label: 'Reservas', icon: Calendar },
-        { label: 'Contratos', icon: ClipboardList }
+        { label: 'Cotizaciones', icon: ClipboardList },
+        { label: 'Clientes', icon: Calendar }
       ]
     }
   ]
