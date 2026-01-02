@@ -121,14 +121,8 @@ const CotizacionFormModal = ({
     setProductosSeleccionados(prev => {
       const nuevos = [...prev]
 
-      // Si cambio el producto, verificar que no esté duplicado
+      // Si cambio el producto, actualizar precios
       if (campo === 'compuesto_id' && valor) {
-        const yaExiste = nuevos.some((p, i) => i !== index && p.compuesto_id === valor)
-        if (yaExiste) {
-          alert('Este producto ya está agregado. Modifique la cantidad en lugar de agregarlo nuevamente.')
-          return prev
-        }
-
         const producto = productos.find(p => p.id === parseInt(valor))
         if (producto) {
           nuevos[index] = {
@@ -146,16 +140,6 @@ const CotizacionFormModal = ({
     })
   }
 
-  // Obtener productos disponibles (excluir ya seleccionados)
-  const getProductosDisponibles = (indexActual) => {
-    const idsSeleccionados = productosSeleccionados
-      .filter((_, i) => i !== indexActual)
-      .map(p => p.compuesto_id)
-      .filter(id => id)
-
-    return productos.filter(p => !idsSeleccionados.includes(String(p.id)))
-  }
-
   const eliminarProducto = (index) => {
     setProductosSeleccionados(prev => prev.filter((_, i) => i !== index))
   }
@@ -170,16 +154,6 @@ const CotizacionFormModal = ({
   const actualizarTransporte = (index, campo, valor) => {
     setTransporteSeleccionado(prev => {
       const nuevos = [...prev]
-
-      // Verificar duplicados de tarifa
-      if (campo === 'tarifa_id' && valor) {
-        const yaExiste = nuevos.some((t, i) => i !== index && t.tarifa_id === valor)
-        if (yaExiste) {
-          alert('Esta tarifa ya está agregada. Modifique la cantidad.')
-          return prev
-        }
-      }
-
       nuevos[index] = { ...nuevos[index], [campo]: valor }
       return nuevos
     })
@@ -187,16 +161,6 @@ const CotizacionFormModal = ({
 
   const eliminarTransporte = (index) => {
     setTransporteSeleccionado(prev => prev.filter((_, i) => i !== index))
-  }
-
-  // Obtener tarifas disponibles
-  const getTarifasDisponibles = (indexActual) => {
-    const idsSeleccionados = transporteSeleccionado
-      .filter((_, i) => i !== indexActual)
-      .map(t => t.tarifa_id)
-      .filter(id => id)
-
-    return tarifas.filter(t => !idsSeleccionados.includes(String(t.id)))
   }
 
   const calcularSubtotalProductos = () => {
@@ -474,7 +438,7 @@ const CotizacionFormModal = ({
                       className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"
                     >
                       <option value="">Seleccionar producto...</option>
-                      {getProductosDisponibles(index).map(p => (
+                      {productos.map(p => (
                         <option key={p.id} value={p.id}>
                           {p.nombre} - {formatearMoneda(p.precio_base)}
                         </option>
@@ -560,7 +524,7 @@ const CotizacionFormModal = ({
                       className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"
                     >
                       <option value="">Seleccionar tarifa...</option>
-                      {getTarifasDisponibles(index).map(t => (
+                      {tarifas.map(t => (
                         <option key={t.id} value={t.id}>
                           {t.ciudad_destino} - {t.tipo_camion} - {formatearMoneda(t.precio)}
                         </option>
