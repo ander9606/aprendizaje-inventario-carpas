@@ -22,6 +22,7 @@ import ElementosCompuestosPage from './pages/ElementosCompuestosPage'
 // Importar páginas - Alquileres
 import ClientesPage from './pages/ClientesPage'
 import CotizacionesPage from './pages/CotizacionesPage'
+import TarifasTransportePage from './pages/TarifasTransportePage'
 
 /**
  * COMPONENTE: App
@@ -145,6 +146,12 @@ function App() {
       <Route
         path="/alquileres/clientes"
         element={<ClientesPage />}
+      />
+
+      {/* Tarifas de Transporte */}
+      <Route
+        path="/alquileres/tarifas-transporte"
+        element={<TarifasTransportePage />}
       />
 
       {/* ============================================

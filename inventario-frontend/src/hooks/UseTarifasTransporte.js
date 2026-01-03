@@ -3,7 +3,7 @@
 // Maneja operaciones con tarifas de transporte
 // ============================================
 
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import apiTarifasTransporte from '../api/apiTarifasTransporte'
 
 // ============================================
@@ -75,4 +75,49 @@ export const useGetTarifasPorCiudad = (ciudad) => {
     error,
     refetch
   }
+}
+
+// ============================================
+// HOOK: useCreateTarifa
+// ============================================
+
+export const useCreateTarifa = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: apiTarifasTransporte.crear,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tarifas-transporte'] })
+    }
+  })
+}
+
+// ============================================
+// HOOK: useUpdateTarifa
+// ============================================
+
+export const useUpdateTarifa = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id, data }) => apiTarifasTransporte.actualizar(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tarifas-transporte'] })
+    }
+  })
+}
+
+// ============================================
+// HOOK: useDeleteTarifa
+// ============================================
+
+export const useDeleteTarifa = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: apiTarifasTransporte.eliminar,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tarifas-transporte'] })
+    }
+  })
 }

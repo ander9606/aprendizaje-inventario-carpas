@@ -36,7 +36,30 @@ export const apiTarifasTransporte = {
   obtenerPorId: async (id) => {
     const response = await api.get(`/tarifas-transporte/${id}`);
     return response.data;
+  },
+
+  crear: async (tarifa) => {
+    const response = await api.post('/tarifas-transporte', tarifa);
+    return response.data;
+  },
+
+  actualizar: async (id, tarifa) => {
+    const response = await api.put(`/tarifas-transporte/${id}`, tarifa);
+    return response.data;
+  },
+
+  eliminar: async (id) => {
+    const response = await api.delete(`/tarifas-transporte/${id}`);
+    return response.data;
   }
 };
+
+// Categorías de camión fijas
+export const CATEGORIAS_CAMION = [
+  { id: 'pequeno', nombre: 'Pequeño', descripcion: 'Hasta 3 toneladas' },
+  { id: 'mediano', nombre: 'Mediano', descripcion: '3-8 toneladas' },
+  { id: 'grande', nombre: 'Grande', descripcion: '8-15 toneladas' },
+  { id: 'extragrande', nombre: 'Extragrande', descripcion: 'Más de 15 toneladas' }
+];
 
 export default apiTarifasTransporte;
