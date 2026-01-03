@@ -106,6 +106,10 @@ const CotizacionFormModal = ({
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }))
     }
+    // Si cambia la ciudad, limpiar transporte seleccionado
+    if (name === 'evento_ciudad') {
+      setTransporteSeleccionado([])
+    }
   }
 
   const agregarProducto = () => {
@@ -210,6 +214,9 @@ const CotizacionFormModal = ({
     if (!formData.fecha_evento) {
       newErrors.fecha_evento = 'La fecha del evento es obligatoria'
     }
+    if (!formData.evento_ciudad) {
+      newErrors.evento_ciudad = 'Seleccione una ciudad'
+    }
     if (productosSeleccionados.length === 0) {
       newErrors.productos = 'Debe agregar al menos un producto'
     }
@@ -275,6 +282,14 @@ const CotizacionFormModal = ({
       minimumFractionDigits: 0
     }).format(valor || 0)
   }
+
+  // Obtener ciudades únicas de las tarifas
+  const ciudadesDisponibles = [...new Set(tarifas.map(t => t.ciudad))].sort()
+
+  // Filtrar tarifas por ciudad seleccionada
+  const tarifasFiltradas = formData.evento_ciudad
+    ? tarifas.filter(t => t.ciudad === formData.evento_ciudad)
+    : tarifas
 
   // ============================================
   // RENDER
@@ -386,17 +401,33 @@ const CotizacionFormModal = ({
 
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
-                Ciudad
+                Ciudad *
               </label>
-              <input
-                type="text"
+              <select
                 name="evento_ciudad"
                 value={formData.evento_ciudad}
                 onChange={handleChange}
-                placeholder="Ciudad del evento"
-                disabled={isLoading}
-                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-100"
-              />
+                disabled={isLoading || loadingTarifas}
+                className={`
+                  w-full px-4 py-2.5 border rounded-lg
+                  focus:outline-none focus:ring-2 focus:ring-blue-500
+                  disabled:bg-slate-100
+                  ${errors.evento_ciudad ? 'border-red-300' : 'border-slate-300'}
+                `}
+              >
+                <option value="">Seleccionar ciudad...</option>
+                {ciudadesDisponibles.map(ciudad => (
+                  <option key={ciudad} value={ciudad}>{ciudad}</option>
+                ))}
+              </select>
+              {errors.evento_ciudad && (
+                <p className="mt-1 text-sm text-red-600">{errors.evento_ciudad}</p>
+              )}
+              {ciudadesDisponibles.length === 0 && !loadingTarifas && (
+                <p className="mt-1 text-xs text-amber-600">
+                  No hay ciudades. Cree tarifas de transporte primero.
+                </p>
+              )}
             </div>
           </div>
 
@@ -534,6 +565,11 @@ const CotizacionFormModal = ({
             <h3 className="font-semibold text-slate-900 flex items-center gap-2">
               <Truck className="w-5 h-5" />
               Transporte
+              {formData.evento_ciudad && (
+                <span className="text-sm font-normal text-slate-500">
+                  ({formData.evento_ciudad})
+                </span>
+              )}
             </h3>
             <Button
               type="button"
@@ -541,15 +577,19 @@ const CotizacionFormModal = ({
               size="sm"
               icon={<Plus className="w-4 h-4" />}
               onClick={agregarTransporte}
-              disabled={isLoading || loadingTarifas}
+              disabled={isLoading || loadingTarifas || !formData.evento_ciudad}
             >
               Agregar
             </Button>
           </div>
 
-          {transporteSeleccionado.length === 0 ? (
+          {!formData.evento_ciudad ? (
+            <p className="text-sm text-amber-600 italic py-4 text-center border border-dashed border-amber-300 rounded-lg bg-amber-50">
+              Seleccione una ciudad para ver las tarifas disponibles
+            </p>
+          ) : transporteSeleccionado.length === 0 ? (
             <p className="text-sm text-slate-500 italic py-4 text-center border border-dashed rounded-lg">
-              Sin transporte
+              Sin transporte - {tarifasFiltradas.length} tarifa{tarifasFiltradas.length !== 1 ? 's' : ''} disponible{tarifasFiltradas.length !== 1 ? 's' : ''}
             </p>
           ) : (
             <div className="space-y-3">
@@ -559,13 +599,13 @@ const CotizacionFormModal = ({
                     <select
                       value={trans.tarifa_id}
                       onChange={(e) => actualizarTransporte(index, 'tarifa_id', e.target.value)}
-                      disabled={isLoading}
+                      disabled={isLoading || !formData.evento_ciudad}
                       className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"
                     >
                       <option value="">Seleccionar tarifa...</option>
-                      {tarifas.map(t => (
+                      {tarifasFiltradas.map(t => (
                         <option key={t.id} value={t.id}>
-                          {t.ciudad_destino} - {t.tipo_camion} - {formatearMoneda(t.precio)}
+                          {t.tipo_camion} - {formatearMoneda(t.precio)}
                         </option>
                       ))}
                     </select>
