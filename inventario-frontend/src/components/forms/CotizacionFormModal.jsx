@@ -7,6 +7,7 @@ import { useState, useEffect } from 'react'
 import { Plus, Trash2, Package, Truck } from 'lucide-react'
 import Modal from '../common/Modal'
 import Button from '../common/Button'
+import ProductoConfiguracion from './ProductoConfiguracion'
 import { useCreateCotizacion, useUpdateCotizacion } from '../../hooks/UseCotizaciones'
 import { useGetClientesActivos } from '../../hooks/UseClientes'
 import { useGetProductosAlquiler } from '../../hooks/UseProductosAlquiler'
@@ -113,7 +114,8 @@ const CotizacionFormModal = ({
       cantidad: 1,
       precio_base: 0,
       deposito: 0,
-      precio_adicionales: 0
+      precio_adicionales: 0,
+      configuracion: null
     }])
   }
 
@@ -121,7 +123,7 @@ const CotizacionFormModal = ({
     setProductosSeleccionados(prev => {
       const nuevos = [...prev]
 
-      // Si cambio el producto, actualizar precios
+      // Si cambio el producto, actualizar precios y resetear configuración
       if (campo === 'compuesto_id' && valor) {
         const producto = productos.find(p => p.id === parseInt(valor))
         if (producto) {
@@ -129,7 +131,9 @@ const CotizacionFormModal = ({
             ...nuevos[index],
             [campo]: valor,
             precio_base: producto.precio_base || 0,
-            deposito: producto.deposito || 0
+            deposito: producto.deposito || 0,
+            configuracion: null,
+            precio_adicionales: 0
           }
           return nuevos
         }
@@ -142,6 +146,18 @@ const CotizacionFormModal = ({
 
   const eliminarProducto = (index) => {
     setProductosSeleccionados(prev => prev.filter((_, i) => i !== index))
+  }
+
+  const actualizarConfiguracion = (index, configuracion, precioAdicional) => {
+    setProductosSeleccionados(prev => {
+      const nuevos = [...prev]
+      nuevos[index] = {
+        ...nuevos[index],
+        configuracion,
+        precio_adicionales: precioAdicional
+      }
+      return nuevos
+    })
   }
 
   const agregarTransporte = () => {
@@ -225,7 +241,8 @@ const CotizacionFormModal = ({
         cantidad: parseInt(p.cantidad) || 1,
         precio_base: parseFloat(p.precio_base) || 0,
         deposito: parseFloat(p.deposito) || 0,
-        precio_adicionales: parseFloat(p.precio_adicionales) || 0
+        precio_adicionales: parseFloat(p.precio_adicionales) || 0,
+        configuracion: p.configuracion || null
       })),
       transporte: transporteSeleccionado.filter(t => t.tarifa_id).map(t => ({
         tarifa_id: parseInt(t.tarifa_id),
@@ -429,55 +446,77 @@ const CotizacionFormModal = ({
           ) : (
             <div className="space-y-3">
               {productosSeleccionados.map((prod, index) => (
-                <div key={index} className="flex gap-3 items-start p-3 bg-slate-50 rounded-lg">
-                  <div className="flex-1">
-                    <select
-                      value={prod.compuesto_id}
-                      onChange={(e) => actualizarProducto(index, 'compuesto_id', e.target.value)}
+                <div key={index} className="p-3 bg-slate-50 rounded-lg">
+                  <div className="flex gap-3 items-start">
+                    <div className="flex-1">
+                      <select
+                        value={prod.compuesto_id}
+                        onChange={(e) => actualizarProducto(index, 'compuesto_id', e.target.value)}
+                        disabled={isLoading}
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"
+                      >
+                        <option value="">Seleccionar producto...</option>
+                        {productos.map(p => (
+                          <option key={p.id} value={p.id}>
+                            {p.nombre} - {formatearMoneda(p.precio_base)}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="w-20">
+                      <input
+                        type="number"
+                        min="1"
+                        value={prod.cantidad}
+                        onChange={(e) => actualizarProducto(index, 'cantidad', e.target.value)}
+                        disabled={isLoading}
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-center"
+                        placeholder="Cant."
+                      />
+                    </div>
+
+                    <div className="w-28">
+                      <input
+                        type="number"
+                        min="0"
+                        value={prod.precio_base}
+                        onChange={(e) => actualizarProducto(index, 'precio_base', e.target.value)}
+                        disabled={isLoading}
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-right"
+                        placeholder="Precio"
+                      />
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => eliminarProducto(index)}
+                      className="p-2 text-red-500 hover:bg-red-50 rounded-lg"
                       disabled={isLoading}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"
                     >
-                      <option value="">Seleccionar producto...</option>
-                      {productos.map(p => (
-                        <option key={p.id} value={p.id}>
-                          {p.nombre} - {formatearMoneda(p.precio_base)}
-                        </option>
-                      ))}
-                    </select>
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
 
-                  <div className="w-20">
-                    <input
-                      type="number"
-                      min="1"
-                      value={prod.cantidad}
-                      onChange={(e) => actualizarProducto(index, 'cantidad', e.target.value)}
+                  {/* Configuracion de componentes */}
+                  {prod.compuesto_id && (
+                    <ProductoConfiguracion
+                      productoId={parseInt(prod.compuesto_id)}
+                      cantidad={parseInt(prod.cantidad) || 1}
+                      configuracion={prod.configuracion}
+                      onConfiguracionChange={(config, precioAdicional) =>
+                        actualizarConfiguracion(index, config, precioAdicional)
+                      }
                       disabled={isLoading}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-center"
-                      placeholder="Cant."
                     />
-                  </div>
+                  )}
 
-                  <div className="w-28">
-                    <input
-                      type="number"
-                      min="0"
-                      value={prod.precio_base}
-                      onChange={(e) => actualizarProducto(index, 'precio_base', e.target.value)}
-                      disabled={isLoading}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-right"
-                      placeholder="Precio"
-                    />
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => eliminarProducto(index)}
-                    className="p-2 text-red-500 hover:bg-red-50 rounded-lg"
-                    disabled={isLoading}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  {/* Mostrar precio adicionales si hay */}
+                  {prod.precio_adicionales > 0 && (
+                    <div className="mt-2 text-right text-xs text-blue-600">
+                      Adicionales: +{formatearMoneda(prod.precio_adicionales)}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
