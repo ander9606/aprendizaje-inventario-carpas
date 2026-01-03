@@ -103,12 +103,14 @@ const ProductoConfiguracion = ({
       setLoading(true)
       try {
         const response = await apiProductosAlquiler.obtenerComponentes(productoId)
-        setComponentes(response.data)
+        // La respuesta tiene estructura: { success, data: { elemento, componentes } }
+        const comps = response.data?.componentes || response.componentes || response
+        setComponentes(comps)
 
         // Inicializar configuración si no existe
-        if (!configuracion && response.data) {
-          const configInicial = inicializarConfiguracion(response.data)
-          const precioInicial = calcularPrecioTotal(configInicial, response.data, cantidad)
+        if (!configuracion && comps) {
+          const configInicial = inicializarConfiguracion(comps)
+          const precioInicial = calcularPrecioTotal(configInicial, comps, cantidad)
           onConfiguracionChange(configInicial, precioInicial)
         }
       } catch (error) {
