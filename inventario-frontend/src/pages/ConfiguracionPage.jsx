@@ -7,7 +7,6 @@ import { useNavigate } from 'react-router-dom'
 import {
   Settings,
   MapPin,
-  Truck,
   ArrowLeft,
   ArrowRight
 } from 'lucide-react'
@@ -26,18 +25,10 @@ export default function ConfiguracionPage() {
     {
       id: 'ciudades',
       nombre: 'Ciudades',
-      descripcion: 'Catálogo maestro de ciudades donde opera el negocio.',
+      descripcion: 'Catálogo maestro de ciudades con sus tarifas de transporte por tipo de camión.',
       icon: MapPin,
       color: 'green',
       ruta: '/configuracion/ciudades'
-    },
-    {
-      id: 'tarifas',
-      nombre: 'Tarifas de Transporte',
-      descripcion: 'Define precios de transporte por ciudad y tipo de camión.',
-      icon: Truck,
-      color: 'orange',
-      ruta: '/configuracion/tarifas-transporte'
     },
     {
       id: 'ubicaciones',
@@ -161,7 +152,7 @@ export default function ConfiguracionPage() {
         {/* Info */}
         <div className="mt-8 p-4 bg-amber-50 border border-amber-200 rounded-lg max-w-4xl">
           <p className="text-sm text-amber-800">
-            <strong>Flujo recomendado:</strong> Primero crea las ciudades, luego define las tarifas de transporte para cada ciudad, y finalmente crea las ubicaciones seleccionando una ciudad del catálogo.
+            <strong>Flujo recomendado:</strong> Primero crea las ciudades con sus tarifas de transporte, y luego crea las ubicaciones seleccionando una ciudad del catálogo.
           </p>
         </div>
       </div>
