@@ -10,7 +10,8 @@ import {
   Calendar,
   ArrowRight,
   Boxes,
-  ClipboardList
+  ClipboardList,
+  Settings
 } from 'lucide-react'
 
 /**
@@ -63,6 +64,19 @@ export default function ModulosDashboard() {
         { label: 'Cotizaciones', icon: ClipboardList },
         { label: 'Clientes', icon: Calendar }
       ]
+    },
+    {
+      id: 'configuracion',
+      nombre: 'Configuración',
+      descripcion: 'Gestiona ubicaciones, tarifas de transporte y otros datos maestros del sistema.',
+      icon: Settings,
+      color: 'amber',
+      ruta: '/configuracion',
+      estado: 'activo',
+      stats: [
+        { label: 'Ubicaciones', icon: Boxes },
+        { label: 'Tarifas', icon: ClipboardList }
+      ]
     }
   ]
 
@@ -98,6 +112,13 @@ export default function ModulosDashboard() {
         icon: 'bg-purple-100 text-purple-600',
         text: 'text-purple-600',
         hover: 'hover:shadow-lg hover:shadow-purple-100'
+      },
+      amber: {
+        bg: 'bg-amber-50',
+        border: 'border-amber-200 hover:border-amber-400',
+        icon: 'bg-amber-100 text-amber-600',
+        text: 'text-amber-600',
+        hover: 'hover:shadow-lg hover:shadow-amber-100'
       }
     }
 

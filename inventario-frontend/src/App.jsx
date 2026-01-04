@@ -22,6 +22,9 @@ import ElementosCompuestosPage from './pages/ElementosCompuestosPage'
 // Importar páginas - Alquileres
 import ClientesPage from './pages/ClientesPage'
 import CotizacionesPage from './pages/CotizacionesPage'
+
+// Importar páginas - Configuración
+import ConfiguracionPage from './pages/ConfiguracionPage'
 import TarifasTransportePage from './pages/TarifasTransportePage'
 
 /**
@@ -148,9 +151,25 @@ function App() {
         element={<ClientesPage />}
       />
 
+      {/* ============================================
+          CONFIGURACIÓN
+          ============================================ */}
+
+      {/* Dashboard de Configuración */}
+      <Route
+        path="/configuracion"
+        element={<ConfiguracionPage />}
+      />
+
+      {/* Ubicaciones */}
+      <Route
+        path="/configuracion/ubicaciones"
+        element={<UbicacionesPage />}
+      />
+
       {/* Tarifas de Transporte */}
       <Route
-        path="/alquileres/tarifas-transporte"
+        path="/configuracion/tarifas-transporte"
         element={<TarifasTransportePage />}
       />
 

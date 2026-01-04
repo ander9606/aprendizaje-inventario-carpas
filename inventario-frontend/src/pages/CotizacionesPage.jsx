@@ -4,7 +4,7 @@
 // ============================================
 
 import { useState } from 'react'
-import { Plus, FileText, ArrowLeft, Users, Filter, Truck } from 'lucide-react'
+import { Plus, FileText, ArrowLeft, Users, Filter } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import {
   useGetCotizaciones,
@@ -138,10 +138,6 @@ export default function CotizacionesPage() {
     navigate('/alquileres/clientes')
   }
 
-  const handleIrTarifas = () => {
-    navigate('/alquileres/tarifas-transporte')
-  }
-
   // ============================================
   // FILTRAR COTIZACIONES
   // ============================================
@@ -217,13 +213,6 @@ export default function CotizacionesPage() {
                 onClick={handleIrClientes}
               >
                 Clientes
-              </Button>
-              <Button
-                variant="secondary"
-                icon={<Truck className="w-4 h-4" />}
-                onClick={handleIrTarifas}
-              >
-                Tarifas
               </Button>
               <Button
                 variant="primary"

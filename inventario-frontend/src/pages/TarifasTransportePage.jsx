@@ -73,7 +73,7 @@ export default function TarifasTransportePage() {
   }
 
   const handleVolver = () => {
-    navigate('/alquileres')
+    navigate('/configuracion')
   }
 
   // ============================================

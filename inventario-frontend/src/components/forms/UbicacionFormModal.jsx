@@ -7,6 +7,7 @@ import { useState, useEffect } from 'react'
 import Modal from '../common/Modal'
 import Button from '../common/Button'
 import { useCreateUbicacion, useUpdateUbicacion } from '../../hooks/Useubicaciones'
+import { useGetTarifasTransporte } from '../../hooks/UseTarifasTransporte'
 
 /**
  * COMPONENTE: UbicacionFormModal
@@ -49,8 +50,12 @@ const UbicacionFormModal = ({
 
   const { mutateAsync: createUbicacion, isLoading: isCreating } = useCreateUbicacion()
   const { mutateAsync: updateUbicacion, isLoading: isUpdating } = useUpdateUbicacion()
+  const { tarifas, isLoading: loadingTarifas } = useGetTarifasTransporte()
 
   const isLoading = isCreating || isUpdating
+
+  // Obtener ciudades únicas de las tarifas
+  const ciudadesDisponibles = [...new Set(tarifas.map(t => t.ciudad))].sort()
 
   // ============================================
   // EFFECTS
@@ -126,6 +131,11 @@ const UbicacionFormModal = ({
       newErrors.nombre = 'El nombre es obligatorio'
     } else if (formData.nombre.trim().length < 3) {
       newErrors.nombre = 'El nombre debe tener al menos 3 caracteres'
+    }
+
+    // Validar ciudad
+    if (!formData.ciudad) {
+      newErrors.ciudad = 'Seleccione una ciudad'
     }
 
     // Validar email si se proporciona
@@ -318,21 +328,33 @@ const UbicacionFormModal = ({
           {/* Ciudad */}
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
-              Ciudad
+              Ciudad *
             </label>
-            <input
-              type="text"
+            <select
               name="ciudad"
               value={formData.ciudad}
               onChange={handleChange}
-              placeholder="Ciudad o municipio"
-              disabled={isLoading}
-              className="
-                w-full px-4 py-2.5 border border-slate-300 rounded-lg
+              disabled={isLoading || loadingTarifas}
+              className={`
+                w-full px-4 py-2.5 border rounded-lg
                 focus:outline-none focus:ring-2 focus:ring-blue-500
                 disabled:bg-slate-100 disabled:cursor-not-allowed
-              "
-            />
+                ${errors.ciudad ? 'border-red-300 bg-red-50' : 'border-slate-300'}
+              `}
+            >
+              <option value="">Seleccionar ciudad...</option>
+              {ciudadesDisponibles.map(ciudad => (
+                <option key={ciudad} value={ciudad}>{ciudad}</option>
+              ))}
+            </select>
+            {errors.ciudad && (
+              <p className="mt-1 text-sm text-red-600">{errors.ciudad}</p>
+            )}
+            {ciudadesDisponibles.length === 0 && !loadingTarifas && (
+              <p className="mt-1 text-xs text-amber-600">
+                No hay ciudades disponibles. Cree tarifas de transporte primero.
+              </p>
+            )}
           </div>
         </div>
 
