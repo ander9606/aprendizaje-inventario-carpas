@@ -1,10 +1,10 @@
 // ============================================
 // PÁGINA: CIUDADES
-// Catálogo maestro de ciudades
+// Catálogo maestro de ciudades con tarifas de transporte
 // ============================================
 
 import { useState } from 'react'
-import { Plus, MapPin, ArrowLeft, Pencil, Trash2, Search } from 'lucide-react'
+import { Plus, MapPin, ArrowLeft, Pencil, Trash2, Search, Truck } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import {
   useGetCiudades,
@@ -15,6 +15,14 @@ import {
 import Button from '../components/common/Button'
 import Spinner from '../components/common/Spinner'
 import EmptyState from '../components/common/EmptyState'
+
+// Tipos de camión disponibles
+const TIPOS_CAMION = [
+  { id: 'Pequeño', nombre: 'Pequeño', descripcion: 'Hasta 3 ton' },
+  { id: 'Mediano', nombre: 'Mediano', descripcion: '3-8 ton' },
+  { id: 'Grande', nombre: 'Grande', descripcion: '8-15 ton' },
+  { id: 'Extragrande', nombre: 'Extragrande', descripcion: '+15 ton' }
+]
 
 /**
  * Página CiudadesPage
@@ -38,7 +46,16 @@ export default function CiudadesPage() {
 
   const [modalOpen, setModalOpen] = useState(false)
   const [editingCiudad, setEditingCiudad] = useState(null)
-  const [formData, setFormData] = useState({ nombre: '', departamento: '' })
+  const [formData, setFormData] = useState({
+    nombre: '',
+    departamento: '',
+    tarifas: {
+      'Pequeño': '',
+      'Mediano': '',
+      'Grande': '',
+      'Extragrande': ''
+    }
+  })
   const [busqueda, setBusqueda] = useState('')
 
   // ============================================
@@ -47,7 +64,16 @@ export default function CiudadesPage() {
 
   const handleOpenCrear = () => {
     setEditingCiudad(null)
-    setFormData({ nombre: '', departamento: '' })
+    setFormData({
+      nombre: '',
+      departamento: '',
+      tarifas: {
+        'Pequeño': '',
+        'Mediano': '',
+        'Grande': '',
+        'Extragrande': ''
+      }
+    })
     setModalOpen(true)
   }
 
@@ -55,7 +81,13 @@ export default function CiudadesPage() {
     setEditingCiudad(ciudad)
     setFormData({
       nombre: ciudad.nombre,
-      departamento: ciudad.departamento || ''
+      departamento: ciudad.departamento || '',
+      tarifas: {
+        'Pequeño': ciudad.tarifas?.['Pequeño'] || '',
+        'Mediano': ciudad.tarifas?.['Mediano'] || '',
+        'Grande': ciudad.tarifas?.['Grande'] || '',
+        'Extragrande': ciudad.tarifas?.['Extragrande'] || ''
+      }
     })
     setModalOpen(true)
   }
@@ -63,7 +95,16 @@ export default function CiudadesPage() {
   const handleCloseModal = () => {
     setModalOpen(false)
     setEditingCiudad(null)
-    setFormData({ nombre: '', departamento: '' })
+    setFormData({
+      nombre: '',
+      departamento: '',
+      tarifas: {
+        'Pequeño': '',
+        'Mediano': '',
+        'Grande': '',
+        'Extragrande': ''
+      }
+    })
   }
 
   const handleSubmit = async (e) => {
@@ -91,7 +132,7 @@ export default function CiudadesPage() {
   }
 
   const handleDelete = async (id) => {
-    if (!confirm('¿Estás seguro de eliminar esta ciudad?')) return
+    if (!confirm('¿Estás seguro de eliminar esta ciudad y sus tarifas?')) return
     try {
       await deleteCiudad(id)
     } catch (error) {
@@ -102,6 +143,32 @@ export default function CiudadesPage() {
 
   const handleVolver = () => {
     navigate('/configuracion')
+  }
+
+  const handleTarifaChange = (tipo, valor) => {
+    // Solo permitir números
+    const numero = valor.replace(/[^\d]/g, '')
+    setFormData(prev => ({
+      ...prev,
+      tarifas: {
+        ...prev.tarifas,
+        [tipo]: numero
+      }
+    }))
+  }
+
+  const formatearMoneda = (valor) => {
+    if (!valor) return '-'
+    return new Intl.NumberFormat('es-CO', {
+      style: 'currency',
+      currency: 'COP',
+      minimumFractionDigits: 0
+    }).format(valor)
+  }
+
+  const formatearInputMoneda = (valor) => {
+    if (!valor) return ''
+    return new Intl.NumberFormat('es-CO').format(valor)
   }
 
   // ============================================
@@ -165,13 +232,13 @@ export default function CiudadesPage() {
               </button>
 
               <div className="flex items-center gap-3">
-                <MapPin className="w-8 h-8 text-blue-600" />
+                <MapPin className="w-8 h-8 text-green-600" />
                 <div>
                   <h1 className="text-2xl font-bold text-slate-900">
                     Ciudades
                   </h1>
                   <p className="text-sm text-slate-600">
-                    Catálogo maestro de ciudades
+                    Catálogo de ciudades con tarifas de transporte
                   </p>
                 </div>
               </div>
@@ -219,61 +286,93 @@ export default function CiudadesPage() {
           </p>
         </div>
 
-        {/* LISTA DE CIUDADES */}
+        {/* TABLA DE CIUDADES */}
         {ciudadesFiltradas.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {ciudadesFiltradas.map((ciudad) => (
-              <div
-                key={ciudad.id}
-                className="bg-white rounded-lg shadow-sm border border-slate-200 p-4 hover:shadow-md transition-shadow"
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-blue-50 rounded-lg">
-                      <MapPin className="w-5 h-5 text-blue-600" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-slate-900">
-                        {ciudad.nombre}
-                      </h3>
-                      {ciudad.departamento && (
-                        <p className="text-sm text-slate-500">
-                          {ciudad.departamento}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-1">
-                    <button
-                      onClick={() => handleOpenEditar(ciudad)}
-                      className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                      title="Editar"
-                    >
-                      <Pencil className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(ciudad.id)}
-                      className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                      title="Eliminar"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-
-                <div className="mt-3 flex items-center gap-2">
-                  <span className={`
-                    inline-flex px-2 py-1 rounded-full text-xs font-medium
-                    ${ciudad.activo
-                      ? 'bg-green-100 text-green-700'
-                      : 'bg-slate-100 text-slate-600'}
-                  `}>
-                    {ciudad.activo ? 'Activa' : 'Inactiva'}
-                  </span>
-                </div>
-              </div>
-            ))}
+          <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-slate-50 border-b border-slate-200">
+                  <tr>
+                    <th className="text-left px-6 py-3 text-sm font-semibold text-slate-700">
+                      Ciudad
+                    </th>
+                    {TIPOS_CAMION.map(tipo => (
+                      <th key={tipo.id} className="text-right px-4 py-3 text-sm font-semibold text-slate-700">
+                        <div className="flex items-center justify-end gap-1">
+                          <Truck className="w-4 h-4" />
+                          {tipo.nombre}
+                        </div>
+                        <span className="text-xs font-normal text-slate-500">{tipo.descripcion}</span>
+                      </th>
+                    ))}
+                    <th className="text-center px-4 py-3 text-sm font-semibold text-slate-700">
+                      Estado
+                    </th>
+                    <th className="text-center px-4 py-3 text-sm font-semibold text-slate-700">
+                      Acciones
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200">
+                  {ciudadesFiltradas.map((ciudad) => (
+                    <tr key={ciudad.id} className="hover:bg-slate-50">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-green-50 rounded-lg">
+                            <MapPin className="w-4 h-4 text-green-600" />
+                          </div>
+                          <div>
+                            <div className="font-medium text-slate-900">{ciudad.nombre}</div>
+                            {ciudad.departamento && (
+                              <div className="text-sm text-slate-500">{ciudad.departamento}</div>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+                      {TIPOS_CAMION.map(tipo => (
+                        <td key={tipo.id} className="px-4 py-4 text-right text-sm">
+                          {ciudad.tarifas?.[tipo.id] ? (
+                            <span className="font-medium text-slate-900">
+                              {formatearMoneda(ciudad.tarifas[tipo.id])}
+                            </span>
+                          ) : (
+                            <span className="text-slate-400">-</span>
+                          )}
+                        </td>
+                      ))}
+                      <td className="px-4 py-4 text-center">
+                        <span className={`
+                          inline-flex px-2 py-1 rounded-full text-xs font-medium
+                          ${ciudad.activo
+                            ? 'bg-green-100 text-green-700'
+                            : 'bg-slate-100 text-slate-600'}
+                        `}>
+                          {ciudad.activo ? 'Activa' : 'Inactiva'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-4">
+                        <div className="flex items-center justify-center gap-1">
+                          <button
+                            onClick={() => handleOpenEditar(ciudad)}
+                            className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                            title="Editar"
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(ciudad.id)}
+                            className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Eliminar"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         ) : (
           <EmptyState
@@ -293,40 +392,78 @@ export default function CiudadesPage() {
       {/* MODAL */}
       {modalOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg">
             <div className="p-6 border-b border-slate-200">
               <h2 className="text-xl font-semibold text-slate-900">
                 {editingCiudad ? 'Editar Ciudad' : 'Nueva Ciudad'}
               </h2>
+              <p className="text-sm text-slate-600 mt-1">
+                Define la ciudad y sus tarifas de transporte
+              </p>
             </div>
 
             <form onSubmit={handleSubmit}>
-              <div className="p-6 space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Nombre de la ciudad *
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.nombre}
-                    onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Ej: Medellín"
-                    required
-                  />
+              <div className="p-6 space-y-6">
+                {/* Información básica */}
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                      Nombre de la ciudad *
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.nombre}
+                      onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                      placeholder="Ej: Medellín"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                      Departamento
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.departamento}
+                      onChange={(e) => setFormData({ ...formData, departamento: e.target.value })}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                      placeholder="Ej: Antioquia"
+                    />
+                  </div>
                 </div>
 
+                {/* Tarifas de transporte */}
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Departamento
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.departamento}
-                    onChange={(e) => setFormData({ ...formData, departamento: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Ej: Antioquia"
-                  />
+                  <div className="flex items-center gap-2 mb-3">
+                    <Truck className="w-5 h-5 text-orange-600" />
+                    <h3 className="font-medium text-slate-900">Tarifas de Transporte</h3>
+                  </div>
+
+                  <div className="bg-slate-50 rounded-lg p-4 space-y-3">
+                    {TIPOS_CAMION.map(tipo => (
+                      <div key={tipo.id} className="flex items-center gap-4">
+                        <div className="w-32">
+                          <span className="text-sm font-medium text-slate-700">{tipo.nombre}</span>
+                          <span className="text-xs text-slate-500 block">{tipo.descripcion}</span>
+                        </div>
+                        <div className="flex-1 relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm">$</span>
+                          <input
+                            type="text"
+                            value={formatearInputMoneda(formData.tarifas[tipo.id])}
+                            onChange={(e) => handleTarifaChange(tipo.id, e.target.value)}
+                            className="w-full pl-7 pr-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-right"
+                            placeholder="0"
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-xs text-slate-500 mt-2">
+                    Deja en blanco los tipos de camión que no aplican para esta ciudad
+                  </p>
                 </div>
               </div>
 

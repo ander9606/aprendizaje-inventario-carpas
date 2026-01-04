@@ -65,7 +65,7 @@ exports.obtenerPorId = async (req, res, next) => {
 // ============================================
 exports.crear = async (req, res, next) => {
   try {
-    const { nombre, departamento } = req.body;
+    const { nombre, departamento, tarifas } = req.body;
 
     if (!nombre) {
       throw new AppError('El nombre es obligatorio', 400);
@@ -77,12 +77,13 @@ exports.crear = async (req, res, next) => {
       throw new AppError('Ya existe una ciudad con ese nombre', 400);
     }
 
-    const resultado = await CiudadModel.crear({ nombre, departamento });
+    const resultado = await CiudadModel.crear({ nombre, departamento, tarifas });
 
-    logger.info('ciudadController.crear', 'Ciudad creada', {
+    logger.info('ciudadController.crear', 'Ciudad creada con tarifas', {
       id: resultado.insertId,
       nombre,
-      departamento
+      departamento,
+      tarifas
     });
 
     const ciudadCreada = await CiudadModel.obtenerPorId(resultado.insertId);
@@ -104,7 +105,7 @@ exports.crear = async (req, res, next) => {
 exports.actualizar = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { nombre, departamento, activo } = req.body;
+    const { nombre, departamento, activo, tarifas } = req.body;
 
     const ciudadExistente = await CiudadModel.obtenerPorId(id);
     if (!ciudadExistente) {
@@ -122,7 +123,8 @@ exports.actualizar = async (req, res, next) => {
     await CiudadModel.actualizar(id, {
       nombre: nombre || ciudadExistente.nombre,
       departamento: departamento !== undefined ? departamento : ciudadExistente.departamento,
-      activo
+      activo,
+      tarifas
     });
 
     const ciudadActualizada = await CiudadModel.obtenerPorId(id);
@@ -157,8 +159,8 @@ exports.eliminar = async (req, res, next) => {
       mensaje: 'Ciudad eliminada exitosamente'
     });
   } catch (error) {
-    // Si el modelo lanza error por tener asociaciones
-    if (error.message.includes('tarifas o ubicaciones')) {
+    // Si el modelo lanza error por tener ubicaciones asociadas
+    if (error.message.includes('ubicaciones asociadas')) {
       return next(new AppError(error.message, 400));
     }
     logger.error('ciudadController.eliminar', error);
