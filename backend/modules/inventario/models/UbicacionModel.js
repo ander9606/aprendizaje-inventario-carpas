@@ -14,22 +14,24 @@ class UbicacionModel {
         try {
             const query = `
                 SELECT
-                    id,
-                    nombre,
-                    tipo,
-                    direccion,
-                    ciudad,
-                    responsable,
-                    telefono,
-                    email,
-                    capacidad_estimada,
-                    observaciones,
-                    activo,
-                    es_principal,
-                    created_at,
-                    updated_at
-                FROM ubicaciones
-                ORDER BY es_principal DESC, tipo, nombre
+                    u.id,
+                    u.nombre,
+                    u.tipo,
+                    u.direccion,
+                    u.ciudad_id,
+                    c.nombre as ciudad,
+                    u.responsable,
+                    u.telefono,
+                    u.email,
+                    u.capacidad_estimada,
+                    u.observaciones,
+                    u.activo,
+                    u.es_principal,
+                    u.created_at,
+                    u.updated_at
+                FROM ubicaciones u
+                LEFT JOIN ciudades c ON u.ciudad_id = c.id
+                ORDER BY u.es_principal DESC, u.tipo, u.nombre
             `;
 
             const [rows] = await pool.query(query);
@@ -46,18 +48,20 @@ class UbicacionModel {
         try {
             const query = `
                 SELECT
-                    id,
-                    nombre,
-                    tipo,
-                    direccion,
-                    ciudad,
-                    responsable,
-                    telefono,
-                    activo,
-                    es_principal
-                FROM ubicaciones
-                WHERE activo = TRUE
-                ORDER BY es_principal DESC, tipo, nombre
+                    u.id,
+                    u.nombre,
+                    u.tipo,
+                    u.direccion,
+                    u.ciudad_id,
+                    c.nombre as ciudad,
+                    u.responsable,
+                    u.telefono,
+                    u.activo,
+                    u.es_principal
+                FROM ubicaciones u
+                LEFT JOIN ciudades c ON u.ciudad_id = c.id
+                WHERE u.activo = TRUE
+                ORDER BY u.es_principal DESC, u.tipo, u.nombre
             `;
 
             const [rows] = await pool.query(query);
@@ -74,22 +78,24 @@ class UbicacionModel {
         try {
             const query = `
                 SELECT
-                    id,
-                    nombre,
-                    tipo,
-                    direccion,
-                    ciudad,
-                    responsable,
-                    telefono,
-                    email,
-                    capacidad_estimada,
-                    observaciones,
-                    activo,
-                    es_principal,
-                    created_at,
-                    updated_at
-                FROM ubicaciones
-                WHERE id = ?
+                    u.id,
+                    u.nombre,
+                    u.tipo,
+                    u.direccion,
+                    u.ciudad_id,
+                    c.nombre as ciudad,
+                    u.responsable,
+                    u.telefono,
+                    u.email,
+                    u.capacidad_estimada,
+                    u.observaciones,
+                    u.activo,
+                    u.es_principal,
+                    u.created_at,
+                    u.updated_at
+                FROM ubicaciones u
+                LEFT JOIN ciudades c ON u.ciudad_id = c.id
+                WHERE u.id = ?
             `;
 
             const [rows] = await pool.query(query, [id]);
@@ -106,22 +112,24 @@ class UbicacionModel {
         try {
             const query = `
                 SELECT
-                    id,
-                    nombre,
-                    tipo,
-                    direccion,
-                    ciudad,
-                    responsable,
-                    telefono,
-                    email,
-                    capacidad_estimada,
-                    observaciones,
-                    activo,
-                    es_principal,
-                    created_at,
-                    updated_at
-                FROM ubicaciones
-                WHERE es_principal = TRUE
+                    u.id,
+                    u.nombre,
+                    u.tipo,
+                    u.direccion,
+                    u.ciudad_id,
+                    c.nombre as ciudad,
+                    u.responsable,
+                    u.telefono,
+                    u.email,
+                    u.capacidad_estimada,
+                    u.observaciones,
+                    u.activo,
+                    u.es_principal,
+                    u.created_at,
+                    u.updated_at
+                FROM ubicaciones u
+                LEFT JOIN ciudades c ON u.ciudad_id = c.id
+                WHERE u.es_principal = TRUE
                 LIMIT 1
             `;
 
@@ -139,18 +147,20 @@ class UbicacionModel {
         try {
             const query = `
                 SELECT
-                    id,
-                    nombre,
-                    tipo,
-                    direccion,
-                    ciudad,
-                    responsable,
-                    telefono,
-                    activo,
-                    es_principal
-                FROM ubicaciones
-                WHERE tipo = ? AND activo = TRUE
-                ORDER BY es_principal DESC, nombre
+                    u.id,
+                    u.nombre,
+                    u.tipo,
+                    u.direccion,
+                    u.ciudad_id,
+                    c.nombre as ciudad,
+                    u.responsable,
+                    u.telefono,
+                    u.activo,
+                    u.es_principal
+                FROM ubicaciones u
+                LEFT JOIN ciudades c ON u.ciudad_id = c.id
+                WHERE u.tipo = ? AND u.activo = TRUE
+                ORDER BY u.es_principal DESC, u.nombre
             `;
 
             const [rows] = await pool.query(query, [tipo]);
@@ -166,8 +176,10 @@ class UbicacionModel {
     static async obtenerPorNombre(nombre) {
         try {
             const query = `
-                SELECT * FROM ubicaciones
-                WHERE nombre = ?
+                SELECT u.*, c.nombre as ciudad
+                FROM ubicaciones u
+                LEFT JOIN ciudades c ON u.ciudad_id = c.id
+                WHERE u.nombre = ?
                 LIMIT 1
             `;
 
@@ -188,7 +200,8 @@ class UbicacionModel {
                     u.id,
                     u.nombre,
                     u.tipo,
-                    u.ciudad,
+                    u.ciudad_id,
+                    c.nombre as ciudad,
                     u.responsable,
                     u.activo,
                     u.es_principal,
@@ -196,6 +209,7 @@ class UbicacionModel {
                     COALESCE(lotes.total_unidades, 0) as total_unidades,
                     COALESCE(series.total_series, 0) + COALESCE(lotes.total_unidades, 0) as total_items
                 FROM ubicaciones u
+                LEFT JOIN ciudades c ON u.ciudad_id = c.id
                 LEFT JOIN (
                     SELECT ubicacion_id, COUNT(*) as total_series
                     FROM series
@@ -271,7 +285,7 @@ class UbicacionModel {
                 nombre,
                 tipo,
                 direccion,
-                ciudad,
+                ciudad_id,
                 responsable,
                 telefono,
                 email,
@@ -288,7 +302,7 @@ class UbicacionModel {
 
             const query = `
                 INSERT INTO ubicaciones
-                (nombre, tipo, direccion, ciudad, responsable, telefono,
+                (nombre, tipo, direccion, ciudad_id, responsable, telefono,
                  email, capacidad_estimada, observaciones, activo, es_principal)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `;
@@ -297,7 +311,7 @@ class UbicacionModel {
                 nombre,
                 tipo || 'bodega',
                 direccion || null,
-                ciudad || null,
+                ciudad_id || null,
                 responsable || null,
                 telefono || null,
                 email || null,
@@ -322,7 +336,7 @@ class UbicacionModel {
                 nombre,
                 tipo,
                 direccion,
-                ciudad,
+                ciudad_id,
                 responsable,
                 telefono,
                 email,
@@ -342,7 +356,7 @@ class UbicacionModel {
                 SET nombre = ?,
                     tipo = ?,
                     direccion = ?,
-                    ciudad = ?,
+                    ciudad_id = ?,
                     responsable = ?,
                     telefono = ?,
                     email = ?,
@@ -357,7 +371,7 @@ class UbicacionModel {
                 nombre,
                 tipo || 'bodega',
                 direccion || null,
-                ciudad || null,
+                ciudad_id || null,
                 responsable || null,
                 telefono || null,
                 email || null,

@@ -61,12 +61,12 @@ exports.obtenerPorId = async (req, res, next) => {
 };
 
 // ============================================
-// OBTENER POR CIUDAD
+// OBTENER POR CIUDAD ID
 // ============================================
-exports.obtenerPorCiudad = async (req, res, next) => {
+exports.obtenerPorCiudadId = async (req, res, next) => {
   try {
-    const { ciudad } = req.params;
-    const tarifas = await TarifaTransporteModel.obtenerPorCiudad(ciudad);
+    const { ciudadId } = req.params;
+    const tarifas = await TarifaTransporteModel.obtenerPorCiudadId(ciudadId);
 
     res.json({
       success: true,
@@ -109,17 +109,17 @@ exports.obtenerTiposCamion = async (req, res, next) => {
 };
 
 // ============================================
-// BUSCAR TARIFA (tipo + ciudad)
+// BUSCAR TARIFA (tipo + ciudad_id)
 // ============================================
 exports.buscarTarifa = async (req, res, next) => {
   try {
-    const { tipo_camion, ciudad } = req.query;
+    const { tipo_camion, ciudad_id } = req.query;
 
-    if (!tipo_camion || !ciudad) {
-      throw new AppError('Se requiere tipo_camion y ciudad', 400);
+    if (!tipo_camion || !ciudad_id) {
+      throw new AppError('Se requiere tipo_camion y ciudad_id', 400);
     }
 
-    const tarifa = await TarifaTransporteModel.buscarTarifa(tipo_camion, ciudad);
+    const tarifa = await TarifaTransporteModel.buscarTarifa(tipo_camion, ciudad_id);
 
     if (!tarifa) {
       throw new AppError('No existe tarifa para esa combinación', 404);
@@ -139,24 +139,24 @@ exports.buscarTarifa = async (req, res, next) => {
 // ============================================
 exports.crear = async (req, res, next) => {
   try {
-    const { tipo_camion, ciudad, precio } = req.body;
+    const { tipo_camion, ciudad_id, precio } = req.body;
 
-    if (!tipo_camion || !ciudad || !precio) {
-      throw new AppError('tipo_camion, ciudad y precio son obligatorios', 400);
+    if (!tipo_camion || !ciudad_id || !precio) {
+      throw new AppError('tipo_camion, ciudad_id y precio son obligatorios', 400);
     }
 
     // Verificar que no exista
-    const existente = await TarifaTransporteModel.buscarTarifa(tipo_camion, ciudad);
+    const existente = await TarifaTransporteModel.buscarTarifa(tipo_camion, ciudad_id);
     if (existente) {
       throw new AppError('Ya existe una tarifa para esa combinación', 400);
     }
 
-    const resultado = await TarifaTransporteModel.crear({ tipo_camion, ciudad, precio });
+    const resultado = await TarifaTransporteModel.crear({ tipo_camion, ciudad_id, precio });
 
     logger.info('tarifaTransporteController.crear', 'Tarifa creada', {
       id: resultado.insertId,
       tipo_camion,
-      ciudad,
+      ciudad_id,
       precio
     });
 
@@ -179,7 +179,7 @@ exports.crear = async (req, res, next) => {
 exports.actualizar = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { tipo_camion, ciudad, precio, activo } = req.body;
+    const { tipo_camion, ciudad_id, precio, activo } = req.body;
 
     const tarifaExistente = await TarifaTransporteModel.obtenerPorId(id);
     if (!tarifaExistente) {
@@ -188,7 +188,7 @@ exports.actualizar = async (req, res, next) => {
 
     await TarifaTransporteModel.actualizar(id, {
       tipo_camion: tipo_camion || tarifaExistente.tipo_camion,
-      ciudad: ciudad || tarifaExistente.ciudad,
+      ciudad_id: ciudad_id || tarifaExistente.ciudad_id,
       precio: precio !== undefined ? precio : tarifaExistente.precio,
       activo
     });

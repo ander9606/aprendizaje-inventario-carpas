@@ -16,8 +16,8 @@ router.get('/ciudades', tarifaTransporteController.obtenerCiudades);
 // GET /api/tarifas-transporte/tipos - Obtener tipos de camión únicos
 router.get('/tipos', tarifaTransporteController.obtenerTiposCamion);
 
-// GET /api/tarifas-transporte/ciudad/:ciudad - Obtener por ciudad
-router.get('/ciudad/:ciudad', tarifaTransporteController.obtenerPorCiudad);
+// GET /api/tarifas-transporte/ciudad/:ciudadId - Obtener por ciudad ID
+router.get('/ciudad/:ciudadId', tarifaTransporteController.obtenerPorCiudadId);
 
 // GET /api/tarifas-transporte/buscar?tipoCamion=X&ciudad=Y - Buscar tarifa específica
 router.get('/buscar', tarifaTransporteController.buscarTarifa);

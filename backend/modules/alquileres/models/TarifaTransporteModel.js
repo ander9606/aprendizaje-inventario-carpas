@@ -12,9 +12,10 @@ class TarifaTransporteModel {
   // ============================================
   static async obtenerTodas() {
     const query = `
-      SELECT id, tipo_camion, ciudad, precio, activo, created_at, updated_at
-      FROM tarifas_transporte
-      ORDER BY ciudad, tipo_camion
+      SELECT t.id, t.tipo_camion, t.ciudad_id, c.nombre as ciudad, t.precio, t.activo, t.created_at, t.updated_at
+      FROM tarifas_transporte t
+      LEFT JOIN ciudades c ON t.ciudad_id = c.id
+      ORDER BY c.nombre, t.tipo_camion
     `;
     const [rows] = await pool.query(query);
     return rows;
@@ -25,10 +26,11 @@ class TarifaTransporteModel {
   // ============================================
   static async obtenerActivas() {
     const query = `
-      SELECT id, tipo_camion, ciudad, precio
-      FROM tarifas_transporte
-      WHERE activo = TRUE
-      ORDER BY ciudad, tipo_camion
+      SELECT t.id, t.tipo_camion, t.ciudad_id, c.nombre as ciudad, t.precio
+      FROM tarifas_transporte t
+      LEFT JOIN ciudades c ON t.ciudad_id = c.id
+      WHERE t.activo = TRUE
+      ORDER BY c.nombre, t.tipo_camion
     `;
     const [rows] = await pool.query(query);
     return rows;
@@ -39,25 +41,27 @@ class TarifaTransporteModel {
   // ============================================
   static async obtenerPorId(id) {
     const query = `
-      SELECT id, tipo_camion, ciudad, precio, activo, created_at, updated_at
-      FROM tarifas_transporte
-      WHERE id = ?
+      SELECT t.id, t.tipo_camion, t.ciudad_id, c.nombre as ciudad, t.precio, t.activo, t.created_at, t.updated_at
+      FROM tarifas_transporte t
+      LEFT JOIN ciudades c ON t.ciudad_id = c.id
+      WHERE t.id = ?
     `;
     const [rows] = await pool.query(query, [id]);
     return rows[0];
   }
 
   // ============================================
-  // OBTENER POR CIUDAD
+  // OBTENER POR CIUDAD ID
   // ============================================
-  static async obtenerPorCiudad(ciudad) {
+  static async obtenerPorCiudadId(ciudadId) {
     const query = `
-      SELECT id, tipo_camion, ciudad, precio
-      FROM tarifas_transporte
-      WHERE ciudad = ? AND activo = TRUE
-      ORDER BY precio ASC
+      SELECT t.id, t.tipo_camion, t.ciudad_id, c.nombre as ciudad, t.precio
+      FROM tarifas_transporte t
+      LEFT JOIN ciudades c ON t.ciudad_id = c.id
+      WHERE t.ciudad_id = ? AND t.activo = TRUE
+      ORDER BY t.precio ASC
     `;
-    const [rows] = await pool.query(query, [ciudad]);
+    const [rows] = await pool.query(query, [ciudadId]);
     return rows;
   }
 
@@ -66,27 +70,29 @@ class TarifaTransporteModel {
   // ============================================
   static async obtenerPorTipoCamion(tipoCamion) {
     const query = `
-      SELECT id, tipo_camion, ciudad, precio
-      FROM tarifas_transporte
-      WHERE tipo_camion = ? AND activo = TRUE
-      ORDER BY ciudad
+      SELECT t.id, t.tipo_camion, t.ciudad_id, c.nombre as ciudad, t.precio
+      FROM tarifas_transporte t
+      LEFT JOIN ciudades c ON t.ciudad_id = c.id
+      WHERE t.tipo_camion = ? AND t.activo = TRUE
+      ORDER BY c.nombre
     `;
     const [rows] = await pool.query(query, [tipoCamion]);
     return rows;
   }
 
   // ============================================
-  // OBTENER CIUDADES ÚNICAS
+  // OBTENER CIUDADES ÚNICAS (con tarifas activas)
   // ============================================
   static async obtenerCiudades() {
     const query = `
-      SELECT DISTINCT ciudad
-      FROM tarifas_transporte
-      WHERE activo = TRUE
-      ORDER BY ciudad
+      SELECT DISTINCT c.id, c.nombre
+      FROM tarifas_transporte t
+      INNER JOIN ciudades c ON t.ciudad_id = c.id
+      WHERE t.activo = TRUE
+      ORDER BY c.nombre
     `;
     const [rows] = await pool.query(query);
-    return rows.map(r => r.ciudad);
+    return rows;
   }
 
   // ============================================
@@ -106,40 +112,41 @@ class TarifaTransporteModel {
   // ============================================
   // BUSCAR TARIFA ESPECÍFICA
   // ============================================
-  static async buscarTarifa(tipoCamion, ciudad) {
+  static async buscarTarifa(tipoCamion, ciudadId) {
     const query = `
-      SELECT id, tipo_camion, ciudad, precio
-      FROM tarifas_transporte
-      WHERE tipo_camion = ? AND ciudad = ? AND activo = TRUE
+      SELECT t.id, t.tipo_camion, t.ciudad_id, c.nombre as ciudad, t.precio
+      FROM tarifas_transporte t
+      LEFT JOIN ciudades c ON t.ciudad_id = c.id
+      WHERE t.tipo_camion = ? AND t.ciudad_id = ? AND t.activo = TRUE
     `;
-    const [rows] = await pool.query(query, [tipoCamion, ciudad]);
+    const [rows] = await pool.query(query, [tipoCamion, ciudadId]);
     return rows[0];
   }
 
   // ============================================
   // CREAR
   // ============================================
-  static async crear({ tipo_camion, ciudad, precio }) {
+  static async crear({ tipo_camion, ciudad_id, precio }) {
     const query = `
-      INSERT INTO tarifas_transporte (tipo_camion, ciudad, precio)
+      INSERT INTO tarifas_transporte (tipo_camion, ciudad_id, precio)
       VALUES (?, ?, ?)
     `;
-    const [result] = await pool.query(query, [tipo_camion, ciudad, precio]);
+    const [result] = await pool.query(query, [tipo_camion, ciudad_id, precio]);
     return result;
   }
 
   // ============================================
   // ACTUALIZAR
   // ============================================
-  static async actualizar(id, { tipo_camion, ciudad, precio, activo }) {
+  static async actualizar(id, { tipo_camion, ciudad_id, precio, activo }) {
     const query = `
       UPDATE tarifas_transporte
-      SET tipo_camion = ?, ciudad = ?, precio = ?, activo = ?
+      SET tipo_camion = ?, ciudad_id = ?, precio = ?, activo = ?
       WHERE id = ?
     `;
     const [result] = await pool.query(query, [
       tipo_camion,
-      ciudad,
+      ciudad_id,
       precio,
       activo !== undefined ? activo : true,
       id

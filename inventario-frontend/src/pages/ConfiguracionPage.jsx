@@ -24,12 +24,12 @@ export default function ConfiguracionPage() {
 
   const opciones = [
     {
-      id: 'ubicaciones',
-      nombre: 'Ubicaciones',
-      descripcion: 'Gestiona bodegas, lugares de eventos y destinos donde puede estar el inventario.',
+      id: 'ciudades',
+      nombre: 'Ciudades',
+      descripcion: 'Catálogo maestro de ciudades donde opera el negocio.',
       icon: MapPin,
-      color: 'blue',
-      ruta: '/configuracion/ubicaciones'
+      color: 'green',
+      ruta: '/configuracion/ciudades'
     },
     {
       id: 'tarifas',
@@ -38,6 +38,14 @@ export default function ConfiguracionPage() {
       icon: Truck,
       color: 'orange',
       ruta: '/configuracion/tarifas-transporte'
+    },
+    {
+      id: 'ubicaciones',
+      nombre: 'Ubicaciones',
+      descripcion: 'Gestiona bodegas, lugares de eventos y destinos donde puede estar el inventario.',
+      icon: MapPin,
+      color: 'blue',
+      ruta: '/configuracion/ubicaciones'
     }
   ]
 
@@ -56,6 +64,13 @@ export default function ConfiguracionPage() {
         icon: 'bg-orange-100 text-orange-600',
         text: 'text-orange-600',
         hover: 'hover:shadow-lg hover:shadow-orange-100'
+      },
+      green: {
+        bg: 'bg-green-50',
+        border: 'border-green-200 hover:border-green-400',
+        icon: 'bg-green-100 text-green-600',
+        text: 'text-green-600',
+        hover: 'hover:shadow-lg hover:shadow-green-100'
       }
     }
     return colors[color] || colors.blue
@@ -146,8 +161,7 @@ export default function ConfiguracionPage() {
         {/* Info */}
         <div className="mt-8 p-4 bg-amber-50 border border-amber-200 rounded-lg max-w-4xl">
           <p className="text-sm text-amber-800">
-            <strong>Nota:</strong> Las ciudades disponibles en el sistema se definen a través de las Tarifas de Transporte.
-            Primero crea las tarifas y luego podrás asignar esas ciudades a las ubicaciones.
+            <strong>Flujo recomendado:</strong> Primero crea las ciudades, luego define las tarifas de transporte para cada ciudad, y finalmente crea las ubicaciones seleccionando una ciudad del catálogo.
           </p>
         </div>
       </div>
