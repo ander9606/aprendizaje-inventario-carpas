@@ -5,7 +5,7 @@
 
 import { useState } from 'react'
 import { Plus, Users, ArrowLeft } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigation } from '../hooks/UseNavigation'
 import {
   useGetClientes,
   useDeleteCliente
@@ -29,7 +29,7 @@ import EmptyState from '../components/common/EmptyState'
  */
 export default function ClientesPage() {
 
-  const navigate = useNavigate()
+  const { volverAAlquileres } = useNavigation()
 
   // ============================================
   // HOOKS: Obtener datos
@@ -81,10 +81,7 @@ export default function ClientesPage() {
     }
   }
 
-  const handleVolver = () => {
-    navigate('/alquileres')
-  }
-
+  
   // ============================================
   // RENDER: Estados de carga y error
   // ============================================
@@ -130,13 +127,14 @@ export default function ClientesPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <button
-                onClick={handleVolver}
+                onClick={volverAAlquileres}
                 className="
                   p-2 hover:bg-slate-100 rounded-lg transition-colors
                   flex items-center gap-2 text-slate-600 hover:text-slate-900
                 "
               >
                 <ArrowLeft className="w-5 h-5" />
+                <span>Volver a Alquileres</span>
               </button>
 
               <div className="flex items-center gap-3">

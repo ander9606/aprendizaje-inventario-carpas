@@ -6,6 +6,7 @@
 import { useState } from 'react'
 import { Plus, FileText, ArrowLeft, Users, Filter } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import { useNavigation } from '../hooks/UseNavigation'
 import {
   useGetCotizaciones,
   useDeleteCotizacion,
@@ -21,6 +22,7 @@ import EmptyState from '../components/common/EmptyState'
 export default function CotizacionesPage() {
 
   const navigate = useNavigate()
+  const { volverAModulos } = useNavigation()
 
   // ============================================
   // HOOKS
@@ -130,9 +132,6 @@ export default function CotizacionesPage() {
     handleEdit(cotizacion)
   }
 
-  const handleVolver = () => {
-    navigate('/alquileres')
-  }
 
   const handleIrClientes = () => {
     navigate('/alquileres/clientes')
@@ -180,51 +179,55 @@ export default function CotizacionesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      {/* HEADER */}
-      <div className="bg-white border-b border-slate-200 sticky top-0 z-10 shadow-sm">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <button
-                onClick={handleVolver}
-                className="p-2 hover:bg-slate-100 rounded-lg transition-colors flex items-center gap-2 text-slate-600 hover:text-slate-900"
-              >
-                <ArrowLeft className="w-5 h-5" />
-              </button>
+<div className="min-h-screen bg-slate-50">
+  {/* HEADER */}
+  <div className="bg-white border-b border-slate-200 sticky top-0 z-10 shadow-sm">
+    <div className="container mx-auto px-6 py-4">
 
-              <div className="flex items-center gap-3">
-                <FileText className="w-8 h-8 text-blue-600" />
-                <div>
-                  <h1 className="text-2xl font-bold text-slate-900">
-                    Cotizaciones
-                  </h1>
-                  <p className="text-sm text-slate-600">
-                    Gestiona tus cotizaciones de alquiler
-                  </p>
-                </div>
-              </div>
-            </div>
+      {/* NAVEGACIÓN SUPERIOR */}
+      <button
+        onClick={volverAModulos}
+        className="flex items-center gap-2 text-slate-600 hover:text-slate-900 mb-3 transition-colors text-sm"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        <span>Volver a Módulos</span>
+      </button>
 
-            <div className="flex items-center gap-3">
-              <Button
-                variant="secondary"
-                icon={<Users className="w-4 h-4" />}
-                onClick={handleIrClientes}
-              >
-                Clientes
-              </Button>
-              <Button
-                variant="primary"
-                icon={<Plus />}
-                onClick={handleOpenCrear}
-              >
-                Nueva Cotizacion
-              </Button>
-            </div>
+      <div className="flex items-center justify-between">
+        {/* TÍTULO */}
+        <div className="flex items-center gap-3">
+          <FileText className="w-8 h-8 text-blue-600" />
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900">
+              Cotizaciones
+            </h1>
+            <p className="text-sm text-slate-600">
+              Gestiona tus cotizaciones de alquiler
+            </p>
           </div>
         </div>
+
+        {/* ACCIONES */}
+        <div className="flex items-center gap-3">
+          <Button
+            variant="secondary"
+            icon={<Users className="w-4 h-4" />}
+            onClick={handleIrClientes}
+          >
+            Clientes
+          </Button>
+          <Button
+            variant="primary"
+            icon={<Plus />}
+            onClick={handleOpenCrear}
+          >
+            Nueva Cotizacion
+          </Button>
+        </div>
       </div>
+
+    </div>
+  </div>
 
       {/* CONTENIDO */}
       <div className="container mx-auto px-6 py-8">

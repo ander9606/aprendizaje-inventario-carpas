@@ -6,6 +6,7 @@
 import { useState, useMemo } from 'react'
 import { Plus, Package, MapPin, ArrowLeft, Search, X, Layers, ChevronRight } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import { useNavigation } from '../hooks/UseNavigation'  
 import {
   useGetCategoriasPadre,
   useDeleteCategoria
@@ -44,6 +45,7 @@ import EmptyState from '../components/common/EmptyState'
 export default function Dashboard() {
 
   const navigate = useNavigate()
+  const { volverAModulos } = useNavigation()
 
   // ============================================
   // HOOKS: Obtener datos
@@ -232,7 +234,7 @@ export default function Dashboard() {
         <div className="container mx-auto px-6 py-4">
           {/* Navegación superior */}
           <button
-            onClick={() => navigate('/')}
+            onClick={volverAModulos}
             className="flex items-center gap-2 text-slate-600 hover:text-slate-900 mb-3 transition-colors text-sm"
           >
             <ArrowLeft className="w-4 h-4" />

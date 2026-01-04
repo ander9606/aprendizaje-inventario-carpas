@@ -3,6 +3,7 @@
 // Dashboard para gestión de datos maestros
 // ============================================
 
+import { useNavigation } from '../hooks/UseNavigation'
 import { useNavigate } from 'react-router-dom'
 import {
   Settings,
@@ -19,8 +20,12 @@ import {
  * - Tarifas de Transporte: Precios por ciudad y tipo de camión
  */
 export default function ConfiguracionPage() {
+  const { volverAModulos } = useNavigation()
   const navigate = useNavigate()
 
+  // ============================================
+  // DATA: Opciones de configuración
+  // ============================================
   const opciones = [
     {
       id: 'ciudades',
@@ -68,36 +73,38 @@ export default function ConfiguracionPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      {/* Header */}
-      <div className="bg-white border-b border-slate-200 shadow-sm">
-        <div className="container mx-auto px-6 py-6">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => navigate('/')}
-              className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5 text-slate-600" />
-            </button>
+    <div className="bg-white border-b border-slate-200 shadow-sm">
+  <div className="container mx-auto px-6 py-6">
 
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-amber-100 rounded-xl">
-                <Settings className="w-8 h-8 text-amber-600" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-slate-900">
-                  Configuración
-                </h1>
-                <p className="text-slate-600">
-                  Gestiona los datos maestros del sistema
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
+    {/* Navegación superior */}
+    <button
+      onClick={volverAModulos}
+      className="flex items-center gap-2 text-slate-600 hover:text-slate-900 mb-4 transition-colors text-sm"
+    >
+      <ArrowLeft className="w-4 h-4" />
+      <span>Volver a Módulos</span>
+    </button>
+
+    {/* Título */}
+    <div className="flex items-center gap-3">
+      <div className="p-3 bg-amber-100 rounded-xl">
+        <Settings className="w-8 h-8 text-amber-600" />
       </div>
 
-      {/* Contenido */}
+      <div>
+        <h1 className="text-2xl font-bold text-slate-900">
+          Configuración
+        </h1>
+        <p className="text-slate-600">
+          Gestiona los datos maestros del sistema
+        </p>
+      </div>
+    </div>
+
+</div>
+
+
+  {/* Contenido */}
       <div className="container mx-auto px-6 py-8">
         <div className="mb-6">
           <h2 className="text-lg font-semibold text-slate-900 mb-1">
@@ -111,8 +118,8 @@ export default function ConfiguracionPage() {
         {/* Grid de opciones */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl">
           {opciones.map((opcion) => {
-            const Icon = opcion.icon
-            const colors = getColorClasses(opcion.color)
+            const Icon = opcion.icon;
+            const colors = getColorClasses(opcion.color);
 
             return (
               <div
@@ -124,10 +131,12 @@ export default function ConfiguracionPage() {
                 `}
               >
                 {/* Icono */}
-                <div className={`
+                <div
+                  className={`
                   inline-flex items-center justify-center w-12 h-12 rounded-xl mb-4
                   ${colors.icon}
-                `}>
+                `}
+                >
                   <Icon className="w-6 h-6" />
                 </div>
 
@@ -140,22 +149,26 @@ export default function ConfiguracionPage() {
                 </p>
 
                 {/* Footer */}
-                <div className={`flex items-center gap-2 font-medium text-sm ${colors.text}`}>
+                <div
+                  className={`flex items-center gap-2 font-medium text-sm ${colors.text}`}
+                >
                   <span>Gestionar</span>
                   <ArrowRight className="w-4 h-4" />
                 </div>
               </div>
-            )
+            );
           })}
         </div>
 
         {/* Info */}
         <div className="mt-8 p-4 bg-amber-50 border border-amber-200 rounded-lg max-w-4xl">
           <p className="text-sm text-amber-800">
-            <strong>Flujo recomendado:</strong> Primero crea las ciudades con sus tarifas de transporte, y luego crea las ubicaciones seleccionando una ciudad del catálogo.
+            <strong>Flujo recomendado:</strong> Primero crea las ciudades con
+            sus tarifas de transporte, y luego crea las ubicaciones
+            seleccionando una ciudad del catálogo.
           </p>
         </div>
       </div>
     </div>
-  )
+  );
 }
