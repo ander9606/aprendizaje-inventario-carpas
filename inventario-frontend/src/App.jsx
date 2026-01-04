@@ -25,7 +25,6 @@ import CotizacionesPage from './pages/CotizacionesPage'
 
 // Importar páginas - Configuración
 import ConfiguracionPage from './pages/ConfiguracionPage'
-import TarifasTransportePage from './pages/TarifasTransportePage'
 import CiudadesPage from './pages/CiudadesPage'
 
 /**
@@ -162,16 +161,10 @@ function App() {
         element={<ConfiguracionPage />}
       />
 
-      {/* Ciudades */}
+      {/* Ciudades (incluye tarifas de transporte) */}
       <Route
         path="/configuracion/ciudades"
         element={<CiudadesPage />}
-      />
-
-      {/* Tarifas de Transporte */}
-      <Route
-        path="/configuracion/tarifas-transporte"
-        element={<TarifasTransportePage />}
       />
 
       {/* Ubicaciones */}
