@@ -7,7 +7,7 @@ import { Box, Plus, Edit, Trash2, ChevronRight } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import Card from '../common/Card'
 import Button from '../common/Button'
-import EmojiPicker from '../common/picker/Emojipicker'
+import SymbolPicker from '../common/picker/SymbolPicker'
 import { IconoCategoria } from '../common/IconoCategoria'
 import { useUpdateCategoria, useDeleteCategoria } from '../../hooks/Usecategorias'
 
@@ -184,10 +184,11 @@ const SubcategoriaCard = ({
 
       </Card.Footer>
 
-      {/* EmojiPicker */}
+      {/* SymbolPicker - Modal para elegir emoji o icono */}
       {mostrarEmojiPicker && (
-        <EmojiPicker
+        <SymbolPicker
           open={mostrarEmojiPicker}
+          value={emojiActual}
           onSelect={handleSeleccionarEmoji}
           onClose={() => setMostrarEmojiPicker(false)}
         />

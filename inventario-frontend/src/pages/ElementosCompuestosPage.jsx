@@ -462,41 +462,32 @@ function CategoriaProductoCard({
   // Estado local para el picker de símbolo (emoji o icono)
   const [mostrarSymbolPicker, setMostrarSymbolPicker] = useState(false);
 
-  const [simboloActual, setSimboloActual] = useState(
-    categoria.simbolo ?? {
-      tipo: "emoji",
-      valor: categoria.emoji || "📦",
-    }
-  );
+  // Estado simple con el valor del emoji/icono (string)
+  const [emojiActual, setEmojiActual] = useState(categoria.emoji || "📦");
 
   // Hook para actualizar categoría
   const updateCategoria = useUpdateCategoriaProducto();
 
   /**
    * Handler para cuando se selecciona un nuevo símbolo (emoji o icono)
-   * @param {{ tipo: 'emoji' | 'icon', valor: string }} simbolo
+   * @param {string} nuevoEmoji - El emoji o nombre del icono seleccionado
    */
-  const handleSeleccionarSimbolo = (simbolo) => {
-    setSimboloActual(simbolo);
+  const handleSeleccionarSimbolo = (nuevoEmoji) => {
+    setEmojiActual(nuevoEmoji);
     setMostrarSymbolPicker(false);
 
     updateCategoria.updateCategoriaSync(
       {
         id: categoria.id,
         nombre: categoria.nombre,
-        simbolo,
-        // compatibilidad temporal con el campo emoji
-        emoji: simbolo.tipo === "emoji" ? simbolo.valor : null,
+        emoji: nuevoEmoji,
         descripcion: categoria.descripcion,
       },
       {
-        onSuccess: () => toast.success("Símbolo actualizado"),
+        onSuccess: () => toast.success("Icono actualizado"),
         onError: () => {
-          toast.error("No se pudo actualizar el símbolo");
-          setSimboloActual({
-            tipo: "emoji",
-            valor: categoria.emoji || "📦",
-          });
+          toast.error("No se pudo actualizar el icono");
+          setEmojiActual(categoria.emoji || "📦");
         },
       }
     );
@@ -513,10 +504,10 @@ function CategoriaProductoCard({
           <button
             onClick={() => setMostrarSymbolPicker(true)}
             className="cursor-pointer hover:scale-110 transition-transform"
-            title="Click para cambiar el símbolo"
+            title="Click para cambiar el icono"
             type="button"
           >
-            <SymbolRenderer simbolo={simboloActual} size={40} />
+            <IconoCategoria value={emojiActual} size={40} />
           </button>
 
           <Card.Title className="flex-1">{categoria.nombre}</Card.Title>
@@ -576,6 +567,7 @@ function CategoriaProductoCard({
       {mostrarSymbolPicker && (
         <SymbolPicker
           open={mostrarSymbolPicker}
+          value={emojiActual}
           onSelect={handleSeleccionarSimbolo}
           onClose={() => setMostrarSymbolPicker(false)}
         />

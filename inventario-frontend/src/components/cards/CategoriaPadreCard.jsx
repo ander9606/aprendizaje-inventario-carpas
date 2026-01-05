@@ -8,7 +8,7 @@ import { Folder, Plus, Edit, Trash2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import Card from '../common/Card'
 import Button from '../common/Button'
-import EmojiPicker from '../common/picker/Emojipicker'
+import SymbolPicker from '../common/picker/SymbolPicker'
 import { IconoCategoria } from '../common/IconoCategoria'
 import { useUpdateCategoria, useDeleteCategoria } from '../../hooks/Usecategorias'
 
@@ -297,11 +297,12 @@ const CategoriaPadreCard = ({
           Se renderiza solo cuando mostrarEmojiPicker es true
           ============================================ */}
       {mostrarEmojiPicker && (
-        <EmojiPicker
-            open={mostrarEmojiPicker}
-            onSelect={handleSeleccionarEmoji}
-            onClose={() => setMostrarEmojiPicker(false)}
-          />
+        <SymbolPicker
+          open={mostrarEmojiPicker}
+          value={emojiActual}
+          onSelect={handleSeleccionarEmoji}
+          onClose={() => setMostrarEmojiPicker(false)}
+        />
       )}
     </Card>
   )
