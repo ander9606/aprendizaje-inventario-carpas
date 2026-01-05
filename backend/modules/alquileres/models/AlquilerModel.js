@@ -152,9 +152,10 @@ class AlquilerModel {
         ct.precio_unitario,
         ct.subtotal,
         t.tipo_camion,
-        t.ciudad
+        c.nombre AS ciudad
       FROM cotizacion_transportes ct
       INNER JOIN tarifas_transporte t ON ct.tarifa_id = t.id
+      LEFT JOIN ciudades c ON t.ciudad_id = c.id
       WHERE ct.cotizacion_id = ?
     `;
     const [transporte] = await pool.query(queryTransporte, [alquiler.cotizacion_id]);
