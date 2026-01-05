@@ -19,6 +19,7 @@ import Button from '../components/common/Button'
 import Spinner from '../components/common/Spinner'
 import EmptyState from '../components/common/EmptyState'
 
+
 /**
  * Página Dashboard - Nivel 1
  * 
@@ -69,11 +70,7 @@ export default function Dashboard() {
   const [showSearchResults, setShowSearchResults] = useState(false)
 
   // Estado para controlar qué modal está abierto
-  const [modalState, setModalState] = useState({
-    crear: false,
-    editar: false,
-    crearSubcategoria: false
-  })
+  const [modalActivo, setModalActivo] = useState(null)
 
   // Categoría seleccionada para editar
   const [selectedCategoria, setSelectedCategoria] = useState(null)
@@ -95,6 +92,8 @@ export default function Dashboard() {
     // Buscar en categorías (padre y subcategorías)
     const categoriasEncontradas = categoriasPadre.filter(cat =>
       cat.nombre.toLowerCase().includes(term) ||
+
+
       cat.subcategorias?.some(sub => sub.nombre.toLowerCase().includes(term))
     )
 
@@ -140,18 +139,16 @@ export default function Dashboard() {
    * Abrir modal de crear categoría
    */
   const handleOpenCrear = () => {
-    setModalState({ ...modalState, crear: true })
+    setSelectedCategoria(null)
+    setParentCategoriaId(null)
+    setModalActivo('crear')
   }
   
   /**
    * Cerrar todos los modales
    */
   const handleCloseModal = () => {
-    setModalState({
-      crear: false,
-      editar: false,
-      crearSubcategoria: false
-    })
+    setModalActivo(null)
     setSelectedCategoria(null)
     setParentCategoriaId(null)
   }
@@ -161,7 +158,8 @@ export default function Dashboard() {
    */
   const handleEdit = (categoria) => {
     setSelectedCategoria(categoria)
-    setModalState({ ...modalState, editar: true })
+    setParentCategoriaId(null)
+    setModalActivo('editar')
   }
   
   /**
@@ -182,8 +180,9 @@ export default function Dashboard() {
    * Abrir modal de crear subcategoría
    */
   const handleCreateSubcategoria = (categoriaId) => {
+    setSelectedCategoria(null)
     setParentCategoriaId(categoriaId)
-    setModalState({ ...modalState, crearSubcategoria: true })
+    setModalActivo('subcategoria')
   }
   
   // ============================================
@@ -446,7 +445,7 @@ export default function Dashboard() {
       
       {/* Modal: Crear categoría padre */}
       <CategoriaFormModal
-        isOpen={modalState.crear}
+        isOpen={modalActivo === 'crear'}
         onClose={handleCloseModal}
         mode="crear"
         categoria={null}
@@ -454,7 +453,7 @@ export default function Dashboard() {
       
       {/* Modal: Editar categoría */}
       <CategoriaFormModal
-        isOpen={modalState.editar}
+        isOpen={modalActivo === 'editar'}
         onClose={handleCloseModal}
         mode="editar"
         categoria={selectedCategoria}
@@ -462,7 +461,7 @@ export default function Dashboard() {
       
       {/* Modal: Crear subcategoría */}
       <SubcategoriaFormModal
-        isOpen={modalState.crearSubcategoria}
+        isOpen={modalActivo === 'subcategoria'}
         onClose={handleCloseModal}
         mode="crear"
         padreId={parentCategoriaId}

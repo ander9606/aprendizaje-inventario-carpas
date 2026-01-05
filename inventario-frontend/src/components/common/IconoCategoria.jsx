@@ -1,26 +1,33 @@
 // ============================================
 // COMPONENTE: IconoCategoria
-// Renderiza un emoji como icono de categoría
+// Renderiza un símbolo de categoría (emoji o icono)
 // ============================================
 
+import SymbolRenderer from "../common/picker/SymbolRenderer";
+
 /**
- * Componente que renderiza un emoji como icono
+ * Componente que renderiza un emoji o icono como icono de categoría
  *
- * @param {string} value - El emoji a mostrar
+ * @param {string} value - Emoji o nombre del icono
  * @param {string} className - Clases CSS adicionales
- * @param {number} size - Tamaño del emoji (para compatibilidad)
+ * @param {number} size - Tamaño del icono
  *
  * @example
- * <IconoCategoria value="🎪" className="text-4xl" />
+ * <IconoCategoria value="🎪" />
+ * <IconoCategoria value="Truck" />
  */
-export function IconoCategoria({ value, className = '',  }) {
-  // Si no hay valor, mostrar emoji por defecto
-  if (!value) {
-    return <span className={className}>📦</span>
-  }
-
-  // Renderizar el emoji
-  return <span className={className}>{value}</span>
+export function IconoCategoria({
+  value,
+  className = "",
+  size = 20
+}) {
+  return (
+    <SymbolRenderer
+      value={value}
+      className={className}
+      size={size}
+    />
+  )
 }
 
 export default IconoCategoria

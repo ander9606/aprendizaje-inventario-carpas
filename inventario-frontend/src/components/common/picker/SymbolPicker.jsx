@@ -1,0 +1,77 @@
+import { useState, useEffect } from "react"
+import Modal from "../Modal"
+import EmojiPicker from "./Emojipicker"
+import IconPicker from "./IconPicker"
+import { Smile, Shapes } from "lucide-react"
+
+export default function SymbolPicker({
+  open,
+  value,
+  onSelect,
+  onClose
+}) {
+  const [tab, setTab] = useState("emoji")
+
+  // Reset al abrir
+  useEffect(() => {
+    if (open) setTab("emoji")
+  }, [open])
+
+  return (
+    <Modal
+      isOpen={open}
+      onClose={onClose}
+      title="Seleccionar icono"
+      size="lg"
+    >
+      {/* Tabs */}
+      <div className="flex border-b border-slate-200 mb-4">
+        <button
+          type="button"
+          onClick={() => setTab("emoji")}
+          className={`flex-1 px-4 py-3 text-sm font-medium flex gap-2 items-center justify-center
+            ${tab === "emoji"
+              ? "border-b-2 border-blue-500 text-blue-600"
+              : "text-slate-500 hover:text-slate-700"}
+          `}
+        >
+          <Smile size={18} /> Emojis
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setTab("icon")}
+          className={`flex-1 px-4 py-3 text-sm font-medium flex gap-2 items-center justify-center
+            ${tab === "icon"
+              ? "border-b-2 border-blue-500 text-blue-600"
+              : "text-slate-500 hover:text-slate-700"}
+          `}
+        >
+          <Shapes size={18} /> Iconos
+        </button>
+      </div>
+
+      {/* Contenido */}
+      <div className="max-h-[55vh] overflow-y-auto">
+        {tab === "emoji" && (
+          <EmojiPicker
+            value={value}
+            onSelect={(emoji) => {
+              onSelect({ type: "emoji", value: emoji })
+              onClose()
+            }}
+          />
+        )}
+
+        {tab === "icon" && (
+          <IconPicker
+            onSelect={(icon) => {
+              onSelect({ type: "icon", value: icon })
+              onClose()
+            }}
+          />
+        )}
+      </div>
+    </Modal>
+  )
+}
