@@ -1,9 +1,9 @@
 // ============================================
 // COMPONENTE: CotizacionDetalleModal
-// Vista previa de cotización estilo PDF
+// Vista previa de cotización estilo PDF para cliente
 // ============================================
 
-import { X, Calendar, User, MapPin, Phone, Mail, Package, Truck, FileText, Edit, Printer } from 'lucide-react'
+import { Calendar, User, MapPin, Phone, Mail, Truck, FileText, Edit, Printer, CheckCircle, Trash2, XCircle } from 'lucide-react'
 import Modal from '../common/Modal'
 import Button from '../common/Button'
 
@@ -11,7 +11,12 @@ const CotizacionDetalleModal = ({
   isOpen,
   onClose,
   cotizacion,
-  onEditar
+  onEditar,
+  onAprobar,
+  onEliminar,
+  onRechazar,
+  isAprobando = false,
+  isEliminando = false
 }) => {
 
   if (!cotizacion) return null
@@ -57,14 +62,31 @@ const CotizacionDetalleModal = ({
     onClose()
   }
 
-  // Calcular subtotales
+  const handleAprobar = () => {
+    if (onAprobar) onAprobar(cotizacion)
+  }
+
+  const handleEliminar = () => {
+    if (confirm('¿Está seguro de eliminar esta cotización? Esta acción no se puede deshacer.')) {
+      if (onEliminar) onEliminar(cotizacion)
+    }
+  }
+
+  const handleRechazar = () => {
+    if (confirm('¿Está seguro de rechazar esta cotización?')) {
+      if (onRechazar) onRechazar(cotizacion)
+    }
+  }
+
+  // Calcular totales simplificados para el cliente
   const subtotalProductos = cotizacion.productos?.reduce((total, p) => {
     const precioUnitario = parseFloat(p.precio_base || 0) + parseFloat(p.precio_adicionales || 0)
     return total + (precioUnitario * parseInt(p.cantidad || 1))
   }, 0) || 0
 
   const subtotalTransporte = cotizacion.transporte?.reduce((total, t) => {
-    return total + (parseFloat(t.precio || 0) * parseInt(t.cantidad || 1))
+    const precio = parseFloat(t.precio_unitario || t.precio || 0)
+    return total + (precio * parseInt(t.cantidad || 1))
   }, 0) || 0
 
   const descuento = parseFloat(cotizacion.descuento || 0)
@@ -81,7 +103,7 @@ const CotizacionDetalleModal = ({
       title=""
       size="xl"
     >
-      {/* Contenido estilo documento */}
+      {/* Contenido estilo documento para cliente */}
       <div className="bg-white print:shadow-none" id="cotizacion-print">
 
         {/* ENCABEZADO */}
@@ -154,109 +176,80 @@ const CotizacionDetalleModal = ({
           </div>
         </div>
 
-        {/* PRODUCTOS */}
+        {/* PRODUCTOS - Vista simplificada para cliente */}
         <div className="mb-6">
-          <h3 className="font-semibold text-slate-900 mb-3 flex items-center gap-2 text-lg">
-            <Package className="w-5 h-5" />
-            Productos
+          <h3 className="font-semibold text-slate-900 mb-3 text-lg">
+            Detalle del Servicio
           </h3>
           <div className="border border-slate-200 rounded-lg overflow-hidden">
             <table className="w-full">
               <thead className="bg-slate-100">
                 <tr>
-                  <th className="text-left px-4 py-3 text-sm font-semibold text-slate-700">Producto</th>
+                  <th className="text-left px-4 py-3 text-sm font-semibold text-slate-700">Descripción</th>
                   <th className="text-center px-4 py-3 text-sm font-semibold text-slate-700 w-20">Cant.</th>
-                  <th className="text-right px-4 py-3 text-sm font-semibold text-slate-700 w-32">P. Unit.</th>
-                  <th className="text-right px-4 py-3 text-sm font-semibold text-slate-700 w-32">Subtotal</th>
+                  <th className="text-right px-4 py-3 text-sm font-semibold text-slate-700 w-32">Precio</th>
                 </tr>
               </thead>
               <tbody>
+                {/* Productos */}
                 {cotizacion.productos?.length > 0 ? (
                   cotizacion.productos.map((producto, index) => {
-                    const precioUnitario = parseFloat(producto.precio_base || 0) + parseFloat(producto.precio_adicionales || 0)
-                    const subtotal = precioUnitario * parseInt(producto.cantidad || 1)
+                    const precioTotal = (parseFloat(producto.precio_base || 0) + parseFloat(producto.precio_adicionales || 0)) * parseInt(producto.cantidad || 1)
                     return (
-                      <tr key={index} className="border-t border-slate-100">
+                      <tr key={`prod-${index}`} className="border-t border-slate-100">
                         <td className="px-4 py-3">
                           <p className="font-medium text-slate-900">{producto.producto_nombre}</p>
-                          {producto.precio_adicionales > 0 && (
-                            <p className="text-xs text-blue-600">+ Adicionales incluidos</p>
-                          )}
                         </td>
                         <td className="text-center px-4 py-3 text-slate-600">{producto.cantidad}</td>
-                        <td className="text-right px-4 py-3 text-slate-600">{formatearMoneda(precioUnitario)}</td>
-                        <td className="text-right px-4 py-3 font-medium text-slate-900">{formatearMoneda(subtotal)}</td>
+                        <td className="text-right px-4 py-3 font-medium text-slate-900">{formatearMoneda(precioTotal)}</td>
                       </tr>
                     )
                   })
                 ) : (
                   <tr>
-                    <td colSpan="4" className="px-4 py-6 text-center text-slate-500 italic">
+                    <td colSpan="3" className="px-4 py-6 text-center text-slate-500 italic">
                       Sin productos
                     </td>
                   </tr>
                 )}
+
+                {/* Transporte como una línea más del servicio */}
+                {cotizacion.transporte?.length > 0 && cotizacion.transporte.map((trans, index) => {
+                  const precio = parseFloat(trans.precio_unitario || trans.precio || 0)
+                  const subtotal = precio * parseInt(trans.cantidad || 1)
+                  return (
+                    <tr key={`trans-${index}`} className="border-t border-slate-100">
+                      <td className="px-4 py-3">
+                        <p className="font-medium text-slate-900 flex items-center gap-2">
+                          <Truck className="w-4 h-4 text-slate-500" />
+                          Transporte - {trans.tipo_camion}
+                        </p>
+                      </td>
+                      <td className="text-center px-4 py-3 text-slate-600">{trans.cantidad}</td>
+                      <td className="text-right px-4 py-3 font-medium text-slate-900">{formatearMoneda(subtotal)}</td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>
         </div>
 
-        {/* TRANSPORTE */}
-        {cotizacion.transporte?.length > 0 && (
-          <div className="mb-6">
-            <h3 className="font-semibold text-slate-900 mb-3 flex items-center gap-2 text-lg">
-              <Truck className="w-5 h-5" />
-              Transporte
-            </h3>
-            <div className="border border-slate-200 rounded-lg overflow-hidden">
-              <table className="w-full">
-                <thead className="bg-slate-100">
-                  <tr>
-                    <th className="text-left px-4 py-3 text-sm font-semibold text-slate-700">Tipo</th>
-                    <th className="text-center px-4 py-3 text-sm font-semibold text-slate-700 w-20">Viajes</th>
-                    <th className="text-right px-4 py-3 text-sm font-semibold text-slate-700 w-32">Precio</th>
-                    <th className="text-right px-4 py-3 text-sm font-semibold text-slate-700 w-32">Subtotal</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {cotizacion.transporte.map((trans, index) => {
-                    const subtotal = parseFloat(trans.precio || 0) * parseInt(trans.cantidad || 1)
-                    return (
-                      <tr key={index} className="border-t border-slate-100">
-                        <td className="px-4 py-3 font-medium text-slate-900">
-                          Camión {trans.tipo_camion}
-                        </td>
-                        <td className="text-center px-4 py-3 text-slate-600">{trans.cantidad}</td>
-                        <td className="text-right px-4 py-3 text-slate-600">{formatearMoneda(trans.precio)}</td>
-                        <td className="text-right px-4 py-3 font-medium text-slate-900">{formatearMoneda(subtotal)}</td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {/* TOTALES */}
+        {/* TOTALES - Simplificado */}
         <div className="border-t-2 border-slate-200 pt-4">
           <div className="flex justify-end">
             <div className="w-72">
-              <div className="flex justify-between py-2">
-                <span className="text-slate-600">Subtotal Productos:</span>
-                <span className="font-medium">{formatearMoneda(subtotalProductos)}</span>
-              </div>
-              {subtotalTransporte > 0 && (
-                <div className="flex justify-between py-2">
-                  <span className="text-slate-600">Subtotal Transporte:</span>
-                  <span className="font-medium">{formatearMoneda(subtotalTransporte)}</span>
-                </div>
-              )}
               {descuento > 0 && (
-                <div className="flex justify-between py-2 text-green-600">
-                  <span>Descuento:</span>
-                  <span className="font-medium">-{formatearMoneda(descuento)}</span>
-                </div>
+                <>
+                  <div className="flex justify-between py-2">
+                    <span className="text-slate-600">Subtotal:</span>
+                    <span className="font-medium">{formatearMoneda(subtotalProductos + subtotalTransporte)}</span>
+                  </div>
+                  <div className="flex justify-between py-2 text-green-600">
+                    <span>Descuento:</span>
+                    <span className="font-medium">-{formatearMoneda(descuento)}</span>
+                  </div>
+                </>
               )}
               <div className="flex justify-between py-3 border-t-2 border-slate-900 mt-2">
                 <span className="text-xl font-bold text-slate-900">TOTAL:</span>
@@ -285,7 +278,41 @@ const CotizacionDetalleModal = ({
       </div>
 
       {/* BOTONES DE ACCIÓN */}
-      <div className="flex gap-3 mt-6 pt-4 border-t print:hidden">
+      <div className="flex flex-wrap gap-3 mt-6 pt-4 border-t print:hidden">
+        {/* Acciones principales para cotizaciones pendientes */}
+        {cotizacion.estado === 'pendiente' && (
+          <>
+            <Button
+              variant="success"
+              icon={<CheckCircle className="w-4 h-4" />}
+              onClick={handleAprobar}
+              loading={isAprobando}
+              disabled={isAprobando || isEliminando}
+            >
+              Aprobar
+            </Button>
+
+            <Button
+              variant="secondary"
+              icon={<Edit className="w-4 h-4" />}
+              onClick={handleEditar}
+              disabled={isAprobando || isEliminando}
+            >
+              Editar
+            </Button>
+
+            <Button
+              variant="ghost"
+              icon={<XCircle className="w-4 h-4" />}
+              onClick={handleRechazar}
+              disabled={isAprobando || isEliminando}
+              className="text-orange-600 hover:bg-orange-50"
+            >
+              Rechazar
+            </Button>
+          </>
+        )}
+
         <Button
           variant="secondary"
           icon={<Printer className="w-4 h-4" />}
@@ -294,17 +321,21 @@ const CotizacionDetalleModal = ({
           Imprimir
         </Button>
 
-        {cotizacion.estado === 'pendiente' && (
+        <div className="flex-1" />
+
+        {/* Eliminar solo para pendientes y rechazadas */}
+        {(cotizacion.estado === 'pendiente' || cotizacion.estado === 'rechazada') && (
           <Button
-            variant="primary"
-            icon={<Edit className="w-4 h-4" />}
-            onClick={handleEditar}
+            variant="ghost"
+            icon={<Trash2 className="w-4 h-4" />}
+            onClick={handleEliminar}
+            loading={isEliminando}
+            disabled={isAprobando || isEliminando}
+            className="text-red-600 hover:bg-red-50"
           >
-            Editar Cotización
+            Eliminar
           </Button>
         )}
-
-        <div className="flex-1" />
 
         <Button
           variant="ghost"

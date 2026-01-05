@@ -7,7 +7,7 @@ import { useState } from 'react'
 import { Plus, FileText, ArrowLeft, Users, Filter } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useNavigation } from '../hooks/UseNavigation'
-import { useGetCotizaciones } from '../hooks/UseCotizaciones'
+import { useGetCotizaciones, useAprobarCotizacion, useDeleteCotizacion, useCambiarEstadoCotizacion } from '../hooks/UseCotizaciones'
 import CotizacionCard from '../components/cards/CotizacionCard'
 import CotizacionFormModal from '../components/forms/CotizacionFormModal'
 import CotizacionDetalleModal from '../components/modals/CotizacionDetalleModal'
@@ -25,6 +25,9 @@ export default function CotizacionesPage() {
   // ============================================
 
   const { cotizaciones, isLoading, error, refetch } = useGetCotizaciones()
+  const { mutateAsync: aprobarCotizacion, isLoading: isAprobando } = useAprobarCotizacion()
+  const { mutateAsync: eliminarCotizacion, isLoading: isEliminando } = useDeleteCotizacion()
+  const { mutateAsync: cambiarEstado } = useCambiarEstadoCotizacion()
 
   // ============================================
   // STATE
@@ -63,6 +66,38 @@ export default function CotizacionesPage() {
 
   const handleIrClientes = () => {
     navigate('/alquileres/clientes')
+  }
+
+  const handleAprobar = async (cotizacion) => {
+    try {
+      await aprobarCotizacion({ id: cotizacion.id, opciones: {} })
+      handleCloseModal()
+      // Navegar a alquileres después de aprobar
+      navigate('/alquileres')
+    } catch (error) {
+      console.error('Error al aprobar:', error)
+      alert(error.response?.data?.message || 'Error al aprobar la cotización')
+    }
+  }
+
+  const handleEliminar = async (cotizacion) => {
+    try {
+      await eliminarCotizacion(cotizacion.id)
+      handleCloseModal()
+    } catch (error) {
+      console.error('Error al eliminar:', error)
+      alert(error.response?.data?.message || 'Error al eliminar la cotización')
+    }
+  }
+
+  const handleRechazar = async (cotizacion) => {
+    try {
+      await cambiarEstado({ id: cotizacion.id, estado: 'rechazada' })
+      handleCloseModal()
+    } catch (error) {
+      console.error('Error al rechazar:', error)
+      alert(error.response?.data?.message || 'Error al rechazar la cotización')
+    }
   }
 
   // ============================================
@@ -235,6 +270,11 @@ export default function CotizacionesPage() {
         onClose={handleCloseModal}
         cotizacion={selectedCotizacion}
         onEditar={handleEditar}
+        onAprobar={handleAprobar}
+        onEliminar={handleEliminar}
+        onRechazar={handleRechazar}
+        isAprobando={isAprobando}
+        isEliminando={isEliminando}
       />
     </div>
   )
