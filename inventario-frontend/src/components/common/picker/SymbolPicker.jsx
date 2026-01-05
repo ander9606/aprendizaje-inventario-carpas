@@ -57,7 +57,7 @@ export default function SymbolPicker({
           <EmojiPicker
             value={value}
             onSelect={(emoji) => {
-              onSelect({ type: "emoji", value: emoji })
+              onSelect(emoji)
               onClose()
             }}
           />
@@ -66,7 +66,7 @@ export default function SymbolPicker({
         {tab === "icon" && (
           <IconPicker
             onSelect={(icon) => {
-              onSelect({ type: "icon", value: icon })
+              onSelect(icon)
               onClose()
             }}
           />
