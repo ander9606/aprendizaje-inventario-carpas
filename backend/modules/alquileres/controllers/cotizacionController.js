@@ -15,6 +15,35 @@ const AppError = require('../../../utils/AppError');
 const logger = require('../../../utils/logger');
 
 // ============================================
+// HELPER: Enriquecer transporte con precios
+// ============================================
+const enriquecerTransporteConPrecios = async (transporte) => {
+  if (!transporte || transporte.length === 0) return [];
+
+  const transporteConPrecios = await Promise.all(
+    transporte.map(async (t) => {
+      // Si ya tiene precio_unitario, usarlo
+      if (t.precio_unitario !== undefined && t.precio_unitario !== null) {
+        return t;
+      }
+
+      // Obtener precio de la tarifa
+      const tarifa = await TarifaTransporteModel.obtenerPorId(t.tarifa_id);
+      if (!tarifa) {
+        throw new AppError(`Tarifa de transporte ${t.tarifa_id} no encontrada`, 404);
+      }
+
+      return {
+        ...t,
+        precio_unitario: tarifa.precio
+      };
+    })
+  );
+
+  return transporteConPrecios;
+};
+
+// ============================================
 // OBTENER TODAS
 // ============================================
 exports.obtenerTodas = async (req, res, next) => {
@@ -156,9 +185,10 @@ exports.crear = async (req, res, next) => {
     // Agregar productos
     await CotizacionProductoModel.agregarMultiples(cotizacionId, productos);
 
-    // Agregar transporte si viene
+    // Agregar transporte si viene (enriquecer con precios)
     if (transporte && transporte.length > 0) {
-      await CotizacionTransporteModel.agregarMultiples(cotizacionId, transporte);
+      const transporteConPrecios = await enriquecerTransporteConPrecios(transporte);
+      await CotizacionTransporteModel.agregarMultiples(cotizacionId, transporteConPrecios);
     }
 
     // Recalcular totales
@@ -227,11 +257,12 @@ exports.actualizar = async (req, res, next) => {
       }
     }
 
-    // Si viene transporte, reemplazar
+    // Si viene transporte, reemplazar (enriquecer con precios)
     if (transporte) {
       await CotizacionTransporteModel.eliminarPorCotizacion(id);
       if (transporte.length > 0) {
-        await CotizacionTransporteModel.agregarMultiples(id, transporte);
+        const transporteConPrecios = await enriquecerTransporteConPrecios(transporte);
+        await CotizacionTransporteModel.agregarMultiples(id, transporteConPrecios);
       }
     }
 
