@@ -7,7 +7,7 @@ import { Calendar, User, MapPin, Phone, Mail, Truck, FileText, Edit, Printer, Ch
 import Modal from '../common/Modal'
 import Button from '../common/Button'
 import Spinner from '../common/Spinner'
-import { useGetCotizacionCompleta } from '../../hooks/UseCotizaciones'
+import { useGetCotizacionCompleta } from '../../hooks/cotizaciones'
 
 const CotizacionDetalleModal = ({
   isOpen,
