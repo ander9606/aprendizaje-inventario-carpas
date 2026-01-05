@@ -26,6 +26,63 @@ export const useGetCategoriasProductos = () => {
 }
 
 // ============================================
+// HOOK: useGetCategoriasProductosActivas
+// Obtiene categorías activas (lista plana)
+// ============================================
+
+export const useGetCategoriasProductosActivas = () => {
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ['categorias-productos', 'activas'],
+    queryFn: categoriasProductosAPI.obtenerActivas
+  })
+
+  return {
+    categorias: data?.data || [],
+    isLoading,
+    error,
+    refetch
+  }
+}
+
+// ============================================
+// HOOK: useGetCategoriasProductosArbol
+// Obtiene categorías en estructura de árbol
+// ============================================
+
+export const useGetCategoriasProductosArbol = () => {
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ['categorias-productos', 'arbol'],
+    queryFn: categoriasProductosAPI.obtenerArbol
+  })
+
+  return {
+    categorias: data?.data || [],
+    isLoading,
+    error,
+    refetch
+  }
+}
+
+// ============================================
+// HOOK: useGetCategoriasProductosActivasArbol
+// Obtiene categorías activas en árbol
+// ============================================
+
+export const useGetCategoriasProductosActivasArbol = () => {
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ['categorias-productos', 'activas', 'arbol'],
+    queryFn: categoriasProductosAPI.obtenerActivasArbol
+  })
+
+  return {
+    categorias: data?.data || [],
+    isLoading,
+    error,
+    refetch
+  }
+}
+
+// ============================================
 // HOOK: useGetCategoriaProducto
 // Obtiene UNA categoría específica por ID
 // ============================================
@@ -41,6 +98,26 @@ export const useGetCategoriaProducto = (id) => {
     categoria: data?.data || null,
     isLoading,
     error
+  }
+}
+
+// ============================================
+// HOOK: useGetSubcategorias
+// Obtiene subcategorías de una categoría padre
+// ============================================
+
+export const useGetSubcategorias = (categoriaId) => {
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ['categorias-productos', categoriaId, 'hijos'],
+    queryFn: () => categoriasProductosAPI.obtenerHijos(categoriaId),
+    enabled: !!categoriaId
+  })
+
+  return {
+    subcategorias: data?.data || [],
+    isLoading,
+    error,
+    refetch
   }
 }
 
