@@ -6,23 +6,14 @@
 import { useState, useEffect } from 'react'
 import Modal from '../common/Modal'
 import Button from '../common/Button'
-import EmojiPicker from '../common/Emojipicker'
+import SymbolPicker from '../common/picker/SymbolPicker'
+import IconoCategoria from '../common/IconoCategoria'
 import {
   useCreateCategoriaProducto,
   useUpdateCategoriaProducto
 } from '../../hooks/UseCategoriasProductos'
 import { toast } from 'sonner'
 
-/**
- * COMPONENTE: CategoriaProductoFormModal
- *
- * Modal para crear o editar categorías de productos de alquiler (elementos compuestos)
- *
- * @param {boolean} isOpen - Si el modal está abierto
- * @param {Function} onClose - Callback para cerrar
- * @param {Function} onSuccess - Callback cuando se guarda exitosamente
- * @param {Object|null} categoria - Datos de la categoría (solo en modo editar)
- */
 const CategoriaProductoFormModal = ({
   isOpen,
   onClose,
@@ -94,10 +85,10 @@ const CategoriaProductoFormModal = ({
     }
   }
 
-  const handleSelectEmoji = (emoji) => {
+  const handleSelectSymbol = (symbol) => {
     setFormData(prev => ({
       ...prev,
-      emoji
+      emoji: symbol
     }))
     setMostrarEmojiPicker(false)
   }
@@ -120,9 +111,7 @@ const CategoriaProductoFormModal = ({
   const handleSubmit = async (e) => {
     e.preventDefault()
 
-    if (!validate()) {
-      return
-    }
+    if (!validate()) return
 
     const dataToSend = {
       nombre: formData.nombre.trim(),
@@ -148,9 +137,12 @@ const CategoriaProductoFormModal = ({
     } catch (error) {
       console.error('Error al guardar categoría:', error)
 
-      const mensajeError = error.response?.data?.mensaje ||
+      const mensajeError =
+        error.response?.data?.mensaje ||
         error.response?.data?.message ||
-        (isEditMode ? 'Error al actualizar la categoría' : 'Error al crear la categoría')
+        (isEditMode
+          ? 'Error al actualizar la categoría'
+          : 'Error al crear la categoría')
 
       if (mensajeError.includes('Duplicate') || mensajeError.includes('duplicado')) {
         setErrors({ nombre: 'Ya existe una categoría con este nombre' })
@@ -182,7 +174,6 @@ const CategoriaProductoFormModal = ({
       >
         <form onSubmit={handleSubmit} className="space-y-5">
 
-          {/* Error general */}
           {errors.submit && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
               <p className="text-sm font-medium">{errors.submit}</p>
@@ -217,10 +208,10 @@ const CategoriaProductoFormModal = ({
             )}
           </div>
 
-          {/* Emoji */}
+          {/* Icono */}
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
-              Icono (Emoji)
+              Icono
             </label>
             <button
               type="button"
@@ -233,9 +224,9 @@ const CategoriaProductoFormModal = ({
                 disabled:bg-slate-100 disabled:cursor-not-allowed
               "
             >
-              <span className="text-3xl">{formData.emoji}</span>
+              <IconoCategoria value={formData.emoji} className="text-3xl" />
               <span className="text-slate-600">
-                Haz clic para cambiar el emoji
+                Haz clic para cambiar el icono
               </span>
             </button>
           </div>
@@ -287,11 +278,11 @@ const CategoriaProductoFormModal = ({
         </form>
       </Modal>
 
-      {/* Emoji Picker */}
       {mostrarEmojiPicker && (
-        <EmojiPicker
-          selectedEmoji={formData.emoji}
-          onSelect={handleSelectEmoji}
+        <SymbolPicker
+          open={mostrarEmojiPicker}
+          value={formData.emoji}
+          onSelect={handleSelectSymbol}
           onClose={() => setMostrarEmojiPicker(false)}
         />
       )}

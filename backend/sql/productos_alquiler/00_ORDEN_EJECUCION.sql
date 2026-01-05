@@ -1,0 +1,26 @@
+-- ============================================================
+-- ORDEN DE EJECUCIÓN - Módulo de Alquileres
+-- ============================================================
+--
+-- Ejecutar en este orden:
+--
+-- 08_modificar_cotizaciones.sql     → Elimina compuesto_id de cotizaciones
+-- 09_cotizacion_productos.sql       → Tabla para múltiples productos
+-- 10_modificar_cotizacion_detalles.sql → Agrega FK a cotizacion_productos
+-- 11_alquiler_elementos.sql         → Rastreo de series/lotes
+-- 12_tarifas_transporte.sql         → Catálogo tipo_camion + ciudad + precio
+-- 13_cotizacion_transportes.sql     → Camiones por cotización
+-- 14_indices_alquileres.sql         → Índices de rendimiento
+--
+-- ============================================================
+-- ESTRUCTURA FINAL:
+--
+-- cotizaciones
+--   ├── cotizacion_productos (1:N) → elementos_compuestos
+--   │     └── cotizacion_detalles (1:N) → componentes elegidos
+--   └── cotizacion_transportes (1:N) → tarifas_transporte
+--
+-- alquileres
+--   └── alquiler_elementos (1:N) → series o lotes asignados
+--
+-- ============================================================

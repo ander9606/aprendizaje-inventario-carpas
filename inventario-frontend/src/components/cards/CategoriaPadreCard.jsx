@@ -8,7 +8,7 @@ import { Folder, Plus, Edit, Trash2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import Card from '../common/Card'
 import Button from '../common/Button'
-import EmojiPicker from '../common/Emojipicker'
+import EmojiPicker from '../common/picker/Emojipicker'
 import { IconoCategoria } from '../common/IconoCategoria'
 import { useUpdateCategoria, useDeleteCategoria } from '../../hooks/Usecategorias'
 

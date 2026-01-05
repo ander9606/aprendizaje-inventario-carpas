@@ -7,6 +7,7 @@ import { useState, useEffect } from 'react'
 import Modal from '../common/Modal'
 import Button from '../common/Button'
 import { useCreateUbicacion, useUpdateUbicacion } from '../../hooks/Useubicaciones'
+import { useGetCiudadesActivas } from '../../hooks/UseCiudades'
 
 /**
  * COMPONENTE: UbicacionFormModal
@@ -31,7 +32,7 @@ const UbicacionFormModal = ({
     nombre: '',
     tipo: 'bodega',
     direccion: '',
-    ciudad: '',
+    ciudad_id: '',
     responsable: '',
     telefono: '',
     email: '',
@@ -49,6 +50,7 @@ const UbicacionFormModal = ({
 
   const { mutateAsync: createUbicacion, isLoading: isCreating } = useCreateUbicacion()
   const { mutateAsync: updateUbicacion, isLoading: isUpdating } = useUpdateUbicacion()
+  const { ciudades, isLoading: loadingCiudades } = useGetCiudadesActivas()
 
   const isLoading = isCreating || isUpdating
 
@@ -65,7 +67,7 @@ const UbicacionFormModal = ({
         nombre: ubicacion.nombre || '',
         tipo: ubicacion.tipo || 'bodega',
         direccion: ubicacion.direccion || '',
-        ciudad: ubicacion.ciudad || '',
+        ciudad_id: ubicacion.ciudad_id || '',
         responsable: ubicacion.responsable || '',
         telefono: ubicacion.telefono || '',
         email: ubicacion.email || '',
@@ -80,7 +82,7 @@ const UbicacionFormModal = ({
         nombre: '',
         tipo: 'bodega',
         direccion: '',
-        ciudad: '',
+        ciudad_id: '',
         responsable: '',
         telefono: '',
         email: '',
@@ -128,6 +130,11 @@ const UbicacionFormModal = ({
       newErrors.nombre = 'El nombre debe tener al menos 3 caracteres'
     }
 
+    // Validar ciudad
+    if (!formData.ciudad_id) {
+      newErrors.ciudad_id = 'Seleccione una ciudad'
+    }
+
     // Validar email si se proporciona
     if (formData.email && formData.email.trim()) {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -156,7 +163,7 @@ const UbicacionFormModal = ({
       nombre: formData.nombre.trim(),
       tipo: formData.tipo,
       direccion: formData.direccion.trim() || null,
-      ciudad: formData.ciudad.trim() || null,
+      ciudad_id: formData.ciudad_id ? parseInt(formData.ciudad_id) : null,
       responsable: formData.responsable.trim() || null,
       telefono: formData.telefono.trim() || null,
       email: formData.email.trim() || null,
@@ -206,7 +213,7 @@ const UbicacionFormModal = ({
     <Modal
       isOpen={isOpen}
       onClose={handleClose}
-      title={mode === 'crear' ? '🆕 Nueva Ubicación' : '✏️ Editar Ubicación'}
+      title={mode === 'crear' ? 'Nueva Ubicación' : 'Editar Ubicación'}
       size="lg"
     >
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -267,23 +274,23 @@ const UbicacionFormModal = ({
               "
             >
               <optgroup label="Almacenamiento">
-                <option value="bodega">🏢 Bodega</option>
-                <option value="taller">🔧 Taller</option>
-                <option value="transito">🚚 Tránsito</option>
+                <option value="bodega">Bodega</option>
+                <option value="taller">Taller</option>
+                <option value="transito">Tránsito</option>
               </optgroup>
               <optgroup label="Lugares de Eventos">
-                <option value="finca">🌾 Finca</option>
-                <option value="hacienda">🏡 Hacienda / Quinta</option>
-                <option value="jardin">🎊 Jardín de Eventos</option>
-                <option value="club">🏌️ Club</option>
-                <option value="hotel">🏨 Hotel / Resort</option>
-                <option value="playa">🏖️ Playa</option>
-                <option value="parque">🌳 Parque</option>
-                <option value="residencia">🏠 Residencia Particular</option>
-                <option value="evento">🎪 Evento Temporal</option>
+                <option value="finca">Finca</option>
+                <option value="hacienda">Hacienda / Quinta</option>
+                <option value="jardin">Jardín de Eventos</option>
+                <option value="club">Club</option>
+                <option value="hotel">Hotel / Resort</option>
+                <option value="playa">Playa</option>
+                <option value="parque">Parque</option>
+                <option value="residencia">Residencia Particular</option>
+                <option value="evento">Evento Temporal</option>
               </optgroup>
               <optgroup label="Otros">
-                <option value="otro">📍 Otro</option>
+                <option value="otro">Otro</option>
               </optgroup>
             </select>
           </div>
@@ -294,6 +301,42 @@ const UbicacionFormModal = ({
             ============================================ */}
         <div className="space-y-4">
           <h3 className="font-semibold text-slate-900">Ubicación</h3>
+
+          {/* Ciudad */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Ciudad *
+            </label>
+            <select
+              name="ciudad_id"
+              value={formData.ciudad_id}
+              onChange={handleChange}
+              disabled={isLoading || loadingCiudades}
+              className={`
+                w-full px-4 py-2.5 border rounded-lg
+                focus:outline-none focus:ring-2 focus:ring-blue-500
+                disabled:bg-slate-100 disabled:cursor-not-allowed
+                ${errors.ciudad_id ? 'border-red-300 bg-red-50' : 'border-slate-300'}
+              `}
+            >
+              <option value="">
+                {loadingCiudades ? 'Cargando ciudades...' : 'Seleccionar ciudad...'}
+              </option>
+              {ciudades.map(ciudad => (
+                <option key={ciudad.id} value={ciudad.id}>
+                  {ciudad.nombre}{ciudad.departamento ? ` (${ciudad.departamento})` : ''}
+                </option>
+              ))}
+            </select>
+            {errors.ciudad_id && (
+              <p className="mt-1 text-sm text-red-600">{errors.ciudad_id}</p>
+            )}
+            {ciudades.length === 0 && !loadingCiudades && (
+              <p className="mt-1 text-xs text-amber-600">
+                No hay ciudades disponibles. Crea una en Configuración {'>'} Ciudades.
+              </p>
+            )}
+          </div>
 
           {/* Dirección */}
           <div>
@@ -306,26 +349,6 @@ const UbicacionFormModal = ({
               value={formData.direccion}
               onChange={handleChange}
               placeholder="Calle, número, colonia..."
-              disabled={isLoading}
-              className="
-                w-full px-4 py-2.5 border border-slate-300 rounded-lg
-                focus:outline-none focus:ring-2 focus:ring-blue-500
-                disabled:bg-slate-100 disabled:cursor-not-allowed
-              "
-            />
-          </div>
-
-          {/* Ciudad */}
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
-              Ciudad
-            </label>
-            <input
-              type="text"
-              name="ciudad"
-              value={formData.ciudad}
-              onChange={handleChange}
-              placeholder="Ciudad o municipio"
               disabled={isLoading}
               className="
                 w-full px-4 py-2.5 border border-slate-300 rounded-lg
@@ -493,13 +516,12 @@ const UbicacionFormModal = ({
               "
             />
             <label htmlFor="es_principal" className="text-sm font-medium text-slate-700 flex items-center gap-2">
-              <span>⭐</span>
               Marcar como ubicación principal
             </label>
           </div>
           <p className="text-xs text-slate-500 -mt-2">
             {formData.es_principal
-              ? '✓ Esta será la ubicación principal del sistema. La anterior será desmarcada automáticamente.'
+              ? 'Esta será la ubicación principal del sistema. La anterior será desmarcada automáticamente.'
               : 'La ubicación principal se usa como predeterminada en el sistema.'}
           </p>
         </div>

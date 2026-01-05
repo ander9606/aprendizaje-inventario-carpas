@@ -19,6 +19,14 @@ import UbicacionesPage from './pages/UbicacionesPage'
 import ProductosPage from './pages/ProductosPage'
 import ElementosCompuestosPage from './pages/ElementosCompuestosPage'
 
+// Importar páginas - Alquileres
+import ClientesPage from './pages/ClientesPage'
+import CotizacionesPage from './pages/CotizacionesPage'
+
+// Importar páginas - Configuración
+import ConfiguracionPage from './pages/ConfiguracionPage'
+import CiudadesPage from './pages/CiudadesPage'
+
 /**
  * COMPONENTE: App
  *
@@ -122,29 +130,47 @@ function App() {
       />
 
       {/* ============================================
-          ALQUILERES (Futuro)
+          ALQUILERES
           ============================================ */}
+
+      {/* Dashboard de Alquileres - Cotizaciones */}
       <Route
         path="/alquileres"
-        element={
-          <div className="min-h-screen flex items-center justify-center bg-slate-50">
-            <div className="text-center">
-              <div className="text-6xl mb-4">🚧</div>
-              <h1 className="text-2xl font-bold text-slate-900 mb-2">
-                Módulo en Desarrollo
-              </h1>
-              <p className="text-slate-600 mb-6">
-                El módulo de Alquileres estará disponible próximamente
-              </p>
-              <a
-                href="/"
-                className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                Volver al inicio
-              </a>
-            </div>
-          </div>
-        }
+        element={<CotizacionesPage />}
+      />
+
+      {/* Cotizaciones */}
+      <Route
+        path="/alquileres/cotizaciones"
+        element={<CotizacionesPage />}
+      />
+
+      {/* Clientes */}
+      <Route
+        path="/alquileres/clientes"
+        element={<ClientesPage />}
+      />
+
+      {/* ============================================
+          CONFIGURACIÓN
+          ============================================ */}
+
+      {/* Dashboard de Configuración */}
+      <Route
+        path="/configuracion"
+        element={<ConfiguracionPage />}
+      />
+
+      {/* Ciudades (incluye tarifas de transporte) */}
+      <Route
+        path="/configuracion/ciudades"
+        element={<CiudadesPage />}
+      />
+
+      {/* Ubicaciones */}
+      <Route
+        path="/configuracion/ubicaciones"
+        element={<UbicacionesPage />}
       />
 
       {/* ============================================

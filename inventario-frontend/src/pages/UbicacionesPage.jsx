@@ -100,10 +100,10 @@ export default function UbicacionesPage() {
   }
 
   /**
-   * Volver al dashboard de inventario
+   * Volver al dashboard de configuración
    */
   const handleVolver = () => {
-    navigate('/inventario')
+    navigate('/configuracion')
   }
 
   // ============================================

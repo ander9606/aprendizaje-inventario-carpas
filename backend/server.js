@@ -27,7 +27,11 @@ const elementosCompuestosRoutes = require('./modules/productos/routes/elementosC
 // Importar rutas - Alquileres (Operación comercial)
 const clientesRoutes = require('./modules/alquileres/routes/clientes');
 const cotizacionesRoutes = require('./modules/alquileres/routes/cotizaciones');
-const alquileresRoutes = require('./modules/alquileres/routes/alquileres');  
+const alquileresRoutes = require('./modules/alquileres/routes/alquileres');
+const tarifasTransporteRoutes = require('./modules/alquileres/routes/tarifasTransporte');
+
+// Importar rutas - Configuración (Datos maestros)
+const ciudadesRoutes = require('./modules/configuracion/routes/ciudades');  
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -84,7 +88,11 @@ app.get('/', (req, res) => {
             alquileres: [
                 '/api/clientes',
                 '/api/cotizaciones',
-                '/api/alquileres'
+                '/api/alquileres',
+                '/api/tarifas-transporte'
+            ],
+            configuracion: [
+                '/api/ciudades'
             ]
         }
     });
@@ -107,6 +115,10 @@ app.use('/api/elementos-compuestos', elementosCompuestosRoutes);
 app.use('/api/clientes', clientesRoutes);
 app.use('/api/cotizaciones', cotizacionesRoutes);
 app.use('/api/alquileres', alquileresRoutes);
+app.use('/api/tarifas-transporte', tarifasTransporteRoutes);
+
+// Registrar rutas - Configuración (Datos maestros)
+app.use('/api/ciudades', ciudadesRoutes);
 
 // ============================================
 // MANEJO DE ERRORES
@@ -128,7 +140,8 @@ const startServer = async () => {
             console.log(`🌐 http://localhost:${PORT}`);
             console.log(`📦 Inventario: Categorías, Elementos, Series, Lotes, Ubicaciones`);
             console.log(`🏗️  Productos: Categorías Productos, Elementos Compuestos`);
-            console.log(`🏷️  Alquileres: Clientes, Cotizaciones, Alquileres\n`);
+            console.log(`🏷️  Alquileres: Clientes, Cotizaciones, Alquileres`);
+            console.log(`⚙️  Configuración: Ciudades\n`);
         });
     } catch (error) {
         console.error('\n❌ Error al iniciar:', error.message);

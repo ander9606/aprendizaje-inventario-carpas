@@ -15,7 +15,6 @@ class CotizacionModel {
       SELECT
         cot.id,
         cot.cliente_id,
-        cot.compuesto_id,
         cot.fecha_evento,
         cot.fecha_fin_evento,
         cot.evento_nombre,
@@ -28,11 +27,9 @@ class CotizacionModel {
         cot.created_at,
         cl.nombre AS cliente_nombre,
         cl.telefono AS cliente_telefono,
-        ec.nombre AS producto_nombre,
-        ec.codigo AS producto_codigo
+        (SELECT COUNT(*) FROM cotizacion_productos WHERE cotizacion_id = cot.id) AS total_productos
       FROM cotizaciones cot
       INNER JOIN clientes cl ON cot.cliente_id = cl.id
-      INNER JOIN elementos_compuestos ec ON cot.compuesto_id = ec.id
       ORDER BY cot.created_at DESC
     `;
     const [rows] = await pool.query(query);
@@ -53,10 +50,9 @@ class CotizacionModel {
         cot.estado,
         cot.created_at,
         cl.nombre AS cliente_nombre,
-        ec.nombre AS producto_nombre
+        (SELECT COUNT(*) FROM cotizacion_productos WHERE cotizacion_id = cot.id) AS total_productos
       FROM cotizaciones cot
       INNER JOIN clientes cl ON cot.cliente_id = cl.id
-      INNER JOIN elementos_compuestos ec ON cot.compuesto_id = ec.id
       WHERE cot.estado = ?
       ORDER BY cot.fecha_evento ASC
     `;
@@ -75,12 +71,10 @@ class CotizacionModel {
         cl.telefono AS cliente_telefono,
         cl.email AS cliente_email,
         cl.direccion AS cliente_direccion,
-        ec.nombre AS producto_nombre,
-        ec.codigo AS producto_codigo,
-        ec.precio_base AS producto_precio_base
+        cl.tipo_documento AS cliente_tipo_documento,
+        cl.numero_documento AS cliente_numero_documento
       FROM cotizaciones cot
       INNER JOIN clientes cl ON cot.cliente_id = cl.id
-      INNER JOIN elementos_compuestos ec ON cot.compuesto_id = ec.id
       WHERE cot.id = ?
     `;
     const [rows] = await pool.query(query, [id]);
@@ -88,51 +82,82 @@ class CotizacionModel {
   }
 
   // ============================================
-  // OBTENER POR ID CON DETALLES
+  // OBTENER COMPLETA (con productos y transporte)
   // ============================================
-  static async obtenerPorIdConDetalles(id) {
+  static async obtenerCompleta(id) {
     const cotizacion = await this.obtenerPorId(id);
     if (!cotizacion) return null;
 
-    // Obtener detalles
-    const queryDetalles = `
+    // Obtener productos
+    const queryProductos = `
       SELECT
-        cd.id,
-        cd.elemento_id,
-        cd.cantidad,
-        cd.precio_unitario,
-        cd.subtotal,
-        cd.grupo,
-        e.nombre AS elemento_nombre,
-        e.codigo AS elemento_codigo,
-        c.emoji AS elemento_emoji
-      FROM cotizacion_detalles cd
-      INNER JOIN elementos e ON cd.elemento_id = e.id
-      LEFT JOIN categorias c ON e.categoria_id = c.id
-      WHERE cd.cotizacion_id = ?
-      ORDER BY cd.grupo, e.nombre
+        cp.id,
+        cp.compuesto_id,
+        cp.cantidad,
+        cp.precio_base,
+        cp.deposito,
+        cp.precio_adicionales,
+        cp.subtotal,
+        cp.notas,
+        ec.nombre AS producto_nombre,
+        ec.codigo AS producto_codigo,
+        cat.nombre AS categoria_nombre,
+        cat.emoji AS categoria_emoji
+      FROM cotizacion_productos cp
+      INNER JOIN elementos_compuestos ec ON cp.compuesto_id = ec.id
+      LEFT JOIN categorias_productos cat ON ec.categoria_id = cat.id
+      WHERE cp.cotizacion_id = ?
+      ORDER BY cp.id
     `;
-    const [detalles] = await pool.query(queryDetalles, [id]);
+    const [productos] = await pool.query(queryProductos, [id]);
+
+    // Obtener transporte
+    const queryTransporte = `
+      SELECT
+        ct.id,
+        ct.tarifa_id,
+        ct.cantidad,
+        ct.precio_unitario,
+        ct.subtotal,
+        ct.notas,
+        t.tipo_camion,
+        c.nombre AS ciudad
+      FROM cotizacion_transportes ct
+      INNER JOIN tarifas_transporte t ON ct.tarifa_id = t.id
+      LEFT JOIN ciudades c ON t.ciudad_id = c.id
+      WHERE ct.cotizacion_id = ?
+    `;
+    const [transporte] = await pool.query(queryTransporte, [id]);
+
+    // Calcular totales
+    const subtotalProductos = productos.reduce((sum, p) => sum + parseFloat(p.subtotal), 0);
+    const subtotalTransporte = transporte.reduce((sum, t) => sum + parseFloat(t.subtotal), 0);
+    const totalDeposito = productos.reduce((sum, p) => sum + (parseFloat(p.deposito) * p.cantidad), 0);
 
     return {
       ...cotizacion,
-      detalles
+      productos,
+      transporte,
+      resumen: {
+        subtotal_productos: subtotalProductos,
+        subtotal_transporte: subtotalTransporte,
+        total_deposito: totalDeposito
+      }
     };
   }
 
   // ============================================
   // CREAR
   // ============================================
-  static async crear({ cliente_id, compuesto_id, fecha_evento, fecha_fin_evento, evento_nombre, evento_direccion, evento_ciudad, subtotal, descuento, total, vigencia_dias, notas }) {
+  static async crear({ cliente_id, fecha_evento, fecha_fin_evento, evento_nombre, evento_direccion, evento_ciudad, subtotal, descuento, total, vigencia_dias, notas }) {
     const query = `
       INSERT INTO cotizaciones
-        (cliente_id, compuesto_id, fecha_evento, fecha_fin_evento, evento_nombre,
+        (cliente_id, fecha_evento, fecha_fin_evento, evento_nombre,
          evento_direccion, evento_ciudad, subtotal, descuento, total, vigencia_dias, notas)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     const [result] = await pool.query(query, [
       cliente_id,
-      compuesto_id,
       fecha_evento,
       fecha_fin_evento || null,
       evento_nombre || null,
@@ -144,40 +169,6 @@ class CotizacionModel {
       vigencia_dias || 15,
       notas || null
     ]);
-    return result;
-  }
-
-  // ============================================
-  // AGREGAR DETALLES
-  // ============================================
-  static async agregarDetalles(cotizacionId, detalles) {
-    if (!detalles || detalles.length === 0) return { affectedRows: 0 };
-
-    const query = `
-      INSERT INTO cotizacion_detalles
-        (cotizacion_id, elemento_id, cantidad, precio_unitario, subtotal, grupo)
-      VALUES ?
-    `;
-
-    const valores = detalles.map(d => [
-      cotizacionId,
-      d.elemento_id,
-      d.cantidad || 1,
-      d.precio_unitario || 0,
-      d.subtotal || (d.cantidad * d.precio_unitario) || 0,
-      d.grupo || null
-    ]);
-
-    const [result] = await pool.query(query, [valores]);
-    return result;
-  }
-
-  // ============================================
-  // ACTUALIZAR ESTADO
-  // ============================================
-  static async actualizarEstado(id, estado) {
-    const query = `UPDATE cotizaciones SET estado = ? WHERE id = ?`;
-    const [result] = await pool.query(query, [estado, id]);
     return result;
   }
 
@@ -209,10 +200,24 @@ class CotizacionModel {
   }
 
   // ============================================
-  // ELIMINAR DETALLES
+  // ACTUALIZAR TOTALES
   // ============================================
-  static async eliminarDetalles(cotizacionId) {
-    const [result] = await pool.query('DELETE FROM cotizacion_detalles WHERE cotizacion_id = ?', [cotizacionId]);
+  static async actualizarTotales(id, { subtotal, descuento, total }) {
+    const query = `
+      UPDATE cotizaciones
+      SET subtotal = ?, descuento = ?, total = ?
+      WHERE id = ?
+    `;
+    const [result] = await pool.query(query, [subtotal, descuento || 0, total, id]);
+    return result;
+  }
+
+  // ============================================
+  // ACTUALIZAR ESTADO
+  // ============================================
+  static async actualizarEstado(id, estado) {
+    const query = `UPDATE cotizaciones SET estado = ? WHERE id = ?`;
+    const [result] = await pool.query(query, [estado, id]);
     return result;
   }
 
@@ -220,8 +225,7 @@ class CotizacionModel {
   // ELIMINAR
   // ============================================
   static async eliminar(id) {
-    // Primero eliminar detalles
-    await this.eliminarDetalles(id);
+    // Los productos y transporte se eliminan por CASCADE
     const [result] = await pool.query('DELETE FROM cotizaciones WHERE id = ?', [id]);
     return result;
   }
@@ -238,9 +242,8 @@ class CotizacionModel {
         cot.total,
         cot.estado,
         cot.created_at,
-        ec.nombre AS producto_nombre
+        (SELECT COUNT(*) FROM cotizacion_productos WHERE cotizacion_id = cot.id) AS total_productos
       FROM cotizaciones cot
-      INNER JOIN elementos_compuestos ec ON cot.compuesto_id = ec.id
       WHERE cot.cliente_id = ?
       ORDER BY cot.created_at DESC
     `;
@@ -257,6 +260,102 @@ class CotizacionModel {
       [id]
     );
     return rows[0].total > 0;
+  }
+
+  // ============================================
+  // RECALCULAR TOTALES
+  // ============================================
+  static async recalcularTotales(id) {
+    // Obtener subtotal de productos
+    const [productos] = await pool.query(
+      'SELECT COALESCE(SUM(subtotal), 0) AS subtotal FROM cotizacion_productos WHERE cotizacion_id = ?',
+      [id]
+    );
+
+    // Obtener subtotal de transporte
+    const [transporte] = await pool.query(
+      'SELECT COALESCE(SUM(subtotal), 0) AS subtotal FROM cotizacion_transportes WHERE cotizacion_id = ?',
+      [id]
+    );
+
+    // Obtener descuento actual
+    const [cotizacion] = await pool.query(
+      'SELECT descuento FROM cotizaciones WHERE id = ?',
+      [id]
+    );
+
+    const subtotal = parseFloat(productos[0].subtotal) + parseFloat(transporte[0].subtotal);
+    const descuento = parseFloat(cotizacion[0]?.descuento || 0);
+    const total = subtotal - descuento;
+
+    await this.actualizarTotales(id, { subtotal, descuento, total });
+
+    return { subtotal, descuento, total };
+  }
+
+  // ============================================
+  // DUPLICAR COTIZACIÓN
+  // ============================================
+  static async duplicar(id) {
+    const original = await this.obtenerCompleta(id);
+    if (!original) return null;
+
+    // Crear nueva cotización
+    const resultado = await this.crear({
+      cliente_id: original.cliente_id,
+      fecha_evento: original.fecha_evento,
+      fecha_fin_evento: original.fecha_fin_evento,
+      evento_nombre: original.evento_nombre ? `${original.evento_nombre} (copia)` : null,
+      evento_direccion: original.evento_direccion,
+      evento_ciudad: original.evento_ciudad,
+      subtotal: original.subtotal,
+      descuento: original.descuento,
+      total: original.total,
+      vigencia_dias: original.vigencia_dias,
+      notas: original.notas
+    });
+
+    const nuevaCotizacionId = resultado.insertId;
+
+    // Duplicar productos
+    if (original.productos && original.productos.length > 0) {
+      const queryProductos = `
+        INSERT INTO cotizacion_productos
+          (cotizacion_id, compuesto_id, cantidad, precio_base, deposito, precio_adicionales, subtotal, notas)
+        VALUES ?
+      `;
+      const valoresProductos = original.productos.map(p => [
+        nuevaCotizacionId,
+        p.compuesto_id,
+        p.cantidad,
+        p.precio_base,
+        p.deposito,
+        p.precio_adicionales,
+        p.subtotal,
+        p.notas
+      ]);
+      await pool.query(queryProductos, [valoresProductos]);
+    }
+
+    // Duplicar transporte
+    if (original.transporte && original.transporte.length > 0) {
+      const queryTransporte = `
+        INSERT INTO cotizacion_transportes
+          (cotizacion_id, tarifa_id, cantidad, precio_unitario, subtotal, notas)
+        VALUES ?
+      `;
+      const valoresTransporte = original.transporte.map(t => [
+        nuevaCotizacionId,
+        t.tarifa_id,
+        t.cantidad,
+        t.precio_unitario,
+        t.subtotal,
+        t.notas
+      ]);
+      await pool.query(queryTransporte, [valoresTransporte]);
+    }
+
+    return nuevaCotizacionId;
   }
 }
 

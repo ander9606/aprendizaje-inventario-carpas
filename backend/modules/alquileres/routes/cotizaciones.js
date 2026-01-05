@@ -19,8 +19,11 @@ router.get('/cliente/:clienteId', cotizacionController.obtenerPorCliente);
 // GET /api/cotizaciones/:id - Obtener por ID
 router.get('/:id', validateId(), cotizacionController.obtenerPorId);
 
-// GET /api/cotizaciones/:id/detalles - Obtener con detalles
-router.get('/:id/detalles', validateId(), cotizacionController.obtenerPorIdConDetalles);
+// GET /api/cotizaciones/:id/completa - Obtener completa (productos + transporte)
+router.get('/:id/completa', validateId(), cotizacionController.obtenerCompleta);
+
+// GET /api/cotizaciones/:id/disponibilidad - Verificar disponibilidad de elementos
+router.get('/:id/disponibilidad', validateId(), cotizacionController.verificarDisponibilidad);
 
 // POST /api/cotizaciones - Crear
 router.post('/', cotizacionController.crear);
@@ -36,5 +39,32 @@ router.post('/:id/aprobar', validateId(), cotizacionController.aprobarYCrearAlqu
 
 // DELETE /api/cotizaciones/:id - Eliminar
 router.delete('/:id', validateId(), cotizacionController.eliminar);
+
+// ============================================
+// PRODUCTOS
+// ============================================
+
+// POST /api/cotizaciones/:id/productos - Agregar producto
+router.post('/:id/productos', validateId(), cotizacionController.agregarProducto);
+
+// DELETE /api/cotizaciones/:id/productos/:productoId - Eliminar producto
+router.delete('/:id/productos/:productoId', validateId(), cotizacionController.eliminarProducto);
+
+// ============================================
+// TRANSPORTE
+// ============================================
+
+// POST /api/cotizaciones/:id/transporte - Agregar transporte
+router.post('/:id/transporte', validateId(), cotizacionController.agregarTransporte);
+
+// DELETE /api/cotizaciones/:id/transporte/:transporteId - Eliminar transporte
+router.delete('/:id/transporte/:transporteId', validateId(), cotizacionController.eliminarTransporte);
+
+// ============================================
+// DUPLICAR
+// ============================================
+
+// POST /api/cotizaciones/:id/duplicar - Duplicar cotización
+router.post('/:id/duplicar', validateId(), cotizacionController.duplicar);
 
 module.exports = router;
