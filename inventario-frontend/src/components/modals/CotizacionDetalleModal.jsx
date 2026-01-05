@@ -3,7 +3,7 @@
 // Vista previa de cotización estilo PDF para cliente
 // ============================================
 
-import { Calendar, User, MapPin, Phone, Mail, Truck, FileText, Edit, Printer, CheckCircle, Trash2, XCircle } from 'lucide-react'
+import { Calendar, User, MapPin, Phone, Mail, Truck, FileText, Edit, CheckCircle, XCircle } from 'lucide-react'
 import Modal from '../common/Modal'
 import Button from '../common/Button'
 import Spinner from '../common/Spinner'
@@ -287,73 +287,44 @@ const CotizacionDetalleModal = ({
             </div>
           </div>
 
-          {/* BOTONES DE ACCIÓN */}
-          <div className="flex flex-wrap gap-3 mt-6 pt-4 border-t print:hidden">
-            {/* Acciones principales para cotizaciones pendientes */}
-            {cotizacion.estado === 'pendiente' && (
-              <>
-                <Button
-                  variant="success"
-                  icon={<CheckCircle className="w-4 h-4" />}
-                  onClick={handleAprobar}
-                  loading={isAprobando}
-                  disabled={isAprobando || isEliminando}
-                >
-                  Aprobar
-                </Button>
-
-                <Button
-                  variant="secondary"
-                  icon={<Edit className="w-4 h-4" />}
-                  onClick={handleEditar}
-                  disabled={isAprobando || isEliminando}
-                >
-                  Editar
-                </Button>
-
-                <Button
-                  variant="ghost"
-                  icon={<XCircle className="w-4 h-4" />}
-                  onClick={handleRechazar}
-                  disabled={isAprobando || isEliminando}
-                  className="text-orange-600 hover:bg-orange-50"
-                >
-                  Rechazar
-                </Button>
-              </>
-            )}
-
-            <Button
-              variant="secondary"
-              icon={<Printer className="w-4 h-4" />}
-              onClick={handleImprimir}
-            >
-              Imprimir
-            </Button>
-
-            <div className="flex-1" />
-
-            {/* Eliminar solo para pendientes y rechazadas */}
-            {(cotizacion.estado === 'pendiente' || cotizacion.estado === 'rechazada') && (
+          {/* BOTONES DE ACCIÓN - Solo para cotizaciones pendientes */}
+          {cotizacion.estado === 'pendiente' && (
+            <div className="flex justify-center gap-4 mt-8 pt-6 border-t print:hidden">
               <Button
-                variant="ghost"
-                icon={<Trash2 className="w-4 h-4" />}
-                onClick={handleEliminar}
-                loading={isEliminando}
-                disabled={isAprobando || isEliminando}
-                className="text-red-600 hover:bg-red-50"
+                variant="success"
+                size="lg"
+                icon={<CheckCircle className="w-5 h-5" />}
+                onClick={handleAprobar}
+                loading={isAprobando}
+                disabled={isAprobando}
+                className="px-8 bg-green-600 hover:bg-green-700"
               >
-                Eliminar
+                Aprobar
               </Button>
-            )}
 
-            <Button
-              variant="ghost"
-              onClick={onClose}
-            >
-              Cerrar
-            </Button>
-          </div>
+              <Button
+                variant="secondary"
+                size="lg"
+                icon={<Edit className="w-5 h-5" />}
+                onClick={handleEditar}
+                disabled={isAprobando}
+                className="px-8"
+              >
+                Editar
+              </Button>
+
+              <Button
+                variant="danger"
+                size="lg"
+                icon={<XCircle className="w-5 h-5" />}
+                onClick={handleRechazar}
+                disabled={isAprobando}
+                className="px-8 bg-red-600 hover:bg-red-700"
+              >
+                Rechazar
+              </Button>
+            </div>
+          )}
         </>
       )}
     </Modal>
