@@ -265,10 +265,6 @@ export default function CotizacionesPage() {
               <CotizacionCard
                 key={cotizacion.id}
                 cotizacion={cotizacion}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
-                onAprobar={handleAprobar}
-                onDuplicar={handleDuplicar}
                 onVerDetalle={handleVerDetalle}
               />
             ))}

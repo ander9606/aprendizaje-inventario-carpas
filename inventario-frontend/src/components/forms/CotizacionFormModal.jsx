@@ -4,7 +4,7 @@
 // ============================================
 
 import { useState, useEffect } from 'react'
-import { Plus, Trash2, Package, Truck } from 'lucide-react'
+import { Plus, Trash2, Package, Truck, MapPin } from 'lucide-react'
 import Modal from '../common/Modal'
 import Button from '../common/Button'
 import ProductoConfiguracion from './ProductoConfiguracion'
@@ -12,6 +12,8 @@ import { useCreateCotizacion, useUpdateCotizacion } from '../../hooks/UseCotizac
 import { useGetClientesActivos } from '../../hooks/UseClientes'
 import { useGetProductosAlquiler } from '../../hooks/UseProductosAlquiler'
 import { useGetTarifasTransporte } from '../../hooks/UseTarifasTransporte'
+import { useGetCiudadesActivas } from '../../hooks/UseCiudades'
+import { useGetUbicacionesActivas } from '../../hooks/Useubicaciones'
 
 /**
  * CotizacionFormModal
@@ -50,6 +52,8 @@ const CotizacionFormModal = ({
   const { clientes, isLoading: loadingClientes } = useGetClientesActivos()
   const { productos, isLoading: loadingProductos } = useGetProductosAlquiler()
   const { tarifas, isLoading: loadingTarifas } = useGetTarifasTransporte()
+  const { ciudades, isLoading: loadingCiudades } = useGetCiudadesActivas()
+  const { ubicaciones, isLoading: loadingUbicaciones } = useGetUbicacionesActivas()
 
   const { mutateAsync: createCotizacion, isLoading: isCreating } = useCreateCotizacion()
   const { mutateAsync: updateCotizacion, isLoading: isUpdating } = useUpdateCotizacion()
@@ -106,9 +110,14 @@ const CotizacionFormModal = ({
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }))
     }
-    // Si cambia la ciudad, limpiar transporte seleccionado
+    // Si cambia la ciudad, limpiar transporte seleccionado y direccion
     if (name === 'evento_ciudad') {
       setTransporteSeleccionado([])
+      setFormData(prev => ({
+        ...prev,
+        evento_ciudad: value,
+        evento_direccion: ''
+      }))
     }
   }
 
@@ -283,8 +292,10 @@ const CotizacionFormModal = ({
     }).format(valor || 0)
   }
 
-  // Obtener ciudades únicas de las tarifas
-  const ciudadesDisponibles = [...new Set(tarifas.map(t => t.ciudad))].sort()
+  // Filtrar ubicaciones por ciudad seleccionada
+  const ubicacionesFiltradas = formData.evento_ciudad
+    ? ubicaciones.filter(u => u.ciudad === formData.evento_ciudad)
+    : []
 
   // Filtrar tarifas por ciudad seleccionada
   const tarifasFiltradas = formData.evento_ciudad
@@ -407,7 +418,7 @@ const CotizacionFormModal = ({
                 name="evento_ciudad"
                 value={formData.evento_ciudad}
                 onChange={handleChange}
-                disabled={isLoading || loadingTarifas}
+                disabled={isLoading || loadingCiudades}
                 className={`
                   w-full px-4 py-2.5 border rounded-lg
                   focus:outline-none focus:ring-2 focus:ring-blue-500
@@ -416,35 +427,74 @@ const CotizacionFormModal = ({
                 `}
               >
                 <option value="">Seleccionar ciudad...</option>
-                {ciudadesDisponibles.map(ciudad => (
-                  <option key={ciudad} value={ciudad}>{ciudad}</option>
+                {ciudades.map(ciudad => (
+                  <option key={ciudad.id} value={ciudad.nombre}>{ciudad.nombre}</option>
                 ))}
               </select>
               {errors.evento_ciudad && (
                 <p className="mt-1 text-sm text-red-600">{errors.evento_ciudad}</p>
               )}
-              {ciudadesDisponibles.length === 0 && !loadingTarifas && (
+              {ciudades.length === 0 && !loadingCiudades && (
                 <p className="mt-1 text-xs text-amber-600">
-                  No hay ciudades. Cree tarifas de transporte primero.
+                  No hay ciudades. Cree ciudades en Configuracion primero.
                 </p>
               )}
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
-              Direccion
-            </label>
-            <input
-              type="text"
-              name="evento_direccion"
-              value={formData.evento_direccion}
-              onChange={handleChange}
-              placeholder="Direccion del evento"
-              disabled={isLoading}
-              className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-100"
-            />
-          </div>
+          {/* Ubicacion del evento */}
+          {formData.evento_ciudad && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  <MapPin className="w-4 h-4 inline mr-1" />
+                  Ubicacion
+                </label>
+                <select
+                  name="evento_ubicacion"
+                  value={formData.evento_direccion}
+                  onChange={(e) => {
+                    const ubicacionSeleccionada = ubicacionesFiltradas.find(
+                      u => u.direccion === e.target.value
+                    )
+                    setFormData(prev => ({
+                      ...prev,
+                      evento_direccion: e.target.value
+                    }))
+                  }}
+                  disabled={isLoading || loadingUbicaciones}
+                  className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-100"
+                >
+                  <option value="">Seleccionar ubicacion...</option>
+                  {ubicacionesFiltradas.map(u => (
+                    <option key={u.id} value={u.direccion}>
+                      {u.nombre} - {u.direccion || 'Sin direccion'}
+                    </option>
+                  ))}
+                </select>
+                {ubicacionesFiltradas.length === 0 && !loadingUbicaciones && (
+                  <p className="mt-1 text-xs text-slate-500">
+                    No hay ubicaciones para {formData.evento_ciudad}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Direccion
+                </label>
+                <input
+                  type="text"
+                  name="evento_direccion"
+                  value={formData.evento_direccion}
+                  onChange={handleChange}
+                  placeholder="O escriba la direccion manualmente"
+                  disabled={isLoading}
+                  className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-100"
+                />
+              </div>
+            </div>
+          )}
         </div>
 
         {/* PRODUCTOS */}

@@ -3,7 +3,7 @@
 // Muestra una tarjeta de cotización
 // ============================================
 
-import { Calendar, User, MapPin, DollarSign, Edit, Trash2, Check, Copy } from 'lucide-react'
+import { Calendar, User, MapPin, Package, Eye } from 'lucide-react'
 import Card from '../common/Card'
 import Button from '../common/Button'
 
@@ -19,10 +19,6 @@ import Button from '../common/Button'
  */
 const CotizacionCard = ({
   cotizacion,
-  onEdit,
-  onDelete,
-  onAprobar,
-  onDuplicar,
   onVerDetalle
 }) => {
 
@@ -71,32 +67,8 @@ const CotizacionCard = ({
   // HANDLERS
   // ============================================
 
-  const handleEdit = (e) => {
+  const handleVerDetalle = (e) => {
     e.stopPropagation()
-    if (onEdit) onEdit(cotizacion)
-  }
-
-  const handleDelete = (e) => {
-    e.stopPropagation()
-    const confirmacion = confirm(
-      `Eliminar cotizacion #${cotizacion.id}?\n\nEsta accion no se puede deshacer.`
-    )
-    if (confirmacion && onDelete) {
-      onDelete(cotizacion.id)
-    }
-  }
-
-  const handleAprobar = (e) => {
-    e.stopPropagation()
-    if (onAprobar) onAprobar(cotizacion)
-  }
-
-  const handleDuplicar = (e) => {
-    e.stopPropagation()
-    if (onDuplicar) onDuplicar(cotizacion.id)
-  }
-
-  const handleVerDetalle = () => {
     if (onVerDetalle) onVerDetalle(cotizacion)
   }
 
@@ -107,8 +79,7 @@ const CotizacionCard = ({
   return (
     <Card
       variant="outlined"
-      className="hover:shadow-lg transition-all duration-200 cursor-pointer"
-      onClick={handleVerDetalle}
+      className="hover:shadow-lg transition-all duration-200"
     >
       {/* HEADER */}
       <Card.Header>
@@ -172,9 +143,9 @@ const CotizacionCard = ({
           )}
 
           {/* Productos */}
-          {cotizacion.total_productos && (
+          {cotizacion.total_productos > 0 && (
             <div className="flex items-center gap-2">
-              <DollarSign className="w-4 h-4 flex-shrink-0" />
+              <Package className="w-4 h-4 flex-shrink-0" />
               <span>{cotizacion.total_productos} producto{cotizacion.total_productos !== 1 ? 's' : ''}</span>
             </div>
           )}
@@ -183,59 +154,15 @@ const CotizacionCard = ({
 
       {/* FOOTER */}
       <Card.Footer>
-        <div className="space-y-2">
-          {/* Boton aprobar (solo para pendientes) */}
-          {cotizacion.estado === 'pendiente' && onAprobar && (
-            <Button
-              variant="primary"
-              size="sm"
-              fullWidth
-              icon={<Check className="w-4 h-4" />}
-              onClick={handleAprobar}
-            >
-              Aprobar
-            </Button>
-          )}
-
-          {/* Botones secundarios */}
-          <div className="flex gap-2">
-            {cotizacion.estado === 'pendiente' && onEdit && (
-              <Button
-                variant="ghost"
-                size="sm"
-                icon={<Edit className="w-4 h-4" />}
-                onClick={handleEdit}
-                className="flex-1"
-              >
-                Editar
-              </Button>
-            )}
-
-            {onDuplicar && (
-              <Button
-                variant="ghost"
-                size="sm"
-                icon={<Copy className="w-4 h-4" />}
-                onClick={handleDuplicar}
-                className="flex-1"
-              >
-                Duplicar
-              </Button>
-            )}
-
-            {cotizacion.estado === 'pendiente' && onDelete && (
-              <Button
-                variant="ghost"
-                size="sm"
-                icon={<Trash2 className="w-4 h-4" />}
-                onClick={handleDelete}
-                className="flex-1"
-              >
-                Eliminar
-              </Button>
-            )}
-          </div>
-        </div>
+        <Button
+          variant="secondary"
+          size="sm"
+          fullWidth
+          icon={<Eye className="w-4 h-4" />}
+          onClick={handleVerDetalle}
+        >
+          Ver Detalles
+        </Button>
       </Card.Footer>
     </Card>
   )
