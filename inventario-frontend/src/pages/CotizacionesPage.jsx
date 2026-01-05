@@ -39,6 +39,7 @@ export default function CotizacionesPage() {
     detalle: false
   })
   const [selectedCotizacion, setSelectedCotizacion] = useState(null)
+  const [selectedCotizacionId, setSelectedCotizacionId] = useState(null)
   const [filtroEstado, setFiltroEstado] = useState('todos')
 
   // ============================================
@@ -52,10 +53,11 @@ export default function CotizacionesPage() {
   const handleCloseModal = () => {
     setModalState({ crear: false, editar: false, detalle: false })
     setSelectedCotizacion(null)
+    setSelectedCotizacionId(null)
   }
 
   const handleVerDetalle = (cotizacion) => {
-    setSelectedCotizacion(cotizacion)
+    setSelectedCotizacionId(cotizacion.id)
     setModalState({ ...modalState, detalle: true })
   }
 
@@ -230,6 +232,10 @@ export default function CotizacionesPage() {
                 cotizacion={cotizacion}
                 onVerDetalle={handleVerDetalle}
                 onEditar={handleEditar}
+                onAprobar={handleAprobar}
+                onRechazar={handleRechazar}
+                onEliminar={handleEliminar}
+                isAprobando={isAprobando}
               />
             ))}
           </div>
@@ -268,7 +274,7 @@ export default function CotizacionesPage() {
       <CotizacionDetalleModal
         isOpen={modalState.detalle}
         onClose={handleCloseModal}
-        cotizacion={selectedCotizacion}
+        cotizacionId={selectedCotizacionId}
         onEditar={handleEditar}
         onAprobar={handleAprobar}
         onEliminar={handleEliminar}

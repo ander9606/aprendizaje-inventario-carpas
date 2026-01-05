@@ -3,7 +3,8 @@
 // Muestra una tarjeta de cotización
 // ============================================
 
-import { Calendar, User, MapPin, Package, Eye, Edit } from 'lucide-react'
+import { useState, useRef, useEffect } from 'react'
+import { Calendar, User, MapPin, Package, Eye, CheckCircle, MoreVertical, Edit, XCircle, Trash2 } from 'lucide-react'
 import Card from '../common/Card'
 import Button from '../common/Button'
 
@@ -15,13 +16,31 @@ import Button from '../common/Button'
  * - Cliente
  * - Fechas del evento
  * - Total
- * - Acciones: Ver Detalles y Editar
+ * - Acciones: Ver, Aprobar (pendiente), Menu kebab
  */
 const CotizacionCard = ({
   cotizacion,
   onVerDetalle,
-  onEditar
+  onEditar,
+  onAprobar,
+  onRechazar,
+  onEliminar,
+  isAprobando = false
 }) => {
+
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef(null)
+
+  // Cerrar menu al hacer click fuera
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setMenuOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   // ============================================
   // HELPERS
@@ -73,10 +92,40 @@ const CotizacionCard = ({
     if (onVerDetalle) onVerDetalle(cotizacion)
   }
 
+  const handleAprobar = (e) => {
+    e.stopPropagation()
+    if (onAprobar) onAprobar(cotizacion)
+  }
+
   const handleEditar = (e) => {
     e.stopPropagation()
+    setMenuOpen(false)
     if (onEditar) onEditar(cotizacion)
   }
+
+  const handleRechazar = (e) => {
+    e.stopPropagation()
+    setMenuOpen(false)
+    if (confirm('¿Rechazar esta cotización?')) {
+      if (onRechazar) onRechazar(cotizacion)
+    }
+  }
+
+  const handleEliminar = (e) => {
+    e.stopPropagation()
+    setMenuOpen(false)
+    if (confirm('¿Eliminar esta cotización? Esta acción no se puede deshacer.')) {
+      if (onEliminar) onEliminar(cotizacion)
+    }
+  }
+
+  const toggleMenu = (e) => {
+    e.stopPropagation()
+    setMenuOpen(!menuOpen)
+  }
+
+  // Determinar si mostrar menu kebab
+  const mostrarMenu = cotizacion.estado === 'pendiente' || cotizacion.estado === 'rechazada'
 
   // ============================================
   // RENDER
@@ -90,7 +139,7 @@ const CotizacionCard = ({
       {/* HEADER */}
       <Card.Header>
         <div className="flex items-start justify-between">
-          <div>
+          <div className="flex-1 min-w-0">
             {/* ID y Estado */}
             <div className="flex items-center gap-2 mb-2">
               <span className="text-sm font-mono text-slate-500">
@@ -110,12 +159,57 @@ const CotizacionCard = ({
             </Card.Title>
           </div>
 
-          {/* Total */}
-          <div className="text-right">
-            <p className="text-xs text-slate-500">Total</p>
-            <p className="text-lg font-bold text-slate-900">
-              {formatearMoneda(cotizacion.total)}
-            </p>
+          {/* Total y Menu */}
+          <div className="flex items-start gap-2">
+            <div className="text-right">
+              <p className="text-xs text-slate-500">Total</p>
+              <p className="text-lg font-bold text-slate-900">
+                {formatearMoneda(cotizacion.total)}
+              </p>
+            </div>
+
+            {/* Menu Kebab */}
+            {mostrarMenu && (
+              <div className="relative" ref={menuRef}>
+                <button
+                  onClick={toggleMenu}
+                  className="p-1 hover:bg-slate-100 rounded-lg transition-colors"
+                >
+                  <MoreVertical className="w-5 h-5 text-slate-500" />
+                </button>
+
+                {menuOpen && (
+                  <div className="absolute right-0 top-8 bg-white border border-slate-200 rounded-lg shadow-lg z-20 py-1 min-w-[140px]">
+                    {cotizacion.estado === 'pendiente' && (
+                      <>
+                        <button
+                          onClick={handleEditar}
+                          className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                        >
+                          <Edit className="w-4 h-4" />
+                          Editar
+                        </button>
+                        <button
+                          onClick={handleRechazar}
+                          className="w-full px-4 py-2 text-left text-sm text-orange-600 hover:bg-orange-50 flex items-center gap-2"
+                        >
+                          <XCircle className="w-4 h-4" />
+                          Rechazar
+                        </button>
+                        <div className="border-t border-slate-100 my-1" />
+                      </>
+                    )}
+                    <button
+                      onClick={handleEliminar}
+                      className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      Eliminar
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </Card.Header>
@@ -170,15 +264,17 @@ const CotizacionCard = ({
           >
             Ver
           </Button>
-          {cotizacion.estado === 'pendiente' && onEditar && (
+          {cotizacion.estado === 'pendiente' && (
             <Button
-              variant="ghost"
+              variant="success"
               size="sm"
               className="flex-1"
-              icon={<Edit className="w-4 h-4" />}
-              onClick={handleEditar}
+              icon={<CheckCircle className="w-4 h-4" />}
+              onClick={handleAprobar}
+              loading={isAprobando}
+              disabled={isAprobando}
             >
-              Editar
+              Aprobar
             </Button>
           )}
         </div>
