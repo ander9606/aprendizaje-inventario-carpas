@@ -10,6 +10,7 @@ import { useNavigation } from '../hooks/UseNavigation'
 import { useGetCotizaciones } from '../hooks/UseCotizaciones'
 import CotizacionCard from '../components/cards/CotizacionCard'
 import CotizacionFormModal from '../components/forms/CotizacionFormModal'
+import CotizacionDetalleModal from '../components/modals/CotizacionDetalleModal'
 import Button from '../components/common/Button'
 import Spinner from '../components/common/Spinner'
 import EmptyState from '../components/common/EmptyState'
@@ -31,7 +32,8 @@ export default function CotizacionesPage() {
 
   const [modalState, setModalState] = useState({
     crear: false,
-    editar: false
+    editar: false,
+    detalle: false
   })
   const [selectedCotizacion, setSelectedCotizacion] = useState(null)
   const [filtroEstado, setFiltroEstado] = useState('todos')
@@ -45,14 +47,18 @@ export default function CotizacionesPage() {
   }
 
   const handleCloseModal = () => {
-    setModalState({ crear: false, editar: false })
+    setModalState({ crear: false, editar: false, detalle: false })
     setSelectedCotizacion(null)
   }
 
   const handleVerDetalle = (cotizacion) => {
-    // Por ahora abrir para editar - TODO: crear modal de detalle con acciones
     setSelectedCotizacion(cotizacion)
-    setModalState({ ...modalState, editar: true })
+    setModalState({ ...modalState, detalle: true })
+  }
+
+  const handleEditar = (cotizacion) => {
+    setSelectedCotizacion(cotizacion)
+    setModalState({ crear: false, detalle: false, editar: true })
   }
 
   const handleIrClientes = () => {
@@ -188,6 +194,7 @@ export default function CotizacionesPage() {
                 key={cotizacion.id}
                 cotizacion={cotizacion}
                 onVerDetalle={handleVerDetalle}
+                onEditar={handleEditar}
               />
             ))}
           </div>
@@ -221,6 +228,13 @@ export default function CotizacionesPage() {
         onClose={handleCloseModal}
         mode="editar"
         cotizacion={selectedCotizacion}
+      />
+
+      <CotizacionDetalleModal
+        isOpen={modalState.detalle}
+        onClose={handleCloseModal}
+        cotizacion={selectedCotizacion}
+        onEditar={handleEditar}
       />
     </div>
   )

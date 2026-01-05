@@ -3,7 +3,7 @@
 // Muestra una tarjeta de cotización
 // ============================================
 
-import { Calendar, User, MapPin, Package, Eye } from 'lucide-react'
+import { Calendar, User, MapPin, Package, Eye, Edit } from 'lucide-react'
 import Card from '../common/Card'
 import Button from '../common/Button'
 
@@ -15,11 +15,12 @@ import Button from '../common/Button'
  * - Cliente
  * - Fechas del evento
  * - Total
- * - Acciones
+ * - Acciones: Ver Detalles y Editar
  */
 const CotizacionCard = ({
   cotizacion,
-  onVerDetalle
+  onVerDetalle,
+  onEditar
 }) => {
 
   // ============================================
@@ -70,6 +71,11 @@ const CotizacionCard = ({
   const handleVerDetalle = (e) => {
     e.stopPropagation()
     if (onVerDetalle) onVerDetalle(cotizacion)
+  }
+
+  const handleEditar = (e) => {
+    e.stopPropagation()
+    if (onEditar) onEditar(cotizacion)
   }
 
   // ============================================
@@ -154,15 +160,28 @@ const CotizacionCard = ({
 
       {/* FOOTER */}
       <Card.Footer>
-        <Button
-          variant="secondary"
-          size="sm"
-          fullWidth
-          icon={<Eye className="w-4 h-4" />}
-          onClick={handleVerDetalle}
-        >
-          Ver Detalles
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="secondary"
+            size="sm"
+            className="flex-1"
+            icon={<Eye className="w-4 h-4" />}
+            onClick={handleVerDetalle}
+          >
+            Ver
+          </Button>
+          {cotizacion.estado === 'pendiente' && onEditar && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="flex-1"
+              icon={<Edit className="w-4 h-4" />}
+              onClick={handleEditar}
+            >
+              Editar
+            </Button>
+          )}
+        </div>
       </Card.Footer>
     </Card>
   )

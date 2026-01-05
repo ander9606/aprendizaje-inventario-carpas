@@ -444,55 +444,41 @@ const CotizacionFormModal = ({
 
           {/* Ubicacion del evento */}
           {formData.evento_ciudad && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  <MapPin className="w-4 h-4 inline mr-1" />
-                  Ubicacion
-                </label>
-                <select
-                  name="evento_ubicacion"
-                  value={formData.evento_direccion}
-                  onChange={(e) => {
-                    const ubicacionSeleccionada = ubicacionesFiltradas.find(
-                      u => u.direccion === e.target.value
-                    )
-                    setFormData(prev => ({
-                      ...prev,
-                      evento_direccion: e.target.value
-                    }))
-                  }}
-                  disabled={isLoading || loadingUbicaciones}
-                  className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-100"
-                >
-                  <option value="">Seleccionar ubicacion...</option>
-                  {ubicacionesFiltradas.map(u => (
-                    <option key={u.id} value={u.direccion}>
-                      {u.nombre} - {u.direccion || 'Sin direccion'}
-                    </option>
-                  ))}
-                </select>
-                {ubicacionesFiltradas.length === 0 && !loadingUbicaciones && (
-                  <p className="mt-1 text-xs text-slate-500">
-                    No hay ubicaciones para {formData.evento_ciudad}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Direccion
-                </label>
-                <input
-                  type="text"
-                  name="evento_direccion"
-                  value={formData.evento_direccion}
-                  onChange={handleChange}
-                  placeholder="O escriba la direccion manualmente"
-                  disabled={isLoading}
-                  className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-100"
-                />
-              </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                <MapPin className="w-4 h-4 inline mr-1" />
+                Ubicacion del Evento
+              </label>
+              <select
+                name="evento_ubicacion_id"
+                value={formData.evento_direccion}
+                onChange={(e) => {
+                  const ubicacion = ubicacionesFiltradas.find(u => u.id === parseInt(e.target.value))
+                  setFormData(prev => ({
+                    ...prev,
+                    evento_direccion: ubicacion ? ubicacion.direccion : ''
+                  }))
+                }}
+                disabled={isLoading || loadingUbicaciones}
+                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-100"
+              >
+                <option value="">Seleccionar ubicacion...</option>
+                {ubicacionesFiltradas.map(u => (
+                  <option key={u.id} value={u.id}>
+                    {u.nombre} {u.direccion ? `- ${u.direccion}` : ''}
+                  </option>
+                ))}
+              </select>
+              {ubicacionesFiltradas.length === 0 && !loadingUbicaciones && (
+                <p className="mt-1 text-xs text-slate-500">
+                  No hay ubicaciones para {formData.evento_ciudad}
+                </p>
+              )}
+              {formData.evento_direccion && (
+                <p className="mt-2 text-sm text-slate-600">
+                  <strong>Direccion:</strong> {formData.evento_direccion}
+                </p>
+              )}
             </div>
           )}
         </div>
