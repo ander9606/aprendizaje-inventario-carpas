@@ -7,12 +7,7 @@ import { useState } from 'react'
 import { Plus, FileText, ArrowLeft, Users, Filter } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useNavigation } from '../hooks/UseNavigation'
-import {
-  useGetCotizaciones,
-  useDeleteCotizacion,
-  useAprobarCotizacion,
-  useDuplicarCotizacion
-} from '../hooks/UseCotizaciones'
+import { useGetCotizaciones } from '../hooks/UseCotizaciones'
 import CotizacionCard from '../components/cards/CotizacionCard'
 import CotizacionFormModal from '../components/forms/CotizacionFormModal'
 import Button from '../components/common/Button'
@@ -29,9 +24,6 @@ export default function CotizacionesPage() {
   // ============================================
 
   const { cotizaciones, isLoading, error, refetch } = useGetCotizaciones()
-  const { mutateAsync: deleteCotizacion, isLoading: isDeleting } = useDeleteCotizacion()
-  const { mutateAsync: aprobarCotizacion, isLoading: isAprobando } = useAprobarCotizacion()
-  const { mutateAsync: duplicarCotizacion, isLoading: isDuplicando } = useDuplicarCotizacion()
 
   // ============================================
   // STATE
@@ -57,81 +49,11 @@ export default function CotizacionesPage() {
     setSelectedCotizacion(null)
   }
 
-  const handleEdit = (cotizacion) => {
+  const handleVerDetalle = (cotizacion) => {
+    // Por ahora abrir para editar - TODO: crear modal de detalle con acciones
     setSelectedCotizacion(cotizacion)
     setModalState({ ...modalState, editar: true })
   }
-
-  const handleDelete = async (id) => {
-    try {
-      await deleteCotizacion(id)
-    } catch (error) {
-      console.error('Error al eliminar:', error)
-      alert(error.response?.data?.message || 'No se pudo eliminar la cotizacion')
-    }
-  }
-
-  const handleAprobar = async (cotizacion) => {
-    const confirmar = confirm(
-      `Aprobar cotizacion #${cotizacion.id}?\n\n` +
-      `Esto creara un alquiler para: ${cotizacion.evento_nombre || 'Sin nombre'}\n` +
-      `Cliente: ${cotizacion.cliente_nombre}`
-    )
-
-    if (!confirmar) return
-
-    try {
-      const resultado = await aprobarCotizacion({ id: cotizacion.id, opciones: {} })
-
-      if (resultado.advertencia) {
-        alert(
-          'Cotizacion aprobada con advertencias:\n\n' +
-          (resultado.advertencias?.join('\n') || 'Hay elementos con disponibilidad insuficiente')
-        )
-      } else {
-        alert('Cotizacion aprobada y alquiler creado exitosamente')
-      }
-    } catch (error) {
-      console.error('Error al aprobar:', error)
-
-      // Si hay problemas de disponibilidad
-      if (error.response?.status === 409) {
-        const data = error.response.data
-        const confirmarForzar = confirm(
-          'Hay elementos insuficientes:\n\n' +
-          (data.elementos_faltantes?.join('\n') || 'Verificar disponibilidad') +
-          '\n\nAprobar de todas formas?'
-        )
-
-        if (confirmarForzar) {
-          try {
-            await aprobarCotizacion({ id: cotizacion.id, opciones: { forzar: true } })
-            alert('Cotizacion aprobada (forzada)')
-          } catch (err) {
-            alert(err.response?.data?.message || 'Error al aprobar')
-          }
-        }
-      } else {
-        alert(error.response?.data?.message || 'No se pudo aprobar la cotizacion')
-      }
-    }
-  }
-
-  const handleDuplicar = async (id) => {
-    try {
-      await duplicarCotizacion(id)
-      alert('Cotizacion duplicada')
-    } catch (error) {
-      console.error('Error al duplicar:', error)
-      alert(error.response?.data?.message || 'No se pudo duplicar')
-    }
-  }
-
-  const handleVerDetalle = (cotizacion) => {
-    // Por ahora abrir para editar
-    handleEdit(cotizacion)
-  }
-
 
   const handleIrClientes = () => {
     navigate('/alquileres/clientes')
@@ -179,55 +101,55 @@ export default function CotizacionesPage() {
   }
 
   return (
-<div className="min-h-screen bg-slate-50">
-  {/* HEADER */}
-  <div className="bg-white border-b border-slate-200 sticky top-0 z-10 shadow-sm">
-    <div className="container mx-auto px-6 py-4">
+    <div className="min-h-screen bg-slate-50">
+      {/* HEADER */}
+      <div className="bg-white border-b border-slate-200 sticky top-0 z-10 shadow-sm">
+        <div className="container mx-auto px-6 py-4">
 
-      {/* NAVEGACIÓN SUPERIOR */}
-      <button
-        onClick={volverAModulos}
-        className="flex items-center gap-2 text-slate-600 hover:text-slate-900 mb-3 transition-colors text-sm"
-      >
-        <ArrowLeft className="w-4 h-4" />
-        <span>Volver a Módulos</span>
-      </button>
+          {/* NAVEGACIÓN SUPERIOR */}
+          <button
+            onClick={volverAModulos}
+            className="flex items-center gap-2 text-slate-600 hover:text-slate-900 mb-3 transition-colors text-sm"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Volver a Módulos</span>
+          </button>
 
-      <div className="flex items-center justify-between">
-        {/* TÍTULO */}
-        <div className="flex items-center gap-3">
-          <FileText className="w-8 h-8 text-blue-600" />
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900">
-              Cotizaciones
-            </h1>
-            <p className="text-sm text-slate-600">
-              Gestiona tus cotizaciones de alquiler
-            </p>
+          <div className="flex items-center justify-between">
+            {/* TÍTULO */}
+            <div className="flex items-center gap-3">
+              <FileText className="w-8 h-8 text-blue-600" />
+              <div>
+                <h1 className="text-2xl font-bold text-slate-900">
+                  Cotizaciones
+                </h1>
+                <p className="text-sm text-slate-600">
+                  Gestiona tus cotizaciones de alquiler
+                </p>
+              </div>
+            </div>
+
+            {/* ACCIONES */}
+            <div className="flex items-center gap-3">
+              <Button
+                variant="secondary"
+                icon={<Users className="w-4 h-4" />}
+                onClick={handleIrClientes}
+              >
+                Clientes
+              </Button>
+              <Button
+                variant="primary"
+                icon={<Plus />}
+                onClick={handleOpenCrear}
+              >
+                Nueva Cotizacion
+              </Button>
+            </div>
           </div>
-        </div>
 
-        {/* ACCIONES */}
-        <div className="flex items-center gap-3">
-          <Button
-            variant="secondary"
-            icon={<Users className="w-4 h-4" />}
-            onClick={handleIrClientes}
-          >
-            Clientes
-          </Button>
-          <Button
-            variant="primary"
-            icon={<Plus />}
-            onClick={handleOpenCrear}
-          >
-            Nueva Cotizacion
-          </Button>
         </div>
       </div>
-
-    </div>
-  </div>
 
       {/* CONTENIDO */}
       <div className="container mx-auto px-6 py-8">
@@ -300,18 +222,6 @@ export default function CotizacionesPage() {
         mode="editar"
         cotizacion={selectedCotizacion}
       />
-
-      {/* INDICADORES */}
-      {(isDeleting || isAprobando || isDuplicando) && (
-        <div className="fixed bottom-4 right-4 bg-white rounded-lg shadow-lg p-4 flex items-center gap-3">
-          <Spinner size="sm" />
-          <span className="text-sm font-medium text-slate-700">
-            {isDeleting && 'Eliminando...'}
-            {isAprobando && 'Aprobando...'}
-            {isDuplicando && 'Duplicando...'}
-          </span>
-        </div>
-      )}
     </div>
   )
 }
