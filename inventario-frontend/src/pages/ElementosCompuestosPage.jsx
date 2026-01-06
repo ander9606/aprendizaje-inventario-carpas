@@ -25,10 +25,12 @@ import {
 
 // Hooks
 import {
-  useGetCategoriasProductos,
+  useGetCategoriasProductosArbol,
   useDeleteCategoriaProducto,
-  useUpdateCategoriaProducto,
 } from "../hooks/UseCategoriasProductos";
+
+// Cards
+import CategoriaProductoCard from "../components/cards/CategoriaProductoCard";
 import {
   useGetElementosCompuestos,
   useDeleteElementoCompuesto,
@@ -64,15 +66,19 @@ function ElementosCompuestosPage() {
   const [elementoToView, setElementoToView] = useState(null);
   const [showCategoriaModal, setShowCategoriaModal] = useState(false);
   const [categoriaToEdit, setCategoriaToEdit] = useState(null);
+  const [categoriaPadreIdParaCrear, setCategoriaPadreIdParaCrear] = useState(null);
 
   // ============================================
   // HOOKS DE DATOS
   // ============================================
   const {
-    categorias,
+    categorias: categoriasArbol,
     isLoading: loadingCategorias,
     refetch: refetchCategorias,
-  } = useGetCategoriasProductos();
+  } = useGetCategoriasProductosArbol();
+
+  // Aplanar categorías para conteo (incluye padres e hijos)
+  const todasCategorias = categoriasArbol.flatMap(cat => [cat, ...(cat.hijos || [])]);
   const {
     elementos,
     isLoading: loadingElementos,
@@ -162,12 +168,20 @@ function ElementosCompuestosPage() {
 
   const handleCrearCategoria = () => {
     setCategoriaToEdit(null);
+    setCategoriaPadreIdParaCrear(null);
+    setShowCategoriaModal(true);
+  };
+
+  const handleCrearSubcategoria = (padreId) => {
+    setCategoriaToEdit(null);
+    setCategoriaPadreIdParaCrear(padreId);
     setShowCategoriaModal(true);
   };
 
   const handleCategoriaSuccess = () => {
     setShowCategoriaModal(false);
     setCategoriaToEdit(null);
+    setCategoriaPadreIdParaCrear(null);
     refetchCategorias();
   };
 
@@ -283,7 +297,7 @@ function ElementosCompuestosPage() {
             ============================================ */}
         {!isLoading && !selectedCategoria && (
           <>
-            {categorias.length === 0 ? (
+            {categoriasArbol.length === 0 ? (
               <div className="text-center py-12 bg-white rounded-lg border border-slate-200">
                 <Layers className="w-16 h-16 text-slate-300 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-slate-900 mb-2">
@@ -302,19 +316,71 @@ function ElementosCompuestosPage() {
                 </Button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {categorias.map((categoria) => (
-                  <CategoriaProductoCard
-                    key={categoria.id}
-                    categoria={categoria}
-                    cantidadElementos={contarElementosPorCategoria(
-                      categoria.id
+              <div className="space-y-8">
+                {/* Categorías Padre */}
+                {categoriasArbol.map((categoriaPadre) => (
+                  <div key={categoriaPadre.id}>
+                    {/* Título de sección */}
+                    <div className="flex items-center gap-3 mb-4">
+                      <span className="text-2xl">{categoriaPadre.emoji || '📦'}</span>
+                      <h2 className="text-xl font-semibold text-slate-800">
+                        {categoriaPadre.nombre}
+                      </h2>
+                      <span className="text-sm text-slate-500">
+                        ({categoriaPadre.hijos?.length || 0} subcategorías)
+                      </span>
+                      <div className="flex-1" />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        icon={<Edit className="w-4 h-4" />}
+                        onClick={(e) => handleEditarCategoria(categoriaPadre, e)}
+                      >
+                        Editar
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        icon={<Plus className="w-4 h-4" />}
+                        onClick={() => handleCrearSubcategoria(categoriaPadre.id)}
+                      >
+                        Subcategoría
+                      </Button>
+                    </div>
+
+                    {/* Subcategorías como cards */}
+                    {categoriaPadre.hijos && categoriaPadre.hijos.length > 0 ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pl-4 border-l-2 border-slate-200">
+                        {categoriaPadre.hijos.map((subcategoria) => (
+                          <CategoriaProductoCard
+                            key={subcategoria.id}
+                            categoria={{...subcategoria, categoria_padre_nombre: categoriaPadre.nombre}}
+                            onVerContenido={() => handleSelectCategoria(subcategoria)}
+                            onCrearHijo={() => {}}
+                            onEdit={() => handleEditarCategoria(subcategoria)}
+                            totalHijos={0}
+                            totalProductos={contarElementosPorCategoria(subcategoria.id)}
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="pl-4 border-l-2 border-slate-200 py-4 text-slate-500 text-sm">
+                        Sin subcategorías. <button onClick={() => handleCrearSubcategoria(categoriaPadre.id)} className="text-emerald-600 hover:underline">Crear una</button>
+                      </div>
                     )}
-                    onClick={() => handleSelectCategoria(categoria)}
-                    onEdit={handleEditarCategoria}
-                    onDelete={handleEliminarCategoria}
-                    isDeleting={isDeletingCategoria}
-                  />
+
+                    {/* También mostrar productos directos de la categoría padre (si los hay) */}
+                    {contarElementosPorCategoria(categoriaPadre.id) > 0 && (
+                      <div className="mt-4 pl-4 border-l-2 border-emerald-200">
+                        <button
+                          onClick={() => handleSelectCategoria(categoriaPadre)}
+                          className="text-sm text-emerald-600 hover:underline"
+                        >
+                          Ver {contarElementosPorCategoria(categoriaPadre.id)} producto(s) en esta categoría
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 ))}
               </div>
             )}
@@ -438,141 +504,14 @@ function ElementosCompuestosPage() {
           onClose={() => {
             setShowCategoriaModal(false);
             setCategoriaToEdit(null);
+            setCategoriaPadreIdParaCrear(null);
           }}
           onSuccess={handleCategoriaSuccess}
           categoria={categoriaToEdit}
+          categoriaPadreId={categoriaPadreIdParaCrear}
         />
       </div>
     </div>
-  );
-}
-
-// ============================================
-// COMPONENTE: Tarjeta de Categoría de Producto
-// ============================================
-
-function CategoriaProductoCard({
-  categoria,
-  cantidadElementos,
-  onClick,
-  onEdit,
-  onDelete,
-  isDeleting,
-}) {
-  // Estado local para el picker de símbolo (emoji o icono)
-  const [mostrarSymbolPicker, setMostrarSymbolPicker] = useState(false);
-
-  // Estado simple con el valor del emoji/icono (string)
-  const [emojiActual, setEmojiActual] = useState(categoria.emoji || "📦");
-
-  // Hook para actualizar categoría
-  const updateCategoria = useUpdateCategoriaProducto();
-
-  /**
-   * Handler para cuando se selecciona un nuevo símbolo (emoji o icono)
-   * @param {string} nuevoEmoji - El emoji o nombre del icono seleccionado
-   */
-  const handleSeleccionarSimbolo = (nuevoEmoji) => {
-    setEmojiActual(nuevoEmoji);
-    setMostrarSymbolPicker(false);
-
-    updateCategoria.updateCategoriaSync(
-      {
-        id: categoria.id,
-        nombre: categoria.nombre,
-        emoji: nuevoEmoji,
-        descripcion: categoria.descripcion,
-      },
-      {
-        onSuccess: () => toast.success("Icono actualizado"),
-        onError: () => {
-          toast.error("No se pudo actualizar el icono");
-          setEmojiActual(categoria.emoji || "📦");
-        },
-      }
-    );
-  };
-
-  return (
-    <Card
-      variant="outlined"
-      className="hover:shadow-lg transition-all duration-200 hover:border-emerald-300"
-    >
-      <Card.Header>
-        <div className="flex items-center gap-3">
-          {/* Símbolo clickeable para editar */}
-          <button
-            onClick={() => setMostrarSymbolPicker(true)}
-            className="cursor-pointer hover:scale-110 transition-transform"
-            title="Click para cambiar el icono"
-            type="button"
-          >
-            <IconoCategoria value={emojiActual} size={40} />
-          </button>
-
-          <Card.Title className="flex-1">{categoria.nombre}</Card.Title>
-        </div>
-        {categoria.descripcion && (
-          <Card.Description>{categoria.descripcion}</Card.Description>
-        )}
-      </Card.Header>
-
-      <Card.Content>
-        <div className="flex items-center gap-2 text-slate-600">
-          <Tent className="w-5 h-5" />
-          <span className="font-medium">
-            {cantidadElementos} plantilla{cantidadElementos !== 1 ? "s" : ""}
-          </span>
-        </div>
-      </Card.Content>
-
-      <Card.Footer>
-        {/* Botón principal */}
-        <Button
-          variant="primary"
-          fullWidth
-          icon={<FolderOpen />}
-          onClick={onClick}
-          className="mb-3"
-        >
-          Ver Plantillas
-        </Button>
-
-        {/* Botones secundarios */}
-        <div className="flex gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            icon={<Edit className="w-4 h-4" />}
-            onClick={(e) => onEdit(categoria, e)}
-            className="flex-1"
-          >
-            Editar
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            icon={<Trash2 className="w-4 h-4" />}
-            onClick={(e) => onDelete(categoria, e)}
-            loading={isDeleting}
-            disabled={isDeleting}
-            className="flex-1 text-red-600 hover:bg-red-50"
-          >
-            Eliminar
-          </Button>
-        </div>
-      </Card.Footer>
-
-      {/* SymbolPicker Modal */}
-      {mostrarSymbolPicker && (
-        <SymbolPicker
-          open={mostrarSymbolPicker}
-          value={emojiActual}
-          onSelect={handleSeleccionarSimbolo}
-          onClose={() => setMostrarSymbolPicker(false)}
-        />
-      )}
-    </Card>
   );
 }
 

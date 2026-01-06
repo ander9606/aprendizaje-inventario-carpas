@@ -10,7 +10,8 @@ import SymbolPicker from '../common/picker/SymbolPicker'
 import IconoCategoria from '../common/IconoCategoria'
 import {
   useCreateCategoriaProducto,
-  useUpdateCategoriaProducto
+  useUpdateCategoriaProducto,
+  useGetCategoriasProductos
 } from '../../hooks/UseCategoriasProductos'
 import { toast } from 'sonner'
 
@@ -18,7 +19,8 @@ const CategoriaProductoFormModal = ({
   isOpen,
   onClose,
   onSuccess,
-  categoria = null
+  categoria = null,
+  categoriaPadreId = null // Para crear subcategoría directamente
 }) => {
   const isEditMode = categoria && categoria.id
 
@@ -29,7 +31,8 @@ const CategoriaProductoFormModal = ({
   const [formData, setFormData] = useState({
     nombre: '',
     emoji: '📦',
-    descripcion: ''
+    descripcion: '',
+    categoria_padre_id: null
   })
 
   const [errors, setErrors] = useState({})
@@ -41,6 +44,10 @@ const CategoriaProductoFormModal = ({
 
   const { createCategoria, isPending: isCreating } = useCreateCategoriaProducto()
   const { updateCategoria, isPending: isUpdating } = useUpdateCategoriaProducto()
+
+  // Obtener categorías para el selector de padre (solo las que no tienen padre = categorías raíz)
+  const { categorias: todasCategorias } = useGetCategoriasProductos()
+  const categoriasRaiz = todasCategorias.filter(c => !c.categoria_padre_id)
 
   const isLoading = isCreating || isUpdating
 
@@ -54,18 +61,20 @@ const CategoriaProductoFormModal = ({
         setFormData({
           nombre: categoria.nombre || '',
           emoji: categoria.emoji || '📦',
-          descripcion: categoria.descripcion || ''
+          descripcion: categoria.descripcion || '',
+          categoria_padre_id: categoria.categoria_padre_id || null
         })
       } else {
         setFormData({
           nombre: '',
           emoji: '📦',
-          descripcion: ''
+          descripcion: '',
+          categoria_padre_id: categoriaPadreId || null
         })
       }
       setErrors({})
     }
-  }, [isOpen, categoria, isEditMode])
+  }, [isOpen, categoria, isEditMode, categoriaPadreId])
 
   // ============================================
   // HANDLERS
@@ -116,7 +125,8 @@ const CategoriaProductoFormModal = ({
     const dataToSend = {
       nombre: formData.nombre.trim(),
       emoji: formData.emoji,
-      descripcion: formData.descripcion.trim() || null
+      descripcion: formData.descripcion.trim() || null,
+      categoria_padre_id: formData.categoria_padre_id || null
     }
 
     try {
@@ -154,10 +164,17 @@ const CategoriaProductoFormModal = ({
 
   const handleClose = () => {
     if (!isLoading) {
-      setFormData({ nombre: '', emoji: '📦', descripcion: '' })
+      setFormData({ nombre: '', emoji: '📦', descripcion: '', categoria_padre_id: null })
       setErrors({})
       onClose()
     }
+  }
+
+  // Determinar título del modal
+  const getModalTitle = () => {
+    if (isEditMode) return 'Editar Categoría'
+    if (formData.categoria_padre_id) return 'Nueva Subcategoría'
+    return 'Nueva Categoría'
   }
 
   // ============================================
@@ -169,7 +186,7 @@ const CategoriaProductoFormModal = ({
       <Modal
         isOpen={isOpen}
         onClose={handleClose}
-        title={isEditMode ? 'Editar Categoría' : 'Nueva Categoría de Producto'}
+        title={getModalTitle()}
         size="md"
       >
         <form onSubmit={handleSubmit} className="space-y-5">
@@ -180,17 +197,51 @@ const CategoriaProductoFormModal = ({
             </div>
           )}
 
+          {/* Selector de Categoría Padre (opcional) */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Categoría padre (opcional)
+            </label>
+            <select
+              name="categoria_padre_id"
+              value={formData.categoria_padre_id || ''}
+              onChange={(e) => {
+                const value = e.target.value ? parseInt(e.target.value) : null
+                setFormData(prev => ({ ...prev, categoria_padre_id: value }))
+              }}
+              disabled={isLoading}
+              className="
+                w-full px-4 py-2.5 border border-slate-300 rounded-lg
+                focus:outline-none focus:ring-2 focus:ring-emerald-500
+                disabled:bg-slate-100 disabled:cursor-not-allowed
+              "
+            >
+              <option value="">Sin padre (categoría principal)</option>
+              {categoriasRaiz
+                .filter(c => !isEditMode || c.id !== categoria?.id) // No mostrar la misma categoría como opción
+                .map(cat => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.emoji || '📦'} {cat.nombre}
+                  </option>
+                ))
+              }
+            </select>
+            <p className="mt-1 text-xs text-slate-500">
+              Deja vacío para crear una categoría principal, o selecciona una para crear una subcategoría.
+            </p>
+          </div>
+
           {/* Nombre */}
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
-              Nombre de la categoría *
+              Nombre *
             </label>
             <input
               type="text"
               name="nombre"
               value={formData.nombre}
               onChange={handleChange}
-              placeholder="Ej: Carpas, Mobiliario, Iluminación..."
+              placeholder={formData.categoria_padre_id ? "Ej: P10, P14, Sillas..." : "Ej: Carpas, Mobiliario, Iluminación..."}
               disabled={isLoading}
               autoFocus
               className={`
@@ -272,7 +323,7 @@ const CategoriaProductoFormModal = ({
               fullWidth
               className="bg-emerald-600 hover:bg-emerald-700"
             >
-              {isEditMode ? 'Guardar Cambios' : 'Crear Categoría'}
+              {isEditMode ? 'Guardar Cambios' : (formData.categoria_padre_id ? 'Crear Subcategoría' : 'Crear Categoría')}
             </Button>
           </div>
         </form>
