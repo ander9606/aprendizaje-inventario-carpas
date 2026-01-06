@@ -14,12 +14,12 @@ ADD COLUMN fecha_montaje DATE NULL AFTER evento_ciudad;
 ALTER TABLE cotizaciones
 CHANGE COLUMN fecha_fin_evento fecha_desmontaje DATE NULL;
 
--- Actualizar registros existentes: si no tienen fecha_montaje, usar fecha_evento
+-- Actualizar registros existentes usando el ID (compatible con safe mode)
 UPDATE cotizaciones
 SET fecha_montaje = fecha_evento
-WHERE fecha_montaje IS NULL;
+WHERE fecha_montaje IS NULL AND id > 0;
 
--- Actualizar registros existentes: si no tienen fecha_desmontaje, usar fecha_evento
+-- Actualizar registros existentes usando el ID (compatible con safe mode)
 UPDATE cotizaciones
 SET fecha_desmontaje = fecha_evento
-WHERE fecha_desmontaje IS NULL;
+WHERE fecha_desmontaje IS NULL AND id > 0;
