@@ -18,6 +18,7 @@ import {
   Trash2,
   Eye,
   FolderOpen,
+  Folder,
   RefreshCw,
   Star,
   Loader2,
@@ -29,8 +30,6 @@ import {
   useDeleteCategoriaProducto,
 } from "../hooks/UseCategoriasProductos";
 
-// Cards
-import CategoriaProductoCard from "../components/cards/CategoriaProductoCard";
 import {
   useGetElementosCompuestos,
   useDeleteElementoCompuesto,
@@ -41,25 +40,29 @@ import {
 import Button from "../components/common/Button";
 import Modal from "../components/common/Modal";
 import Card from "../components/common/Card";
-import SymbolPicker from "../components/common/picker/SymbolPicker";
-import IconoCategoria from "../components/common/IconoCategoria";
+import Breadcrumb from "../components/common/Breadcrum";
 import ElementoCompuestoFormModal from "../components/forms/ElementoCompuestoFormModal";
 import CategoriaProductoFormModal from "../components/forms/CategoriaProductoFormModal";
 
 /**
  * ElementosCompuestosPage
  *
- * Página principal para gestionar elementos compuestos (plantillas de alquiler).
- * Muestra categorías como tarjetas clickeables para ver sus elementos.
+ * Navegación jerárquica:
+ * 1. Vista inicial: Categorías padre (Carpas, Parasoles, etc.)
+ * 2. Al seleccionar padre: Ver subcategorías (P10, P14, etc.)
+ * 3. Al seleccionar subcategoría: Ver plantillas/productos
  */
 function ElementosCompuestosPage() {
   const navigate = useNavigate();
 
   // ============================================
-  // ESTADOS
+  // ESTADOS DE NAVEGACIÓN
   // ============================================
+  const [selectedCategoriaPadre, setSelectedCategoriaPadre] = useState(null);
+  const [selectedSubcategoria, setSelectedSubcategoria] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategoria, setSelectedCategoria] = useState(null);
+
+  // Estados de modales
   const [showFormModal, setShowFormModal] = useState(false);
   const [elementoToEdit, setElementoToEdit] = useState(null);
   const [elementoToDelete, setElementoToDelete] = useState(null);
@@ -157,12 +160,48 @@ function ElementosCompuestosPage() {
     refetch();
   };
 
-  const handleSelectCategoria = (categoria) => {
-    setSelectedCategoria(categoria);
+  // ============================================
+  // HANDLERS DE NAVEGACIÓN
+  // ============================================
+
+  // Nivel 1 → Nivel 2: Seleccionar categoría padre
+  const handleSelectCategoriaPadre = (categoria) => {
+    setSelectedCategoriaPadre(categoria);
+    setSelectedSubcategoria(null);
+    setSearchTerm("");
   };
 
-  const handleBackToCategorias = () => {
-    setSelectedCategoria(null);
+  // Nivel 2 → Nivel 3: Seleccionar subcategoría
+  const handleSelectSubcategoria = (subcategoria) => {
+    setSelectedSubcategoria(subcategoria);
+    setSearchTerm("");
+  };
+
+  // Volver al nivel anterior
+  const handleGoBack = () => {
+    if (selectedSubcategoria) {
+      // De productos → subcategorías
+      setSelectedSubcategoria(null);
+      setSearchTerm("");
+    } else if (selectedCategoriaPadre) {
+      // De subcategorías → categorías padre
+      setSelectedCategoriaPadre(null);
+      setSearchTerm("");
+    } else {
+      // De categorías padre → módulos
+      navigate("/");
+    }
+  };
+
+  // Navegar directamente a un nivel específico (para breadcrumb)
+  const handleNavigateToRoot = () => {
+    setSelectedCategoriaPadre(null);
+    setSelectedSubcategoria(null);
+    setSearchTerm("");
+  };
+
+  const handleNavigateToCategoriaPadre = () => {
+    setSelectedSubcategoria(null);
     setSearchTerm("");
   };
 
@@ -222,6 +261,57 @@ function ElementosCompuestosPage() {
   };
 
   // ============================================
+  // BREADCRUMB
+  // ============================================
+  const getBreadcrumbItems = () => {
+    const items = [
+      { label: 'Productos de Alquiler', onClick: handleNavigateToRoot }
+    ];
+
+    if (selectedCategoriaPadre) {
+      items.push({
+        label: selectedCategoriaPadre.nombre,
+        onClick: handleNavigateToCategoriaPadre
+      });
+    }
+
+    if (selectedSubcategoria) {
+      items.push({
+        label: selectedSubcategoria.nombre
+      });
+    }
+
+    return items;
+  };
+
+  // ============================================
+  // TÍTULO Y DESCRIPCIÓN SEGÚN NIVEL
+  // ============================================
+  const getPageTitle = () => {
+    if (selectedSubcategoria) return selectedSubcategoria.nombre;
+    if (selectedCategoriaPadre) return selectedCategoriaPadre.nombre;
+    return "Productos de Alquiler";
+  };
+
+  const getPageDescription = () => {
+    if (selectedSubcategoria) {
+      const count = getElementosDeCategoria(selectedSubcategoria.id).length;
+      return `${count} plantilla(s) en esta subcategoría`;
+    }
+    if (selectedCategoriaPadre) {
+      const count = selectedCategoriaPadre.hijos?.length || 0;
+      return `${count} subcategoría(s)`;
+    }
+    return "Plantillas de productos para cotizar y alquilar";
+  };
+
+  const getPageEmoji = () => {
+    if (selectedSubcategoria) return selectedSubcategoria.emoji || '📦';
+    if (selectedCategoriaPadre) return selectedCategoriaPadre.emoji || '📦';
+    return null;
+  };
+
+  // ============================================
   // RENDERIZADO
   // ============================================
 
@@ -230,39 +320,36 @@ function ElementosCompuestosPage() {
   return (
     <div className="min-h-screen bg-slate-50 p-6">
       <div className="max-w-7xl mx-auto">
+
+        {/* Breadcrumb */}
+        <Breadcrumb items={getBreadcrumbItems()} className="mb-4" />
+
         {/* Header */}
         <div className="mb-6">
           <button
-            onClick={() =>
-              selectedCategoria ? handleBackToCategorias() : navigate("/")
-            }
+            onClick={handleGoBack}
             className="flex items-center gap-2 text-slate-600 hover:text-slate-900 mb-4 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span>
-              {selectedCategoria ? "Volver a Categorías" : "Volver a Módulos"}
-            </span>
+            <span>Volver</span>
           </button>
 
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold text-slate-900 flex items-center gap-3">
-                <Tent className="w-8 h-8 text-emerald-600" />
-                {selectedCategoria
-                  ? selectedCategoria.nombre
-                  : "Productos de Alquiler"}
+                {getPageEmoji() ? (
+                  <span className="text-4xl">{getPageEmoji()}</span>
+                ) : (
+                  <Tent className="w-8 h-8 text-emerald-600" />
+                )}
+                {getPageTitle()}
               </h1>
-              <p className="text-slate-600 mt-1">
-                {selectedCategoria
-                  ? `${
-                      getElementosDeCategoria(selectedCategoria.id).length
-                    } plantilla(s) en esta categoría`
-                  : "Plantillas de productos para cotizar y alquilar"}
-              </p>
+              <p className="text-slate-600 mt-1">{getPageDescription()}</p>
             </div>
 
             <div className="flex gap-3">
-              {!selectedCategoria && (
+              {/* Botón crear categoría (solo en nivel raíz) */}
+              {!selectedCategoriaPadre && !selectedSubcategoria && (
                 <Button
                   variant="outline"
                   onClick={handleCrearCategoria}
@@ -272,14 +359,30 @@ function ElementosCompuestosPage() {
                   Nueva Categoría
                 </Button>
               )}
-              <Button
-                variant="primary"
-                onClick={handleCrear}
-                className="flex items-center gap-2"
-              >
-                <Plus className="w-4 h-4" />
-                Nueva Plantilla
-              </Button>
+
+              {/* Botón crear subcategoría (en nivel de categoría padre) */}
+              {selectedCategoriaPadre && !selectedSubcategoria && (
+                <Button
+                  variant="outline"
+                  onClick={() => handleCrearSubcategoria(selectedCategoriaPadre.id)}
+                  className="flex items-center gap-2 border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                >
+                  <Folder className="w-4 h-4" />
+                  Nueva Subcategoría
+                </Button>
+              )}
+
+              {/* Botón crear plantilla (en nivel de subcategoría) */}
+              {selectedSubcategoria && (
+                <Button
+                  variant="primary"
+                  onClick={handleCrear}
+                  className="flex items-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  Nueva Plantilla
+                </Button>
+              )}
             </div>
           </div>
         </div>
@@ -293,9 +396,9 @@ function ElementosCompuestosPage() {
         )}
 
         {/* ============================================
-            VISTA DE CATEGORÍAS (cuando no hay categoría seleccionada)
+            NIVEL 1: CATEGORÍAS PADRE
             ============================================ */}
-        {!isLoading && !selectedCategoria && (
+        {!isLoading && !selectedCategoriaPadre && (
           <>
             {categoriasArbol.length === 0 ? (
               <div className="text-center py-12 bg-white rounded-lg border border-slate-200">
@@ -316,71 +419,17 @@ function ElementosCompuestosPage() {
                 </Button>
               </div>
             ) : (
-              <div className="space-y-8">
-                {/* Categorías Padre */}
-                {categoriasArbol.map((categoriaPadre) => (
-                  <div key={categoriaPadre.id}>
-                    {/* Título de sección */}
-                    <div className="flex items-center gap-3 mb-4">
-                      <span className="text-2xl">{categoriaPadre.emoji || '📦'}</span>
-                      <h2 className="text-xl font-semibold text-slate-800">
-                        {categoriaPadre.nombre}
-                      </h2>
-                      <span className="text-sm text-slate-500">
-                        ({categoriaPadre.hijos?.length || 0} subcategorías)
-                      </span>
-                      <div className="flex-1" />
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        icon={<Edit className="w-4 h-4" />}
-                        onClick={(e) => handleEditarCategoria(categoriaPadre, e)}
-                      >
-                        Editar
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        icon={<Plus className="w-4 h-4" />}
-                        onClick={() => handleCrearSubcategoria(categoriaPadre.id)}
-                      >
-                        Subcategoría
-                      </Button>
-                    </div>
-
-                    {/* Subcategorías como cards */}
-                    {categoriaPadre.hijos && categoriaPadre.hijos.length > 0 ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pl-4 border-l-2 border-slate-200">
-                        {categoriaPadre.hijos.map((subcategoria) => (
-                          <CategoriaProductoCard
-                            key={subcategoria.id}
-                            categoria={{...subcategoria, categoria_padre_nombre: categoriaPadre.nombre}}
-                            onVerContenido={() => handleSelectCategoria(subcategoria)}
-                            onCrearHijo={() => {}}
-                            onEdit={() => handleEditarCategoria(subcategoria)}
-                            totalHijos={0}
-                            totalProductos={contarElementosPorCategoria(subcategoria.id)}
-                          />
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="pl-4 border-l-2 border-slate-200 py-4 text-slate-500 text-sm">
-                        Sin subcategorías. <button onClick={() => handleCrearSubcategoria(categoriaPadre.id)} className="text-emerald-600 hover:underline">Crear una</button>
-                      </div>
-                    )}
-
-                    {/* También mostrar productos directos de la categoría padre (si los hay) */}
-                    {contarElementosPorCategoria(categoriaPadre.id) > 0 && (
-                      <div className="mt-4 pl-4 border-l-2 border-emerald-200">
-                        <button
-                          onClick={() => handleSelectCategoria(categoriaPadre)}
-                          className="text-sm text-emerald-600 hover:underline"
-                        >
-                          Ver {contarElementosPorCategoria(categoriaPadre.id)} producto(s) en esta categoría
-                        </button>
-                      </div>
-                    )}
-                  </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {categoriasArbol.map((categoria) => (
+                  <CategoriaPadreCard
+                    key={categoria.id}
+                    categoria={categoria}
+                    totalSubcategorias={categoria.hijos?.length || 0}
+                    totalProductos={contarElementosPorCategoria(categoria.id)}
+                    onClick={() => handleSelectCategoriaPadre(categoria)}
+                    onEdit={() => handleEditarCategoria(categoria)}
+                    onCrearSubcategoria={() => handleCrearSubcategoria(categoria.id)}
+                  />
                 ))}
               </div>
             )}
@@ -388,9 +437,48 @@ function ElementosCompuestosPage() {
         )}
 
         {/* ============================================
-            VISTA DE ELEMENTOS (cuando hay categoría seleccionada)
+            NIVEL 2: SUBCATEGORÍAS
             ============================================ */}
-        {!isLoading && selectedCategoria && (
+        {!isLoading && selectedCategoriaPadre && !selectedSubcategoria && (
+          <>
+            {(!selectedCategoriaPadre.hijos || selectedCategoriaPadre.hijos.length === 0) ? (
+              <div className="text-center py-12 bg-white rounded-lg border border-slate-200">
+                <Folder className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-slate-900 mb-2">
+                  No hay subcategorías
+                </h3>
+                <p className="text-slate-600 mb-6">
+                  Crea subcategorías para organizar las plantillas de {selectedCategoriaPadre.nombre}
+                </p>
+                <Button
+                  variant="primary"
+                  onClick={() => handleCrearSubcategoria(selectedCategoriaPadre.id)}
+                  className="bg-emerald-600 hover:bg-emerald-700"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Crear Subcategoría
+                </Button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {selectedCategoriaPadre.hijos.map((subcategoria) => (
+                  <SubcategoriaCard
+                    key={subcategoria.id}
+                    subcategoria={subcategoria}
+                    totalProductos={contarElementosPorCategoria(subcategoria.id)}
+                    onClick={() => handleSelectSubcategoria(subcategoria)}
+                    onEdit={() => handleEditarCategoria(subcategoria)}
+                  />
+                ))}
+              </div>
+            )}
+          </>
+        )}
+
+        {/* ============================================
+            NIVEL 3: PLANTILLAS/PRODUCTOS
+            ============================================ */}
+        {!isLoading && selectedSubcategoria && (
           <>
             {/* Buscador */}
             <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4 mb-6">
@@ -407,11 +495,11 @@ function ElementosCompuestosPage() {
             </div>
 
             {/* Lista de elementos */}
-            {getElementosDeCategoria(selectedCategoria.id).length === 0 ? (
+            {getElementosDeCategoria(selectedSubcategoria.id).length === 0 ? (
               <div className="text-center py-12 bg-white rounded-lg border border-slate-200">
                 <Tent className="w-16 h-16 text-slate-300 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-slate-900 mb-2">
-                  No hay plantillas en esta categoría
+                  No hay plantillas en esta subcategoría
                 </h3>
                 <p className="text-slate-600 mb-6">
                   Crea tu primera plantilla para empezar a cotizar
@@ -423,7 +511,7 @@ function ElementosCompuestosPage() {
               </div>
             ) : (
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {getElementosDeCategoria(selectedCategoria.id).map(
+                {getElementosDeCategoria(selectedSubcategoria.id).map(
                   (elemento) => (
                     <ElementoCompuestoCard
                       key={elemento.id}
@@ -774,6 +862,150 @@ function ElementoCompuestoDetalle({ elemento, formatPrecio }) {
         </div>
       </div>
     </div>
+  );
+}
+
+// ============================================
+// COMPONENTE: Tarjeta de Categoría Padre
+// ============================================
+
+function CategoriaPadreCard({
+  categoria,
+  totalSubcategorias,
+  totalProductos,
+  onClick,
+  onEdit,
+  onCrearSubcategoria,
+}) {
+  return (
+    <Card
+      variant="outlined"
+      className="hover:shadow-lg transition-all duration-200 hover:border-emerald-300 cursor-pointer"
+      onClick={onClick}
+    >
+      <Card.Header>
+        <div className="flex items-center gap-3">
+          <span className="text-4xl">{categoria.emoji || '📦'}</span>
+          <div className="flex-1">
+            <Card.Title>{categoria.nombre}</Card.Title>
+            {categoria.descripcion && (
+              <p className="text-sm text-slate-500 mt-1">{categoria.descripcion}</p>
+            )}
+          </div>
+        </div>
+      </Card.Header>
+
+      <Card.Content>
+        <div className="flex items-center gap-4 text-slate-600">
+          <div className="flex items-center gap-2">
+            <Folder className="w-5 h-5" />
+            <span className="font-medium">
+              {totalSubcategorias} subcategoría{totalSubcategorias !== 1 ? 's' : ''}
+            </span>
+          </div>
+          {totalProductos > 0 && (
+            <div className="flex items-center gap-2">
+              <Tent className="w-5 h-5" />
+              <span>{totalProductos} plantilla{totalProductos !== 1 ? 's' : ''}</span>
+            </div>
+          )}
+        </div>
+      </Card.Content>
+
+      <Card.Footer>
+        <div className="flex gap-2">
+          <Button
+            variant="primary"
+            fullWidth
+            icon={<FolderOpen className="w-4 h-4" />}
+            onClick={(e) => { e.stopPropagation(); onClick(); }}
+          >
+            Ver Subcategorías
+          </Button>
+        </div>
+        <div className="flex gap-2 mt-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            icon={<Edit className="w-4 h-4" />}
+            onClick={(e) => { e.stopPropagation(); onEdit(); }}
+            className="flex-1"
+          >
+            Editar
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            icon={<Plus className="w-4 h-4" />}
+            onClick={(e) => { e.stopPropagation(); onCrearSubcategoria(); }}
+            className="flex-1"
+          >
+            Subcategoría
+          </Button>
+        </div>
+      </Card.Footer>
+    </Card>
+  );
+}
+
+// ============================================
+// COMPONENTE: Tarjeta de Subcategoría
+// ============================================
+
+function SubcategoriaCard({
+  subcategoria,
+  totalProductos,
+  onClick,
+  onEdit,
+}) {
+  return (
+    <Card
+      variant="outlined"
+      className="hover:shadow-lg transition-all duration-200 hover:border-emerald-300 cursor-pointer"
+      onClick={onClick}
+    >
+      <Card.Header>
+        <div className="flex items-center gap-3">
+          <span className="text-4xl">{subcategoria.emoji || '📦'}</span>
+          <div className="flex-1">
+            <Card.Title>{subcategoria.nombre}</Card.Title>
+            {subcategoria.descripcion && (
+              <p className="text-sm text-slate-500 mt-1">{subcategoria.descripcion}</p>
+            )}
+          </div>
+        </div>
+      </Card.Header>
+
+      <Card.Content>
+        <div className="flex items-center gap-2 text-slate-600">
+          <Tent className="w-5 h-5" />
+          <span className="font-medium">
+            {totalProductos} plantilla{totalProductos !== 1 ? 's' : ''}
+          </span>
+        </div>
+      </Card.Content>
+
+      <Card.Footer>
+        <Button
+          variant="primary"
+          fullWidth
+          icon={<FolderOpen className="w-4 h-4" />}
+          onClick={(e) => { e.stopPropagation(); onClick(); }}
+          className="mb-2"
+        >
+          Ver Plantillas
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          fullWidth
+          icon={<Edit className="w-4 h-4" />}
+          onClick={(e) => { e.stopPropagation(); onEdit(); }}
+        >
+          Editar
+        </Button>
+      </Card.Footer>
+    </Card>
   );
 }
 
