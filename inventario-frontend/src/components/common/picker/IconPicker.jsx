@@ -19,12 +19,16 @@ export default function IconPicker({ onSelect }) {
                 <button
                   key={iconName}
                   type="button"
-                  onClick={() => onSelect(iconName)}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    e.preventDefault()
+                    onSelect(iconName)
+                  }}
                   className="p-2 rounded-lg hover:bg-slate-100
                              flex items-center justify-center transition"
                   title={iconName}
                 >
-                  <Icon size={26} />
+                  <Icon size={26} className="pointer-events-none" />
                 </button>
               )
             })}
