@@ -131,8 +131,9 @@ exports.crear = async (req, res, next) => {
   try {
     const {
       cliente_id,
+      fecha_montaje,
       fecha_evento,
-      fecha_fin_evento,
+      fecha_desmontaje,
       evento_nombre,
       evento_direccion,
       evento_ciudad,
@@ -168,8 +169,9 @@ exports.crear = async (req, res, next) => {
     // Crear cotización (sin totales, se calcularán después)
     const resultado = await CotizacionModel.crear({
       cliente_id,
+      fecha_montaje,
       fecha_evento,
-      fecha_fin_evento,
+      fecha_desmontaje,
       evento_nombre,
       evento_direccion,
       evento_ciudad,
@@ -214,8 +216,9 @@ exports.actualizar = async (req, res, next) => {
   try {
     const { id } = req.params;
     const {
+      fecha_montaje,
       fecha_evento,
-      fecha_fin_evento,
+      fecha_desmontaje,
       evento_nombre,
       evento_direccion,
       evento_ciudad,
@@ -237,8 +240,9 @@ exports.actualizar = async (req, res, next) => {
 
     // Actualizar datos generales
     await CotizacionModel.actualizar(id, {
+      fecha_montaje: fecha_montaje || cotizacionExistente.fecha_montaje,
       fecha_evento: fecha_evento || cotizacionExistente.fecha_evento,
-      fecha_fin_evento,
+      fecha_desmontaje: fecha_desmontaje || cotizacionExistente.fecha_desmontaje,
       evento_nombre,
       evento_direccion,
       evento_ciudad,
@@ -478,9 +482,9 @@ exports.verificarDisponibilidad = async (req, res, next) => {
       throw new AppError('Cotización no encontrada', 404);
     }
 
-    // Usar fechas del query o de la cotización
-    const fechaInicio = fecha_inicio || cotizacion.fecha_evento;
-    const fechaFin = fecha_fin || cotizacion.fecha_fin_evento || cotizacion.fecha_evento;
+    // Usar fechas del query o de la cotización (montaje a desmontaje)
+    const fechaInicio = fecha_inicio || cotizacion.fecha_montaje || cotizacion.fecha_evento;
+    const fechaFin = fecha_fin || cotizacion.fecha_desmontaje || cotizacion.fecha_evento;
 
     const disponibilidad = await DisponibilidadModel.verificarDisponibilidadCotizacion(
       id,
@@ -524,9 +528,9 @@ exports.aprobarYCrearAlquiler = async (req, res, next) => {
       throw new AppError('Esta cotización ya tiene un alquiler asociado', 400);
     }
 
-    // Determinar fechas del alquiler
-    const fechaSalida = fecha_salida || cotizacion.fecha_evento;
-    const fechaRetorno = fecha_retorno_esperado || cotizacion.fecha_fin_evento || cotizacion.fecha_evento;
+    // Determinar fechas del alquiler (usar montaje como salida y desmontaje como retorno)
+    const fechaSalida = fecha_salida || cotizacion.fecha_montaje || cotizacion.fecha_evento;
+    const fechaRetorno = fecha_retorno_esperado || cotizacion.fecha_desmontaje || cotizacion.fecha_evento;
 
     // Verificar disponibilidad de elementos
     const disponibilidad = await DisponibilidadModel.verificarDisponibilidadCotizacion(

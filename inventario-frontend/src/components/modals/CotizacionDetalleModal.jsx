@@ -174,14 +174,26 @@ const CotizacionDetalleModal = ({
                 <p className="font-medium text-slate-900 text-lg">
                   {cotizacion.evento_nombre || 'Sin nombre'}
                 </p>
-                <p className="text-slate-600 text-sm mt-1">
-                  {formatearFecha(cotizacion.fecha_evento)}
-                  {cotizacion.fecha_fin_evento && cotizacion.fecha_fin_evento !== cotizacion.fecha_evento && (
-                    <> al {formatearFecha(cotizacion.fecha_fin_evento)}</>
+
+                {/* Fechas: Montaje, Evento, Desmontaje */}
+                <div className="mt-2 space-y-1 text-sm">
+                  {cotizacion.fecha_montaje && (
+                    <p className="text-slate-600">
+                      <span className="font-medium">Montaje:</span> {formatearFecha(cotizacion.fecha_montaje)}
+                    </p>
                   )}
-                </p>
+                  <p className="text-slate-600">
+                    <span className="font-medium">Evento:</span> {formatearFecha(cotizacion.fecha_evento)}
+                  </p>
+                  {cotizacion.fecha_desmontaje && (
+                    <p className="text-slate-600">
+                      <span className="font-medium">Desmontaje:</span> {formatearFecha(cotizacion.fecha_desmontaje)}
+                    </p>
+                  )}
+                </div>
+
                 {cotizacion.evento_ciudad && (
-                  <p className="text-slate-600 text-sm flex items-center gap-2 mt-1">
+                  <p className="text-slate-600 text-sm flex items-center gap-2 mt-2">
                     <MapPin className="w-3 h-3" />
                     {cotizacion.evento_ciudad}
                     {cotizacion.evento_direccion && ` - ${cotizacion.evento_direccion}`}
