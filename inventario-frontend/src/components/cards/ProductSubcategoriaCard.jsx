@@ -3,13 +3,17 @@
 // Tarjeta de subcategoría para productos de alquiler
 // ============================================
 
-import { useState } from 'react'
-import { Tent, FolderOpen, Edit } from 'lucide-react'
+import { useState, useRef, useEffect } from 'react'
+import { Tent, FolderOpen, Edit, MoreVertical, Trash2 } from 'lucide-react'
+import { toast } from 'sonner'
 import Card from '../common/Card'
 import Button from '../common/Button'
 import SymbolPicker from '../common/picker/SymbolPicker'
 import SymbolRenderer from '../common/picker/SymbolRenderer'
-import { useUpdateCategoriaProducto } from '../../hooks/UseCategoriasProductos'
+import {
+  useUpdateCategoriaProducto,
+  useDeleteCategoriaProducto,
+} from '../../hooks/UseCategoriasProductos'
 
 /**
  * ProductSubcategoriaCard
@@ -18,33 +22,55 @@ import { useUpdateCategoriaProducto } from '../../hooks/UseCategoriasProductos'
  * - Emoji/icono editable (click para cambiar con SymbolPicker)
  * - Nombre y descripción
  * - Contador de plantillas/productos
- * - Botones de navegación y acciones
+ * - Menú de 3 puntos con acciones (editar, eliminar)
  *
  * @param {Object} subcategoria - Datos de la subcategoría
  * @param {number} totalProductos - Cantidad de plantillas en esta subcategoría
  * @param {Function} onClick - Callback al hacer click en la tarjeta
  * @param {Function} onEdit - Callback para editar subcategoría
+ * @param {Function} onDeleted - Callback después de eliminar (opcional)
  */
 function ProductSubcategoriaCard({
   subcategoria,
   totalProductos,
   onClick,
   onEdit,
+  onDeleted,
 }) {
   // Estado para el SymbolPicker
   const [showSymbolPicker, setShowSymbolPicker] = useState(false)
   const [emojiActual, setEmojiActual] = useState(subcategoria.emoji || '📦')
 
-  // Hook para actualizar categoría
+  // Estado para el menú desplegable
+  const [showMenu, setShowMenu] = useState(false)
+  const menuRef = useRef(null)
+
+  // Hooks
   const { updateCategoriaSync } = useUpdateCategoriaProducto()
+  const { deleteCategoria, isPending: isDeleting } = useDeleteCategoriaProducto()
+
+  // Cerrar menú al hacer click fuera
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setShowMenu(false)
+      }
+    }
+
+    if (showMenu) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showMenu])
 
   // Handler para cambiar emoji
   const handleSelectSymbol = (nuevoEmoji) => {
-    // Actualización optimista
     setEmojiActual(nuevoEmoji)
     setShowSymbolPicker(false)
 
-    // Guardar en la API
     updateCategoriaSync(
       {
         id: subcategoria.id,
@@ -58,11 +84,40 @@ function ProductSubcategoriaCard({
         },
         onError: (error) => {
           console.error('❌ Error al actualizar emoji:', error)
-          // Revertir al emoji original
           setEmojiActual(subcategoria.emoji || '📦')
         },
       }
     )
+  }
+
+  // Handler para eliminar subcategoría
+  const handleDelete = async () => {
+    setShowMenu(false)
+
+    // Verificar si tiene productos
+    if (totalProductos > 0) {
+      toast.error(
+        `No se puede eliminar. Esta subcategoría tiene ${totalProductos} plantilla(s) asociada(s).`
+      )
+      return
+    }
+
+    const confirmacion = confirm(
+      `¿Estás seguro de eliminar la subcategoría "${subcategoria.nombre}"?\n\nEsta acción no se puede deshacer.`
+    )
+
+    if (confirmacion) {
+      try {
+        await deleteCategoria(subcategoria.id)
+        toast.success('Subcategoría eliminada exitosamente')
+        onDeleted?.()
+      } catch (error) {
+        console.error('Error al eliminar subcategoría:', error)
+        toast.error(
+          error.response?.data?.mensaje || 'Error al eliminar la subcategoría'
+        )
+      }
+    }
   }
 
   return (
@@ -90,12 +145,58 @@ function ProductSubcategoriaCard({
             />
           </button>
 
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <Card.Title>{subcategoria.nombre}</Card.Title>
             {subcategoria.descripcion && (
-              <p className="text-sm text-slate-500 mt-1">
+              <p className="text-sm text-slate-500 mt-1 truncate">
                 {subcategoria.descripcion}
               </p>
+            )}
+          </div>
+
+          {/* Menú de 3 puntos */}
+          <div className="relative" ref={menuRef}>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                setShowMenu(!showMenu)
+              }}
+              className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-700 transition-colors"
+              title="Más opciones"
+            >
+              <MoreVertical className="w-5 h-5" />
+            </button>
+
+            {/* Dropdown Menu */}
+            {showMenu && (
+              <div className="absolute right-0 top-full mt-1 w-40 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-50">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setShowMenu(false)
+                    onEdit()
+                  }}
+                  className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                >
+                  <Edit className="w-4 h-4" />
+                  Editar
+                </button>
+                <div className="border-t border-slate-100 my-1" />
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleDelete()
+                  }}
+                  disabled={isDeleting}
+                  className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 disabled:opacity-50"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  {isDeleting ? 'Eliminando...' : 'Eliminar'}
+                </button>
+              </div>
             )}
           </div>
         </div>
@@ -119,21 +220,8 @@ function ProductSubcategoriaCard({
             e.stopPropagation()
             onClick()
           }}
-          className="mb-2"
         >
           Ver Plantillas
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          fullWidth
-          icon={<Edit className="w-4 h-4" />}
-          onClick={(e) => {
-            e.stopPropagation()
-            onEdit()
-          }}
-        >
-          Editar
         </Button>
       </Card.Footer>
 

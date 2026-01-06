@@ -28,31 +28,37 @@ export default function SymbolPicker({
       <div className="flex border-b border-slate-200 mb-4">
         <button
           type="button"
-          onClick={() => setTab("emoji")}
+          onClick={(e) => {
+            e.stopPropagation()
+            setTab("emoji")
+          }}
           className={`flex-1 px-4 py-3 text-sm font-medium flex gap-2 items-center justify-center
             ${tab === "emoji"
               ? "border-b-2 border-blue-500 text-blue-600"
               : "text-slate-500 hover:text-slate-700"}
           `}
         >
-          <Smile size={18} /> Emojis
+          <Smile size={18} className="pointer-events-none" /> Emojis
         </button>
 
         <button
           type="button"
-          onClick={() => setTab("icon")}
+          onClick={(e) => {
+            e.stopPropagation()
+            setTab("icon")
+          }}
           className={`flex-1 px-4 py-3 text-sm font-medium flex gap-2 items-center justify-center
             ${tab === "icon"
               ? "border-b-2 border-blue-500 text-blue-600"
               : "text-slate-500 hover:text-slate-700"}
           `}
         >
-          <Shapes size={18} /> Iconos
+          <Shapes size={18} className="pointer-events-none" /> Iconos
         </button>
       </div>
 
       {/* Contenido */}
-      <div className="max-h-[55vh] overflow-y-auto">
+      <div className="max-h-[55vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         {tab === "emoji" && (
           <EmojiPicker
             value={value}

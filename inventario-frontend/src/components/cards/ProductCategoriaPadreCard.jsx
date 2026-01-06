@@ -3,13 +3,17 @@
 // Tarjeta de categoría padre para productos de alquiler
 // ============================================
 
-import { useState } from 'react'
-import { Folder, Tent, FolderOpen, Edit, Plus } from 'lucide-react'
+import { useState, useRef, useEffect } from 'react'
+import { Folder, Tent, FolderOpen, Edit, Plus, MoreVertical, Trash2 } from 'lucide-react'
+import { toast } from 'sonner'
 import Card from '../common/Card'
 import Button from '../common/Button'
 import SymbolPicker from '../common/picker/SymbolPicker'
 import SymbolRenderer from '../common/picker/SymbolRenderer'
-import { useUpdateCategoriaProducto } from '../../hooks/UseCategoriasProductos'
+import {
+  useUpdateCategoriaProducto,
+  useDeleteCategoriaProducto,
+} from '../../hooks/UseCategoriasProductos'
 
 /**
  * ProductCategoriaPadreCard
@@ -18,7 +22,7 @@ import { useUpdateCategoriaProducto } from '../../hooks/UseCategoriasProductos'
  * - Emoji/icono editable (click para cambiar con SymbolPicker)
  * - Nombre y descripción
  * - Contador de subcategorías y productos
- * - Botones de navegación y acciones
+ * - Menú de 3 puntos con acciones (editar, crear subcategoría, eliminar)
  *
  * @param {Object} categoria - Datos de la categoría
  * @param {number} totalSubcategorias - Cantidad de subcategorías
@@ -26,6 +30,7 @@ import { useUpdateCategoriaProducto } from '../../hooks/UseCategoriasProductos'
  * @param {Function} onClick - Callback al hacer click en la tarjeta
  * @param {Function} onEdit - Callback para editar categoría
  * @param {Function} onCrearSubcategoria - Callback para crear subcategoría
+ * @param {Function} onDeleted - Callback después de eliminar (opcional)
  */
 function ProductCategoriaPadreCard({
   categoria,
@@ -34,21 +39,42 @@ function ProductCategoriaPadreCard({
   onClick,
   onEdit,
   onCrearSubcategoria,
+  onDeleted,
 }) {
   // Estado para el SymbolPicker
   const [showSymbolPicker, setShowSymbolPicker] = useState(false)
   const [emojiActual, setEmojiActual] = useState(categoria.emoji || '📦')
 
-  // Hook para actualizar categoría
+  // Estado para el menú desplegable
+  const [showMenu, setShowMenu] = useState(false)
+  const menuRef = useRef(null)
+
+  // Hooks
   const { updateCategoriaSync } = useUpdateCategoriaProducto()
+  const { deleteCategoria, isPending: isDeleting } = useDeleteCategoriaProducto()
+
+  // Cerrar menú al hacer click fuera
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setShowMenu(false)
+      }
+    }
+
+    if (showMenu) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showMenu])
 
   // Handler para cambiar emoji
   const handleSelectSymbol = (nuevoEmoji) => {
-    // Actualización optimista
     setEmojiActual(nuevoEmoji)
     setShowSymbolPicker(false)
 
-    // Guardar en la API
     updateCategoriaSync(
       {
         id: categoria.id,
@@ -62,11 +88,48 @@ function ProductCategoriaPadreCard({
         },
         onError: (error) => {
           console.error('❌ Error al actualizar emoji:', error)
-          // Revertir al emoji original
           setEmojiActual(categoria.emoji || '📦')
         },
       }
     )
+  }
+
+  // Handler para eliminar categoría
+  const handleDelete = async () => {
+    setShowMenu(false)
+
+    // Verificar si tiene subcategorías
+    if (totalSubcategorias > 0) {
+      toast.error(
+        `No se puede eliminar. Esta categoría tiene ${totalSubcategorias} subcategoría(s).`
+      )
+      return
+    }
+
+    // Verificar si tiene productos
+    if (totalProductos > 0) {
+      toast.error(
+        `No se puede eliminar. Esta categoría tiene ${totalProductos} plantilla(s) asociada(s).`
+      )
+      return
+    }
+
+    const confirmacion = confirm(
+      `¿Estás seguro de eliminar la categoría "${categoria.nombre}"?\n\nEsta acción no se puede deshacer.`
+    )
+
+    if (confirmacion) {
+      try {
+        await deleteCategoria(categoria.id)
+        toast.success('Categoría eliminada exitosamente')
+        onDeleted?.()
+      } catch (error) {
+        console.error('Error al eliminar categoría:', error)
+        toast.error(
+          error.response?.data?.mensaje || 'Error al eliminar la categoría'
+        )
+      }
+    }
   }
 
   return (
@@ -94,12 +157,70 @@ function ProductCategoriaPadreCard({
             />
           </button>
 
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <Card.Title>{categoria.nombre}</Card.Title>
             {categoria.descripcion && (
-              <p className="text-sm text-slate-500 mt-1">
+              <p className="text-sm text-slate-500 mt-1 truncate">
                 {categoria.descripcion}
               </p>
+            )}
+          </div>
+
+          {/* Menú de 3 puntos */}
+          <div className="relative" ref={menuRef}>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                setShowMenu(!showMenu)
+              }}
+              className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-700 transition-colors"
+              title="Más opciones"
+            >
+              <MoreVertical className="w-5 h-5" />
+            </button>
+
+            {/* Dropdown Menu */}
+            {showMenu && (
+              <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-50">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setShowMenu(false)
+                    onEdit()
+                  }}
+                  className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                >
+                  <Edit className="w-4 h-4" />
+                  Editar
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setShowMenu(false)
+                    onCrearSubcategoria()
+                  }}
+                  className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  Nueva Subcategoría
+                </button>
+                <div className="border-t border-slate-100 my-1" />
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleDelete()
+                  }}
+                  disabled={isDeleting}
+                  className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 disabled:opacity-50"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  {isDeleting ? 'Eliminando...' : 'Eliminar'}
+                </button>
+              </div>
             )}
           </div>
         </div>
@@ -126,45 +247,17 @@ function ProductCategoriaPadreCard({
       </Card.Content>
 
       <Card.Footer>
-        <div className="flex gap-2">
-          <Button
-            variant="primary"
-            fullWidth
-            icon={<FolderOpen className="w-4 h-4" />}
-            onClick={(e) => {
-              e.stopPropagation()
-              onClick()
-            }}
-          >
-            Ver Subcategorías
-          </Button>
-        </div>
-        <div className="flex gap-2 mt-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            icon={<Edit className="w-4 h-4" />}
-            onClick={(e) => {
-              e.stopPropagation()
-              onEdit()
-            }}
-            className="flex-1"
-          >
-            Editar
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            icon={<Plus className="w-4 h-4" />}
-            onClick={(e) => {
-              e.stopPropagation()
-              onCrearSubcategoria()
-            }}
-            className="flex-1"
-          >
-            Subcategoría
-          </Button>
-        </div>
+        <Button
+          variant="primary"
+          fullWidth
+          icon={<FolderOpen className="w-4 h-4" />}
+          onClick={(e) => {
+            e.stopPropagation()
+            onClick()
+          }}
+        >
+          Ver Subcategorías
+        </Button>
       </Card.Footer>
 
       {/* SymbolPicker Modal */}

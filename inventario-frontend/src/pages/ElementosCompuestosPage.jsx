@@ -398,6 +398,7 @@ function ElementosCompuestosPage() {
                     onCrearSubcategoria={() =>
                       handleCrearSubcategoria(categoria.id)
                     }
+                    onDeleted={refetchCategorias}
                   />
                 ))}
               </div>
@@ -441,6 +442,7 @@ function ElementosCompuestosPage() {
                     totalProductos={contarElementosPorCategoria(subcategoria.id)}
                     onClick={() => handleSelectSubcategoria(subcategoria)}
                     onEdit={() => handleEditarCategoria(subcategoria)}
+                    onDeleted={refetchCategorias}
                   />
                 ))}
               </div>
