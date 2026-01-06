@@ -17,10 +17,7 @@ import {
 } from 'lucide-react'
 
 // Hooks
-import {
-  useGetCategoriasProductosArbol,
-  useDeleteCategoriaProducto,
-} from '../hooks/UseCategoriasProductos'
+import { useGetCategoriasProductosArbol } from '../hooks/UseCategoriasProductos'
 
 import {
   useGetElementosCompuestos,
@@ -84,7 +81,6 @@ function ElementosCompuestosPage() {
   } = useGetElementosCompuestos()
 
   const { deleteElemento, isPending: isDeleting } = useDeleteElementoCompuesto()
-  const { deleteCategoria } = useDeleteCategoriaProducto()
 
   // ============================================
   // FUNCIONES AUXILIARES
@@ -222,36 +218,6 @@ function ElementosCompuestosPage() {
     e?.stopPropagation()
     setCategoriaToEdit(categoria)
     setShowCategoriaModal(true)
-  }
-
-  const handleEliminarCategoria = async (categoria, e) => {
-    e?.stopPropagation()
-
-    // Verificar si tiene elementos
-    const cantidadElementos = contarElementosPorCategoria(categoria.id)
-    if (cantidadElementos > 0) {
-      toast.error(
-        `No se puede eliminar. Esta categoría tiene ${cantidadElementos} plantilla(s) asociada(s).`
-      )
-      return
-    }
-
-    const confirmacion = confirm(
-      `¿Estás seguro de eliminar la categoría "${categoria.nombre}"?\n\nEsta acción no se puede deshacer.`
-    )
-
-    if (confirmacion) {
-      try {
-        await deleteCategoria(categoria.id)
-        toast.success('Categoría eliminada exitosamente')
-        refetchCategorias()
-      } catch (error) {
-        console.error('Error al eliminar categoría:', error)
-        toast.error(
-          error.response?.data?.mensaje || 'Error al eliminar la categoría'
-        )
-      }
-    }
   }
 
   // ============================================
