@@ -8,6 +8,7 @@ import { Plus, Trash2, Package, Truck, MapPin } from 'lucide-react'
 import Modal from '../common/Modal'
 import Button from '../common/Button'
 import ProductoConfiguracion from './ProductoConfiguracion'
+import VerificacionDisponibilidad from '../disponibilidad/VerificacionDisponibilidad'
 import { useCreateCotizacion, useUpdateCotizacion, useGetCotizacionCompleta } from '../../hooks/cotizaciones'
 import { useGetClientesActivos } from '../../hooks/UseClientes'
 import { useGetProductosAlquiler } from '../../hooks/UseProductosAlquiler'
@@ -641,6 +642,18 @@ const CotizacionFormModal = ({
             <span className="text-slate-600">Subtotal productos: </span>
             <span className="font-semibold">{formatearMoneda(calcularSubtotalProductos())}</span>
           </div>
+
+          {/* VERIFICACIÓN DE DISPONIBILIDAD */}
+          <VerificacionDisponibilidad
+            productos={productosSeleccionados.map(p => ({
+              compuesto_id: parseInt(p.compuesto_id) || null,
+              cantidad: parseInt(p.cantidad) || 1,
+              configuracion: p.configuracion || null
+            })).filter(p => p.compuesto_id)}
+            fechaMontaje={formData.fecha_montaje || formData.fecha_evento}
+            fechaDesmontaje={formData.fecha_desmontaje || formData.fecha_evento}
+            mostrar={productosSeleccionados.some(p => p.compuesto_id) && (formData.fecha_montaje || formData.fecha_evento)}
+          />
         </div>
 
         {/* TRANSPORTE */}

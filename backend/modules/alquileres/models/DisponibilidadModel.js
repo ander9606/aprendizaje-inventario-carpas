@@ -304,6 +304,218 @@ class DisponibilidadModel {
       hay_advertencias: advertencias.length > 0
     };
   }
+
+  // ============================================
+  // VERIFICAR DISPONIBILIDAD PARA PRODUCTOS (SIN COTIZACIÓN)
+  // Útil para verificar ANTES de guardar la cotización
+  // ============================================
+  static async verificarDisponibilidadProductos(productos, fechaInicio, fechaFin) {
+    // productos = [{ compuesto_id, cantidad, configuracion }]
+
+    // Primero obtenemos los elementos requeridos de los productos
+    const elementosRequeridos = await this.obtenerElementosDeProductos(productos);
+
+    const analisis = [];
+    let hayProblemas = false;
+
+    for (const elemento of elementosRequeridos) {
+      const requiereSeries = elemento.requiere_series === 1 || elemento.requiere_series === true;
+
+      const stockTotal = await this.obtenerStockTotal(elemento.elemento_id, requiereSeries);
+      const ocupados = await this.obtenerCantidadOcupada(
+        elemento.elemento_id,
+        requiereSeries,
+        fechaInicio,
+        fechaFin
+      );
+
+      const disponibles = stockTotal - ocupados;
+      const cantidadRequerida = parseInt(elemento.cantidad_requerida);
+      const faltantes = Math.max(0, cantidadRequerida - disponibles);
+      const tieneProblema = faltantes > 0;
+
+      if (tieneProblema) hayProblemas = true;
+
+      analisis.push({
+        elemento_id: elemento.elemento_id,
+        elemento_nombre: elemento.elemento_nombre,
+        requiere_series: requiereSeries,
+        cantidad_requerida: cantidadRequerida,
+        stock_total: stockTotal,
+        ocupados_en_fecha: ocupados,
+        disponibles: disponibles,
+        faltantes: faltantes,
+        estado: tieneProblema ? 'insuficiente' : 'ok'
+      });
+    }
+
+    return {
+      fecha_inicio: fechaInicio,
+      fecha_fin: fechaFin,
+      hay_problemas: hayProblemas,
+      elementos: analisis,
+      resumen: {
+        total_elementos: analisis.length,
+        elementos_ok: analisis.filter(e => e.estado === 'ok').length,
+        elementos_insuficientes: analisis.filter(e => e.estado === 'insuficiente').length
+      }
+    };
+  }
+
+  // ============================================
+  // OBTENER ELEMENTOS DE PRODUCTOS (SIN COTIZACIÓN)
+  // Calcula qué elementos necesitan los productos seleccionados
+  // ============================================
+  static async obtenerElementosDeProductos(productos) {
+    // productos = [{ compuesto_id, cantidad, configuracion }]
+
+    if (!productos || productos.length === 0) {
+      return [];
+    }
+
+    const elementosAgrupados = {};
+
+    for (const producto of productos) {
+      const compuestoId = producto.compuesto_id;
+      const cantidadProducto = parseInt(producto.cantidad) || 1;
+      const configuracion = producto.configuracion || {};
+
+      // Obtener componentes fijos y alternativas default del producto
+      const query = `
+        SELECT
+          cc.elemento_id,
+          e.nombre AS elemento_nombre,
+          e.requiere_series,
+          cc.cantidad,
+          cc.tipo,
+          cc.grupo,
+          cc.es_default
+        FROM compuesto_componentes cc
+        INNER JOIN elementos e ON cc.elemento_id = e.id
+        WHERE cc.compuesto_id = ?
+        ORDER BY cc.tipo, cc.grupo, cc.orden
+      `;
+      const [componentes] = await pool.query(query, [compuestoId]);
+
+      for (const comp of componentes) {
+        let incluir = false;
+        let cantidadComponente = parseInt(comp.cantidad) || 1;
+
+        if (comp.tipo === 'fijo') {
+          // Los fijos siempre se incluyen
+          incluir = true;
+        } else if (comp.tipo === 'alternativa') {
+          // Verificar si está en la configuración o es default
+          if (configuracion.alternativas && configuracion.alternativas[comp.grupo]) {
+            const seleccion = configuracion.alternativas[comp.grupo];
+            if (seleccion[comp.elemento_id]) {
+              incluir = true;
+              cantidadComponente = parseInt(seleccion[comp.elemento_id]) || cantidadComponente;
+            }
+          } else if (comp.es_default) {
+            // Si no hay configuración, usar el default
+            incluir = true;
+          }
+        } else if (comp.tipo === 'adicional') {
+          // Verificar si está en la configuración
+          if (configuracion.adicionales && configuracion.adicionales[comp.elemento_id]) {
+            incluir = true;
+            cantidadComponente = parseInt(configuracion.adicionales[comp.elemento_id]) || cantidadComponente;
+          }
+        }
+
+        if (incluir) {
+          const elementoId = comp.elemento_id;
+          const cantidadTotal = cantidadComponente * cantidadProducto;
+
+          if (elementosAgrupados[elementoId]) {
+            elementosAgrupados[elementoId].cantidad_requerida += cantidadTotal;
+          } else {
+            elementosAgrupados[elementoId] = {
+              elemento_id: elementoId,
+              elemento_nombre: comp.elemento_nombre,
+              requiere_series: comp.requiere_series,
+              cantidad_requerida: cantidadTotal
+            };
+          }
+        }
+      }
+    }
+
+    return Object.values(elementosAgrupados);
+  }
+
+  // ============================================
+  // OBTENER CALENDARIO DE OCUPACIÓN
+  // Retorna ocupaciones por elemento en un rango de fechas
+  // ============================================
+  static async obtenerCalendarioOcupacion(fechaInicio, fechaFin, elementoIds = null) {
+    let query = `
+      SELECT
+        ae.elemento_id,
+        e.nombre AS elemento_nombre,
+        e.requiere_series,
+        a.id AS alquiler_id,
+        a.fecha_salida,
+        a.fecha_retorno_esperado,
+        a.estado AS alquiler_estado,
+        c.evento_nombre,
+        cl.nombre AS cliente_nombre,
+        CASE
+          WHEN ae.serie_id IS NOT NULL THEN 1
+          ELSE ae.cantidad_lote
+        END AS cantidad_ocupada,
+        ae.serie_id,
+        s.numero_serie
+      FROM alquiler_elementos ae
+      INNER JOIN alquileres a ON ae.alquiler_id = a.id
+      INNER JOIN elementos e ON ae.elemento_id = e.id
+      LEFT JOIN cotizaciones c ON a.cotizacion_id = c.id
+      LEFT JOIN clientes cl ON c.cliente_id = cl.id
+      LEFT JOIN series s ON ae.serie_id = s.id
+      WHERE a.estado IN ('programado', 'activo')
+        AND NOT (a.fecha_retorno_esperado < ? OR a.fecha_salida > ?)
+    `;
+
+    const params = [fechaInicio, fechaFin];
+
+    if (elementoIds && elementoIds.length > 0) {
+      query += ` AND ae.elemento_id IN (?)`;
+      params.push(elementoIds);
+    }
+
+    query += ` ORDER BY ae.elemento_id, a.fecha_salida`;
+
+    const [rows] = await pool.query(query, params);
+
+    // Agrupar por elemento
+    const calendario = {};
+    for (const row of rows) {
+      const elementoId = row.elemento_id;
+      if (!calendario[elementoId]) {
+        calendario[elementoId] = {
+          elemento_id: elementoId,
+          elemento_nombre: row.elemento_nombre,
+          requiere_series: row.requiere_series,
+          ocupaciones: []
+        };
+      }
+
+      calendario[elementoId].ocupaciones.push({
+        alquiler_id: row.alquiler_id,
+        fecha_inicio: row.fecha_salida,
+        fecha_fin: row.fecha_retorno_esperado,
+        estado: row.alquiler_estado,
+        evento: row.evento_nombre,
+        cliente: row.cliente_nombre,
+        cantidad: row.cantidad_ocupada,
+        serie_id: row.serie_id,
+        numero_serie: row.numero_serie
+      });
+    }
+
+    return Object.values(calendario);
+  }
 }
 
 module.exports = DisponibilidadModel;

@@ -11,6 +11,7 @@ import { useGetCotizaciones, useAprobarCotizacion, useDeleteCotizacion, useCambi
 import CotizacionCard from '../components/cards/CotizacionCard'
 import CotizacionFormModal from '../components/forms/CotizacionFormModal'
 import CotizacionDetalleModal from '../components/modals/CotizacionDetalleModal'
+import AprobarCotizacionModal from '../components/modals/AprobarCotizacionModal'
 import Button from '../components/common/Button'
 import Spinner from '../components/common/Spinner'
 import EmptyState from '../components/common/EmptyState'
@@ -36,7 +37,8 @@ export default function CotizacionesPage() {
   const [modalState, setModalState] = useState({
     crear: false,
     editar: false,
-    detalle: false
+    detalle: false,
+    aprobar: false
   })
   const [selectedCotizacion, setSelectedCotizacion] = useState(null)
   const [selectedCotizacionId, setSelectedCotizacionId] = useState(null)
@@ -51,7 +53,7 @@ export default function CotizacionesPage() {
   }
 
   const handleCloseModal = () => {
-    setModalState({ crear: false, editar: false, detalle: false })
+    setModalState({ crear: false, editar: false, detalle: false, aprobar: false })
     setSelectedCotizacion(null)
     setSelectedCotizacionId(null)
   }
@@ -70,15 +72,22 @@ export default function CotizacionesPage() {
     navigate('/alquileres/clientes')
   }
 
-  const handleAprobar = async (cotizacion) => {
+  // Abrir modal de aprobación
+  const handleAprobar = (cotizacion) => {
+    setSelectedCotizacionId(cotizacion.id)
+    setModalState({ ...modalState, detalle: false, aprobar: true })
+  }
+
+  // Confirmar aprobación desde el modal
+  const handleConfirmarAprobacion = async ({ id, opciones }) => {
     try {
-      await aprobarCotizacion({ id: cotizacion.id, opciones: {} })
+      await aprobarCotizacion({ id, opciones })
       handleCloseModal()
       // Navegar a alquileres después de aprobar
       navigate('/alquileres')
     } catch (error) {
       console.error('Error al aprobar:', error)
-      alert(error.response?.data?.message || 'Error al aprobar la cotización')
+      alert(error.response?.data?.mensaje || error.response?.data?.message || 'Error al aprobar la cotización')
     }
   }
 
@@ -281,6 +290,14 @@ export default function CotizacionesPage() {
         onRechazar={handleRechazar}
         isAprobando={isAprobando}
         isEliminando={isEliminando}
+      />
+
+      <AprobarCotizacionModal
+        isOpen={modalState.aprobar}
+        onClose={handleCloseModal}
+        cotizacionId={selectedCotizacionId}
+        onAprobar={handleConfirmarAprobacion}
+        isAprobando={isAprobando}
       />
     </div>
   )
