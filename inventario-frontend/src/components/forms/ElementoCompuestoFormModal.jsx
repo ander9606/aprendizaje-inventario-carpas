@@ -83,7 +83,7 @@ function ElementoCompuestoFormModal({
   const { actualizarComponentes, isPending: isUpdatingComponentes } = useActualizarComponentes()
 
   // Cargar componentes existentes si estamos editando
-  const { componentes: componentesExistentes, isLoading: loadingComponentes } = useGetComponentesAgrupados(
+  const { componentes: componentesExistentes } = useGetComponentesAgrupados(
     isEditMode && isOpen ? elemento?.id : null
   )
 

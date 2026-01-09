@@ -24,9 +24,7 @@ export const ElementoSerieCardExample = ({ elementoId }) => {
     series,
     elemento,
     estadisticas,
-    series_por_ubicacion,
     total,
-    disponibles,
     isLoading,
     error
   } = useGetSeries(elementoId)
@@ -34,7 +32,7 @@ export const ElementoSerieCardExample = ({ elementoId }) => {
   // ============================================
   // 2. ESTADOS LOCALES (si necesitas)
   // ============================================
-  const [alertas, setAlertas] = useState([])
+  const [alertas] = useState([])
 
   // ============================================
   // 3. HANDLERS PARA LAS ACCIONES
@@ -130,12 +128,10 @@ import { useGetLotes } from '../../hooks/Uselotes'
 export const ElementoLoteCardExample = ({ elementoId }) => {
   // 1. USAR EL HOOK
   const {
-    lotes,
     elemento,
     estadisticas,
     lotes_por_ubicacion,
     cantidad_total,
-    cantidad_disponible,
     isLoading,
     error
   } = useGetLotes(elementoId)
