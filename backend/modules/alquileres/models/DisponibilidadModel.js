@@ -36,6 +36,8 @@ class DisponibilidadModel {
   // Prioridad: series > lotes > cantidad en tabla elementos
   // ============================================
   static async obtenerStockTotal(elementoId, requiereSeries) {
+    console.log(`📦 obtenerStockTotal(elementoId=${elementoId}, requiereSeries=${requiereSeries})`);
+
     if (requiereSeries) {
       // Contar series disponibles
       const [result] = await pool.query(`
@@ -44,14 +46,18 @@ class DisponibilidadModel {
         WHERE id_elemento = ? AND estado = 'disponible'
       `, [elementoId]);
       const totalSeries = parseInt(result[0].total);
+      console.log(`   📊 Series disponibles: ${totalSeries}`);
 
       // Si hay series, usarlas
       if (totalSeries > 0) {
+        console.log(`   ✅ Usando series: ${totalSeries}`);
         return totalSeries;
       }
 
       // Fallback: usar cantidad de la tabla elementos
-      return await this.obtenerCantidadElemento(elementoId);
+      const cantidadElemento = await this.obtenerCantidadElemento(elementoId);
+      console.log(`   🔄 Fallback elementos.cantidad: ${cantidadElemento}`);
+      return cantidadElemento;
     } else {
       // Sumar cantidad de lotes disponibles
       const [result] = await pool.query(`
@@ -60,14 +66,18 @@ class DisponibilidadModel {
         WHERE elemento_id = ? AND estado = 'disponible'
       `, [elementoId]);
       const totalLotes = parseInt(result[0].total);
+      console.log(`   📊 Lotes disponibles: ${totalLotes}`);
 
       // Si hay lotes, usarlos
       if (totalLotes > 0) {
+        console.log(`   ✅ Usando lotes: ${totalLotes}`);
         return totalLotes;
       }
 
       // Fallback: usar cantidad de la tabla elementos
-      return await this.obtenerCantidadElemento(elementoId);
+      const cantidadElemento = await this.obtenerCantidadElemento(elementoId);
+      console.log(`   🔄 Fallback elementos.cantidad: ${cantidadElemento}`);
+      return cantidadElemento;
     }
   }
 
@@ -76,11 +86,13 @@ class DisponibilidadModel {
   // ============================================
   static async obtenerCantidadElemento(elementoId) {
     const [result] = await pool.query(`
-      SELECT COALESCE(cantidad, 0) AS total
+      SELECT COALESCE(cantidad, 0) AS total, nombre
       FROM elementos
       WHERE id = ?
     `, [elementoId]);
-    return result.length > 0 ? parseInt(result[0].total) : 0;
+    const cantidad = result.length > 0 ? parseInt(result[0].total) : 0;
+    console.log(`   📋 elementos[${elementoId}] "${result[0]?.nombre || '?'}": cantidad = ${cantidad}`);
+    return cantidad;
   }
 
   // ============================================
@@ -345,9 +357,14 @@ class DisponibilidadModel {
   // ============================================
   static async verificarDisponibilidadProductos(productos, fechaInicio, fechaFin) {
     // productos = [{ compuesto_id, cantidad, configuracion }]
+    console.log('\n🔍 ========== VERIFICAR DISPONIBILIDAD PRODUCTOS ==========');
+    console.log(`📅 Rango: ${fechaInicio} a ${fechaFin}`);
+    console.log('📦 Productos recibidos:', JSON.stringify(productos, null, 2));
 
     // Primero obtenemos los elementos requeridos de los productos
     const elementosRequeridos = await this.obtenerElementosDeProductos(productos);
+    console.log(`📋 Elementos requeridos (${elementosRequeridos.length}):`,
+      elementosRequeridos.map(e => `${e.elemento_nombre}(id=${e.elemento_id}, cant=${e.cantidad_requerida}, series=${e.requiere_series})`));
 
     const analisis = [];
     let hayProblemas = false;
@@ -370,6 +387,10 @@ class DisponibilidadModel {
 
       if (tieneProblema) hayProblemas = true;
 
+      console.log(`\n   📊 Resultado para ${elemento.elemento_nombre}:`);
+      console.log(`      Stock total: ${stockTotal}, Ocupados: ${ocupados}, Disponibles: ${disponibles}`);
+      console.log(`      Requerido: ${cantidadRequerida}, Faltantes: ${faltantes}, Estado: ${tieneProblema ? 'INSUFICIENTE' : 'OK'}`);
+
       analisis.push({
         elemento_id: elemento.elemento_id,
         elemento_nombre: elemento.elemento_nombre,
@@ -382,6 +403,8 @@ class DisponibilidadModel {
         estado: tieneProblema ? 'insuficiente' : 'ok'
       });
     }
+
+    console.log('\n🔍 ========== FIN VERIFICACIÓN ==========\n');
 
     return {
       fecha_inicio: fechaInicio,
@@ -402,8 +425,10 @@ class DisponibilidadModel {
   // ============================================
   static async obtenerElementosDeProductos(productos) {
     // productos = [{ compuesto_id, cantidad, configuracion }]
+    console.log('\n📦 obtenerElementosDeProductos - Procesando productos...');
 
     if (!productos || productos.length === 0) {
+      console.log('   ⚠️ No hay productos para procesar');
       return [];
     }
 
@@ -413,6 +438,7 @@ class DisponibilidadModel {
       const compuestoId = producto.compuesto_id;
       const cantidadProducto = parseInt(producto.cantidad) || 1;
       const configuracion = producto.configuracion || {};
+      console.log(`\n   🏗️ Producto compuesto_id=${compuestoId}, cantidad=${cantidadProducto}`);
 
       // Obtener componentes fijos y alternativas default del producto
       const query = `
@@ -430,6 +456,7 @@ class DisponibilidadModel {
         ORDER BY cc.tipo, cc.grupo, cc.orden
       `;
       const [componentes] = await pool.query(query, [compuestoId]);
+      console.log(`   📋 Componentes encontrados: ${componentes.length}`);
 
       for (const comp of componentes) {
         let incluir = false;
@@ -461,6 +488,7 @@ class DisponibilidadModel {
         if (incluir) {
           const elementoId = comp.elemento_id;
           const cantidadTotal = cantidadComponente * cantidadProducto;
+          console.log(`      ✅ Incluido: ${comp.elemento_nombre} (id=${elementoId}, tipo=${comp.tipo}, cant=${cantidadTotal}, requiere_series=${comp.requiere_series})`);
 
           if (elementosAgrupados[elementoId]) {
             elementosAgrupados[elementoId].cantidad_requerida += cantidadTotal;
@@ -476,6 +504,7 @@ class DisponibilidadModel {
       }
     }
 
+    console.log(`\n   📊 Total elementos agrupados: ${Object.keys(elementosAgrupados).length}`);
     return Object.values(elementosAgrupados);
   }
 
