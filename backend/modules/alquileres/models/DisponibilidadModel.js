@@ -33,7 +33,7 @@ class DisponibilidadModel {
 
   // ============================================
   // OBTENER STOCK TOTAL POR ELEMENTO
-  // Respeta requiere_series: TRUE = series, FALSE = lotes
+  // Prioridad: series > lotes > cantidad en tabla elementos
   // ============================================
   static async obtenerStockTotal(elementoId, requiereSeries) {
     if (requiereSeries) {
@@ -43,7 +43,15 @@ class DisponibilidadModel {
         FROM series
         WHERE id_elemento = ? AND estado = 'disponible'
       `, [elementoId]);
-      return parseInt(result[0].total);
+      const totalSeries = parseInt(result[0].total);
+
+      // Si hay series, usarlas
+      if (totalSeries > 0) {
+        return totalSeries;
+      }
+
+      // Fallback: usar cantidad de la tabla elementos
+      return await this.obtenerCantidadElemento(elementoId);
     } else {
       // Sumar cantidad de lotes disponibles
       const [result] = await pool.query(`
@@ -51,8 +59,28 @@ class DisponibilidadModel {
         FROM lotes
         WHERE elemento_id = ? AND estado = 'disponible'
       `, [elementoId]);
-      return parseInt(result[0].total);
+      const totalLotes = parseInt(result[0].total);
+
+      // Si hay lotes, usarlos
+      if (totalLotes > 0) {
+        return totalLotes;
+      }
+
+      // Fallback: usar cantidad de la tabla elementos
+      return await this.obtenerCantidadElemento(elementoId);
     }
+  }
+
+  // ============================================
+  // OBTENER CANTIDAD DESDE TABLA ELEMENTOS (fallback)
+  // ============================================
+  static async obtenerCantidadElemento(elementoId) {
+    const [result] = await pool.query(`
+      SELECT COALESCE(cantidad, 0) AS total
+      FROM elementos
+      WHERE id = ?
+    `, [elementoId]);
+    return result.length > 0 ? parseInt(result[0].total) : 0;
   }
 
   // ============================================
