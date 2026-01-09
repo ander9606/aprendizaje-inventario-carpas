@@ -41,7 +41,7 @@ class DisponibilidadModel {
       const [result] = await pool.query(`
         SELECT COUNT(*) AS total
         FROM series
-        WHERE elemento_id = ? AND estado = 'disponible'
+        WHERE id_elemento = ? AND estado = 'disponible'
       `, [elementoId]);
       return parseInt(result[0].total);
     } else {
@@ -156,7 +156,7 @@ class DisponibilidadModel {
         u.id AS ubicacion_id
       FROM series s
       LEFT JOIN ubicaciones u ON s.ubicacion_id = u.id
-      WHERE s.elemento_id = ?
+      WHERE s.id_elemento = ?
         AND s.estado = 'disponible'
         AND s.id NOT IN (
           SELECT ae.serie_id
