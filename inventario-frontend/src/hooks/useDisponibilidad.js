@@ -13,25 +13,15 @@ import apiDisponibilidad from '../api/apiDisponibilidad'
  */
 export const useVerificarDisponibilidadProductos = () => {
   const [resultado, setResultado] = useState(null)
+  const [isLoading, setIsLoading] = useState(false)
 
-  const mutation = useMutation({
-    mutationFn: ({ productos, fechaMontaje, fechaDesmontaje }) =>
-      apiDisponibilidad.verificarProductos(productos, fechaMontaje, fechaDesmontaje),
-    retry: 0,
-    onSuccess: (data) => {
-      console.debug('useVerificarDisponibilidad - onSuccess response:', data)
-      // Aceptar tanto respuesta completa { data: ... } como payload directo
-      setResultado(data?.data || data)
-    },
-    onError: () => {
-      setResultado(null)
-    }
-  })
-
-  // Debounce control (evita llamadas repetidas en corto periodo)
+  // Refs para evitar dependencias cambiantes
   const debounceTimer = useRef(null)
+  const lastRequestId = useRef(0)
 
+  // Función estable de verificación (sin dependencias que cambien)
   const verificar = useCallback((productos, fechaMontaje, fechaDesmontaje) => {
+    // Validar inputs
     if (!productos || productos.length === 0 || !fechaMontaje) {
       setResultado(null)
       return
@@ -42,29 +32,57 @@ export const useVerificarDisponibilidadProductos = () => {
       clearTimeout(debounceTimer.current)
     }
 
-    // Esperar 500ms antes de ejecutar la mutación
-    debounceTimer.current = setTimeout(() => {
-      mutation.mutate({ productos, fechaMontaje, fechaDesmontaje })
-    }, 500)
-  }, [mutation])
+    // Debounce de 600ms
+    debounceTimer.current = setTimeout(async () => {
+      const requestId = ++lastRequestId.current
+      setIsLoading(true)
 
-  // Limpiar timer al desmontar
+      try {
+        const response = await apiDisponibilidad.verificarProductos(
+          productos,
+          fechaMontaje,
+          fechaDesmontaje
+        )
+
+        // Solo actualizar si es la última petición
+        if (requestId === lastRequestId.current) {
+          setResultado(response?.data || response)
+        }
+      } catch (error) {
+        console.error('Error verificando disponibilidad:', error)
+        if (requestId === lastRequestId.current) {
+          setResultado(null)
+        }
+      } finally {
+        if (requestId === lastRequestId.current) {
+          setIsLoading(false)
+        }
+      }
+    }, 600)
+  }, []) // Sin dependencias - función estable
+
+  // Limpiar al desmontar
   useEffect(() => {
     return () => {
-      if (debounceTimer.current) clearTimeout(debounceTimer.current)
+      if (debounceTimer.current) {
+        clearTimeout(debounceTimer.current)
+      }
     }
   }, [])
 
   const limpiar = useCallback(() => {
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current)
+    }
     setResultado(null)
+    setIsLoading(false)
   }, [])
 
   return {
     verificar,
     limpiar,
     resultado,
-    isLoading: mutation.isPending,
-    error: mutation.error
+    isLoading
   }
 }
 

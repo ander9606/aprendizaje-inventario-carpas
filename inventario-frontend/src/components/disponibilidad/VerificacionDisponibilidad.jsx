@@ -25,7 +25,7 @@ const VerificacionDisponibilidad = ({
 }) => {
   const { verificar, limpiar, resultado, isLoading } = useVerificarDisponibilidadProductos()
 
-  // Verificar cuando cambien los datos
+  // Verificar cuando cambien los datos (el debounce está en el hook)
   useEffect(() => {
     if (!mostrar) {
       limpiar()
@@ -35,15 +35,11 @@ const VerificacionDisponibilidad = ({
     // Solo verificar si hay productos y fecha
     const productosValidos = productos.filter(p => p.compuesto_id)
     if (productosValidos.length > 0 && fechaMontaje) {
-      // Debounce de 500ms para no hacer muchas peticiones
-      const timer = setTimeout(() => {
-        verificar(productosValidos, fechaMontaje, fechaDesmontaje || fechaMontaje)
-      }, 500)
-      return () => clearTimeout(timer)
+      verificar(productosValidos, fechaMontaje, fechaDesmontaje || fechaMontaje)
     } else {
       limpiar()
     }
-  }, [productos, fechaMontaje, fechaDesmontaje, mostrar, verificar, limpiar])
+  }, [productos, fechaMontaje, fechaDesmontaje, mostrar]) // verificar y limpiar son estables
 
   // No mostrar si no hay datos
   if (!mostrar || !fechaMontaje || productos.filter(p => p.compuesto_id).length === 0) {
