@@ -10,7 +10,10 @@ import { Calendar, Wrench, PartyPopper, PackageOpen, TrendingUp } from 'lucide-r
  *
  * Tarjeta individual de estadística
  */
-const StatCard = ({ icon: Icon, label, value, color = 'slate' }) => {
+const StatCard = (props) => {
+  const { icon, label, value, color = 'slate' } = props
+  const IconComponent = icon
+
   const colorMap = {
     slate: 'bg-slate-100 text-slate-600',
     blue: 'bg-blue-100 text-blue-600',
@@ -23,7 +26,7 @@ const StatCard = ({ icon: Icon, label, value, color = 'slate' }) => {
     <div className="bg-white rounded-lg border border-slate-200 p-4">
       <div className="flex items-center gap-3">
         <div className={`p-2 rounded-lg ${colorMap[color]}`}>
-          <Icon className="w-5 h-5" />
+          <IconComponent className="w-5 h-5" />
         </div>
         <div>
           <p className="text-2xl font-bold text-slate-900">{value}</p>

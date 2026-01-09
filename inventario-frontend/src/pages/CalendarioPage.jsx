@@ -46,7 +46,7 @@ export default function CalendarioPage() {
 
   const { cotizaciones, isLoading, error, refetch } = useGetCotizaciones()
 
-  const { events, stats, findCotizacionByEventId } = useCalendarEvents(cotizaciones, {
+  const { events, stats } = useCalendarEvents(cotizaciones, {
     showMontaje: filters.showMontaje,
     showEvento: filters.showEvento,
     showDesmontaje: filters.showDesmontaje,
