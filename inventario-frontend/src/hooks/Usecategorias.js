@@ -100,6 +100,7 @@ export const useCreateCategoria = () => {
   
   const { mutate, mutateAsync, isLoading, error } = useMutation({
     mutationFn: categoriasAPI.crear,
+    retry: 0,
     
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['categorias'] })
@@ -130,6 +131,7 @@ export const useUpdateCategoria = () => {
   
   const { mutate, mutateAsync, isLoading, error } = useMutation({
     mutationFn: ({ id, ...data }) => categoriasAPI.actualizar(id, data),
+    retry: 0,
     
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['categorias'] })
@@ -158,6 +160,7 @@ export const useDeleteCategoria = () => {
 
   const { mutate, mutateAsync, isLoading, error } = useMutation({
     mutationFn: categoriasAPI.eliminar,
+    retry: 0,
 
     onSuccess: () => {
       // Invalidar TODAS las queries relacionadas con categorías

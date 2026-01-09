@@ -97,8 +97,9 @@ class DisponibilidadModel {
         WHERE ae.elemento_id = ?
           AND ae.serie_id IS NOT NULL
           AND a.estado IN ('programado', 'activo')
-          AND NOT (a.fecha_retorno_esperado < ? OR a.fecha_salida > ?)
-      `, [elementoId, fechaInicio, fechaFin]);
+          AND a.fecha_salida <= ?
+          AND a.fecha_retorno_esperado >= ?
+      `, [elementoId, fechaFin, fechaInicio]);
       return parseInt(result[0].total);
     } else {
       // Sumar cantidad de lotes ocupada en el rango
@@ -109,8 +110,9 @@ class DisponibilidadModel {
         WHERE ae.elemento_id = ?
           AND ae.lote_id IS NOT NULL
           AND a.estado IN ('programado', 'activo')
-          AND NOT (a.fecha_retorno_esperado < ? OR a.fecha_salida > ?)
-      `, [elementoId, fechaInicio, fechaFin]);
+          AND a.fecha_salida <= ?
+          AND a.fecha_retorno_esperado >= ?
+      `, [elementoId, fechaFin, fechaInicio]);
       return parseInt(result[0].total);
     }
   }
@@ -192,7 +194,8 @@ class DisponibilidadModel {
           INNER JOIN alquileres a ON ae.alquiler_id = a.id
           WHERE ae.serie_id IS NOT NULL
             AND a.estado IN ('programado', 'activo')
-            AND NOT (a.fecha_retorno_esperado < ? OR a.fecha_salida > ?)
+              AND a.fecha_salida <= ?
+              AND a.fecha_retorno_esperado >= ?
         )
       ORDER BY s.numero_serie
     `;
@@ -201,7 +204,9 @@ class DisponibilidadModel {
       query += ` LIMIT ${parseInt(limite)}`;
     }
 
-    const [rows] = await pool.query(query, [elementoId, fechaInicio, fechaFin]);
+    // Nota: el subquery compara `a.fecha_salida <= ?` y `a.fecha_retorno_esperado >= ?`,
+    // por lo que el orden correcto es (fechaFin, fechaInicio)
+    const [rows] = await pool.query(query, [elementoId, fechaFin, fechaInicio]);
     return rows;
   }
 
@@ -224,7 +229,8 @@ class DisponibilidadModel {
            INNER JOIN alquileres a ON ae.alquiler_id = a.id
            WHERE ae.lote_id = l.id
              AND a.estado IN ('programado', 'activo')
-             AND NOT (a.fecha_retorno_esperado < ? OR a.fecha_salida > ?)
+               AND a.fecha_salida <= ?
+               AND a.fecha_retorno_esperado >= ?
           ), 0
         ) AS cantidad_ocupada
       FROM lotes l
@@ -234,7 +240,7 @@ class DisponibilidadModel {
       HAVING (l.cantidad - cantidad_ocupada) > 0
       ORDER BY (l.cantidad - cantidad_ocupada) DESC
     `;
-    const [rows] = await pool.query(query, [fechaInicio, fechaFin, elementoId]);
+    const [rows] = await pool.query(query, [fechaFin, fechaInicio, elementoId]);
 
     return rows.map(lote => ({
       ...lote,
@@ -502,10 +508,11 @@ class DisponibilidadModel {
       LEFT JOIN clientes cl ON c.cliente_id = cl.id
       LEFT JOIN series s ON ae.serie_id = s.id
       WHERE a.estado IN ('programado', 'activo')
-        AND NOT (a.fecha_retorno_esperado < ? OR a.fecha_salida > ?)
+        AND a.fecha_salida <= ?
+        AND a.fecha_retorno_esperado >= ?
     `;
 
-    const params = [fechaInicio, fechaFin];
+    const params = [fechaFin, fechaInicio];
 
     if (elementoIds && elementoIds.length > 0) {
       query += ` AND ae.elemento_id IN (?)`;

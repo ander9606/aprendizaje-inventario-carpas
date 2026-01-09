@@ -3,7 +3,7 @@
 // Verificación de disponibilidad de elementos
 // ============================================
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import apiDisponibilidad from '../api/apiDisponibilidad'
 
@@ -17,21 +17,43 @@ export const useVerificarDisponibilidadProductos = () => {
   const mutation = useMutation({
     mutationFn: ({ productos, fechaMontaje, fechaDesmontaje }) =>
       apiDisponibilidad.verificarProductos(productos, fechaMontaje, fechaDesmontaje),
+    retry: 0,
     onSuccess: (data) => {
-      setResultado(data.data)
+      console.debug('useVerificarDisponibilidad - onSuccess response:', data)
+      // Aceptar tanto respuesta completa { data: ... } como payload directo
+      setResultado(data?.data || data)
     },
     onError: () => {
       setResultado(null)
     }
   })
 
+  // Debounce control (evita llamadas repetidas en corto periodo)
+  const debounceTimer = useRef(null)
+
   const verificar = useCallback((productos, fechaMontaje, fechaDesmontaje) => {
     if (!productos || productos.length === 0 || !fechaMontaje) {
       setResultado(null)
       return
     }
-    mutation.mutate({ productos, fechaMontaje, fechaDesmontaje })
+
+    // Limpiar timer previo
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current)
+    }
+
+    // Esperar 500ms antes de ejecutar la mutación
+    debounceTimer.current = setTimeout(() => {
+      mutation.mutate({ productos, fechaMontaje, fechaDesmontaje })
+    }, 500)
   }, [mutation])
+
+  // Limpiar timer al desmontar
+  useEffect(() => {
+    return () => {
+      if (debounceTimer.current) clearTimeout(debounceTimer.current)
+    }
+  }, [])
 
   const limpiar = useCallback(() => {
     setResultado(null)
@@ -94,8 +116,10 @@ export const useCalendarioOcupacion = (fechaInicio, fechaFin, elementoIds = null
  */
 export const useDescomponerProductos = () => {
   const mutation = useMutation({
-    mutationFn: (productos) => apiDisponibilidad.descomponerProductos(productos)
+    mutationFn: (productos) => apiDisponibilidad.descomponerProductos(productos),
+    retry: 0
   })
+
 
   return {
     descomponer: mutation.mutate,

@@ -359,6 +359,7 @@ export const useMoverCantidad = () => {
 
   const mutation = useMutation({
     mutationFn: lotesAPI.moverCantidad,
+    retry: 0,
 
     onSuccess: (response) => {
       const elementoId = response.data?.elemento_id
@@ -431,6 +432,7 @@ export const useAjustarLote = () => {
   
   const { mutateAsync, isLoading, error } = useMutation({
     mutationFn: ({ loteId, ...data }) => lotesAPI.ajustar(loteId, data),
+    retry: 0,
     
     onSuccess: () => {
       // Invalidar todo el cache de lotes y elementos
@@ -477,6 +479,7 @@ export const useDeleteLote = () => {
   
   const { mutateAsync, isLoading, error } = useMutation({
     mutationFn: lotesAPI.eliminar,
+    retry: 0,
     
     onSuccess: () => {
       // Invalidar todo el cache de lotes y elementos

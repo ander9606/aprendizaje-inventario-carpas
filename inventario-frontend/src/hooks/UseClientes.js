@@ -93,6 +93,7 @@ export const useCreateCliente = () => {
 
   return useMutation({
     mutationFn: apiClientes.crear,
+    retry: 0,
     onSuccess: () => {
       queryClient.invalidateQueries(['clientes'])
     }
@@ -109,6 +110,7 @@ export const useUpdateCliente = () => {
 
   return useMutation({
     mutationFn: ({ id, data }) => apiClientes.actualizar(id, data),
+    retry: 0,
     onSuccess: () => {
       queryClient.invalidateQueries(['clientes'])
     }
@@ -125,6 +127,7 @@ export const useDeleteCliente = () => {
 
   return useMutation({
     mutationFn: apiClientes.eliminar,
+    retry: 0,
     onSuccess: () => {
       queryClient.invalidateQueries(['clientes'])
     }

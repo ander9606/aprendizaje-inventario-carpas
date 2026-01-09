@@ -50,6 +50,7 @@ export const useCreateCiudad = () => {
 
   return useMutation({
     mutationFn: apiCiudades.crear,
+    retry: 0,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ciudades'] })
       queryClient.invalidateQueries({ queryKey: ['tarifas-transporte'] })
@@ -66,6 +67,7 @@ export const useUpdateCiudad = () => {
 
   return useMutation({
     mutationFn: ({ id, data }) => apiCiudades.actualizar(id, data),
+    retry: 0,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ciudades'] })
       queryClient.invalidateQueries({ queryKey: ['tarifas-transporte'] })
@@ -82,6 +84,7 @@ export const useDeleteCiudad = () => {
 
   return useMutation({
     mutationFn: apiCiudades.eliminar,
+    retry: 0,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ciudades'] })
       queryClient.invalidateQueries({ queryKey: ['tarifas-transporte'] })

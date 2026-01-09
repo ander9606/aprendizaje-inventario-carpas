@@ -14,6 +14,7 @@ export const useCreateCotizacion = () => {
 
   return useMutation({
     mutationFn: apiCotizaciones.crear,
+    retry: 0,
     onSuccess: () => {
       queryClient.invalidateQueries(['cotizaciones'])
     }
@@ -28,6 +29,7 @@ export const useUpdateCotizacion = () => {
 
   return useMutation({
     mutationFn: ({ id, data }) => apiCotizaciones.actualizar(id, data),
+    retry: 0,
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries(['cotizaciones'])
       queryClient.invalidateQueries(['cotizaciones', variables.id, 'completa'])
@@ -43,6 +45,7 @@ export const useAprobarCotizacion = () => {
 
   return useMutation({
     mutationFn: ({ id, opciones }) => apiCotizaciones.aprobar(id, opciones),
+    retry: 0,
     onSuccess: () => {
       queryClient.invalidateQueries(['cotizaciones'])
       queryClient.invalidateQueries(['alquileres'])
@@ -58,6 +61,7 @@ export const useCambiarEstadoCotizacion = () => {
 
   return useMutation({
     mutationFn: ({ id, estado }) => apiCotizaciones.cambiarEstado(id, estado),
+    retry: 0,
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries(['cotizaciones'])
       queryClient.invalidateQueries(['cotizaciones', variables.id, 'completa'])
@@ -73,6 +77,7 @@ export const useDuplicarCotizacion = () => {
 
   return useMutation({
     mutationFn: apiCotizaciones.duplicar,
+    retry: 0,
     onSuccess: () => {
       queryClient.invalidateQueries(['cotizaciones'])
     }
@@ -87,6 +92,7 @@ export const useDeleteCotizacion = () => {
 
   return useMutation({
     mutationFn: apiCotizaciones.eliminar,
+    retry: 0,
     onSuccess: () => {
       queryClient.invalidateQueries(['cotizaciones'])
     }

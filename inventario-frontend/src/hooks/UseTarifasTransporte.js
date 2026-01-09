@@ -86,6 +86,7 @@ export const useCreateTarifa = () => {
 
   return useMutation({
     mutationFn: apiTarifasTransporte.crear,
+    retry: 0,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tarifas-transporte'] })
     }
@@ -101,6 +102,7 @@ export const useUpdateTarifa = () => {
 
   return useMutation({
     mutationFn: ({ id, data }) => apiTarifasTransporte.actualizar(id, data),
+    retry: 0,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tarifas-transporte'] })
     }
@@ -116,6 +118,7 @@ export const useDeleteTarifa = () => {
 
   return useMutation({
     mutationFn: apiTarifasTransporte.eliminar,
+    retry: 0,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tarifas-transporte'] })
     }

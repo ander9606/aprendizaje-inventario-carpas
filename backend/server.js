@@ -41,9 +41,15 @@ const PORT = process.env.PORT || 3000;
 // CONFIGURACIÓN DE SEGURIDAD
 // ============================================
 
-// CORS - Configurado para frontend específico
+// CORS - Configurado para frontend específico (acepta varios orígenes en dev)
+const allowedOrigins = [process.env.FRONTEND_URL || 'http://localhost:5173', 'http://localhost:5174'];
 const corsOptions = {
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    origin: (origin, callback) => {
+        // allow requests with no origin like curl or server-to-server
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.includes(origin)) return callback(null, true);
+        return callback(new Error('Not allowed by CORS'));
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization']
@@ -65,7 +71,12 @@ const limiter = rateLimit({
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use(httpLogger); // Logging de todas las peticiones HTTP
-app.use('/api/', limiter); // Aplicar rate limiting solo a rutas /api/
+// Aplicar rate limiting solo en producción para evitar 429 durante desarrollo
+if (process.env.NODE_ENV === 'production') {
+    app.use('/api/', limiter);
+} else {
+    // En desarrollo no aplicar limitador (evita bloqueos por pruebas locales)
+}
 
 // Ruta raíz
 app.get('/', (req, res) => {
