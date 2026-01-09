@@ -15,10 +15,8 @@ const CotizacionDetalleModal = ({
   cotizacionId,
   onEditar,
   onAprobar,
-  onEliminar,
   onRechazar,
-  isAprobando = false,
-  isEliminando = false
+  isAprobando = false
 }) => {
 
   // Cargar cotización completa con productos y transporte
@@ -56,10 +54,6 @@ const CotizacionDetalleModal = ({
     return estilos[estado] || 'bg-gray-100 text-gray-800 border-gray-300'
   }
 
-  const handleImprimir = () => {
-    window.print()
-  }
-
   const handleEditar = () => {
     if (onEditar && cotizacion) onEditar(cotizacion)
     onClose()
@@ -67,12 +61,6 @@ const CotizacionDetalleModal = ({
 
   const handleAprobar = () => {
     if (onAprobar && cotizacion) onAprobar(cotizacion)
-  }
-
-  const handleEliminar = () => {
-    if (confirm('¿Está seguro de eliminar esta cotización? Esta acción no se puede deshacer.')) {
-      if (onEliminar && cotizacion) onEliminar(cotizacion)
-    }
   }
 
   const handleRechazar = () => {

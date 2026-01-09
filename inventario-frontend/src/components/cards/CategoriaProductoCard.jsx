@@ -35,12 +35,11 @@ const CategoriaProductoCard = ({
   // ============================================
   // HOOKS
   // ============================================
-  const { updateCategoria, isPending: isUpdating } = useUpdateCategoriaProducto()
+  const { updateCategoria } = useUpdateCategoriaProducto()
   const { deleteCategoria, isPending: isDeleting } = useDeleteCategoriaProducto()
 
   // Determinar si es categoría padre o subcategoría
   const esPadre = !categoria.categoria_padre_id
-  const tieneHijos = totalHijos > 0 || (categoria.hijos && categoria.hijos.length > 0)
 
   // ============================================
   // HANDLERS
