@@ -22,6 +22,7 @@ import ElementosCompuestosPage from './pages/ElementosCompuestosPage'
 // Importar páginas - Alquileres
 import ClientesPage from './pages/ClientesPage'
 import CotizacionesPage from './pages/CotizacionesPage'
+import CalendarioPage from './pages/CalendarioPage'
 
 // Importar páginas - Configuración
 import ConfiguracionPage from './pages/ConfiguracionPage'
@@ -149,6 +150,12 @@ function App() {
       <Route
         path="/alquileres/clientes"
         element={<ClientesPage />}
+      />
+
+      {/* Calendario */}
+      <Route
+        path="/alquileres/calendario"
+        element={<CalendarioPage />}
       />
 
       {/* ============================================

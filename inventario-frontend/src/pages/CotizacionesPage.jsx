@@ -4,7 +4,7 @@
 // ============================================
 
 import { useState } from 'react'
-import { Plus, FileText, ArrowLeft, Users, Filter } from 'lucide-react'
+import { Plus, FileText, ArrowLeft, Users, Filter, Calendar } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useNavigation } from '../hooks/UseNavigation'
 import { useGetCotizaciones, useAprobarCotizacion, useDeleteCotizacion, useCambiarEstadoCotizacion } from '../hooks/cotizaciones'
@@ -70,6 +70,10 @@ export default function CotizacionesPage() {
 
   const handleIrClientes = () => {
     navigate('/alquileres/clientes')
+  }
+
+  const handleIrCalendario = () => {
+    navigate('/alquileres/calendario')
   }
 
   // Abrir modal de aprobación
@@ -183,6 +187,13 @@ export default function CotizacionesPage() {
 
             {/* ACCIONES */}
             <div className="flex items-center gap-3">
+              <Button
+                variant="secondary"
+                icon={<Calendar className="w-4 h-4" />}
+                onClick={handleIrCalendario}
+              >
+                Calendario
+              </Button>
               <Button
                 variant="secondary"
                 icon={<Users className="w-4 h-4" />}
