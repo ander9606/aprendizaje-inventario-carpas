@@ -14,6 +14,7 @@ import SubcategoriaCard from '../components/cards/SubcategoriaCard'
 import SubcategoriaFormModal from '../components/forms/SubcategoriaFormModal'
 import Breadcrumb from '../components/common/Breadcrum'
 import Button from '../components/common/Button'
+import { IconoCategoria } from '../components/common/IconoCategoria'
 import Spinner from '../components/common/Spinner'
 import EmptyState from '../components/common/EmptyState'
 import { toast } from 'sonner'
@@ -255,7 +256,7 @@ export default function Subcategorias() {
               
               {/* Título con emoji */}
               <div className="flex items-center gap-3">
-                <span className="text-4xl">{categoria.emoji || '📦'}</span>
+                <IconoCategoria value={categoria.emoji} className="text-4xl" size={40} />
                 <div>
                   <h1 className="text-2xl font-bold text-slate-900">
                     {categoria.nombre}

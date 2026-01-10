@@ -18,6 +18,7 @@ import SubcategoriaFormModal from '../components/forms/SubcategoriaFormModal'
 import Button from '../components/common/Button'
 import Spinner from '../components/common/Spinner'
 import EmptyState from '../components/common/EmptyState'
+import { IconoCategoria } from '../components/common/IconoCategoria'
 
 
 /**
@@ -334,7 +335,7 @@ export default function Dashboard() {
                               onClick={() => handleGoToCategoria(cat)}
                               className="w-full flex items-center gap-3 p-2 hover:bg-blue-50 rounded-lg transition-colors text-left"
                             >
-                              <span className="text-2xl">{cat.emoji || '📦'}</span>
+                              <IconoCategoria value={cat.emoji} className="text-2xl" size={28} />
                               <div className="flex-1 min-w-0">
                                 <p className="font-medium text-slate-900 truncate">{cat.nombre}</p>
                                 <p className="text-sm text-slate-500">
