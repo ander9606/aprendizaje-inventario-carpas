@@ -16,6 +16,7 @@ import Button from '../components/common/Button'
 import Spinner from '../components/common/Spinner'
 import EmptyState from '../components/common/EmptyState'
 import Breadcrumb from '../components/common/Breadcrum'
+import { IconoCategoria } from '../components/common/IconoCategoria'
 
 // Cards de elementos (ahora cargan sus propios datos)
 import ElementoSerieCard from '../components/elementos/series/ElementoSerieCard'
@@ -271,7 +272,7 @@ function ElementosPage() {
 
             <div>
               <h1 className="text-3xl font-bold text-slate-900 flex items-center gap-3">
-                <span className="text-4xl">{subcategoria?.emoji || '📦'}</span>
+                <IconoCategoria value={subcategoria?.emoji} className="text-4xl" size={40} />
                 {subcategoria?.nombre || 'Elementos'}
               </h1>
               <p className="text-slate-600 mt-1">
