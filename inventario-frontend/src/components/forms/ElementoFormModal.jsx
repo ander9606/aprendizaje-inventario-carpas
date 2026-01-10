@@ -154,7 +154,7 @@ function ElementoFormModal({
     setFormData((prev) => ({
       ...prev,
       requiere_series: requiereSeries,
-      cantidad: requiereSeries ? 0 : prev.cantidad,
+      // Mantener la cantidad al cambiar tipo de gestión
     }));
   };
 
@@ -175,12 +175,13 @@ function ElementoFormModal({
       requiere_series: formData.requiere_series,
       material_id: formData.material_id || null,
       unidad_id: formData.unidad_id || null,
+      cantidad: formData.cantidad || 0, // Siempre enviar cantidad
     };
 
     if (!isEditMode) {
       dataToSend.categoria_id = subcategoriaId;
 
-      // Si es gestión por LOTES, enviar datos iniciales
+      // Si es gestión por LOTES, enviar datos iniciales para crear lote
       if (!formData.requiere_series) {
         dataToSend.cantidad_inicial = formData.cantidad || 0;
         dataToSend.estado_inicial = formData.estado || ESTADOS.BUENO;
@@ -444,38 +445,38 @@ function ElementoFormModal({
         />
 
         {/* ============================================
-            CAMPO: Cantidad inicial (solo para gestión por lotes)
+            CAMPO: Cantidad (para series y lotes)
             ============================================ */}
-        {!formData.requiere_series && !isEditMode && (
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-slate-700 mb-2">
-              Cantidad inicial *
-            </label>
-            <input
-              type="number"
-              name="cantidad"
-              value={formData.cantidad}
-              onChange={handleCantidadChange}
-              min="0"
-              placeholder="Ej: 50"
-              className={`
-                w-full px-4 py-2 border rounded-lg
-                focus:outline-none focus:ring-2
-                ${
-                  errors.cantidad
-                    ? "border-red-300 focus:ring-red-500"
-                    : "border-slate-300 focus:ring-blue-500"
-                }
-              `}
-            />
-            {errors.cantidad && (
-              <p className="mt-1 text-sm text-red-600">{errors.cantidad}</p>
-            )}
-            <p className="mt-1 text-sm text-slate-500">
-              Número de unidades del primer lote
-            </p>
-          </div>
-        )}
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-slate-700 mb-2">
+            Cantidad en inventario *
+          </label>
+          <input
+            type="number"
+            name="cantidad"
+            value={formData.cantidad}
+            onChange={handleCantidadChange}
+            min="0"
+            placeholder="Ej: 50"
+            className={`
+              w-full px-4 py-2 border rounded-lg
+              focus:outline-none focus:ring-2
+              ${
+                errors.cantidad
+                  ? "border-red-300 focus:ring-red-500"
+                  : "border-slate-300 focus:ring-blue-500"
+              }
+            `}
+          />
+          {errors.cantidad && (
+            <p className="mt-1 text-sm text-red-600">{errors.cantidad}</p>
+          )}
+          <p className="mt-1 text-sm text-slate-500">
+            {formData.requiere_series
+              ? "Cantidad total de unidades (se crearán series después)"
+              : "Número de unidades del primer lote"}
+          </p>
+        </div>
 
         {/* ============================================
             CAMPO: Fecha de ingreso (opcional)
