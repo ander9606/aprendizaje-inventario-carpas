@@ -412,6 +412,7 @@ export const useCreateElemento = () => {
   
   return useMutation({
     mutationFn: (data) => elementosAPI.crear(data),
+    retry: 0,
     onSuccess: (_, data) => {
       // Invalida lista de elementos de la subcategoría correspondiente
       queryClient.invalidateQueries({
@@ -449,6 +450,7 @@ export const useUpdateElemento = () => {
 
   return useMutation({
     mutationFn: (data) => elementosAPI.actualizar(data.id, data),
+    retry: 0,
     onSuccess: (_, data) => {
       queryClient.invalidateQueries({
         queryKey: ['elementos', 'subcategoria', data.categoria_id]
@@ -486,6 +488,7 @@ export const useDeleteElemento = () => {
   
   const { mutateAsync, isLoading, error } = useMutation({
     mutationFn: elementosAPI.eliminar,
+    retry: 0,
     
     onSuccess: () => {
       // Invalidar todo el cache de elementos

@@ -81,6 +81,7 @@ export const useCreateMaterial = () => {
 
   const { mutateAsync, isLoading, error } = useMutation({
     mutationFn: materialesAPI.crear,
+    retry: 0,
 
     onSuccess: () => {
       // Invalidar cache de materiales
@@ -121,6 +122,7 @@ export const useUpdateMaterial = () => {
 
   const { mutateAsync, isLoading, error } = useMutation({
     mutationFn: ({ id, ...data }) => materialesAPI.actualizar(id, data),
+    retry: 0,
 
     onSuccess: (_, variables) => {
       // Invalidar cache del material específico
@@ -165,6 +167,7 @@ export const useDeleteMaterial = () => {
 
   const { mutateAsync, isLoading, error } = useMutation({
     mutationFn: materialesAPI.eliminar,
+    retry: 0,
 
     onSuccess: () => {
       // Invalidar cache de materiales

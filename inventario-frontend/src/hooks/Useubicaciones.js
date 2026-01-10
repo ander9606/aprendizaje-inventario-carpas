@@ -98,6 +98,7 @@ export const useCreateUbicacion = () => {
 
   return useMutation({
     mutationFn: ubicacionesAPI.crear,
+    retry: 0,
     onSuccess: () => {
       queryClient.invalidateQueries(['ubicaciones'])
     }
@@ -114,6 +115,7 @@ export const useUpdateUbicacion = () => {
 
   return useMutation({
     mutationFn: ({ id, data }) => ubicacionesAPI.actualizar(id, data),
+    retry: 0,
     onSuccess: () => {
       queryClient.invalidateQueries(['ubicaciones'])
     }
@@ -130,6 +132,7 @@ export const useMarcarComoPrincipal = () => {
 
   return useMutation({
     mutationFn: ubicacionesAPI.marcarComoPrincipal,
+    retry: 0,
     onSuccess: () => {
       queryClient.invalidateQueries(['ubicaciones'])
     }
@@ -146,6 +149,7 @@ export const useDeleteUbicacion = () => {
 
   return useMutation({
     mutationFn: ubicacionesAPI.eliminar,
+    retry: 0,
     onSuccess: () => {
       queryClient.invalidateQueries(['ubicaciones'])
     }

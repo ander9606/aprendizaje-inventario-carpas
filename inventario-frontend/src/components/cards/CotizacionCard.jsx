@@ -224,14 +224,17 @@ const CotizacionCard = ({
           </div>
 
           {/* Fechas */}
-          <div className="flex items-center gap-2">
-            <Calendar className="w-4 h-4 flex-shrink-0" />
-            <span>
-              {formatearFecha(cotizacion.fecha_evento)}
-              {cotizacion.fecha_fin_evento && cotizacion.fecha_fin_evento !== cotizacion.fecha_evento && (
-                <> - {formatearFecha(cotizacion.fecha_fin_evento)}</>
+          <div className="flex items-start gap-2">
+            <Calendar className="w-4 h-4 flex-shrink-0 mt-0.5" />
+            <div className="text-xs space-y-0.5">
+              {cotizacion.fecha_montaje && (
+                <p><span className="text-slate-500">Montaje:</span> {formatearFecha(cotizacion.fecha_montaje)}</p>
               )}
-            </span>
+              <p><span className="text-slate-500">Evento:</span> {formatearFecha(cotizacion.fecha_evento)}</p>
+              {cotizacion.fecha_desmontaje && (
+                <p><span className="text-slate-500">Desmontaje:</span> {formatearFecha(cotizacion.fecha_desmontaje)}</p>
+              )}
+            </div>
           </div>
 
           {/* Ciudad */}

@@ -15,8 +15,9 @@ class CotizacionModel {
       SELECT
         cot.id,
         cot.cliente_id,
+        cot.fecha_montaje,
         cot.fecha_evento,
-        cot.fecha_fin_evento,
+        cot.fecha_desmontaje,
         cot.evento_nombre,
         cot.evento_ciudad,
         cot.subtotal,
@@ -149,17 +150,18 @@ class CotizacionModel {
   // ============================================
   // CREAR
   // ============================================
-  static async crear({ cliente_id, fecha_evento, fecha_fin_evento, evento_nombre, evento_direccion, evento_ciudad, subtotal, descuento, total, vigencia_dias, notas }) {
+  static async crear({ cliente_id, fecha_montaje, fecha_evento, fecha_desmontaje, evento_nombre, evento_direccion, evento_ciudad, subtotal, descuento, total, vigencia_dias, notas }) {
     const query = `
       INSERT INTO cotizaciones
-        (cliente_id, fecha_evento, fecha_fin_evento, evento_nombre,
+        (cliente_id, fecha_montaje, fecha_evento, fecha_desmontaje, evento_nombre,
          evento_direccion, evento_ciudad, subtotal, descuento, total, vigencia_dias, notas)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     const [result] = await pool.query(query, [
       cliente_id,
+      fecha_montaje || fecha_evento,
       fecha_evento,
-      fecha_fin_evento || null,
+      fecha_desmontaje || fecha_evento,
       evento_nombre || null,
       evento_direccion || null,
       evento_ciudad || null,
@@ -175,17 +177,18 @@ class CotizacionModel {
   // ============================================
   // ACTUALIZAR
   // ============================================
-  static async actualizar(id, { fecha_evento, fecha_fin_evento, evento_nombre, evento_direccion, evento_ciudad, subtotal, descuento, total, vigencia_dias, notas }) {
+  static async actualizar(id, { fecha_montaje, fecha_evento, fecha_desmontaje, evento_nombre, evento_direccion, evento_ciudad, subtotal, descuento, total, vigencia_dias, notas }) {
     const query = `
       UPDATE cotizaciones
-      SET fecha_evento = ?, fecha_fin_evento = ?, evento_nombre = ?,
+      SET fecha_montaje = ?, fecha_evento = ?, fecha_desmontaje = ?, evento_nombre = ?,
           evento_direccion = ?, evento_ciudad = ?, subtotal = ?,
           descuento = ?, total = ?, vigencia_dias = ?, notas = ?
       WHERE id = ?
     `;
     const [result] = await pool.query(query, [
+      fecha_montaje || fecha_evento,
       fecha_evento,
-      fecha_fin_evento || null,
+      fecha_desmontaje || fecha_evento,
       evento_nombre || null,
       evento_direccion || null,
       evento_ciudad || null,
@@ -303,8 +306,9 @@ class CotizacionModel {
     // Crear nueva cotización
     const resultado = await this.crear({
       cliente_id: original.cliente_id,
+      fecha_montaje: original.fecha_montaje,
       fecha_evento: original.fecha_evento,
-      fecha_fin_evento: original.fecha_fin_evento,
+      fecha_desmontaje: original.fecha_desmontaje,
       evento_nombre: original.evento_nombre ? `${original.evento_nombre} (copia)` : null,
       evento_direccion: original.evento_direccion,
       evento_ciudad: original.evento_ciudad,

@@ -8,7 +8,8 @@ import { Plus, Trash2, Package, Truck, MapPin } from 'lucide-react'
 import Modal from '../common/Modal'
 import Button from '../common/Button'
 import ProductoConfiguracion from './ProductoConfiguracion'
-import { useCreateCotizacion, useUpdateCotizacion } from '../../hooks/cotizaciones'
+import VerificacionDisponibilidad from '../disponibilidad/VerificacionDisponibilidad'
+import { useCreateCotizacion, useUpdateCotizacion, useGetCotizacionCompleta } from '../../hooks/cotizaciones'
 import { useGetClientesActivos } from '../../hooks/UseClientes'
 import { useGetProductosAlquiler } from '../../hooks/UseProductosAlquiler'
 import { useGetTarifasTransporte } from '../../hooks/UseTarifasTransporte'
@@ -31,8 +32,9 @@ const CotizacionFormModal = ({
 
   const [formData, setFormData] = useState({
     cliente_id: '',
+    fecha_montaje: '',
     fecha_evento: '',
-    fecha_fin_evento: '',
+    fecha_desmontaje: '',
     evento_nombre: '',
     evento_direccion: '',
     evento_ciudad: '',
@@ -58,32 +60,61 @@ const CotizacionFormModal = ({
   const { mutateAsync: createCotizacion, isLoading: isCreating } = useCreateCotizacion()
   const { mutateAsync: updateCotizacion, isLoading: isUpdating } = useUpdateCotizacion()
 
-  const isLoading = isCreating || isUpdating
+  // Cargar cotización completa con productos cuando se edita
+  const { cotizacion: cotizacionCompleta, isLoading: loadingCotizacion } = useGetCotizacionCompleta(
+    mode === 'editar' && cotizacion?.id && isOpen ? cotizacion.id : null
+  )
+
+  const isLoading = isCreating || isUpdating || loadingCotizacion
 
   // ============================================
   // EFFECTS
   // ============================================
 
   useEffect(() => {
-    if (mode === 'editar' && cotizacion) {
+    // Usar cotizacionCompleta cuando está disponible para modo editar
+    const datosACopiar = mode === 'editar' ? (cotizacionCompleta || cotizacion) : null
+
+    if (mode === 'editar' && datosACopiar) {
       setFormData({
-        cliente_id: cotizacion.cliente_id || '',
-        fecha_evento: cotizacion.fecha_evento?.split('T')[0] || '',
-        fecha_fin_evento: cotizacion.fecha_fin_evento?.split('T')[0] || '',
-        evento_nombre: cotizacion.evento_nombre || '',
-        evento_direccion: cotizacion.evento_direccion || '',
-        evento_ciudad: cotizacion.evento_ciudad || '',
-        descuento: cotizacion.descuento || 0,
-        vigencia_dias: cotizacion.vigencia_dias || 15,
-        notas: cotizacion.notas || ''
+        cliente_id: datosACopiar.cliente_id || '',
+        fecha_montaje: datosACopiar.fecha_montaje?.split('T')[0] || '',
+        fecha_evento: datosACopiar.fecha_evento?.split('T')[0] || '',
+        fecha_desmontaje: datosACopiar.fecha_desmontaje?.split('T')[0] || '',
+        evento_nombre: datosACopiar.evento_nombre || '',
+        evento_direccion: datosACopiar.evento_direccion || '',
+        evento_ciudad: datosACopiar.evento_ciudad || '',
+        descuento: datosACopiar.descuento || 0,
+        vigencia_dias: datosACopiar.vigencia_dias || 15,
+        notas: datosACopiar.notas || ''
       })
-      setProductosSeleccionados(cotizacion.productos || [])
-      setTransporteSeleccionado(cotizacion.transporte || [])
-    } else {
+
+      // Solo cargar productos/transporte cuando tenemos la cotización completa
+      if (cotizacionCompleta) {
+        // Mapear productos para el formato del formulario
+        const productosFormateados = (cotizacionCompleta.productos || []).map(p => ({
+          compuesto_id: p.compuesto_id?.toString() || '',
+          cantidad: p.cantidad || 1,
+          precio_base: p.precio_base || 0,
+          deposito: p.deposito || 0,
+          precio_adicionales: p.precio_adicionales || 0,
+          configuracion: p.configuracion || null
+        }))
+        setProductosSeleccionados(productosFormateados)
+
+        // Mapear transporte para el formato del formulario
+        const transporteFormateado = (cotizacionCompleta.transporte || []).map(t => ({
+          tarifa_id: t.tarifa_id?.toString() || '',
+          cantidad: t.cantidad || 1
+        }))
+        setTransporteSeleccionado(transporteFormateado)
+      }
+    } else if (mode === 'crear') {
       setFormData({
         cliente_id: '',
+        fecha_montaje: '',
         fecha_evento: '',
-        fecha_fin_evento: '',
+        fecha_desmontaje: '',
         evento_nombre: '',
         evento_direccion: '',
         evento_ciudad: '',
@@ -95,7 +126,7 @@ const CotizacionFormModal = ({
       setTransporteSeleccionado([])
     }
     setErrors({})
-  }, [mode, cotizacion, isOpen])
+  }, [mode, cotizacion, cotizacionCompleta, isOpen])
 
   // ============================================
   // HANDLERS
@@ -244,8 +275,9 @@ const CotizacionFormModal = ({
 
     const dataToSend = {
       cliente_id: parseInt(formData.cliente_id),
+      fecha_montaje: formData.fecha_montaje || formData.fecha_evento,
       fecha_evento: formData.fecha_evento,
-      fecha_fin_evento: formData.fecha_fin_evento || null,
+      fecha_desmontaje: formData.fecha_desmontaje || formData.fecha_evento,
       evento_nombre: formData.evento_nombre.trim() || null,
       evento_direccion: formData.evento_direccion.trim() || null,
       evento_ciudad: formData.evento_ciudad.trim() || null,
@@ -322,36 +354,52 @@ const CotizacionFormModal = ({
           </div>
         )}
 
-        {/* CLIENTE Y FECHAS */}
+        {/* CLIENTE */}
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-2">
+            Cliente *
+          </label>
+          <select
+            name="cliente_id"
+            value={formData.cliente_id}
+            onChange={handleChange}
+            disabled={isLoading || loadingClientes}
+            className={`
+              w-full px-4 py-2.5 border rounded-lg
+              focus:outline-none focus:ring-2 focus:ring-blue-500
+              disabled:bg-slate-100
+              ${errors.cliente_id ? 'border-red-300' : 'border-slate-300'}
+            `}
+          >
+            <option value="">Seleccionar...</option>
+            {clientes.map(c => (
+              <option key={c.id} value={c.id}>{c.nombre}</option>
+            ))}
+          </select>
+          {errors.cliente_id && (
+            <p className="mt-1 text-sm text-red-600">{errors.cliente_id}</p>
+          )}
+        </div>
+
+        {/* FECHAS: Montaje, Evento, Desmontaje */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Cliente */}
+          {/* Fecha Montaje */}
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
-              Cliente *
+              Fecha Montaje
             </label>
-            <select
-              name="cliente_id"
-              value={formData.cliente_id}
+            <input
+              type="date"
+              name="fecha_montaje"
+              value={formData.fecha_montaje}
               onChange={handleChange}
-              disabled={isLoading || loadingClientes}
-              className={`
-                w-full px-4 py-2.5 border rounded-lg
-                focus:outline-none focus:ring-2 focus:ring-blue-500
-                disabled:bg-slate-100
-                ${errors.cliente_id ? 'border-red-300' : 'border-slate-300'}
-              `}
-            >
-              <option value="">Seleccionar...</option>
-              {clientes.map(c => (
-                <option key={c.id} value={c.id}>{c.nombre}</option>
-              ))}
-            </select>
-            {errors.cliente_id && (
-              <p className="mt-1 text-sm text-red-600">{errors.cliente_id}</p>
-            )}
+              disabled={isLoading}
+              className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-100"
+            />
+            <p className="mt-1 text-xs text-slate-500">Cuando se instala</p>
           </div>
 
-          {/* Fecha evento */}
+          {/* Fecha Evento */}
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
               Fecha Evento *
@@ -374,19 +422,20 @@ const CotizacionFormModal = ({
             )}
           </div>
 
-          {/* Fecha fin */}
+          {/* Fecha Desmontaje */}
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
-              Fecha Fin
+              Fecha Desmontaje
             </label>
             <input
               type="date"
-              name="fecha_fin_evento"
-              value={formData.fecha_fin_evento}
+              name="fecha_desmontaje"
+              value={formData.fecha_desmontaje}
               onChange={handleChange}
               disabled={isLoading}
               className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-100"
             />
+            <p className="mt-1 text-xs text-slate-500">Cuando se recoge</p>
           </div>
         </div>
 
@@ -593,6 +642,18 @@ const CotizacionFormModal = ({
             <span className="text-slate-600">Subtotal productos: </span>
             <span className="font-semibold">{formatearMoneda(calcularSubtotalProductos())}</span>
           </div>
+
+          {/* VERIFICACIÓN DE DISPONIBILIDAD */}
+          <VerificacionDisponibilidad
+            productos={productosSeleccionados.map(p => ({
+              compuesto_id: parseInt(p.compuesto_id) || null,
+              cantidad: parseInt(p.cantidad) || 1,
+              configuracion: p.configuracion || null
+            })).filter(p => p.compuesto_id)}
+            fechaMontaje={formData.fecha_montaje || formData.fecha_evento}
+            fechaDesmontaje={formData.fecha_desmontaje || formData.fecha_evento}
+            mostrar={productosSeleccionados.some(p => p.compuesto_id) && (formData.fecha_montaje || formData.fecha_evento)}
+          />
         </div>
 
         {/* TRANSPORTE */}

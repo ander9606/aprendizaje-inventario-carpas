@@ -248,6 +248,7 @@ export const useCreateSerie = () => {
   
   const { mutateAsync, isLoading, error } = useMutation({
     mutationFn: seriesAPI.crear,
+    retry: 0,
     
     onSuccess: (response) => {
       const elementoId = response.data?.id_elemento
@@ -314,6 +315,7 @@ export const useCreateSeriesMultiples = () => {
   
   const { mutateAsync, isLoading, error } = useMutation({
     mutationFn: seriesAPI.crearMultiples,
+    retry: 0,
     
     onSuccess: (response) => {
       const elementoId = response.data?.id_elemento
@@ -366,6 +368,7 @@ export const useUpdateSerie = () => {
   
   const { mutateAsync, isLoading, error } = useMutation({
     mutationFn: ({ id, ...data }) => seriesAPI.actualizar(id, data),
+    retry: 0,
     
     onSuccess: (response, variables) => {
       // Invalidar serie específica
@@ -433,6 +436,7 @@ export const useCambiarEstadoSerie = () => {
   const { mutateAsync, isLoading, error } = useMutation({
     mutationFn: ({ id, estado, ubicacion }) => 
       seriesAPI.cambiarEstado(id, estado, ubicacion),
+    retry: 0,
     
     onSuccess: () => {
       // Invalidar todas las queries de series
@@ -482,6 +486,7 @@ export const useDeleteSerie = () => {
   
   const { mutateAsync, isLoading, error } = useMutation({
     mutationFn: seriesAPI.eliminar,
+    retry: 0,
     
     onSuccess: () => {
       // Invalidar todo el cache de series y elementos

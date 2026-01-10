@@ -120,7 +120,7 @@ export const useCreateElementoCompuesto = () => {
 
   const { mutate, mutateAsync, isPending, error } = useMutation({
     mutationFn: elementosCompuestosAPI.crear,
-
+    retry: 0,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['elementos-compuestos'] })
       console.log('✅ Elemento compuesto creado exitosamente')
@@ -149,7 +149,7 @@ export const useUpdateElementoCompuesto = () => {
 
   const { mutate, mutateAsync, isPending, error } = useMutation({
     mutationFn: ({ id, ...data }) => elementosCompuestosAPI.actualizar(id, data),
-
+    retry: 0,
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['elementos-compuestos'] })
       queryClient.invalidateQueries({ queryKey: ['elementos-compuestos', variables.id] })
@@ -179,7 +179,7 @@ export const useDeleteElementoCompuesto = () => {
 
   const { mutate, mutateAsync, isPending, error } = useMutation({
     mutationFn: elementosCompuestosAPI.eliminar,
-
+    retry: 0,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['elementos-compuestos'] })
       console.log('✅ Elemento compuesto eliminado exitosamente')
@@ -209,7 +209,7 @@ export const useActualizarComponentes = () => {
   const { mutate, mutateAsync, isPending, error } = useMutation({
     mutationFn: ({ elementoId, componentes }) =>
       elementosCompuestosAPI.actualizarComponentes(elementoId, componentes),
-
+    retry: 0,
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['elementos-compuestos'] })
       queryClient.invalidateQueries({ queryKey: ['elementos-compuestos', variables.elementoId] })
@@ -241,7 +241,7 @@ export const useAgregarComponente = () => {
   const { mutate, mutateAsync, isPending, error } = useMutation({
     mutationFn: ({ elementoId, componente }) =>
       elementosCompuestosAPI.agregarComponente(elementoId, componente),
-
+    retry: 0,
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['elementos-compuestos', variables.elementoId] })
       queryClient.invalidateQueries({ queryKey: ['elementos-compuestos', variables.elementoId, 'componentes'] })
@@ -272,7 +272,7 @@ export const useEliminarComponente = () => {
   const { mutate, mutateAsync, isPending, error } = useMutation({
     mutationFn: ({ elementoId, componenteId }) =>
       elementosCompuestosAPI.eliminarComponente(elementoId, componenteId),
-
+    retry: 0,
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['elementos-compuestos', variables.elementoId] })
       queryClient.invalidateQueries({ queryKey: ['elementos-compuestos', variables.elementoId, 'componentes'] })
