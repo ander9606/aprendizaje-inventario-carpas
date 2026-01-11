@@ -6,6 +6,8 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Plus, ArrowLeft } from 'lucide-react'
+import { toast } from 'sonner'
+import { useDialog } from '../context/DialogContext'
 
 // Hooks personalizados
 import { useGetElementos, useDeleteElemento } from '../hooks/Useelementos'
@@ -47,6 +49,7 @@ function ElementosPage() {
   // ============================================
   const { categoriaId, subcategoriaId } = useParams()
   const navigate = useNavigate()
+  const { confirm } = useDialog()
 
   // ============================================
   // ESTADOS LOCALES (Modales)
@@ -125,18 +128,22 @@ function ElementosPage() {
   const handleDeleteElemento = async (elemento) => {
     if (!elemento?.id) return
 
-    const confirmar = window.confirm(
-      `¿Estás seguro de eliminar "${elemento.nombre}"?\n\nEsta acción no se puede deshacer.`
-    )
+    const confirmado = await confirm({
+      titulo: `¿Eliminar elemento "${elemento.nombre}"?`,
+      mensaje: 'Esta acción no se puede deshacer.',
+      tipo: 'danger',
+      textoConfirmar: 'Sí, eliminar',
+      textoCancelar: 'Cancelar'
+    })
 
-    if (!confirmar) return
+    if (!confirmado) return
 
     try {
       await deleteElemento(elemento.id)
       refetch()
     } catch (error) {
       const mensaje = error.response?.data?.mensaje || error.message || 'Error desconocido'
-      alert(`No se pudo eliminar el elemento:\n\n${mensaje}`)
+      toast.error(`No se pudo eliminar el elemento: ${mensaje}`)
     }
   }
 
@@ -154,8 +161,16 @@ function ElementosPage() {
     // TODO: Abrir modal de edición de serie
   }
 
-  const handleDeleteSerie = (serie) => {
-    if (window.confirm(`¿Eliminar serie ${serie.numero_serie}?`)) {
+  const handleDeleteSerie = async (serie) => {
+    const confirmado = await confirm({
+      titulo: `¿Eliminar serie ${serie.numero_serie}?`,
+      mensaje: 'Esta acción no se puede deshacer.',
+      tipo: 'danger',
+      textoConfirmar: 'Sí, eliminar',
+      textoCancelar: 'Cancelar'
+    })
+
+    if (confirmado) {
       console.log('Eliminar serie:', serie)
       // TODO: Llamar a useDeleteSerie
     }
@@ -184,11 +199,15 @@ function ElementosPage() {
       return
     }
 
-    const confirmar = window.confirm(
-      `¿Eliminar ${lote.cantidad} unidades en estado "${lote.estado}" de "${ubicacion || 'Sin ubicación'}"?\n\nEsta acción no se puede deshacer.`
-    )
+    const confirmado = await confirm({
+      titulo: '¿Eliminar lote?',
+      mensaje: `Se eliminarán ${lote.cantidad} unidades en estado "${lote.estado}" de "${ubicacion || 'Sin ubicación'}".`,
+      tipo: 'danger',
+      textoConfirmar: 'Sí, eliminar',
+      textoCancelar: 'Cancelar'
+    })
 
-    if (!confirmar) return
+    if (!confirmado) return
 
     try {
       console.log('🗑️ Eliminando lote:', lote.id)
@@ -198,7 +217,7 @@ function ElementosPage() {
     } catch (error) {
       console.error('❌ Error al eliminar lote:', error)
       const mensaje = error.response?.data?.mensaje || error.message || 'Error desconocido'
-      alert(`No se pudo eliminar el lote:\n\n${mensaje}`)
+      toast.error(`No se pudo eliminar el lote: ${mensaje}`)
     }
   }
 

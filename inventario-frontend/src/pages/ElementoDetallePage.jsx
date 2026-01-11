@@ -7,6 +7,7 @@ import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Edit, Trash2, Plus } from 'lucide-react'
 import { toast } from 'sonner'
+import { useDialog } from '../context/DialogContext'
 
 // Hooks personalizados
 import { useGetElemento, useDeleteElemento } from '../hooks/Useelementos'
@@ -68,6 +69,11 @@ function ElementoDetallePage() {
    * useNavigate: Función para navegar entre páginas
    */
   const navigate = useNavigate()
+
+  /**
+   * useDialog: Hook para diálogos de confirmación
+   */
+  const { confirm } = useDialog()
 
   // ============================================
   // 2. ESTADOS LOCALES
@@ -233,7 +239,7 @@ function ElementoDetallePage() {
    * 3. Llama a la mutation de eliminar
    * 4. Navega de vuelta a la lista
    */
-  const handleDeleteElemento = () => {
+  const handleDeleteElemento = async () => {
     // Validar que no tenga series/lotes
     const tieneSeries = elemento?.requiere_series && totalSeries > 0
     const tieneLotes = !elemento?.requiere_series && cantidad_total > 0
@@ -244,11 +250,15 @@ function ElementoDetallePage() {
     }
 
     // Confirmación
-    const confirmar = window.confirm(
-      `¿Estás seguro de eliminar "${elemento?.nombre}"?\n\nEsta acción no se puede deshacer.`
-    )
+    const confirmado = await confirm({
+      titulo: `¿Eliminar elemento "${elemento?.nombre}"?`,
+      mensaje: 'Esta acción no se puede deshacer.',
+      tipo: 'danger',
+      textoConfirmar: 'Sí, eliminar',
+      textoCancelar: 'Cancelar'
+    })
 
-    if (confirmar) {
+    if (confirmado) {
       deleteElemento.mutate(elementoId, {
         onSuccess: () => {
           toast.success('Elemento eliminado exitosamente')
@@ -283,12 +293,16 @@ function ElementoDetallePage() {
   /**
    * Handler: Eliminar serie
    */
-  const handleDeleteSerie = (serie) => {
-    const confirmar = window.confirm(
-      `¿Eliminar serie ${serie.numero_serie}?`
-    )
+  const handleDeleteSerie = async (serie) => {
+    const confirmado = await confirm({
+      titulo: `¿Eliminar serie ${serie.numero_serie}?`,
+      mensaje: 'Esta acción no se puede deshacer.',
+      tipo: 'danger',
+      textoConfirmar: 'Sí, eliminar',
+      textoCancelar: 'Cancelar'
+    })
 
-    if (confirmar) {
+    if (confirmado) {
       deleteSerie.mutate(serie.id, {
         onSuccess: () => {
           toast.success('Serie eliminada exitosamente')
@@ -328,12 +342,16 @@ function ElementoDetallePage() {
   /**
    * Handler: Eliminar lote
    */
-  const handleDeleteLote = (lote, ubicacion) => {
-    const confirmar = window.confirm(
-      `¿Eliminar ${lote.cantidad} unidades en estado ${lote.estado} de ${ubicacion}?`
-    )
+  const handleDeleteLote = async (lote, ubicacion) => {
+    const confirmado = await confirm({
+      titulo: `¿Eliminar lote?`,
+      mensaje: `Se eliminarán ${lote.cantidad} unidades en estado "${lote.estado}" de ${ubicacion}.`,
+      tipo: 'danger',
+      textoConfirmar: 'Sí, eliminar',
+      textoCancelar: 'Cancelar'
+    })
 
-    if (confirmar) {
+    if (confirmado) {
       deleteLote.mutate(lote.id, {
         onSuccess: () => {
           toast.success('Lote eliminado exitosamente')

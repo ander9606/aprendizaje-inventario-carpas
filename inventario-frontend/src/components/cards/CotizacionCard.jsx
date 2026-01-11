@@ -7,6 +7,7 @@ import { useState, useRef, useEffect } from 'react'
 import { Calendar, User, MapPin, Package, Eye, CheckCircle, MoreVertical, Edit, XCircle, Trash2 } from 'lucide-react'
 import Card from '../common/Card'
 import Button from '../common/Button'
+import { useDialog } from '../../context/DialogContext'
 
 /**
  * CotizacionCard
@@ -30,6 +31,7 @@ const CotizacionCard = ({
 
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef(null)
+  const { confirm } = useDialog()
 
   // Cerrar menu al hacer click fuera
   useEffect(() => {
@@ -103,19 +105,37 @@ const CotizacionCard = ({
     if (onEditar) onEditar(cotizacion)
   }
 
-  const handleRechazar = (e) => {
+  const handleRechazar = async (e) => {
     e.stopPropagation()
     setMenuOpen(false)
-    if (confirm('¿Rechazar esta cotización?')) {
-      if (onRechazar) onRechazar(cotizacion)
+
+    const confirmado = await confirm({
+      titulo: '¿Rechazar cotización?',
+      mensaje: 'La cotización pasará a estado rechazada.',
+      tipo: 'warning',
+      textoConfirmar: 'Sí, rechazar',
+      textoCancelar: 'Cancelar'
+    })
+
+    if (confirmado && onRechazar) {
+      onRechazar(cotizacion)
     }
   }
 
-  const handleEliminar = (e) => {
+  const handleEliminar = async (e) => {
     e.stopPropagation()
     setMenuOpen(false)
-    if (confirm('¿Eliminar esta cotización? Esta acción no se puede deshacer.')) {
-      if (onEliminar) onEliminar(cotizacion)
+
+    const confirmado = await confirm({
+      titulo: '¿Eliminar cotización?',
+      mensaje: 'Esta acción no se puede deshacer.',
+      tipo: 'danger',
+      textoConfirmar: 'Sí, eliminar',
+      textoCancelar: 'Cancelar'
+    })
+
+    if (confirmado && onEliminar) {
+      onEliminar(cotizacion)
     }
   }
 

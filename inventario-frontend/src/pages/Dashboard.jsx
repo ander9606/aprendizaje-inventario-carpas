@@ -6,7 +6,8 @@
 import { useState, useMemo } from 'react'
 import { Plus, Package, MapPin, ArrowLeft, Search, X, Layers, ChevronRight } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import { useNavigation } from '../hooks/UseNavigation'  
+import { toast } from 'sonner'
+import { useNavigation } from '../hooks/UseNavigation'
 import {
   useGetCategoriasPadre,
   useDeleteCategoria
@@ -173,7 +174,7 @@ export default function Dashboard() {
       // gracias a queryClient.invalidateQueries en el hook
     } catch (error) {
       console.error('Error al eliminar:', error)
-      alert('No se pudo eliminar la categoría. Verifica que no tenga subcategorías.')
+      toast.error('No se pudo eliminar la categoría. Verifica que no tenga subcategorías.')
     }
   }
   

@@ -6,6 +6,7 @@
 import { useState } from 'react'
 import { Plus, MapPin, ArrowLeft } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import { toast } from 'sonner'
 import {
   useGetUbicaciones,
   useDeleteUbicacion
@@ -95,7 +96,7 @@ export default function UbicacionesPage() {
       console.error('❌ Error al eliminar:', error)
       const mensaje = error.response?.data?.message ||
         'No se pudo eliminar la ubicación. Puede tener inventario asociado.'
-      alert(mensaje)
+      toast.error(mensaje)
     }
   }
 
