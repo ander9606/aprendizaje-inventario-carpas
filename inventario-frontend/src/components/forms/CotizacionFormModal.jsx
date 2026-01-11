@@ -7,6 +7,7 @@ import { useState, useEffect } from 'react'
 import { Plus, Trash2, Package, Truck, MapPin } from 'lucide-react'
 import Modal from '../common/Modal'
 import Button from '../common/Button'
+import ProductoSelector from '../common/ProductoSelector'
 import ProductoConfiguracion from './ProductoConfiguracion'
 import VerificacionDisponibilidad from '../disponibilidad/VerificacionDisponibilidad'
 import { useCreateCotizacion, useUpdateCotizacion, useGetCotizacionCompleta } from '../../hooks/cotizaciones'
@@ -565,19 +566,18 @@ const CotizacionFormModal = ({
                 <div key={index} className="p-3 bg-slate-50 rounded-lg">
                   <div className="flex gap-3 items-start">
                     <div className="flex-1">
-                      <select
+                      <ProductoSelector
                         value={prod.compuesto_id}
-                        onChange={(e) => actualizarProducto(index, 'compuesto_id', e.target.value)}
+                        onChange={(producto) => {
+                          if (producto) {
+                            actualizarProducto(index, 'compuesto_id', producto.id.toString())
+                          } else {
+                            actualizarProducto(index, 'compuesto_id', '')
+                          }
+                        }}
                         disabled={isLoading}
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"
-                      >
-                        <option value="">Seleccionar producto...</option>
-                        {productos.map(p => (
-                          <option key={p.id} value={p.id}>
-                            {p.nombre} - {formatearMoneda(p.precio_base)}
-                          </option>
-                        ))}
-                      </select>
+                        placeholder="Buscar producto..."
+                      />
                     </div>
 
                     <div className="w-20">

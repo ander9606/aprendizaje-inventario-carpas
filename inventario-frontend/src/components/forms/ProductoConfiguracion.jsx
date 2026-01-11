@@ -38,17 +38,18 @@ const ProductoConfiguracion = ({
     }
 
     // Para alternativas, poner cantidad en el default
+    // IMPORTANTE: Usamos elemento_id como clave para que coincida con el backend
     comps.alternativas?.forEach(grupo => {
       config.alternativas[grupo.nombre] = {}
       grupo.opciones.forEach(opcion => {
         // Si es default, poner la cantidad requerida, si no, 0
-        config.alternativas[grupo.nombre][opcion.id] = opcion.es_default ? grupo.cantidad_requerida : 0
+        config.alternativas[grupo.nombre][opcion.elemento_id] = opcion.es_default ? grupo.cantidad_requerida : 0
       })
     })
 
-    // Para adicionales, empezar en 0
+    // Para adicionales, empezar en 0 (usamos elemento_id)
     comps.adicionales?.forEach(adicional => {
-      config.adicionales[adicional.id] = 0
+      config.adicionales[adicional.elemento_id] = 0
     })
 
     return config
@@ -63,7 +64,7 @@ const ProductoConfiguracion = ({
     // Precio de alternativas no-default
     comps.alternativas?.forEach(grupo => {
       grupo.opciones.forEach(opcion => {
-        const cantidadSeleccionada = config.alternativas?.[grupo.nombre]?.[opcion.id] || 0
+        const cantidadSeleccionada = config.alternativas?.[grupo.nombre]?.[opcion.elemento_id] || 0
         if (!opcion.es_default && cantidadSeleccionada > 0) {
           total += opcion.precio_adicional * cantidadSeleccionada
         }
@@ -72,7 +73,7 @@ const ProductoConfiguracion = ({
 
     // Precio de adicionales
     comps.adicionales?.forEach(adicional => {
-      const cantidadSeleccionada = config.adicionales?.[adicional.id] || 0
+      const cantidadSeleccionada = config.adicionales?.[adicional.elemento_id] || 0
       if (cantidadSeleccionada > 0) {
         total += adicional.precio_adicional * cantidadSeleccionada
       }
@@ -128,23 +129,23 @@ const ProductoConfiguracion = ({
   // HANDLERS
   // ============================================
 
-  // Actualizar cantidad de alternativa
-  const handleAlternativaChange = (grupoNombre, opcionId, nuevaCantidad) => {
+  // Actualizar cantidad de alternativa (usa elemento_id como clave)
+  const handleAlternativaChange = (grupoNombre, elementoId, nuevaCantidad) => {
     const nuevaConfig = { ...configuracion }
     if (!nuevaConfig.alternativas) nuevaConfig.alternativas = {}
     if (!nuevaConfig.alternativas[grupoNombre]) nuevaConfig.alternativas[grupoNombre] = {}
 
-    nuevaConfig.alternativas[grupoNombre][opcionId] = parseInt(nuevaCantidad) || 0
+    nuevaConfig.alternativas[grupoNombre][elementoId] = parseInt(nuevaCantidad) || 0
     const precioTotal = calcularPrecioTotal(nuevaConfig, componentes, cantidad)
     onConfiguracionChange(nuevaConfig, precioTotal)
   }
 
-  // Actualizar cantidad de adicional
-  const handleAdicionalChange = (adicionalId, nuevaCantidad) => {
+  // Actualizar cantidad de adicional (usa elemento_id como clave)
+  const handleAdicionalChange = (elementoId, nuevaCantidad) => {
     const nuevaConfig = { ...configuracion }
     if (!nuevaConfig.adicionales) nuevaConfig.adicionales = {}
 
-    nuevaConfig.adicionales[adicionalId] = parseInt(nuevaCantidad) || 0
+    nuevaConfig.adicionales[elementoId] = parseInt(nuevaCantidad) || 0
     const precioTotal = calcularPrecioTotal(nuevaConfig, componentes, cantidad)
     onConfiguracionChange(nuevaConfig, precioTotal)
   }
@@ -162,7 +163,7 @@ const ProductoConfiguracion = ({
     let total = 0
     componentes.alternativas.forEach(grupo => {
       grupo.opciones.forEach(opcion => {
-        const cantidadSeleccionada = configuracion.alternativas[grupo.nombre]?.[opcion.id] || 0
+        const cantidadSeleccionada = configuracion.alternativas[grupo.nombre]?.[opcion.elemento_id] || 0
         if (!opcion.es_default && cantidadSeleccionada > 0) {
           total += opcion.precio_adicional * cantidadSeleccionada
         }
@@ -177,7 +178,7 @@ const ProductoConfiguracion = ({
 
     let total = 0
     componentes.adicionales.forEach(adicional => {
-      const cantidadSeleccionada = configuracion.adicionales[adicional.id] || 0
+      const cantidadSeleccionada = configuracion.adicionales[adicional.elemento_id] || 0
       if (cantidadSeleccionada > 0) {
         total += adicional.precio_adicional * cantidadSeleccionada
       }
@@ -263,7 +264,7 @@ const ProductoConfiguracion = ({
                       </div>
                       <div className="space-y-1">
                         {grupo.opciones.map(opcion => (
-                          <div key={opcion.id} className="flex items-center justify-between gap-2">
+                          <div key={opcion.elemento_id} className="flex items-center justify-between gap-2">
                             <span className="flex-1 text-slate-600">
                               {opcion.elemento_nombre}
                               {opcion.es_default && (
@@ -279,8 +280,8 @@ const ProductoConfiguracion = ({
                               type="number"
                               min="0"
                               max={grupo.cantidad_requerida}
-                              value={configuracion?.alternativas?.[grupo.nombre]?.[opcion.id] || 0}
-                              onChange={(e) => handleAlternativaChange(grupo.nombre, opcion.id, e.target.value)}
+                              value={configuracion?.alternativas?.[grupo.nombre]?.[opcion.elemento_id] || 0}
+                              onChange={(e) => handleAlternativaChange(grupo.nombre, opcion.elemento_id, e.target.value)}
                               disabled={disabled}
                               className="w-16 px-2 py-1 border border-slate-300 rounded text-center text-sm"
                             />
@@ -300,7 +301,7 @@ const ProductoConfiguracion = ({
               <h4 className="font-medium text-slate-700 mb-2">Adicionales opcionales</h4>
               <div className="space-y-1">
                 {componentes.adicionales.map(adicional => (
-                  <div key={adicional.id} className="flex items-center justify-between gap-2">
+                  <div key={adicional.elemento_id} className="flex items-center justify-between gap-2">
                     <span className="flex-1 text-slate-600">
                       {adicional.elemento_nombre}
                       <span className="text-xs text-blue-600 ml-1">
@@ -310,8 +311,8 @@ const ProductoConfiguracion = ({
                     <input
                       type="number"
                       min="0"
-                      value={configuracion?.adicionales?.[adicional.id] || 0}
-                      onChange={(e) => handleAdicionalChange(adicional.id, e.target.value)}
+                      value={configuracion?.adicionales?.[adicional.elemento_id] || 0}
+                      onChange={(e) => handleAdicionalChange(adicional.elemento_id, e.target.value)}
                       disabled={disabled}
                       className="w-16 px-2 py-1 border border-slate-300 rounded text-center text-sm"
                     />
