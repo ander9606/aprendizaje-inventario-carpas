@@ -218,7 +218,7 @@ export const ElementoSerieCard = ({
                   key={serie.id || serie.numero_serie}
                   serie={serie}
                   onDevolverBodega={(serie) => onDevolverBodega && onDevolverBodega(serie, elemento)}
-                  onEdit={onEditSerie}
+                  onEdit={(serie) => onEditSerie && onEditSerie(serie, elemento)}
                   onDelete={onDeleteSerie}
                   onMove={(serie) => onMoveSerie && onMoveSerie(serie, elemento)}
                   compact

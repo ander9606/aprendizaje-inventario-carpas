@@ -311,8 +311,8 @@ export const useGetSerieConContexto = (serieId) => {
  */
 export const useCreateSerie = () => {
   const queryClient = useQueryClient()
-  
-  const { mutateAsync, isLoading, error } = useMutation({
+
+  const { mutateAsync, isPending, error } = useMutation({
     mutationFn: seriesAPI.crear,
     retry: 0,
     
@@ -344,7 +344,7 @@ export const useCreateSerie = () => {
   
   return {
     createSerie: mutateAsync,
-    isLoading,
+    isPending,
     error
   }
 }
@@ -431,9 +431,9 @@ export const useCreateSeriesMultiples = () => {
  */
 export const useUpdateSerie = () => {
   const queryClient = useQueryClient()
-  
-  const { mutateAsync, isLoading, error } = useMutation({
-    mutationFn: ({ id, ...data }) => seriesAPI.actualizar(id, data),
+
+  const { mutateAsync, isPending, error } = useMutation({
+    mutationFn: ({ id, data }) => seriesAPI.actualizar(id, data),
     retry: 0,
     
     onSuccess: (response, variables) => {
@@ -457,7 +457,7 @@ export const useUpdateSerie = () => {
   
   return {
     updateSerie: mutateAsync,
-    isLoading,
+    isPending,
     error
   }
 }
@@ -549,32 +549,32 @@ export const useCambiarEstadoSerie = () => {
  */
 export const useDeleteSerie = () => {
   const queryClient = useQueryClient()
-  
-  const { mutateAsync, isLoading, error } = useMutation({
+
+  const { mutateAsync, isPending, error } = useMutation({
     mutationFn: seriesAPI.eliminar,
     retry: 0,
-    
+
     onSuccess: () => {
       // Invalidar todo el cache de series y elementos
-      queryClient.invalidateQueries({ 
-        queryKey: ['series'] 
+      queryClient.invalidateQueries({
+        queryKey: ['series']
       })
-      
-      queryClient.invalidateQueries({ 
-        queryKey: ['elementos'] 
+
+      queryClient.invalidateQueries({
+        queryKey: ['elementos']
       })
-      
+
       console.log('✅ Serie eliminada exitosamente')
     },
-    
+
     onError: (error) => {
       console.error('❌ Error al eliminar serie:', error)
     }
   })
-  
+
   return {
     deleteSerie: mutateAsync,
-    isLoading,
+    isLoading: isPending, // Compatibilidad hacia atrás
     error
   }
 }
