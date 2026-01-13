@@ -1,12 +1,25 @@
 // ============================================
 // COMPONENTE: SERIE ITEM
 // Item individual de una serie (elemento con número de serie)
+// Incluye contexto de eventos (actual y próximo)
 // ============================================
 
 import { EstadoBadge } from '../../common/Badge'
 import UbicacionBadge from '../../common/UbicacionBadge'
-import { MoreVertical, Edit2, Trash2, MapPin, Package, RotateCcw } from 'lucide-react'
+import { MoreVertical, Edit2, Trash2, MapPin, Package, RotateCcw, Calendar, User, Clock, ArrowRight } from 'lucide-react'
 import { useState } from 'react'
+
+/**
+ * Formatea una fecha para mostrar
+ */
+const formatDate = (dateStr) => {
+  if (!dateStr) return null
+  const date = new Date(dateStr)
+  return date.toLocaleDateString('es-CO', {
+    day: 'numeric',
+    month: 'short'
+  })
+}
 
 /**
  * Componente SerieItem - Representa un elemento individual con número de serie
@@ -256,8 +269,51 @@ export const SerieItem = ({
         <UbicacionBadge ubicacion={serie.ubicacion} size="md" />
       </div>
 
-      {/* Información de alquiler (si aplica) */}
-      {serie.con_alquiler && serie.alquiler && (
+      {/* Información de evento actual (si está en alquiler) */}
+      {serie.en_alquiler && serie.evento_actual && (
+        <div className="mt-3 pt-3 border-t border-slate-200">
+          <div className="bg-orange-50 rounded-lg p-3 space-y-2">
+            {/* Nombre del evento */}
+            <div className="flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-orange-600 flex-shrink-0" />
+              <span className="font-medium text-orange-900 text-sm">
+                {serie.evento_actual.nombre || 'Evento sin nombre'}
+              </span>
+            </div>
+
+            {/* Cliente */}
+            <div className="flex items-center gap-2 text-sm text-orange-800">
+              <User className="w-3.5 h-3.5 flex-shrink-0" />
+              <span>{serie.evento_actual.cliente}</span>
+            </div>
+
+            {/* Ubicación del evento */}
+            {serie.evento_actual.ubicacion && (
+              <div className="flex items-center gap-2 text-sm text-orange-800">
+                <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
+                <span className="truncate">{serie.evento_actual.ubicacion}</span>
+                {serie.evento_actual.ciudad && (
+                  <span className="text-orange-600">({serie.evento_actual.ciudad})</span>
+                )}
+              </div>
+            )}
+
+            {/* Fechas */}
+            <div className="flex items-center gap-2 text-sm text-orange-800">
+              <Clock className="w-3.5 h-3.5 flex-shrink-0" />
+              <span>
+                {formatDate(serie.evento_actual.fecha_inicio)}
+                {serie.evento_actual.fecha_fin && (
+                  <> - {formatDate(serie.evento_actual.fecha_fin)}</>
+                )}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Información de alquiler antiguo (fallback para compatibilidad) */}
+      {!serie.en_alquiler && serie.con_alquiler && serie.alquiler && (
         <div className="mt-3 pt-3 border-t border-slate-200">
           <div className="flex items-center gap-2 text-sm text-slate-600">
             <span className="font-medium">Cliente:</span>
@@ -269,6 +325,32 @@ export const SerieItem = ({
               <span>{new Date(serie.alquiler.fecha_devolucion).toLocaleDateString()}</span>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Próximo evento (si está reservada) */}
+      {serie.proximo_evento && !serie.en_alquiler && (
+        <div className="mt-3 pt-3 border-t border-slate-200">
+          <div className="bg-blue-50 rounded-lg p-3">
+            <div className="flex items-center gap-2 text-xs text-blue-600 font-medium mb-1">
+              <ArrowRight className="w-3 h-3" />
+              PRÓXIMO COMPROMISO
+            </div>
+            <div className="flex items-center gap-2 text-sm text-blue-900">
+              <Calendar className="w-3.5 h-3.5 flex-shrink-0" />
+              <span className="font-medium">{serie.proximo_evento.evento_nombre}</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm text-blue-800 mt-1">
+              <Clock className="w-3.5 h-3.5 flex-shrink-0" />
+              <span>Montaje: {formatDate(serie.proximo_evento.fecha_montaje)}</span>
+            </div>
+            {serie.proximo_evento.cliente_nombre && (
+              <div className="flex items-center gap-2 text-sm text-blue-800 mt-1">
+                <User className="w-3.5 h-3.5 flex-shrink-0" />
+                <span>{serie.proximo_evento.cliente_nombre}</span>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

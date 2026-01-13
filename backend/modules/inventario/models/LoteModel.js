@@ -537,6 +537,179 @@ class LoteModel {
             throw error;
         }
     }
+
+    // ============================================
+    // OBTENER LOTES CON CONTEXTO DE ALQUILER ✨ NUEVO
+    // Incluye desglose de cantidades por evento
+    // ============================================
+    static async obtenerPorElementoConContexto(elementoId) {
+        try {
+            // 1. Obtener estadísticas generales
+            const estadisticas = await this.obtenerEstadisticas(elementoId);
+
+            // 2. Obtener lotes agrupados por ubicación y estado
+            const queryLotes = `
+                SELECT
+                    l.id,
+                    l.lote_numero,
+                    l.cantidad,
+                    l.estado,
+                    l.ubicacion,
+                    l.ubicacion_id,
+                    u.nombre AS ubicacion_nombre,
+                    u.tipo AS ubicacion_tipo,
+                    l.created_at
+                FROM lotes l
+                LEFT JOIN ubicaciones u ON l.ubicacion_id = u.id
+                WHERE l.elemento_id = ?
+                  AND l.cantidad > 0
+                ORDER BY l.ubicacion, l.estado, l.lote_numero
+            `;
+            const [lotes] = await pool.query(queryLotes, [elementoId]);
+
+            // 3. Obtener desglose de cantidades alquiladas por evento
+            const queryAlquilados = `
+                SELECT
+                    ae.cantidad_lote,
+                    ae.lote_id,
+                    ae.lote_alquilado_id,
+                    a.id AS alquiler_id,
+                    a.estado AS alquiler_estado,
+                    c.evento_nombre,
+                    c.fecha_evento,
+                    c.fecha_desmontaje,
+                    c.evento_direccion,
+                    c.evento_ciudad,
+                    cl.nombre AS cliente_nombre
+                FROM alquiler_elementos ae
+                INNER JOIN alquileres a ON ae.alquiler_id = a.id
+                INNER JOIN cotizaciones c ON a.cotizacion_id = c.id
+                INNER JOIN clientes cl ON c.cliente_id = cl.id
+                WHERE ae.elemento_id = ?
+                  AND a.estado IN ('programado', 'activo')
+                  AND ae.lote_id IS NOT NULL
+                ORDER BY c.fecha_evento ASC
+            `;
+            const [alquilados] = await pool.query(queryAlquilados, [elementoId]);
+
+            // 4. Agrupar por ubicación
+            const lotesPorUbicacion = {};
+
+            lotes.forEach(lote => {
+                const ubicKey = lote.ubicacion || 'Sin ubicación';
+
+                if (!lotesPorUbicacion[ubicKey]) {
+                    lotesPorUbicacion[ubicKey] = {
+                        ubicacion: ubicKey,
+                        ubicacion_id: lote.ubicacion_id,
+                        ubicacion_tipo: lote.ubicacion_tipo,
+                        lotes: [],
+                        total: 0
+                    };
+                }
+
+                lotesPorUbicacion[ubicKey].lotes.push(lote);
+                lotesPorUbicacion[ubicKey].total += lote.cantidad;
+            });
+
+            // 5. Calcular cantidad total alquilada por evento
+            const cantidadPorEvento = alquilados.reduce((acc, item) => {
+                const key = item.alquiler_id;
+                if (!acc[key]) {
+                    acc[key] = {
+                        alquiler_id: item.alquiler_id,
+                        estado: item.alquiler_estado,
+                        evento_nombre: item.evento_nombre,
+                        fecha_evento: item.fecha_evento,
+                        fecha_desmontaje: item.fecha_desmontaje,
+                        ubicacion: item.evento_direccion,
+                        ciudad: item.evento_ciudad,
+                        cliente: item.cliente_nombre,
+                        cantidad: 0
+                    };
+                }
+                acc[key].cantidad += item.cantidad_lote || 0;
+                return acc;
+            }, {});
+
+            return {
+                estadisticas,
+                lotes_por_ubicacion: Object.values(lotesPorUbicacion),
+                en_eventos: Object.values(cantidadPorEvento),
+                total_en_eventos: alquilados.reduce((sum, a) => sum + (a.cantidad_lote || 0), 0)
+            };
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    // ============================================
+    // OBTENER DESGLOSE DE ALQUILERES POR ELEMENTO ✨ NUEVO
+    // Para mostrar en qué eventos está cada cantidad
+    // ============================================
+    static async obtenerDesgloseAlquileres(elementoId) {
+        try {
+            const query = `
+                SELECT
+                    ae.id AS alquiler_elemento_id,
+                    ae.cantidad_lote,
+                    ae.estado_salida,
+                    ae.fecha_asignacion,
+                    a.id AS alquiler_id,
+                    a.estado AS alquiler_estado,
+                    c.evento_nombre,
+                    c.fecha_montaje,
+                    c.fecha_evento,
+                    c.fecha_desmontaje,
+                    c.evento_direccion,
+                    c.evento_ciudad,
+                    cl.id AS cliente_id,
+                    cl.nombre AS cliente_nombre,
+                    cl.telefono AS cliente_telefono
+                FROM alquiler_elementos ae
+                INNER JOIN alquileres a ON ae.alquiler_id = a.id
+                INNER JOIN cotizaciones c ON a.cotizacion_id = c.id
+                INNER JOIN clientes cl ON c.cliente_id = cl.id
+                WHERE ae.elemento_id = ?
+                  AND a.estado IN ('programado', 'activo')
+                  AND ae.lote_id IS NOT NULL
+                ORDER BY c.fecha_montaje ASC
+            `;
+
+            const [rows] = await pool.query(query, [elementoId]);
+
+            // Agrupar por evento
+            const porEvento = rows.reduce((acc, row) => {
+                const key = row.alquiler_id;
+                if (!acc[key]) {
+                    acc[key] = {
+                        alquiler_id: row.alquiler_id,
+                        estado: row.alquiler_estado,
+                        evento: {
+                            nombre: row.evento_nombre,
+                            fecha_montaje: row.fecha_montaje,
+                            fecha_evento: row.fecha_evento,
+                            fecha_desmontaje: row.fecha_desmontaje,
+                            ubicacion: row.evento_direccion,
+                            ciudad: row.evento_ciudad
+                        },
+                        cliente: {
+                            id: row.cliente_id,
+                            nombre: row.cliente_nombre,
+                            telefono: row.cliente_telefono
+                        },
+                        cantidad_total: 0
+                    };
+                }
+                acc[key].cantidad_total += row.cantidad_lote || 0;
+                return acc;
+            }, {});
+
+            return Object.values(porEvento);
+        } catch (error) {
+            throw error;
+        }
+    }
 }
 
 module.exports = LoteModel;
