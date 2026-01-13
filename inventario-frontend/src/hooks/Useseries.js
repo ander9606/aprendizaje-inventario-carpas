@@ -208,9 +208,75 @@ export const useGetSeriesPorEstado = (elementoId, estado) => {
     queryFn: () => seriesAPI.obtenerPorEstado(elementoId, estado),
     enabled: !!elementoId && !!estado
   })
-  
+
   return {
     series: data?.data || [],
+    isLoading,
+    error
+  }
+}
+
+/**
+ * Hook: Obtener series CON CONTEXTO de alquiler ✨ NUEVO
+ *
+ * Incluye información del evento actual y próximo evento
+ *
+ * @param {number} elementoId - ID del elemento
+ * @param {Object} options - Opciones adicionales de React Query
+ * @returns {Object} { series, elemento, resumen, isLoading, error, refetch }
+ *
+ * @example
+ * const { series, resumen } = useGetSeriesConContexto(1)
+ *
+ * // Cada serie incluye:
+ * // - en_alquiler: boolean
+ * // - evento_actual: { nombre, cliente, fecha_fin, ubicacion } | null
+ * // - proximo_evento: { nombre, fecha_montaje } | null
+ */
+export const useGetSeriesConContexto = (elementoId, options = {}) => {
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ['series', 'elemento', elementoId, 'contexto'],
+    queryFn: () => seriesAPI.obtenerPorElementoConContexto(elementoId),
+    enabled: options.enabled !== undefined ? options.enabled : !!elementoId,
+    ...options
+  })
+
+  return {
+    series: data?.data || [],
+    elemento: data?.elemento || null,
+    estadisticas: data?.estadisticas || {},
+    resumen: data?.resumen || {
+      total: 0,
+      disponibles: 0,
+      en_evento: 0,
+      reservadas: 0,
+      mantenimiento: 0,
+      danadas: 0
+    },
+    total: data?.total || 0,
+    isLoading,
+    error,
+    refetch
+  }
+}
+
+/**
+ * Hook: Obtener serie por ID CON CONTEXTO completo ✨ NUEVO
+ *
+ * Incluye evento actual, próximo evento e historial
+ *
+ * @param {number} serieId - ID de la serie
+ * @returns {Object} { serie, isLoading, error }
+ */
+export const useGetSerieConContexto = (serieId) => {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['series', serieId, 'contexto'],
+    queryFn: () => seriesAPI.obtenerPorIdConContexto(serieId),
+    enabled: !!serieId
+  })
+
+  return {
+    serie: data?.data || null,
     isLoading,
     error
   }

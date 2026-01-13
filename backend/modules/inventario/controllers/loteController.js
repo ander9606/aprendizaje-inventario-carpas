@@ -557,3 +557,101 @@ exports.obtenerResumenDisponibilidad = async (req, res, next) => {
         next(error);
     }
 };
+
+// ============================================
+// OBTENER LOTES CON CONTEXTO DE ALQUILER ✨ NUEVO
+// ============================================
+
+/**
+ * GET /api/lotes/elemento/:elementoId/contexto
+ *
+ * Retorna los lotes de un elemento CON información de:
+ * - Estadísticas generales
+ * - Lotes agrupados por ubicación
+ * - Desglose de cantidades en eventos activos
+ */
+exports.obtenerPorElementoConContexto = async (req, res, next) => {
+    try {
+        const { elementoId } = req.params;
+
+        // Validar elementoId
+        validateId(elementoId, 'ID de elemento');
+
+        // Verificar que el elemento existe
+        const elemento = await ElementoModel.obtenerPorId(elementoId);
+        if (!elemento) {
+            throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO(ENTIDADES.ELEMENTO), 404);
+        }
+
+        // Verificar que NO requiere series
+        if (elemento.requiere_series) {
+            throw new AppError(
+                'Este elemento requiere series individuales. Use el endpoint de series.',
+                400
+            );
+        }
+
+        // Obtener lotes con contexto
+        const resultado = await LoteModel.obtenerPorElementoConContexto(elementoId);
+
+        res.json({
+            success: true,
+            elemento: {
+                id: elemento.id,
+                nombre: elemento.nombre,
+                cantidad_total: elemento.cantidad
+            },
+            estadisticas: resultado.estadisticas,
+            lotes_por_ubicacion: resultado.lotes_por_ubicacion,
+            en_eventos: resultado.en_eventos,
+            total_en_eventos: resultado.total_en_eventos
+        });
+    } catch (error) {
+        logger.error('loteController.obtenerPorElementoConContexto', error);
+        next(error);
+    }
+};
+
+// ============================================
+// OBTENER DESGLOSE DE ALQUILERES ✨ NUEVO
+// ============================================
+
+/**
+ * GET /api/lotes/elemento/:elementoId/alquileres
+ *
+ * Retorna el desglose de en qué eventos están las cantidades alquiladas
+ */
+exports.obtenerDesgloseAlquileres = async (req, res, next) => {
+    try {
+        const { elementoId } = req.params;
+
+        // Validar elementoId
+        validateId(elementoId, 'ID de elemento');
+
+        // Verificar que el elemento existe
+        const elemento = await ElementoModel.obtenerPorId(elementoId);
+        if (!elemento) {
+            throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO(ENTIDADES.ELEMENTO), 404);
+        }
+
+        // Obtener desglose
+        const desglose = await LoteModel.obtenerDesgloseAlquileres(elementoId);
+
+        // Calcular total
+        const totalEnEventos = desglose.reduce((sum, e) => sum + e.cantidad_total, 0);
+
+        res.json({
+            success: true,
+            elemento: {
+                id: elemento.id,
+                nombre: elemento.nombre
+            },
+            eventos: desglose,
+            total_eventos: desglose.length,
+            total_cantidad_en_eventos: totalEnEventos
+        });
+    } catch (error) {
+        logger.error('loteController.obtenerDesgloseAlquileres', error);
+        next(error);
+    }
+};
