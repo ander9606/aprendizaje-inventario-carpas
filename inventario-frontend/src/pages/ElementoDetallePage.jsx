@@ -363,7 +363,8 @@ function ElementoDetallePage() {
   // ============================================
   // 6. BREADCRUMB
   // ============================================
-
+  // NOTA: La ruta /subcategorias/:id no existe como página separada
+  // Las subcategorías se muestran en la página de categoría
   const breadcrumbItems = [
     { label: 'Inventario', path: '/inventario' },
     {
@@ -371,11 +372,7 @@ function ElementoDetallePage() {
       path: `/inventario/categorias/${categoriaId}`
     },
     {
-      label: elemento?.subcategoria_nombre || 'Subcategoría',
-      path: `/inventario/categorias/${categoriaId}/subcategorias/${subcategoriaId}`
-    },
-    {
-      label: 'Elementos',
+      label: elemento?.subcategoria_nombre || 'Elementos',
       path: `/inventario/categorias/${categoriaId}/subcategorias/${subcategoriaId}/elementos`
     },
     { label: elemento?.nombre || 'Detalle' }
