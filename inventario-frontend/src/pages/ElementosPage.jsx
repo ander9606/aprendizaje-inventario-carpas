@@ -53,6 +53,7 @@ function ElementosPage() {
   // ESTADOS LOCALES (Modales)
   // ============================================
   const [showElementoModal, setShowElementoModal] = useState(false)
+  const [elementoParaEditar, setElementoParaEditar] = useState(null)
   const [elementoParaSerie, setElementoParaSerie] = useState(null)
   const [loteParaMover, setLoteParaMover] = useState(null)
 
@@ -131,7 +132,8 @@ function ElementosPage() {
   // HANDLERS - Elemento CRUD
   // ============================================
   const handleEditElemento = (elemento) => {
-    navigate(`/inventario/categorias/${categoriaId}/subcategorias/${subcategoriaId}/elementos/${elemento.id}`)
+    // Abrir modal de edición en lugar de navegar a página de detalle
+    setElementoParaEditar(elemento)
   }
 
   const handleDeleteElemento = async (elemento) => {
@@ -407,6 +409,20 @@ function ElementosPage() {
           isOpen={showElementoModal}
           onClose={handleCloseElementoModal}
           onSuccess={handleElementoCreated}
+          subcategoriaId={subcategoriaId}
+        />
+      )}
+
+      {/* Modal: Editar Elemento */}
+      {elementoParaEditar && (
+        <ElementoFormModal
+          isOpen={!!elementoParaEditar}
+          onClose={() => setElementoParaEditar(null)}
+          onSuccess={() => {
+            setElementoParaEditar(null)
+            refetch()
+          }}
+          elemento={elementoParaEditar}
           subcategoriaId={subcategoriaId}
         />
       )}
