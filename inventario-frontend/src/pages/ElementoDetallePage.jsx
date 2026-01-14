@@ -519,31 +519,25 @@ function ElementoDetallePage() {
       {/* ============================================
           ESTADÍSTICAS
           ============================================ */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 mb-6">
         <StatCard
           label="Total"
           value={elemento.requiere_series ? totalSeries : cantidad_total}
           color="gray"
-          icon="📦"
           size="md"
         />
         <StatCard
-          label={elemento.requiere_series ? "Disponibles" : "Nuevo"}
-          value={elemento.requiere_series
-            ? disponiblesSeries
-            : estadisticas?.nuevo || 0
-          }
-          color={elemento.requiere_series ? "green" : "purple"}
+          label="Nuevo"
+          value={estadisticas?.nuevo || 0}
+          color="purple"
           size="md"
         />
-        {!elemento.requiere_series && (
-          <StatCard
-            label="Bueno"
-            value={estadisticas?.bueno || 0}
-            color="green"
-            size="md"
-          />
-        )}
+        <StatCard
+          label="Bueno"
+          value={estadisticas?.bueno || 0}
+          color="green"
+          size="md"
+        />
         <StatCard
           label="Alquilado"
           value={estadisticas?.alquilado || 0}
@@ -558,7 +552,7 @@ function ElementoDetallePage() {
         />
         <StatCard
           label="Dañado"
-          value={estadisticas?.danado || 0}
+          value={estadisticas?.danado || estadisticas?.dañado || 0}
           color="red"
           size="md"
         />
