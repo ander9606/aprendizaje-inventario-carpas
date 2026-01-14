@@ -561,48 +561,74 @@ function ElementoDetallePage() {
       {/* ============================================
           FILTROS POR ESTADO
           ============================================ */}
-      <div className="mb-6">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-sm font-medium text-slate-700">Filtrar:</span>
+      <div className="mb-6 p-4 bg-white border border-slate-200 rounded-xl">
+        <div className="flex items-center gap-3 flex-wrap">
+          <span className="text-sm font-semibold text-slate-600 uppercase tracking-wide">Filtrar:</span>
 
           {/* Botón "Todos" */}
           <button
             onClick={() => setFiltroEstado(null)}
             className={`
-              px-3 py-1 rounded-full text-sm font-medium transition-colors
+              px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200
               ${!filtroEstado
-                ? 'bg-slate-900 text-white'
-                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                ? 'bg-slate-900 text-white shadow-md'
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:shadow-sm'
               }
             `}
           >
             Todos
           </button>
 
+          <div className="h-6 w-px bg-slate-200" />
+
           {/* Botones por estado */}
-          {['nuevo', 'bueno', 'alquilado', 'mantenimiento', 'dañado'].map(estado => (
-            <button
-              key={estado}
-              onClick={() => handleFiltroEstado(estado)}
-              className={`transition-opacity ${
-                filtroEstado && filtroEstado !== estado ? 'opacity-50' : ''
-              }`}
-            >
-              <EstadoBadge estado={estado} size="md" />
-            </button>
-          ))}
+          <div className="flex items-center gap-2 flex-wrap">
+            {['nuevo', 'bueno', 'alquilado', 'mantenimiento', 'dañado'].map(estado => (
+              <button
+                key={estado}
+                onClick={() => handleFiltroEstado(estado)}
+                className={`
+                  transition-all duration-200 rounded-lg
+                  ${filtroEstado === estado
+                    ? 'ring-2 ring-offset-2 ring-slate-400 scale-105'
+                    : filtroEstado
+                      ? 'opacity-50 hover:opacity-80'
+                      : 'hover:scale-105'
+                  }
+                `}
+              >
+                <EstadoBadge estado={estado} size="md" />
+              </button>
+            ))}
+          </div>
+
+          {/* Contador de resultados */}
+          {filtroEstado && (
+            <span className="ml-auto text-sm text-slate-500">
+              {itemsFiltrados.length} resultado{itemsFiltrados.length !== 1 ? 's' : ''}
+            </span>
+          )}
         </div>
       </div>
 
       {/* ============================================
           CONTENIDO PRINCIPAL (Series o Lotes)
           ============================================ */}
-      <Card>
-        <Card.Header>
+      <Card className="border-slate-200">
+        <Card.Header className="bg-slate-50/50">
           <div className="flex items-center justify-between">
-            <Card.Title>
-              {elemento.requiere_series ? 'Series' : 'Lotes por Ubicación'}
-              {filtroEstado && ` (${itemsFiltrados.length})`}
+            <Card.Title className="flex items-center gap-2">
+              {elemento.requiere_series ? (
+                <>
+                  <span className="text-lg">📋</span>
+                  Series registradas
+                </>
+              ) : (
+                <>
+                  <span className="text-lg">📦</span>
+                  Lotes por Ubicación
+                </>
+              )}
             </Card.Title>
 
             <Button
