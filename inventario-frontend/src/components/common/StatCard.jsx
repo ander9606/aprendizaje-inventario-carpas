@@ -166,11 +166,12 @@ export const StatCard = ({
           {/* Ícono */}
           {IconComponent && (
             <div className={`${sizes.iconWrapper} ${colors.iconBg} rounded-lg flex items-center justify-center`}>
-              {typeof IconComponent === 'function' ? (
+              {/* Verificar si es un componente React (forwardRef o función) */}
+              {typeof IconComponent === 'function' || (IconComponent.$$typeof && IconComponent.render) ? (
                 <IconComponent className={`${sizes.iconSize} ${colors.icon}`} />
-              ) : (
-                <span className={sizes.iconSize}>{IconComponent}</span>
-              )}
+              ) : typeof IconComponent === 'string' ? (
+                <span className={`${sizes.iconSize} flex items-center justify-center`}>{IconComponent}</span>
+              ) : null}
             </div>
           )}
         </div>
