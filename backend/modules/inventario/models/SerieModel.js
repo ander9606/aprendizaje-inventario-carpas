@@ -577,12 +577,16 @@ class SerieModel {
     }
 
     // ============================================
-    // OBTENER SERIES CON CONTEXTO DE ALQUILER ✨ NUEVO
+    // OBTENER SERIES CON CONTEXTO DE ALQUILER
     // Incluye información del evento actual y próximo
+    // Filtra solo eventos actuales y futuros
     // ============================================
-    static async obtenerPorElementoConContexto(elementoId) {
+    static async obtenerPorElementoConContexto(elementoId, fechaReferencia = null) {
         try {
-            // Query principal: series con evento actual (si existe)
+            // Fecha de referencia: si no se proporciona, usar hoy
+            const hoy = fechaReferencia || new Date().toISOString().split('T')[0];
+
+            // Query principal: series con evento actual (si existe y no ha terminado)
             const query = `
                 SELECT
                     s.id,
@@ -594,21 +598,22 @@ class SerieModel {
                     u.tipo AS ubicacion_tipo,
                     s.fecha_ingreso,
 
-                    -- Datos del alquiler actual (si está alquilado)
-                    CASE WHEN a.id IS NOT NULL THEN TRUE ELSE FALSE END AS en_alquiler,
-                    a.id AS alquiler_id,
-                    a.estado AS alquiler_estado,
+                    -- Datos del alquiler actual (si está alquilado Y no ha terminado)
+                    CASE WHEN a.id IS NOT NULL AND c.fecha_desmontaje >= ? THEN TRUE ELSE FALSE END AS en_alquiler,
+                    CASE WHEN c.fecha_desmontaje >= ? THEN a.id ELSE NULL END AS alquiler_id,
+                    CASE WHEN c.fecha_desmontaje >= ? THEN a.estado ELSE NULL END AS alquiler_estado,
 
-                    -- Datos del evento actual
-                    c.evento_nombre,
-                    c.fecha_evento AS evento_fecha_inicio,
-                    c.fecha_desmontaje AS evento_fecha_fin,
-                    c.evento_direccion AS evento_ubicacion,
-                    c.evento_ciudad,
+                    -- Datos del evento actual (solo si no ha terminado)
+                    CASE WHEN c.fecha_desmontaje >= ? THEN c.evento_nombre ELSE NULL END AS evento_nombre,
+                    CASE WHEN c.fecha_desmontaje >= ? THEN c.fecha_montaje ELSE NULL END AS evento_fecha_montaje,
+                    CASE WHEN c.fecha_desmontaje >= ? THEN c.fecha_evento ELSE NULL END AS evento_fecha_inicio,
+                    CASE WHEN c.fecha_desmontaje >= ? THEN c.fecha_desmontaje ELSE NULL END AS evento_fecha_fin,
+                    CASE WHEN c.fecha_desmontaje >= ? THEN c.evento_direccion ELSE NULL END AS evento_ubicacion,
+                    CASE WHEN c.fecha_desmontaje >= ? THEN c.evento_ciudad ELSE NULL END AS evento_ciudad,
 
                     -- Datos del cliente
-                    cl.nombre AS cliente_nombre,
-                    cl.telefono AS cliente_telefono
+                    CASE WHEN c.fecha_desmontaje >= ? THEN cl.nombre ELSE NULL END AS cliente_nombre,
+                    CASE WHEN c.fecha_desmontaje >= ? THEN cl.telefono ELSE NULL END AS cliente_telefono
 
                 FROM series s
                 LEFT JOIN ubicaciones u ON s.ubicacion_id = u.id
@@ -624,7 +629,8 @@ class SerieModel {
                 ORDER BY s.numero_serie
             `;
 
-            const [series] = await pool.query(query, [elementoId]);
+            const params = [hoy, hoy, hoy, hoy, hoy, hoy, hoy, hoy, hoy, hoy, hoy, elementoId];
+            const [series] = await pool.query(query, params);
 
             // Para cada serie, buscar próximo evento (si no está en alquiler activo)
             const seriesConProximo = await Promise.all(series.map(async (serie) => {
@@ -683,14 +689,66 @@ class SerieModel {
                 };
             }));
 
-            return seriesConProximo;
+            // Calcular resumen de disponibilidad
+            const totalSeries = seriesConProximo.length;
+            const enAlquiler = seriesConProximo.filter(s => s.en_alquiler).length;
+            const disponiblesHoy = seriesConProximo.filter(s =>
+                !s.en_alquiler && ['bueno', 'nuevo', 'disponible'].includes(s.estado)
+            ).length;
+
+            // Obtener todos los próximos eventos del elemento
+            const queryProximosEventos = `
+                SELECT DISTINCT
+                    a.id AS alquiler_id,
+                    c.evento_nombre,
+                    c.fecha_montaje,
+                    c.fecha_evento,
+                    c.fecha_desmontaje,
+                    c.evento_direccion,
+                    c.evento_ciudad,
+                    cl.nombre AS cliente_nombre,
+                    COUNT(ae.serie_id) AS cantidad_series
+                FROM alquiler_elementos ae
+                INNER JOIN alquileres a ON ae.alquiler_id = a.id
+                INNER JOIN cotizaciones c ON a.cotizacion_id = c.id
+                INNER JOIN clientes cl ON c.cliente_id = cl.id
+                INNER JOIN series s ON ae.serie_id = s.id
+                WHERE s.id_elemento = ?
+                  AND a.estado IN ('programado', 'activo')
+                  AND c.fecha_desmontaje >= ?
+                GROUP BY a.id, c.evento_nombre, c.fecha_montaje, c.fecha_evento,
+                         c.fecha_desmontaje, c.evento_direccion, c.evento_ciudad, cl.nombre
+                ORDER BY c.fecha_montaje ASC
+            `;
+            const [proximosEventos] = await pool.query(queryProximosEventos, [elementoId, hoy]);
+
+            return {
+                series: seriesConProximo,
+                resumen: {
+                    total: totalSeries,
+                    en_alquiler: enAlquiler,
+                    disponibles_hoy: disponiblesHoy,
+                    fecha_consulta: hoy
+                },
+                proximos_eventos: proximosEventos.map(e => ({
+                    alquiler_id: e.alquiler_id,
+                    evento_nombre: e.evento_nombre,
+                    fecha_montaje: e.fecha_montaje,
+                    fecha_evento: e.fecha_evento,
+                    fecha_desmontaje: e.fecha_desmontaje,
+                    ubicacion: e.evento_direccion,
+                    ciudad: e.evento_ciudad,
+                    cliente: e.cliente_nombre,
+                    cantidad: e.cantidad_series
+                }))
+            };
         } catch (error) {
             throw error;
         }
     }
 
     // ============================================
-    // OBTENER SERIE POR ID CON CONTEXTO ✨ NUEVO
+    // OBTENER SERIE POR ID CON CONTEXTO
     // ============================================
     static async obtenerPorIdConContexto(id) {
         try {

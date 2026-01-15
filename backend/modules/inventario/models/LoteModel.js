@@ -539,11 +539,15 @@ class LoteModel {
     }
 
     // ============================================
-    // OBTENER LOTES CON CONTEXTO DE ALQUILER ✨ NUEVO
+    // OBTENER LOTES CON CONTEXTO DE ALQUILER
     // Incluye desglose de cantidades por evento
+    // Filtra solo eventos actuales y futuros
     // ============================================
-    static async obtenerPorElementoConContexto(elementoId) {
+    static async obtenerPorElementoConContexto(elementoId, fechaReferencia = null) {
         try {
+            // Fecha de referencia: si no se proporciona, usar hoy
+            const hoy = fechaReferencia || new Date().toISOString().split('T')[0];
+
             // 1. Obtener estadísticas generales
             const estadisticas = await this.obtenerEstadisticas(elementoId);
 
@@ -568,6 +572,7 @@ class LoteModel {
             const [lotes] = await pool.query(queryLotes, [elementoId]);
 
             // 3. Obtener desglose de cantidades alquiladas por evento
+            // CORREGIDO: Solo eventos donde fecha_desmontaje >= hoy (no pasados)
             const queryAlquilados = `
                 SELECT
                     ae.cantidad_lote,
@@ -576,6 +581,7 @@ class LoteModel {
                     a.id AS alquiler_id,
                     a.estado AS alquiler_estado,
                     c.evento_nombre,
+                    c.fecha_montaje,
                     c.fecha_evento,
                     c.fecha_desmontaje,
                     c.evento_direccion,
@@ -588,9 +594,10 @@ class LoteModel {
                 WHERE ae.elemento_id = ?
                   AND a.estado IN ('programado', 'activo')
                   AND ae.lote_id IS NOT NULL
-                ORDER BY c.fecha_evento ASC
+                  AND c.fecha_desmontaje >= ?
+                ORDER BY c.fecha_montaje ASC
             `;
-            const [alquilados] = await pool.query(queryAlquilados, [elementoId]);
+            const [alquilados] = await pool.query(queryAlquilados, [elementoId, hoy]);
 
             // 4. Agrupar por ubicación
             const lotesPorUbicacion = {};
@@ -620,6 +627,7 @@ class LoteModel {
                         alquiler_id: item.alquiler_id,
                         estado: item.alquiler_estado,
                         evento_nombre: item.evento_nombre,
+                        fecha_montaje: item.fecha_montaje,
                         fecha_evento: item.fecha_evento,
                         fecha_desmontaje: item.fecha_desmontaje,
                         ubicacion: item.evento_direccion,
@@ -632,15 +640,106 @@ class LoteModel {
                 return acc;
             }, {});
 
+            const eventos = Object.values(cantidadPorEvento);
+            const totalEnEventos = alquilados.reduce((sum, a) => sum + (a.cantidad_lote || 0), 0);
+
+            // 6. Calcular disponibilidad por rangos de fechas
+            const disponibilidadPorRangos = this.calcularDisponibilidadPorRangos(
+                estadisticas.total || 0,
+                eventos,
+                hoy
+            );
+
+            // 7. Calcular disponibles HOY
+            const ocupadosHoy = eventos
+                .filter(e => {
+                    const montaje = new Date(e.fecha_montaje);
+                    const desmontaje = new Date(e.fecha_desmontaje);
+                    const fechaRef = new Date(hoy);
+                    return montaje <= fechaRef && desmontaje >= fechaRef;
+                })
+                .reduce((sum, e) => sum + e.cantidad, 0);
+
             return {
                 estadisticas,
                 lotes_por_ubicacion: Object.values(lotesPorUbicacion),
-                en_eventos: Object.values(cantidadPorEvento),
-                total_en_eventos: alquilados.reduce((sum, a) => sum + (a.cantidad_lote || 0), 0)
+                en_eventos: eventos,
+                total_en_eventos: totalEnEventos,
+                disponibles_hoy: (estadisticas.total || 0) - ocupadosHoy,
+                fecha_consulta: hoy,
+                disponibilidad_por_rangos: disponibilidadPorRangos
             };
         } catch (error) {
             throw error;
         }
+    }
+
+    // ============================================
+    // CALCULAR DISPONIBILIDAD POR RANGOS DE FECHAS
+    // Genera timeline de disponibilidad
+    // ============================================
+    static calcularDisponibilidadPorRangos(stockTotal, eventos, fechaDesde) {
+        if (!eventos || eventos.length === 0) {
+            return [{
+                fecha_inicio: fechaDesde,
+                fecha_fin: null,
+                disponibles: stockTotal,
+                ocupados: 0,
+                eventos: []
+            }];
+        }
+
+        // Obtener todas las fechas de cambio (montaje y desmontaje)
+        const fechasCambio = new Set();
+        fechasCambio.add(fechaDesde);
+
+        eventos.forEach(e => {
+            if (e.fecha_montaje) fechasCambio.add(e.fecha_montaje.split('T')[0]);
+            if (e.fecha_desmontaje) {
+                // Agregar día después del desmontaje como fin del período
+                const desmontaje = new Date(e.fecha_desmontaje);
+                desmontaje.setDate(desmontaje.getDate() + 1);
+                fechasCambio.add(desmontaje.toISOString().split('T')[0]);
+            }
+        });
+
+        // Ordenar fechas
+        const fechasOrdenadas = Array.from(fechasCambio).sort();
+
+        // Generar rangos
+        const rangos = [];
+        for (let i = 0; i < fechasOrdenadas.length; i++) {
+            const fechaInicio = fechasOrdenadas[i];
+            const fechaFin = fechasOrdenadas[i + 1] || null;
+
+            // Calcular ocupados en este rango
+            const eventosEnRango = eventos.filter(e => {
+                const montaje = e.fecha_montaje ? e.fecha_montaje.split('T')[0] : null;
+                const desmontaje = e.fecha_desmontaje ? e.fecha_desmontaje.split('T')[0] : null;
+                return montaje && desmontaje && montaje <= fechaInicio && desmontaje >= fechaInicio;
+            });
+
+            const ocupados = eventosEnRango.reduce((sum, e) => sum + e.cantidad, 0);
+
+            rangos.push({
+                fecha_inicio: fechaInicio,
+                fecha_fin: fechaFin,
+                disponibles: stockTotal - ocupados,
+                ocupados: ocupados,
+                eventos: eventosEnRango.map(e => ({
+                    evento: e.evento_nombre,
+                    cantidad: e.cantidad,
+                    cliente: e.cliente
+                }))
+            });
+        }
+
+        // Limitar a próximos 30 días para no generar demasiados rangos
+        const limite = new Date(fechaDesde);
+        limite.setDate(limite.getDate() + 30);
+        const limiteFecha = limite.toISOString().split('T')[0];
+
+        return rangos.filter(r => r.fecha_inicio <= limiteFecha).slice(0, 10);
     }
 
     // ============================================

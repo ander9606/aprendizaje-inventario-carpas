@@ -110,6 +110,48 @@ const elementosAPI = {
   },
 
   /**
+   * Obtener un elemento con contexto de ocupaciones
+   * Incluye próximos eventos y disponibilidad por fechas
+   *
+   * @param {number} elementoId - ID del elemento
+   * @param {string} fecha - Fecha de referencia (opcional, default: hoy)
+   * @returns {Promise} - Elemento con ocupaciones actuales y futuras
+   *
+   * @example
+   * const elemento = await elementosAPI.obtenerConOcupaciones(1)
+   *
+   * Respuesta para SERIES:
+   * {
+   *   ...datosElemento,
+   *   ocupaciones: {
+   *     series: [...],
+   *     resumen: { total, en_alquiler, disponibles_hoy, fecha_consulta },
+   *     proximos_eventos: [{ evento_nombre, fecha_montaje, cliente, cantidad }]
+   *   }
+   * }
+   *
+   * Respuesta para LOTES:
+   * {
+   *   ...datosElemento,
+   *   ocupaciones: {
+   *     estadisticas,
+   *     lotes_por_ubicacion: [...],
+   *     en_eventos: [{ evento_nombre, cantidad, fecha_montaje, fecha_desmontaje }],
+   *     disponibles_hoy: 45,
+   *     fecha_consulta: "2024-01-15",
+   *     disponibilidad_por_rangos: [
+   *       { fecha_inicio, fecha_fin, disponibles, ocupados, eventos }
+   *     ]
+   *   }
+   * }
+   */
+  obtenerConOcupaciones: async (elementoId, fecha = null) => {
+    const params = fecha ? `?fecha=${fecha}` : ''
+    const response = await api.get(`/elementos/${elementoId}/ocupaciones${params}`)
+    return response.data
+  },
+
+  /**
    * Obtener todos los elementos (todas las subcategorías)
    */
   obtenerTodos: async () => {

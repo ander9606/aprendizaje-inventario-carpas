@@ -292,6 +292,59 @@ export const useGetElemento = (elementoId) => {
 }
 
 /**
+ * Hook: Obtener elemento CON CONTEXTO DE OCUPACIONES
+ * Incluye próximos eventos y disponibilidad por fechas
+ *
+ * @param {number} elementoId - ID del elemento
+ * @param {string} fecha - Fecha de referencia (opcional)
+ * @returns {Object} { elemento, ocupaciones, isLoading, error }
+ *
+ * @example
+ * const { elemento, ocupaciones, isLoading } = useGetElementoConOcupaciones(1)
+ *
+ * Para SERIES:
+ * ocupaciones = {
+ *   series: [...],              // Series con evento_actual y proximo_evento
+ *   resumen: {
+ *     total: 10,
+ *     en_alquiler: 3,
+ *     disponibles_hoy: 7,
+ *     fecha_consulta: "2024-01-15"
+ *   },
+ *   proximos_eventos: [
+ *     { evento_nombre, fecha_montaje, cliente, cantidad }
+ *   ]
+ * }
+ *
+ * Para LOTES:
+ * ocupaciones = {
+ *   estadisticas,
+ *   lotes_por_ubicacion: [...],
+ *   en_eventos: [{ evento_nombre, cantidad, fecha_desmontaje }],
+ *   disponibles_hoy: 45,
+ *   fecha_consulta: "2024-01-15",
+ *   disponibilidad_por_rangos: [
+ *     { fecha_inicio, fecha_fin, disponibles, ocupados, eventos }
+ *   ]
+ * }
+ */
+export const useGetElementoConOcupaciones = (elementoId, fecha = null) => {
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ['elementos', elementoId, 'ocupaciones', fecha],
+    queryFn: () => elementosAPI.obtenerConOcupaciones(elementoId, fecha),
+    enabled: !!elementoId
+  })
+
+  return {
+    elemento: data?.data || null,
+    ocupaciones: data?.data?.ocupaciones || null,
+    isLoading,
+    error,
+    refetch
+  }
+}
+
+/**
  * Hook: Obtener estadísticas de un elemento
  * 
  * @param {number} elementoId - ID del elemento
