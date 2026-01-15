@@ -10,6 +10,94 @@ const { pool } = require('../config/database');
 
 const MIGRACIONES_DIR = path.join(__dirname, '../sql/productos_alquiler');
 
+/**
+ * Parser de SQL que respeta strings y paréntesis
+ */
+function parseSqlStatements(sql) {
+    const statements = [];
+    let current = '';
+    let inString = false;
+    let stringChar = null;
+    let parenDepth = 0;
+
+    for (let i = 0; i < sql.length; i++) {
+        const char = sql[i];
+        const prevChar = i > 0 ? sql[i - 1] : '';
+
+        // Manejar strings
+        if ((char === "'" || char === '"') && prevChar !== '\\') {
+            if (!inString) {
+                inString = true;
+                stringChar = char;
+            } else if (char === stringChar) {
+                inString = false;
+                stringChar = null;
+            }
+        }
+
+        // Contar paréntesis (solo fuera de strings)
+        if (!inString) {
+            if (char === '(') parenDepth++;
+            if (char === ')') parenDepth--;
+        }
+
+        // Detectar fin de statement
+        if (char === ';' && !inString && parenDepth === 0) {
+            const stmt = current.trim();
+            if (stmt.length > 0) {
+                statements.push(stmt);
+            }
+            current = '';
+        } else {
+            current += char;
+        }
+    }
+
+    // Agregar último statement si existe
+    const lastStmt = current.trim();
+    if (lastStmt.length > 0 && !lastStmt.startsWith('--')) {
+        statements.push(lastStmt);
+    }
+
+    return statements;
+}
+
+/**
+ * Limpia un statement de comentarios
+ */
+function limpiarStatement(stmt) {
+    // Remover líneas que son solo comentarios
+    const lineas = stmt.split('\n');
+    const lineasLimpias = lineas.filter(linea => {
+        const trimmed = linea.trim();
+        return trimmed.length > 0 && !trimmed.startsWith('--');
+    });
+
+    // Remover comentarios al final de líneas
+    const resultado = lineasLimpias.map(linea => {
+        // Buscar -- que no esté dentro de un string
+        let inString = false;
+        let stringChar = null;
+        for (let i = 0; i < linea.length - 1; i++) {
+            const char = linea[i];
+            if ((char === "'" || char === '"') && (i === 0 || linea[i - 1] !== '\\')) {
+                if (!inString) {
+                    inString = true;
+                    stringChar = char;
+                } else if (char === stringChar) {
+                    inString = false;
+                }
+            }
+            if (!inString && linea[i] === '-' && linea[i + 1] === '-') {
+                return linea.substring(0, i).trim();
+            }
+        }
+        return linea;
+    }).join('\n');
+
+    return resultado.trim();
+}
+
 async function ejecutarMigracion(archivo) {
     const rutaCompleta = path.join(MIGRACIONES_DIR, archivo);
 
@@ -21,50 +109,57 @@ async function ejecutarMigracion(archivo) {
     console.log('─'.repeat(50));
 
     const contenido = fs.readFileSync(rutaCompleta, 'utf8');
-
-    // Dividir por punto y coma, filtrando comentarios y vacíos
-    const statements = contenido
-        .split(';')
-        .map(s => s.trim())
-        .filter(s => s.length > 0 && !s.startsWith('--'));
+    const statements = parseSqlStatements(contenido);
 
     let exitosos = 0;
     let errores = 0;
 
-    for (const statement of statements) {
-        // Saltar si es solo comentarios
-        const sinComentarios = statement.replace(/--.*$/gm, '').trim();
-        if (!sinComentarios || sinComentarios.startsWith('SOURCE')) continue;
+    for (const rawStatement of statements) {
+        const statement = limpiarStatement(rawStatement);
+
+        // Saltar si está vacío o es SOURCE
+        if (!statement || statement.toUpperCase().startsWith('SOURCE')) continue;
 
         try {
             await pool.query(statement);
             exitosos++;
 
             // Mostrar qué se creó
-            if (statement.toUpperCase().includes('CREATE TABLE')) {
-                const match = statement.match(/CREATE TABLE\s+(?:IF NOT EXISTS\s+)?(\w+)/i);
+            const upperStmt = statement.toUpperCase();
+            if (upperStmt.includes('CREATE TABLE')) {
+                const match = statement.match(/CREATE TABLE\s+(?:IF NOT EXISTS\s+)?`?(\w+)`?/i);
                 if (match) {
                     console.log(`  ✅ Tabla creada: ${match[1]}`);
                 }
-            } else if (statement.toUpperCase().includes('CREATE INDEX')) {
-                const match = statement.match(/CREATE INDEX\s+(\w+)/i);
+            } else if (upperStmt.includes('CREATE INDEX')) {
+                const match = statement.match(/CREATE INDEX\s+`?(\w+)`?/i);
                 if (match) {
                     console.log(`  ✅ Índice creado: ${match[1]}`);
                 }
-            } else if (statement.toUpperCase().includes('INSERT INTO')) {
-                const match = statement.match(/INSERT INTO\s+(\w+)/i);
+            } else if (upperStmt.includes('INSERT INTO')) {
+                const match = statement.match(/INSERT INTO\s+`?(\w+)`?/i);
                 if (match) {
                     console.log(`  ✅ Datos insertados en: ${match[1]}`);
+                }
+            } else if (upperStmt.includes('ALTER TABLE')) {
+                const match = statement.match(/ALTER TABLE\s+`?(\w+)`?/i);
+                if (match) {
+                    console.log(`  ✅ Tabla alterada: ${match[1]}`);
                 }
             }
         } catch (error) {
             // Ignorar errores de "ya existe"
             if (error.code === 'ER_TABLE_EXISTS_ERROR' ||
                 error.code === 'ER_DUP_KEYNAME' ||
-                error.code === 'ER_DUP_ENTRY') {
+                error.code === 'ER_DUP_ENTRY' ||
+                error.message.includes('already exists')) {
                 console.log(`  ⚠️  Ya existe: ${error.message.substring(0, 60)}...`);
+                exitosos++; // Contar como éxito ya que el objeto existe
             } else {
+                // Mostrar más contexto del error
+                const preview = statement.substring(0, 80).replace(/\n/g, ' ');
                 console.error(`  ❌ Error: ${error.message}`);
+                console.error(`     SQL: ${preview}...`);
                 errores++;
             }
         }
