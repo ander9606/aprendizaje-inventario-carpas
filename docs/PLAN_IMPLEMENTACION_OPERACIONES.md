@@ -185,6 +185,239 @@ backend/modules/configuracion/
 
 ---
 
+## Sistema de Disponibilidad Existente (REUTILIZAR)
+
+### ✅ Componentes Ya Implementados
+
+El sistema ya cuenta con un módulo de disponibilidad centralizado que **debe reutilizarse** en operaciones:
+
+| Componente | Ubicación | Función |
+|------------|-----------|---------|
+| **DisponibilidadModel.js** | `backend/modules/alquileres/models/` | Cálculo central de disponibilidad |
+| **disponibilidadController.js** | `backend/modules/alquileres/controllers/` | 4 endpoints API |
+| **useDisponibilidad.js** | `frontend/src/hooks/` | 4 hooks reutilizables |
+| **VerificacionDisponibilidad.jsx** | `frontend/src/components/disponibilidad/` | UI de verificación |
+
+### Métodos Disponibles en DisponibilidadModel
+
+```javascript
+// Verificación
+verificarDisponibilidadProductos(productos, fechaInicio, fechaFin)
+verificarDisponibilidadCotizacion(cotizacionId, fechaInicio, fechaFin)
+
+// Asignación
+asignarAutomaticamente(cotizacionId, fechaInicio, fechaFin)
+obtenerSeriesDisponibles(elementoId, fechaInicio, fechaFin)
+obtenerLotesDisponibles(elementoId, cantidad, fechaInicio, fechaFin)
+
+// Calendario
+obtenerCalendarioOcupacion(fechaInicio, fechaFin, elementoIds)
+```
+
+### Endpoints Existentes de Disponibilidad
+
+```
+POST /api/disponibilidad/verificar        → Verificar productos en fechas
+GET  /api/disponibilidad/cotizacion/:id   → Verificar cotización específica
+GET  /api/disponibilidad/calendario       → Ocupaciones por elemento
+POST /api/disponibilidad/descomponer      → Desagregar productos en elementos
+```
+
+### Hooks Frontend Existentes
+
+```javascript
+useVerificarDisponibilidadProductos()     // Verificación manual con debounce
+useVerificarDisponibilidadCotizacion()    // Query para cotización existente
+useCalendarioOcupacion()                  // Ocupaciones en rango de fechas
+useDescomponerProductos()                 // Desagregar productos
+```
+
+### Flujo Actual de Verificación
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  CREAR COTIZACIÓN                                           │
+│  └─ useVerificarDisponibilidadProductos (debounce 600ms)   │
+│     └─ <VerificacionDisponibilidad /> muestra resultado    │
+└─────────────────────────────────────────────────────────────┘
+                            ↓
+┌─────────────────────────────────────────────────────────────┐
+│  APROBAR COTIZACIÓN                                         │
+│  └─ <AprobarCotizacionModal />                             │
+│     └─ useVerificarDisponibilidadCotizacion() re-verifica  │
+│        └─ Si hay_problemas: permite "Forzar aprobación"    │
+└─────────────────────────────────────────────────────────────┘
+                            ↓
+┌─────────────────────────────────────────────────────────────┐
+│  BACKEND: POST /api/cotizaciones/:id/aprobar               │
+│  └─ Verifica NUEVAMENTE (3ª verificación)                  │
+│     └─ DisponibilidadModel.asignarAutomaticamente()        │
+│        └─ Selecciona series/lotes específicos              │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Integración con Módulo de Operaciones
+
+**IMPORTANTE: NO duplicar lógica de disponibilidad**
+
+El `ValidadorFechasService` de operaciones debe **importar y usar** `DisponibilidadModel`:
+
+```javascript
+// backend/modules/operaciones/services/ValidadorFechasService.js
+
+const DisponibilidadModel = require('../../alquileres/models/DisponibilidadModel');
+
+class ValidadorFechasService {
+
+    async validarCambioFecha(ordenId, nuevaFecha) {
+        // 1. Obtener elementos de la orden
+        const elementos = await this.obtenerElementosOrden(ordenId);
+
+        // 2. REUTILIZAR DisponibilidadModel existente
+        const conflictos = [];
+        for (const elem of elementos) {
+            const disponibles = await DisponibilidadModel.obtenerSeriesDisponibles(
+                elem.elemento_id,
+                nuevaFecha,
+                nuevaFecha
+            );
+
+            if (disponibles.length < elem.cantidad_requerida) {
+                conflictos.push({
+                    elemento: elem.nombre,
+                    disponibles: disponibles.length,
+                    requeridos: elem.cantidad_requerida,
+                    faltantes: elem.cantidad_requerida - disponibles.length
+                });
+            }
+        }
+
+        // 3. Calcular severidad del conflicto
+        return this.calcularSeveridad(conflictos);
+    }
+
+    calcularSeveridad(conflictos) {
+        if (conflictos.length === 0) {
+            return { severidad: 'ok', conflictos: [] };
+        }
+
+        const totalFaltantes = conflictos.reduce((sum, c) => sum + c.faltantes, 0);
+
+        if (totalFaltantes > 5) {
+            return { severidad: 'critico', conflictos, requiereAprobacion: true };
+        } else if (totalFaltantes > 0) {
+            return { severidad: 'advertencia', conflictos, requiereAprobacion: false };
+        }
+
+        return { severidad: 'info', conflictos };
+    }
+}
+```
+
+### Arquitectura de Disponibilidad Unificada
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    DisponibilidadModel                       │
+│                    (CENTRALIZADO - EXISTENTE)                │
+│                                                              │
+│  • verificarDisponibilidadProductos()                       │
+│  • obtenerSeriesDisponibles()                               │
+│  • obtenerLotesDisponibles()                                │
+│  • obtenerCalendarioOcupacion()                             │
+└─────────────────────────────────────────────────────────────┘
+                            ↑
+            ┌───────────────┼───────────────┐
+            ↓               ↓               ↓
+    ┌───────────────┐ ┌───────────────┐ ┌───────────────┐
+    │   ALQUILERES  │ │  OPERACIONES  │ │   CALENDARIO  │
+    │   (EXISTENTE) │ │    (NUEVO)    │ │  (COMPARTIDO) │
+    │               │ │               │ │               │
+    │ • Cotizar     │ │ • Validar     │ │ • Ver ocupa-  │
+    │ • Aprobar     │ │   cambio de   │ │   ciones      │
+    │ • Asignar     │ │   fechas      │ │ • Planificar  │
+    └───────────────┘ └───────────────┘ └───────────────┘
+```
+
+### Extensiones Necesarias para Operaciones
+
+#### 1. Nuevo Método en DisponibilidadModel (opcional)
+
+```javascript
+// Agregar a DisponibilidadModel.js
+async verificarDisponibilidadOrden(ordenId, nuevaFecha) {
+    // Similar a verificarDisponibilidadCotizacion pero para órdenes
+    const orden = await OrdenTrabajoModel.obtenerPorId(ordenId);
+    const elementos = await OrdenElementoModel.obtenerPorOrden(ordenId);
+
+    return this.verificarDisponibilidadElementos(
+        elementos.map(e => e.elemento_id),
+        nuevaFecha,
+        nuevaFecha
+    );
+}
+```
+
+#### 2. Endpoint de Calendario Enriquecido
+
+```javascript
+// GET /api/operaciones/calendario
+// Combina datos de DisponibilidadModel + OrdenTrabajoModel
+{
+    eventos: [{
+        // Datos de alquiler (de DisponibilidadModel)
+        alquiler_id, cliente, evento, ubicacion, productos,
+
+        // Datos operativos (de OrdenTrabajoModel) - NUEVO
+        montaje: {
+            orden_id,
+            fecha_programada,
+            estado,           // pendiente, en_ruta, completado...
+            equipo: ["Juan", "Pedro"],
+            vehiculo: "Camión ABC-123"
+        },
+        desmontaje: {
+            orden_id,
+            fecha_programada,
+            estado,
+            equipo: null,
+            vehiculo: null
+        },
+        alertas: []
+    }]
+}
+```
+
+#### 3. Hook Frontend Extendido
+
+```javascript
+// useCalendarioOperativo.js (NUEVO)
+// Combina useCalendarioOcupacion + datos de órdenes
+
+export function useCalendarioOperativo(fechaInicio, fechaFin) {
+    const { data: ocupaciones } = useCalendarioOcupacion(fechaInicio, fechaFin);
+    const { data: ordenes } = useOrdenesTrabajo({ fechaInicio, fechaFin });
+
+    // Combinar datos
+    return useMemo(() => {
+        return enriquecerEventosConOperaciones(ocupaciones, ordenes);
+    }, [ocupaciones, ordenes]);
+}
+```
+
+### Resumen de Integración
+
+| Funcionalidad | Módulo Responsable | Reutiliza |
+|---------------|-------------------|-----------|
+| Calcular stock disponible | DisponibilidadModel | - |
+| Verificar en cotización | Alquileres | DisponibilidadModel |
+| Validar cambio de fecha | **Operaciones** | DisponibilidadModel |
+| Asignar elementos | Alquileres | DisponibilidadModel |
+| Calendario ocupaciones | DisponibilidadModel | - |
+| Calendario operativo | **Operaciones** | DisponibilidadModel + OrdenTrabajoModel |
+
+---
+
 ## Fase 4: Backend - Módulo Operaciones
 
 ### 4.1 Crear Estructura
