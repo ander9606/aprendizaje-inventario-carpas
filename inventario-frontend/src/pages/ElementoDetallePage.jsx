@@ -566,17 +566,6 @@ function ElementoDetallePage() {
       </div>
 
       {/* ============================================
-          SELECTOR DE DISPONIBILIDAD POR FECHA
-          ============================================ */}
-      <div className="mb-6">
-        <DisponibilidadFechaSelector
-          elementoId={elementoId}
-          requiereSeries={elemento?.requiere_series}
-          stockTotal={elemento?.requiere_series ? totalSeries : cantidad_total}
-        />
-      </div>
-
-      {/* ============================================
           FILTROS POR ESTADO
           ============================================ */}
       <div className="mb-6">
@@ -633,6 +622,15 @@ function ElementoDetallePage() {
             </Button>
           </div>
         </Card.Header>
+
+        {/* Selector de disponibilidad por fecha */}
+        <div className="px-6 py-4 border-b border-slate-200 bg-slate-50">
+          <DisponibilidadFechaSelector
+            elementoId={elementoId}
+            requiereSeries={elemento?.requiere_series}
+            stockTotal={elemento?.requiere_series ? totalSeries : cantidad_total}
+          />
+        </div>
 
         <Card.Content>
           {/* ==========================================

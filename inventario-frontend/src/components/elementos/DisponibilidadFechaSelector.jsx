@@ -118,12 +118,12 @@ function DisponibilidadFechaSelector({ elementoId, requiereSeries, stockTotal = 
   }
 
   return (
-    <div className={`rounded-lg border ${colors.border} ${colors.bg} p-4`}>
+    <div>
       {/* Header con selector de fecha */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <Calendar className="w-5 h-5 text-slate-600" />
-          <span className="font-medium text-slate-700">Disponibilidad por fecha</span>
+          <span className="font-medium text-slate-700">Consultar disponibilidad</span>
         </div>
 
         <input
@@ -131,7 +131,7 @@ function DisponibilidadFechaSelector({ elementoId, requiereSeries, stockTotal = 
           value={fechaSeleccionada}
           onChange={handleFechaChange}
           min={new Date().toISOString().split('T')[0]}
-          className="px-3 py-1.5 border border-slate-300 rounded-lg text-sm
+          className="px-3 py-1.5 border border-slate-300 rounded-lg text-sm bg-white
                      focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         />
       </div>
