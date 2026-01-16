@@ -6,6 +6,7 @@
 import { useState } from 'react'
 import { Plus, FileText, ArrowLeft, Users, Filter, Calendar } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import { toast } from 'sonner'
 import { useNavigation } from '../hooks/UseNavigation'
 import { useGetCotizaciones, useAprobarCotizacion, useDeleteCotizacion, useCambiarEstadoCotizacion } from '../hooks/cotizaciones'
 import CotizacionCard from '../components/cards/CotizacionCard'
@@ -91,7 +92,7 @@ export default function CotizacionesPage() {
       navigate('/alquileres')
     } catch (error) {
       console.error('Error al aprobar:', error)
-      alert(error.response?.data?.mensaje || error.response?.data?.message || 'Error al aprobar la cotización')
+      toast.error(error.response?.data?.mensaje || error.response?.data?.message || 'Error al aprobar la cotización')
     }
   }
 
@@ -101,7 +102,7 @@ export default function CotizacionesPage() {
       handleCloseModal()
     } catch (error) {
       console.error('Error al eliminar:', error)
-      alert(error.response?.data?.message || 'Error al eliminar la cotización')
+      toast.error(error.response?.data?.message || 'Error al eliminar la cotización')
     }
   }
 
@@ -111,7 +112,7 @@ export default function CotizacionesPage() {
       handleCloseModal()
     } catch (error) {
       console.error('Error al rechazar:', error)
-      alert(error.response?.data?.message || 'Error al rechazar la cotización')
+      toast.error(error.response?.data?.message || 'Error al rechazar la cotización')
     }
   }
 

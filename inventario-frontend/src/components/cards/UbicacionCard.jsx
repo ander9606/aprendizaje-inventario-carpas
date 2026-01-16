@@ -4,9 +4,11 @@
 // ============================================
 
 import { MapPin, Edit, Trash2, Package, Star } from 'lucide-react'
+import { toast } from 'sonner'
 import Card from '../common/Card'
 import Button from '../common/Button'
 import { useMarcarComoPrincipal } from '../../hooks/Useubicaciones'
+import { useDialog } from '../../context/DialogContext'
 
 /**
  * UbicacionCard
@@ -33,6 +35,7 @@ const UbicacionCard = ({
   // ============================================
 
   const { mutateAsync: marcarComoPrincipal, isLoading: isMarcando } = useMarcarComoPrincipal()
+  const { confirm } = useDialog()
 
   // ============================================
   // HELPERS
@@ -132,15 +135,18 @@ const UbicacionCard = ({
   /**
    * Manejar eliminación
    */
-  const handleDelete = (e) => {
+  const handleDelete = async (e) => {
     e.stopPropagation()
 
-    const confirmacion = confirm(
-      `¿Estás seguro de eliminar la ubicación "${ubicacion.nombre}"?\n\n` +
-      `Esta acción no se puede deshacer.`
-    )
+    const confirmado = await confirm({
+      titulo: `¿Eliminar ubicación "${ubicacion.nombre}"?`,
+      mensaje: 'Esta acción no se puede deshacer.',
+      tipo: 'danger',
+      textoConfirmar: 'Sí, eliminar',
+      textoCancelar: 'Cancelar'
+    })
 
-    if (confirmacion && onDelete) {
+    if (confirmado && onDelete) {
       onDelete(ubicacion.id)
     }
   }
@@ -157,7 +163,7 @@ const UbicacionCard = ({
     } catch (error) {
       console.error('❌ Error al marcar como principal:', error)
       const mensaje = error.response?.data?.message || 'No se pudo marcar como principal'
-      alert(mensaje)
+      toast.error(mensaje)
     }
   }
 

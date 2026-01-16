@@ -8,6 +8,7 @@ import Modal from '../common/Modal'
 import Button from '../common/Button'
 import Spinner from '../common/Spinner'
 import { useGetCotizacionCompleta } from '../../hooks/cotizaciones'
+import { useDialog } from '../../context/DialogContext'
 
 const CotizacionDetalleModal = ({
   isOpen,
@@ -18,6 +19,8 @@ const CotizacionDetalleModal = ({
   onRechazar,
   isAprobando = false
 }) => {
+
+  const { confirm } = useDialog()
 
   // Cargar cotización completa con productos y transporte
   const { cotizacion, isLoading } = useGetCotizacionCompleta(isOpen ? cotizacionId : null)
@@ -63,9 +66,17 @@ const CotizacionDetalleModal = ({
     if (onAprobar && cotizacion) onAprobar(cotizacion)
   }
 
-  const handleRechazar = () => {
-    if (confirm('¿Está seguro de rechazar esta cotización?')) {
-      if (onRechazar && cotizacion) onRechazar(cotizacion)
+  const handleRechazar = async () => {
+    const confirmado = await confirm({
+      titulo: '¿Rechazar cotización?',
+      mensaje: 'La cotización pasará a estado rechazada.',
+      tipo: 'warning',
+      textoConfirmar: 'Sí, rechazar',
+      textoCancelar: 'Cancelar'
+    })
+
+    if (confirmado && onRechazar && cotizacion) {
+      onRechazar(cotizacion)
     }
   }
 

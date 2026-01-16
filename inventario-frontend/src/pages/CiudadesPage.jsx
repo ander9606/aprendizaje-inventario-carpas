@@ -6,6 +6,8 @@
 import { useState } from 'react'
 import { Plus, MapPin, ArrowLeft, Pencil, Trash2, Search, Truck } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import { toast } from 'sonner'
+import { useDialog } from '../context/DialogContext'
 import {
   useGetCiudades,
   useCreateCiudad,
@@ -30,6 +32,7 @@ const TIPOS_CAMION = [
 export default function CiudadesPage() {
 
   const navigate = useNavigate()
+  const { confirm } = useDialog()
 
   // ============================================
   // HOOKS: Obtener datos
@@ -111,7 +114,7 @@ export default function CiudadesPage() {
     e.preventDefault()
 
     if (!formData.nombre.trim()) {
-      alert('El nombre de la ciudad es obligatorio')
+      toast.warning('El nombre de la ciudad es obligatorio')
       return
     }
 
@@ -127,17 +130,26 @@ export default function CiudadesPage() {
       handleCloseModal()
     } catch (error) {
       console.error('Error:', error)
-      alert(error.response?.data?.message || 'Error al guardar la ciudad')
+      toast.error(error.response?.data?.message || 'Error al guardar la ciudad')
     }
   }
 
   const handleDelete = async (id) => {
-    if (!confirm('¿Estás seguro de eliminar esta ciudad y sus tarifas?')) return
+    const confirmado = await confirm({
+      titulo: '¿Eliminar ciudad?',
+      mensaje: 'Se eliminarán también las tarifas asociadas. Esta acción no se puede deshacer.',
+      tipo: 'danger',
+      textoConfirmar: 'Sí, eliminar',
+      textoCancelar: 'Cancelar'
+    })
+
+    if (!confirmado) return
+
     try {
       await deleteCiudad(id)
     } catch (error) {
       console.error('Error al eliminar:', error)
-      alert(error.response?.data?.message || 'Error al eliminar la ciudad')
+      toast.error(error.response?.data?.message || 'Error al eliminar la ciudad')
     }
   }
 

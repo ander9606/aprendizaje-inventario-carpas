@@ -5,13 +5,15 @@
 import { useState } from 'react'
 import { Box, Plus, Edit, Trash2, ChevronRight } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import { toast } from 'sonner'
 import Card from '../common/Card'
 import Button from '../common/Button'
 import SymbolPicker from '../common/picker/SymbolPicker'
 import { IconoCategoria } from '../common/IconoCategoria'
 import { useUpdateCategoria, useDeleteCategoria } from '../../hooks/Usecategorias'
+import { useDialog } from '../../context/DialogContext'
 
-const SubcategoriaCard = ({ 
+const SubcategoriaCard = ({
   subcategoria,
   categoriaId,
   onEdit,
@@ -19,6 +21,7 @@ const SubcategoriaCard = ({
 }) => {
 
   const navigate = useNavigate()
+  const { confirm } = useDialog()
 
   // Estado
   const [mostrarEmojiPicker, setMostrarEmojiPicker] = useState(false)
@@ -60,7 +63,7 @@ const SubcategoriaCard = ({
       {
         onSuccess: () => console.log('Emoji actualizado'),
         onError: () => {
-          alert('No se pudo actualizar el emoji.')
+          toast.error('No se pudo actualizar el emoji.')
           setEmojiActual(subcategoria.emoji || '📦')
         }
       }
@@ -68,19 +71,27 @@ const SubcategoriaCard = ({
   }
 
   // Eliminar
-  const handleDelete = (e) => {
+  const handleDelete = async (e) => {
     e.stopPropagation()
 
-    if (!confirm(`¿Eliminar subcategoría "${subcategoria.nombre}"?`)) return
+    const confirmado = await confirm({
+      titulo: `¿Eliminar subcategoría "${subcategoria.nombre}"?`,
+      mensaje: 'Esta acción no se puede deshacer.',
+      tipo: 'danger',
+      textoConfirmar: 'Sí, eliminar',
+      textoCancelar: 'Cancelar'
+    })
+
+    if (!confirmado) return
 
     deleteCategoria.deleteCategoriaSync(
       subcategoria.id,
       {
         onSuccess: () => console.log('Subcategoría eliminada'),
         onError: (error) => {
-            console.error('Error al eliminar subcategoría:', error)
-            const mensaje = error.response?.data?.mensaje || 'Error al eliminar subcategoría'
-            alert(mensaje)
+          console.error('Error al eliminar subcategoría:', error)
+          const mensaje = error.response?.data?.mensaje || 'Error al eliminar subcategoría'
+          toast.error(mensaje)
         }
       }
     )

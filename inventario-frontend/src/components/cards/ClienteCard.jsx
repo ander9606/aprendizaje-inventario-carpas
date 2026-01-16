@@ -6,6 +6,7 @@
 import { User, Phone, Mail, MapPin, Edit, Trash2, FileText } from 'lucide-react'
 import Card from '../common/Card'
 import Button from '../common/Button'
+import { useDialog } from '../../context/DialogContext'
 
 /**
  * ClienteCard
@@ -25,6 +26,8 @@ const ClienteCard = ({
   onEdit,
   onDelete
 }) => {
+
+  const { confirm } = useDialog()
 
   // ============================================
   // HELPERS
@@ -65,15 +68,18 @@ const ClienteCard = ({
     }
   }
 
-  const handleDelete = (e) => {
+  const handleDelete = async (e) => {
     e.stopPropagation()
 
-    const confirmacion = confirm(
-      `¿Estás seguro de eliminar el cliente "${cliente.nombre}"?\n\n` +
-      `Esta acción no se puede deshacer.`
-    )
+    const confirmado = await confirm({
+      titulo: `¿Eliminar cliente "${cliente.nombre}"?`,
+      mensaje: 'Esta acción no se puede deshacer.',
+      tipo: 'danger',
+      textoConfirmar: 'Sí, eliminar',
+      textoCancelar: 'Cancelar'
+    })
 
-    if (confirmacion && onDelete) {
+    if (confirmado && onDelete) {
       onDelete(cliente.id)
     }
   }

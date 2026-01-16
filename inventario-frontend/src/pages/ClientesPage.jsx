@@ -5,6 +5,7 @@
 
 import { useState } from 'react'
 import { Plus, Users, ArrowLeft } from 'lucide-react'
+import { toast } from 'sonner'
 import { useNavigation } from '../hooks/UseNavigation'
 import {
   useGetClientes,
@@ -77,7 +78,7 @@ export default function ClientesPage() {
       console.error('Error al eliminar:', error)
       const mensaje = error.response?.data?.message ||
         'No se pudo eliminar el cliente. Puede tener cotizaciones asociadas.'
-      alert(mensaje)
+      toast.error(mensaje)
     }
   }
 

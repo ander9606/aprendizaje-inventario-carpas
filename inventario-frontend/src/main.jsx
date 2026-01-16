@@ -7,6 +7,8 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { Toaster } from 'sonner'
+import { DialogProvider } from './context/DialogContext'
 import App from './App.jsx'
 import './index.css'
 
@@ -63,27 +65,45 @@ root.render(
         Hace que React Query esté disponible en toda la app
         ============================================ */}
     <QueryClientProvider client={queryClient}>
-      
+
       {/* ============================================
           PROVIDER: BrowserRouter
           Habilita la navegación por URL
           ============================================ */}
       <BrowserRouter>
-        <App />
+        {/* ============================================
+            PROVIDER: DialogProvider
+            Sistema de diálogos de confirmación
+            ============================================ */}
+        <DialogProvider>
+          <App />
+
+          {/* ============================================
+              TOASTER: Notificaciones toast (sonner)
+              ============================================ */}
+          <Toaster
+            position="top-right"
+            richColors
+            closeButton
+            duration={4000}
+          />
+        </DialogProvider>
       </BrowserRouter>
-      
+
     </QueryClientProvider>
   </StrictMode>
 )
 
 /**
  * ARQUITECTURA DE PROVIDERS:
- * 
+ *
  * StrictMode
  *   └─ QueryClientProvider (React Query)
  *       └─ BrowserRouter (React Router)
- *           └─ App (Rutas)
- *               └─ Pages (Dashboard, Subcategorias, etc.)
- * 
+ *           └─ DialogProvider (Diálogos de confirmación)
+ *               └─ App (Rutas)
+ *               └─ Toaster (Notificaciones toast)
+ *                   └─ Pages (Dashboard, Subcategorias, etc.)
+ *
  * Cada provider "envuelve" a sus hijos y les proporciona funcionalidad.
  */

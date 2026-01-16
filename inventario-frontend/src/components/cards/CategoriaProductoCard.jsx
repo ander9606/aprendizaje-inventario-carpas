@@ -5,11 +5,13 @@
 
 import { useState } from 'react'
 import { Folder, Package, Plus, Edit, Trash2, ChevronRight } from 'lucide-react'
+import { toast } from 'sonner'
 import Card from '../common/Card'
 import Button from '../common/Button'
 import EmojiPicker from '../common/picker/Emojipicker'
 import { IconoCategoria } from '../common/IconoCategoria'
 import { useUpdateCategoriaProducto, useDeleteCategoriaProducto } from '../../hooks/UseCategoriasProductos'
+import { useDialog } from '../../context/DialogContext'
 
 /**
  * CategoriaProductoCard - Card adaptativa
@@ -37,6 +39,7 @@ const CategoriaProductoCard = ({
   // ============================================
   const { updateCategoria } = useUpdateCategoriaProducto()
   const { deleteCategoria, isPending: isDeleting } = useDeleteCategoriaProducto()
+  const { confirm } = useDialog()
 
   // Determinar si es categoría padre o subcategoría
   const esPadre = !categoria.categoria_padre_id
@@ -73,21 +76,33 @@ const CategoriaProductoCard = ({
       {
         onSuccess: () => console.log('Emoji actualizado'),
         onError: () => {
-          alert('No se pudo actualizar el emoji.')
+          toast.error('No se pudo actualizar el emoji.')
           setEmojiActual(categoria.emoji || '📦')
         }
       }
     )
   }
 
-  const handleDelete = (e) => {
+  const handleDelete = async (e) => {
     e.stopPropagation()
 
-    const mensaje = esPadre
-      ? `¿Eliminar categoría "${categoria.nombre}"?\n\nSi tiene subcategorías, deberás eliminarlas primero.`
-      : `¿Eliminar subcategoría "${categoria.nombre}"?\n\nSi tiene productos asociados, no podrá eliminarse.`
+    const titulo = esPadre
+      ? `¿Eliminar categoría "${categoria.nombre}"?`
+      : `¿Eliminar subcategoría "${categoria.nombre}"?`
 
-    if (!confirm(mensaje)) return
+    const mensaje = esPadre
+      ? 'Si tiene subcategorías, deberás eliminarlas primero.'
+      : 'Si tiene productos asociados, no podrá eliminarse.'
+
+    const confirmado = await confirm({
+      titulo,
+      mensaje,
+      tipo: 'danger',
+      textoConfirmar: 'Sí, eliminar',
+      textoCancelar: 'Cancelar'
+    })
+
+    if (!confirmado) return
 
     deleteCategoria(
       categoria.id,
@@ -95,7 +110,7 @@ const CategoriaProductoCard = ({
         onSuccess: () => console.log('Categoría eliminada'),
         onError: (error) => {
           const msg = error.response?.data?.mensaje || 'Error al eliminar'
-          alert(msg)
+          toast.error(msg)
         }
       }
     )

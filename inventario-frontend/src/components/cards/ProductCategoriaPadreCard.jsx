@@ -14,6 +14,7 @@ import {
   useUpdateCategoriaProducto,
   useDeleteCategoriaProducto,
 } from '../../hooks/UseCategoriasProductos'
+import { useDialog } from '../../context/DialogContext'
 
 /**
  * ProductCategoriaPadreCard
@@ -52,6 +53,7 @@ function ProductCategoriaPadreCard({
   // Hooks
   const { updateCategoriaSync } = useUpdateCategoriaProducto()
   const { deleteCategoria, isPending: isDeleting } = useDeleteCategoriaProducto()
+  const { confirm } = useDialog()
 
   // Cerrar menú al hacer click fuera
   useEffect(() => {
@@ -114,11 +116,15 @@ function ProductCategoriaPadreCard({
       return
     }
 
-    const confirmacion = confirm(
-      `¿Estás seguro de eliminar la categoría "${categoria.nombre}"?\n\nEsta acción no se puede deshacer.`
-    )
+    const confirmado = await confirm({
+      titulo: `¿Eliminar categoría "${categoria.nombre}"?`,
+      mensaje: 'Esta acción no se puede deshacer.',
+      tipo: 'danger',
+      textoConfirmar: 'Sí, eliminar',
+      textoCancelar: 'Cancelar'
+    })
 
-    if (confirmacion) {
+    if (confirmado) {
       try {
         await deleteCategoria(categoria.id)
         toast.success('Categoría eliminada exitosamente')
