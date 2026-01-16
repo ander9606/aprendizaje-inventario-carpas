@@ -14,10 +14,11 @@ import Button from '../../common/Button'
 import Spinner from '../../common/Spinner'
 import { Plus, Package } from 'lucide-react'
 
-
 // Hook para cargar series
-
 import { useGetSeries } from '../../../hooks/Useseries'
+
+// Componente de disponibilidad por fecha
+import DisponibilidadFechaSelector from '../DisponibilidadFechaSelector'
 
 /**
  * Componente ElementoSerieCard - Card para elemento con gestión por series
@@ -166,6 +167,17 @@ export const ElementoSerieCard = ({
             value={isLoadingSeries ? '-' : (estadisticas.mantenimiento || 0)}
             color="yellow"
             size="sm"
+          />
+        </div>
+
+        {/* ============================================
+            SELECTOR DE DISPONIBILIDAD POR FECHA
+            ============================================ */}
+        <div className="mb-4 p-3 bg-slate-50 rounded-lg border border-slate-200">
+          <DisponibilidadFechaSelector
+            elementoId={elementoId}
+            requiereSeries={true}
+            stockTotal={total}
           />
         </div>
 

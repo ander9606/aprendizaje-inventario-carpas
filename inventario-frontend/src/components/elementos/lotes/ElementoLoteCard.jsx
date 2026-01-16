@@ -20,6 +20,9 @@ import { Plus, Package, MapPin, ArrowRightLeft, ArrowRight } from 'lucide-react'
 // Hook para cargar lotes
 import { useGetLotes } from '../../../hooks/Uselotes'
 
+// Componente de disponibilidad por fecha
+import DisponibilidadFechaSelector from '../DisponibilidadFechaSelector'
+
 /**
  * Componente ElementoLoteCard - Card para elemento con gestión por lotes
  *
@@ -182,6 +185,17 @@ export const ElementoLoteCard = ({
             value={isLoadingLotes ? '-' : (estadisticas.malo || estadisticas.dañado || estadisticas.danado || 0)}
             color="red"
             size="sm"
+          />
+        </div>
+
+        {/* ============================================
+            SELECTOR DE DISPONIBILIDAD POR FECHA
+            ============================================ */}
+        <div className="mb-4 p-3 bg-slate-50 rounded-lg border border-slate-200">
+          <DisponibilidadFechaSelector
+            elementoId={elementoId}
+            requiereSeries={false}
+            stockTotal={cantidad_total}
           />
         </div>
 
