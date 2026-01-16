@@ -40,19 +40,22 @@ function DisponibilidadFechaSelector({ elementoId, requiereSeries, stockTotal = 
     if (requiereSeries) {
       // Para SERIES: usar el resumen de ocupaciones
       const resumen = ocupaciones.resumen || {}
+      const total = resumen.total || stockTotal || 0
+      const enAlquiler = resumen.en_alquiler || 0
       return {
-        total: resumen.total || stockTotal || 0,
-        ocupados: resumen.en_alquiler || 0,
-        disponibles: resumen.disponibles_hoy ?? (resumen.total - resumen.en_alquiler) ?? 0,
+        total,
+        ocupados: enAlquiler,
+        disponibles: resumen.disponibles_hoy ?? (total - enAlquiler),
         eventos: ocupaciones.proximos_eventos || []
       }
     } else {
-      // Para LOTES: usar datos de disponibilidad
-      const total = stockTotal || ocupaciones.stock_total || 0
-      const disponibles = ocupaciones.disponibles_hoy ?? total
+      // Para LOTES: usar datos del backend (más confiables)
+      const total = ocupaciones.stock_total || stockTotal || 0
+      const ocupados = ocupaciones.ocupados_hoy || 0
+      const disponibles = ocupaciones.disponibles_hoy ?? (total - ocupados)
       return {
         total,
-        ocupados: total - disponibles,
+        ocupados,
         disponibles,
         eventos: ocupaciones.en_eventos || [],
         rangos: ocupaciones.disponibilidad_por_rangos || []

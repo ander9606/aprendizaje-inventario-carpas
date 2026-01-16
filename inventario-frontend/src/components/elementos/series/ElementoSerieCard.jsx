@@ -173,7 +173,7 @@ export const ElementoSerieCard = ({
         {/* ============================================
             SELECTOR DE DISPONIBILIDAD POR FECHA
             ============================================ */}
-        <div className="mb-4 p-3 bg-slate-50 rounded-lg border border-slate-200">
+        <div className="mb-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
           <DisponibilidadFechaSelector
             elementoId={elementoId}
             requiereSeries={true}

@@ -572,7 +572,7 @@ class LoteModel {
             const [lotes] = await pool.query(queryLotes, [elementoId]);
 
             // 3. Obtener desglose de cantidades alquiladas por evento
-            // CORREGIDO: Solo eventos donde fecha_desmontaje >= hoy (no pasados)
+            // Usa fecha_salida y fecha_retorno_esperado de alquileres (no cotizaciones)
             const queryAlquilados = `
                 SELECT
                     ae.cantidad_lote,
@@ -580,6 +580,8 @@ class LoteModel {
                     ae.lote_alquilado_id,
                     a.id AS alquiler_id,
                     a.estado AS alquiler_estado,
+                    a.fecha_salida,
+                    a.fecha_retorno_esperado,
                     c.evento_nombre,
                     c.fecha_montaje,
                     c.fecha_evento,
@@ -589,13 +591,13 @@ class LoteModel {
                     cl.nombre AS cliente_nombre
                 FROM alquiler_elementos ae
                 INNER JOIN alquileres a ON ae.alquiler_id = a.id
-                INNER JOIN cotizaciones c ON a.cotizacion_id = c.id
-                INNER JOIN clientes cl ON c.cliente_id = cl.id
+                LEFT JOIN cotizaciones c ON a.cotizacion_id = c.id
+                LEFT JOIN clientes cl ON c.cliente_id = cl.id
                 WHERE ae.elemento_id = ?
                   AND a.estado IN ('programado', 'activo')
                   AND ae.lote_id IS NOT NULL
-                  AND c.fecha_desmontaje >= ?
-                ORDER BY c.fecha_montaje ASC
+                  AND a.fecha_retorno_esperado >= ?
+                ORDER BY a.fecha_salida ASC
             `;
             const [alquilados] = await pool.query(queryAlquilados, [elementoId, hoy]);
 
@@ -626,13 +628,14 @@ class LoteModel {
                     acc[key] = {
                         alquiler_id: item.alquiler_id,
                         estado: item.alquiler_estado,
-                        evento_nombre: item.evento_nombre,
-                        fecha_montaje: item.fecha_montaje,
+                        evento_nombre: item.evento_nombre || 'Sin nombre',
+                        // Usar fechas del alquiler (más confiables)
+                        fecha_montaje: item.fecha_salida || item.fecha_montaje,
                         fecha_evento: item.fecha_evento,
-                        fecha_desmontaje: item.fecha_desmontaje,
+                        fecha_desmontaje: item.fecha_retorno_esperado || item.fecha_desmontaje,
                         ubicacion: item.evento_direccion,
                         ciudad: item.evento_ciudad,
-                        cliente: item.cliente_nombre,
+                        cliente: item.cliente_nombre || 'Cliente',
                         cantidad: 0
                     };
                 }
@@ -660,12 +663,16 @@ class LoteModel {
                 })
                 .reduce((sum, e) => sum + e.cantidad, 0);
 
+            const stockTotal = estadisticas.total || 0;
+
             return {
                 estadisticas,
+                stock_total: stockTotal,
                 lotes_por_ubicacion: Object.values(lotesPorUbicacion),
                 en_eventos: eventos,
                 total_en_eventos: totalEnEventos,
-                disponibles_hoy: (estadisticas.total || 0) - ocupadosHoy,
+                disponibles_hoy: stockTotal - ocupadosHoy,
+                ocupados_hoy: ocupadosHoy,
                 fecha_consulta: hoy,
                 disponibilidad_por_rangos: disponibilidadPorRangos
             };
