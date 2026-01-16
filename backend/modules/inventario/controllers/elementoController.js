@@ -5,6 +5,7 @@
 
 const ElementoModel = require('../models/ElementoModel');
 const LoteModel = require('../models/LoteModel');
+const SerieModel = require('../models/SerieModel');
 const AppError = require('../../../utils/AppError');
 const logger = require('../../../utils/logger');
 
@@ -88,6 +89,51 @@ exports.obtenerPorId = async (req, res, next) => {
 
     } catch (error) {
         logger.error('elementoController.obtenerPorId', error);
+        next(error);
+    }
+};
+
+// ============================================
+// OBTENER POR ID CON CONTEXTO DE OCUPACIONES
+// Incluye próximos eventos y disponibilidad por fechas
+// ============================================
+
+exports.obtenerPorIdConContexto = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const { fecha } = req.query; // Fecha de referencia opcional
+
+        // Validar ID
+        validateId(id, 'ID de elemento');
+
+        // Obtener elemento básico
+        const elemento = await ElementoModel.obtenerPorId(id);
+
+        if (!elemento) {
+            throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO(ENTIDADES.ELEMENTO), 404);
+        }
+
+        // Obtener contexto según tipo de gestión (series o lotes)
+        let contextoOcupaciones;
+
+        if (elemento.requiere_series) {
+            // Elementos con series individuales
+            contextoOcupaciones = await SerieModel.obtenerPorElementoConContexto(id, fecha);
+        } else {
+            // Elementos con lotes (cantidades)
+            contextoOcupaciones = await LoteModel.obtenerPorElementoConContexto(id, fecha);
+        }
+
+        res.json({
+            success: true,
+            data: {
+                ...elemento,
+                ocupaciones: contextoOcupaciones
+            }
+        });
+
+    } catch (error) {
+        logger.error('elementoController.obtenerPorIdConContexto', error);
         next(error);
     }
 };

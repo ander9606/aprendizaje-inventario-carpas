@@ -257,9 +257,69 @@ export const useGetHistorialLotes = (elementoId) => {
     queryFn: () => lotesAPI.obtenerHistorial(elementoId),
     enabled: !!elementoId
   })
-  
+
   return {
     historial: data?.data || [],
+    isLoading,
+    error
+  }
+}
+
+/**
+ * Hook: Obtener lotes CON CONTEXTO de alquiler ✨ NUEVO
+ *
+ * Incluye estadísticas, lotes por ubicación y desglose de eventos
+ *
+ * @param {number} elementoId - ID del elemento
+ * @param {Object} options - Opciones adicionales de React Query
+ * @returns {Object} { lotes_por_ubicacion, en_eventos, estadisticas, isLoading, error, refetch }
+ *
+ * @example
+ * const { lotes_por_ubicacion, en_eventos, total_en_eventos } = useGetLotesConContexto(2)
+ *
+ * // en_eventos muestra en qué eventos están las cantidades:
+ * // [
+ * //   { alquiler_id: 5, evento_nombre: "Boda", cantidad: 20, fecha_desmontaje: "2024-01-22" },
+ * //   { alquiler_id: 6, evento_nombre: "Corp", cantidad: 35, fecha_desmontaje: "2024-01-25" }
+ * // ]
+ */
+export const useGetLotesConContexto = (elementoId, options = {}) => {
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ['lotes', 'elemento', elementoId, 'contexto'],
+    queryFn: () => lotesAPI.obtenerPorElementoConContexto(elementoId),
+    enabled: options.enabled !== undefined ? options.enabled : !!elementoId,
+    ...options
+  })
+
+  return {
+    elemento: data?.elemento || null,
+    estadisticas: data?.estadisticas || {},
+    lotes_por_ubicacion: data?.lotes_por_ubicacion || [],
+    en_eventos: data?.en_eventos || [],
+    total_en_eventos: data?.total_en_eventos || 0,
+    isLoading,
+    error,
+    refetch
+  }
+}
+
+/**
+ * Hook: Obtener desglose de alquileres por elemento ✨ NUEVO
+ *
+ * @param {number} elementoId - ID del elemento
+ * @returns {Object} { eventos, total_cantidad, isLoading, error }
+ */
+export const useGetDesgloseAlquileres = (elementoId) => {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['lotes', 'elemento', elementoId, 'alquileres'],
+    queryFn: () => lotesAPI.obtenerDesgloseAlquileres(elementoId),
+    enabled: !!elementoId
+  })
+
+  return {
+    eventos: data?.eventos || [],
+    total_eventos: data?.total_eventos || 0,
+    total_cantidad: data?.total_cantidad_en_eventos || 0,
     isLoading,
     error
   }

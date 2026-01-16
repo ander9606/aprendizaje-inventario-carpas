@@ -546,3 +546,101 @@ exports.eliminar = async (req, res, next) => {
         next(error);
     }
 };
+
+// ============================================
+// OBTENER SERIES CON CONTEXTO DE ALQUILER ✨ NUEVO
+// ============================================
+
+/**
+ * GET /api/series/elemento/:elementoId/contexto
+ *
+ * Retorna las series de un elemento CON información de:
+ * - Evento actual (si está alquilado)
+ * - Próximo evento (si tiene reserva futura)
+ * - Estado operativo detallado
+ */
+exports.obtenerPorElementoConContexto = async (req, res, next) => {
+    try {
+        const { elementoId } = req.params;
+
+        // Validar elementoId
+        validateId(elementoId, 'ID de elemento');
+
+        // Verificar que el elemento existe
+        const elemento = await ElementoModel.obtenerPorId(elementoId);
+        if (!elemento) {
+            throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO(ENTIDADES.ELEMENTO), 404);
+        }
+
+        // Verificar que requiere series
+        if (!elemento.requiere_series) {
+            throw new AppError(
+                'Este elemento no requiere series. Use el endpoint de lotes.',
+                400
+            );
+        }
+
+        // Obtener series con contexto
+        const series = await SerieModel.obtenerPorElementoConContexto(elementoId);
+
+        // Obtener estadísticas
+        const stats = await SerieModel.contarPorElemento(elementoId);
+
+        // Calcular resumen de estados
+        const resumen = {
+            total: series.length,
+            disponibles: series.filter(s => s.estado === 'bueno' && !s.en_alquiler).length,
+            en_evento: series.filter(s => s.en_alquiler).length,
+            reservadas: series.filter(s => !s.en_alquiler && s.proximo_evento).length,
+            mantenimiento: series.filter(s => s.estado === 'mantenimiento').length,
+            danadas: series.filter(s => s.estado === 'dañado').length
+        };
+
+        res.json({
+            success: true,
+            elemento: {
+                id: elemento.id,
+                nombre: elemento.nombre
+            },
+            estadisticas: stats,
+            resumen,
+            data: series,
+            total: series.length
+        });
+    } catch (error) {
+        logger.error('serieController.obtenerPorElementoConContexto', error);
+        next(error);
+    }
+};
+
+// ============================================
+// OBTENER SERIE POR ID CON CONTEXTO ✨ NUEVO
+// ============================================
+
+/**
+ * GET /api/series/:id/contexto
+ *
+ * Retorna una serie específica CON:
+ * - Información del evento actual
+ * - Próximo evento
+ * - Historial de alquileres
+ */
+exports.obtenerPorIdConContexto = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+
+        const serie = await SerieModel.obtenerPorIdConContexto(id);
+
+        if (!serie) {
+            throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO(ENTIDADES.SERIE), 404);
+        }
+
+        res.json({
+            success: true,
+            data: serie
+        });
+    } catch (error) {
+        logger.error('serieController.obtenerPorIdConContexto', error);
+        next(error);
+    }
+};

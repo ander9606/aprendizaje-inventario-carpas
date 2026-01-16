@@ -23,6 +23,12 @@ router.get('/estado/:estado', loteController.obtenerPorEstado);
 // GET /api/lotes/elemento/:elementoId - Obtener lotes de un elemento
 router.get('/elemento/:elementoId', loteController.obtenerPorElemento);
 
+// GET /api/lotes/elemento/:elementoId/contexto - Lotes con info de eventos ✨ NUEVO
+router.get('/elemento/:elementoId/contexto', loteController.obtenerPorElementoConContexto);
+
+// GET /api/lotes/elemento/:elementoId/alquileres - Desglose por eventos ✨ NUEVO
+router.get('/elemento/:elementoId/alquileres', loteController.obtenerDesgloseAlquileres);
+
 // ============================================
 // RUTAS CRUD ESTÁNDAR
 // ============================================

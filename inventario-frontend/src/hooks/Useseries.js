@@ -208,9 +208,75 @@ export const useGetSeriesPorEstado = (elementoId, estado) => {
     queryFn: () => seriesAPI.obtenerPorEstado(elementoId, estado),
     enabled: !!elementoId && !!estado
   })
-  
+
   return {
     series: data?.data || [],
+    isLoading,
+    error
+  }
+}
+
+/**
+ * Hook: Obtener series CON CONTEXTO de alquiler ✨ NUEVO
+ *
+ * Incluye información del evento actual y próximo evento
+ *
+ * @param {number} elementoId - ID del elemento
+ * @param {Object} options - Opciones adicionales de React Query
+ * @returns {Object} { series, elemento, resumen, isLoading, error, refetch }
+ *
+ * @example
+ * const { series, resumen } = useGetSeriesConContexto(1)
+ *
+ * // Cada serie incluye:
+ * // - en_alquiler: boolean
+ * // - evento_actual: { nombre, cliente, fecha_fin, ubicacion } | null
+ * // - proximo_evento: { nombre, fecha_montaje } | null
+ */
+export const useGetSeriesConContexto = (elementoId, options = {}) => {
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ['series', 'elemento', elementoId, 'contexto'],
+    queryFn: () => seriesAPI.obtenerPorElementoConContexto(elementoId),
+    enabled: options.enabled !== undefined ? options.enabled : !!elementoId,
+    ...options
+  })
+
+  return {
+    series: data?.data || [],
+    elemento: data?.elemento || null,
+    estadisticas: data?.estadisticas || {},
+    resumen: data?.resumen || {
+      total: 0,
+      disponibles: 0,
+      en_evento: 0,
+      reservadas: 0,
+      mantenimiento: 0,
+      danadas: 0
+    },
+    total: data?.total || 0,
+    isLoading,
+    error,
+    refetch
+  }
+}
+
+/**
+ * Hook: Obtener serie por ID CON CONTEXTO completo ✨ NUEVO
+ *
+ * Incluye evento actual, próximo evento e historial
+ *
+ * @param {number} serieId - ID de la serie
+ * @returns {Object} { serie, isLoading, error }
+ */
+export const useGetSerieConContexto = (serieId) => {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['series', serieId, 'contexto'],
+    queryFn: () => seriesAPI.obtenerPorIdConContexto(serieId),
+    enabled: !!serieId
+  })
+
+  return {
+    serie: data?.data || null,
     isLoading,
     error
   }
@@ -245,8 +311,8 @@ export const useGetSeriesPorEstado = (elementoId, estado) => {
  */
 export const useCreateSerie = () => {
   const queryClient = useQueryClient()
-  
-  const { mutateAsync, isLoading, error } = useMutation({
+
+  const { mutateAsync, isPending, error } = useMutation({
     mutationFn: seriesAPI.crear,
     retry: 0,
     
@@ -278,7 +344,7 @@ export const useCreateSerie = () => {
   
   return {
     createSerie: mutateAsync,
-    isLoading,
+    isPending,
     error
   }
 }
@@ -365,9 +431,9 @@ export const useCreateSeriesMultiples = () => {
  */
 export const useUpdateSerie = () => {
   const queryClient = useQueryClient()
-  
-  const { mutateAsync, isLoading, error } = useMutation({
-    mutationFn: ({ id, ...data }) => seriesAPI.actualizar(id, data),
+
+  const { mutateAsync, isPending, error } = useMutation({
+    mutationFn: ({ id, data }) => seriesAPI.actualizar(id, data),
     retry: 0,
     
     onSuccess: (response, variables) => {
@@ -391,7 +457,7 @@ export const useUpdateSerie = () => {
   
   return {
     updateSerie: mutateAsync,
-    isLoading,
+    isPending,
     error
   }
 }
@@ -483,32 +549,32 @@ export const useCambiarEstadoSerie = () => {
  */
 export const useDeleteSerie = () => {
   const queryClient = useQueryClient()
-  
-  const { mutateAsync, isLoading, error } = useMutation({
+
+  const { mutateAsync, isPending, error } = useMutation({
     mutationFn: seriesAPI.eliminar,
     retry: 0,
-    
+
     onSuccess: () => {
       // Invalidar todo el cache de series y elementos
-      queryClient.invalidateQueries({ 
-        queryKey: ['series'] 
+      queryClient.invalidateQueries({
+        queryKey: ['series']
       })
-      
-      queryClient.invalidateQueries({ 
-        queryKey: ['elementos'] 
+
+      queryClient.invalidateQueries({
+        queryKey: ['elementos']
       })
-      
+
       console.log('✅ Serie eliminada exitosamente')
     },
-    
+
     onError: (error) => {
       console.error('❌ Error al eliminar serie:', error)
     }
   })
-  
+
   return {
     deleteSerie: mutateAsync,
-    isLoading,
+    isLoading: isPending, // Compatibilidad hacia atrás
     error
   }
 }

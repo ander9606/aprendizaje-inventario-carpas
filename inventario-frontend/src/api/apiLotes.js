@@ -308,13 +308,13 @@ const lotesAPI = {
   
   /**
    * Obtener historial de movimientos de un elemento
-   * 
+   *
    * @param {number} elementoId - ID del elemento
    * @returns {Promise} - Historial de movimientos
-   * 
+   *
    * @example
    * const historial = await lotesAPI.obtenerHistorial(2)
-   * 
+   *
    * {
    *   success: true,
    *   data: [
@@ -337,6 +337,76 @@ const lotesAPI = {
    */
   obtenerHistorial: async (elementoId) => {
     const response = await api.get(`/lotes/elemento/${elementoId}/historial`)
+    return response.data
+  },
+
+  // ============================================
+  // CONTEXTO DE ALQUILER ✨ NUEVO
+  // ============================================
+
+  /**
+   * Obtener lotes con contexto de alquiler
+   *
+   * Incluye estadísticas, lotes por ubicación y desglose de eventos
+   *
+   * @param {number} elementoId - ID del elemento
+   * @returns {Promise} - Lotes con contexto de eventos
+   *
+   * @example
+   * const resultado = await lotesAPI.obtenerPorElementoConContexto(2)
+   *
+   * {
+   *   success: true,
+   *   elemento: { id: 2, nombre: "Sillas Tiffany", cantidad_total: 100 },
+   *   estadisticas: {
+   *     cantidad_total: 100,
+   *     disponibles: 45,
+   *     alquilados: 55,
+   *     en_mantenimiento: 0
+   *   },
+   *   lotes_por_ubicacion: [
+   *     {
+   *       ubicacion: "Bodega A",
+   *       ubicacion_tipo: "bodega",
+   *       total: 45,
+   *       lotes: [...]
+   *     }
+   *   ],
+   *   en_eventos: [
+   *     {
+   *       alquiler_id: 5,
+   *       evento_nombre: "Boda Martínez",
+   *       cliente: "Familia Martínez",
+   *       cantidad: 20,
+   *       fecha_evento: "2024-01-20",
+   *       fecha_desmontaje: "2024-01-22"
+   *     },
+   *     {
+   *       alquiler_id: 6,
+   *       evento_nombre: "Corp. Nestlé",
+   *       cliente: "Nestlé Colombia",
+   *       cantidad: 35,
+   *       fecha_evento: "2024-01-23"
+   *     }
+   *   ],
+   *   total_en_eventos: 55
+   * }
+   */
+  obtenerPorElementoConContexto: async (elementoId) => {
+    const response = await api.get(`/lotes/elemento/${elementoId}/contexto`)
+    return response.data
+  },
+
+  /**
+   * Obtener desglose de alquileres por elemento
+   *
+   * Muestra en qué eventos están las cantidades alquiladas
+   *
+   * @param {number} elementoId - ID del elemento
+   * @returns {Promise} - Desglose por eventos
+   */
+  obtenerDesgloseAlquileres: async (elementoId) => {
+    const response = await api.get(`/lotes/elemento/${elementoId}/alquileres`)
     return response.data
   },
 }

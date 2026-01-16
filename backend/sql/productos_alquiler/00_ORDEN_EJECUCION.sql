@@ -1,8 +1,20 @@
 -- ============================================================
--- ORDEN DE EJECUCIÓN - Módulo de Alquileres
+-- ORDEN DE EJECUCIÓN - Módulo de Alquileres y Operaciones
 -- ============================================================
 --
--- Ejecutar en este orden:
+-- ================== FASE 1: Base de Alquileres ==================
+--
+-- 01_categorias_productos.sql       → Categorías de productos
+-- 02_categorias_jerarquia.sql       → Jerarquía de categorías
+-- 02_elementos_compuestos.sql       → Plantillas de productos
+-- 03_compuesto_componentes.sql      → Componentes de productos
+-- 03_migrar_categorias_existentes.sql → Migración de datos
+-- 04_clientes.sql                   → Tabla de clientes
+-- 05_cotizaciones.sql               → Cotizaciones generadas
+-- 06_cotizacion_detalles.sql        → Detalles de cotizaciones
+-- 07_alquileres.sql                 → Alquileres confirmados
+--
+-- ================== FASE 2: Mejoras Cotizaciones ==================
 --
 -- 08_modificar_cotizaciones.sql     → Elimina compuesto_id de cotizaciones
 -- 09_cotizacion_productos.sql       → Tabla para múltiples productos
@@ -12,15 +24,78 @@
 -- 13_cotizacion_transportes.sql     → Camiones por cotización
 -- 14_indices_alquileres.sql         → Índices de rendimiento
 --
+-- ================== FASE 3: Fechas y Ciudades ==================
+--
+-- 15_modificar_alquiler_elementos.sql → Campos montaje/desmontaje
+-- 16_quitar_unique_cotizacion_productos.sql → Remover constraint
+-- 17_ciudades.sql                   → Tabla de ciudades
+-- 18_agregar_ciudad_id.sql          → FK a ciudades
+-- 19_migracion_ciudad_id_completa.sql → Migración datos ciudad
+-- 20_fechas_montaje_desmontaje.sql  → Fechas operativas
+--
+-- ================== FASE 4: Empleados y Auth (JWT) ==================
+--
+-- 21_empleados.sql                  → Empleados + Roles + Tokens + Audit
+--                                    - roles (admin, gerente, ventas, operaciones, bodega)
+--                                    - empleados (datos, auth, permisos)
+--                                    - refresh_tokens (JWT)
+--                                    - audit_log (acciones importantes)
+--
+-- ================== FASE 5: Vehículos ==================
+--
+-- 22_vehiculos.sql                  → Flota de vehículos
+--                                    - vehiculos (datos, estado, documentos)
+--                                    - vehiculo_uso_log (historial de uso)
+--                                    - vehiculo_mantenimientos (programados/realizados)
+--
+-- ================== FASE 6: Órdenes de Trabajo ==================
+--
+-- 23_ordenes_trabajo.sql            → Órdenes de montaje/desmontaje
+--                                    - ordenes_trabajo (principal)
+--                                    - orden_trabajo_equipo (empleados asignados)
+--                                    - orden_trabajo_cambios_fecha (auditoría)
+--
+-- 24_orden_trabajo_elementos.sql    → Elementos en órdenes
+--                                    - orden_trabajo_elementos (estado por elemento)
+--                                    - elemento_incidencias (daños, problemas)
+--                                    - orden_elemento_fotos (evidencia)
+--
+-- ================== FASE 7: Sistema de Alertas ==================
+--
+-- 25_alertas_operaciones.sql        → Alertas y notificaciones
+--                                    - alertas_operaciones (conflictos, aprobaciones)
+--                                    - notificaciones_pendientes (cola de envío)
+--                                    - empleado_notificaciones_config (preferencias)
+--
 -- ============================================================
 -- ESTRUCTURA FINAL:
 --
+-- AUTENTICACIÓN
+-- roles ← empleados ← refresh_tokens
+--                   ← audit_log
+--
+-- RECURSOS
+-- vehiculos ← vehiculo_uso_log
+--           ← vehiculo_mantenimientos
+--
+-- COTIZACIONES
 -- cotizaciones
 --   ├── cotizacion_productos (1:N) → elementos_compuestos
 --   │     └── cotizacion_detalles (1:N) → componentes elegidos
 --   └── cotizacion_transportes (1:N) → tarifas_transporte
 --
+-- ALQUILERES
 -- alquileres
---   └── alquiler_elementos (1:N) → series o lotes asignados
+--   ├── alquiler_elementos (1:N) → series o lotes asignados
+--   └── ordenes_trabajo (1:N)
+--         ├── orden_trabajo_equipo (N:N) → empleados
+--         ├── orden_trabajo_elementos (1:N)
+--         │     ├── elemento_incidencias
+--         │     └── orden_elemento_fotos
+--         └── orden_trabajo_cambios_fecha (auditoría)
+--
+-- ALERTAS
+-- alertas_operaciones → notificaciones_pendientes
+-- empleado_notificaciones_config
 --
 -- ============================================================

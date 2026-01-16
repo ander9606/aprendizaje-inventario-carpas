@@ -26,6 +26,10 @@ router.get('/categoria/:categoriaId', elementoController.obtenerPorCategoria);
 // GET /api/elementos/subcategoria/:subcategoriaId (alias para mejor semántica)
 router.get('/subcategoria/:subcategoriaId', elementoController.obtenerPorCategoria);
 
+// GET /api/elementos/:id/ocupaciones - Obtener elemento con contexto de ocupaciones
+// Query params: ?fecha=YYYY-MM-DD (opcional, default: hoy)
+router.get('/:id/ocupaciones', elementoController.obtenerPorIdConContexto);
+
 // ============================================
 // RUTAS CRUD ESTÁNDAR
 // ============================================

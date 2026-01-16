@@ -23,6 +23,9 @@ router.get('/estado/:estado', serieController.obtenerPorEstado);
 // GET /api/series/elemento/:elementoId
 router.get('/elemento/:elementoId', serieController.obtenerPorElemento);
 
+// GET /api/series/elemento/:elementoId/contexto - Series con info de eventos ✨ NUEVO
+router.get('/elemento/:elementoId/contexto', serieController.obtenerPorElementoConContexto);
+
 // GET /api/series/numero/:numeroSerie
 router.get('/numero/:numeroSerie', serieController.obtenerPorNumeroSerie);
 
@@ -35,6 +38,9 @@ router.get('/', serieController.obtenerTodas);
 
 // GET /api/series/:id - Obtener una por ID
 router.get('/:id', serieController.obtenerPorId);
+
+// GET /api/series/:id/contexto - Obtener serie con contexto de alquiler ✨ NUEVO
+router.get('/:id/contexto', serieController.obtenerPorIdConContexto);
 
 // POST /api/series - Crear nueva
 router.post('/', serieController.crear);

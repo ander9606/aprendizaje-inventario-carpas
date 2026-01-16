@@ -257,20 +257,97 @@ const seriesAPI = {
 
   /**
    * Obtener series por estado
-   * 
+   *
    * @param {number} elementoId - ID del elemento
    * @param {string} estado - Estado a filtrar
    * @returns {Promise} - Series filtradas
-   * 
+   *
    * @example
    * // Obtener solo series disponibles
    * const disponibles = await seriesAPI.obtenerPorEstado(1, "disponible")
-   * 
+   *
    * // Obtener series alquiladas
    * const alquiladas = await seriesAPI.obtenerPorEstado(1, "alquilado")
    */
   obtenerPorEstado: async (elementoId, estado) => {
     const response = await api.get(`/series/elemento/${elementoId}/estado/${estado}`)
+    return response.data
+  },
+
+  // ============================================
+  // CONTEXTO DE ALQUILER ✨ NUEVO
+  // ============================================
+
+  /**
+   * Obtener series con contexto de alquiler
+   *
+   * Incluye información del evento actual (si está alquilada)
+   * y próximo evento (si tiene reserva futura)
+   *
+   * @param {number} elementoId - ID del elemento
+   * @returns {Promise} - Series con contexto de eventos
+   *
+   * @example
+   * const resultado = await seriesAPI.obtenerPorElementoConContexto(1)
+   *
+   * {
+   *   success: true,
+   *   elemento: { id: 1, nombre: "Carpa 10x10" },
+   *   resumen: {
+   *     total: 5,
+   *     disponibles: 2,
+   *     en_evento: 2,
+   *     reservadas: 1,
+   *     mantenimiento: 0
+   *   },
+   *   data: [
+   *     {
+   *       id: 1,
+   *       numero_serie: "CARPA-001",
+   *       estado: "alquilado",
+   *       ubicacion: "Hacienda Los Robles",
+   *       en_alquiler: true,
+   *       evento_actual: {
+   *         alquiler_id: 5,
+   *         nombre: "Boda Martínez",
+   *         fecha_inicio: "2024-01-20",
+   *         fecha_fin: "2024-01-22",
+   *         ubicacion: "Hacienda Los Robles",
+   *         cliente: "Familia Martínez"
+   *       },
+   *       proximo_evento: null
+   *     },
+   *     {
+   *       id: 2,
+   *       numero_serie: "CARPA-002",
+   *       estado: "bueno",
+   *       ubicacion: "Bodega A",
+   *       en_alquiler: false,
+   *       evento_actual: null,
+   *       proximo_evento: {
+   *         alquiler_id: 8,
+   *         evento_nombre: "Corp. Nestlé",
+   *         fecha_montaje: "2024-01-28"
+   *       }
+   *     }
+   *   ]
+   * }
+   */
+  obtenerPorElementoConContexto: async (elementoId) => {
+    const response = await api.get(`/series/elemento/${elementoId}/contexto`)
+    return response.data
+  },
+
+  /**
+   * Obtener serie por ID con contexto completo
+   *
+   * Incluye evento actual, próximo evento e historial de alquileres
+   *
+   * @param {number} serieId - ID de la serie
+   * @returns {Promise} - Serie con contexto completo
+   */
+  obtenerPorIdConContexto: async (serieId) => {
+    const response = await api.get(`/series/${serieId}/contexto`)
     return response.data
   },
 }

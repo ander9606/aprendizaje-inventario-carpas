@@ -14,10 +14,11 @@ import Button from '../../common/Button'
 import Spinner from '../../common/Spinner'
 import { Plus, Package } from 'lucide-react'
 
-
 // Hook para cargar series
-
 import { useGetSeries } from '../../../hooks/Useseries'
+
+// Componente de disponibilidad por fecha
+import DisponibilidadFechaSelector from '../DisponibilidadFechaSelector'
 
 /**
  * Componente ElementoSerieCard - Card para elemento con gestión por series
@@ -170,6 +171,17 @@ export const ElementoSerieCard = ({
         </div>
 
         {/* ============================================
+            SELECTOR DE DISPONIBILIDAD POR FECHA
+            ============================================ */}
+        <div className="mb-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
+          <DisponibilidadFechaSelector
+            elementoId={elementoId}
+            requiereSeries={true}
+            stockTotal={total}
+          />
+        </div>
+
+        {/* ============================================
             HEADER: Título de sección + Botón agregar
             ============================================ */}
         <div className="flex items-center justify-between mb-3">
@@ -218,7 +230,7 @@ export const ElementoSerieCard = ({
                   key={serie.id || serie.numero_serie}
                   serie={serie}
                   onDevolverBodega={(serie) => onDevolverBodega && onDevolverBodega(serie, elemento)}
-                  onEdit={onEditSerie}
+                  onEdit={(serie) => onEditSerie && onEditSerie(serie, elemento)}
                   onDelete={onDeleteSerie}
                   onMove={(serie) => onMoveSerie && onMoveSerie(serie, elemento)}
                   compact

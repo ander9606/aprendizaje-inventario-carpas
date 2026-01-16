@@ -12,6 +12,7 @@ import { useDialog } from '../context/DialogContext'
 // Hooks personalizados
 import { useGetElementos, useDeleteElemento } from '../hooks/Useelementos'
 import { useDeleteLote } from '../hooks/Uselotes'
+import { useDeleteSerie } from '../hooks/Useseries'
 
 // Componentes UI
 import Button from '../components/common/Button'
@@ -82,6 +83,12 @@ function ElementosPage() {
    */
   const [serieParaMover, setSerieParaMover] = useState(null)
 
+  /**
+   * Modal de editar serie
+   * Guarda la serie y elemento para editar
+   */
+  const [serieParaEditar, setSerieParaEditar] = useState(null)
+
   // ============================================
   // HOOKS DE DATOS
   // ============================================
@@ -102,6 +109,11 @@ function ElementosPage() {
     deleteLote,
     isLoading: isDeletingLote
   } = useDeleteLote()
+
+  const {
+    deleteSerie,
+    isLoading: isDeletingSerie
+  } = useDeleteSerie()
 
   // ============================================
   // HANDLERS - Navegación
@@ -156,23 +168,33 @@ function ElementosPage() {
     setSerieParaDevolver({ serie, elemento })
   }
 
-  const handleEditSerie = (serie) => {
-    console.log('Editar serie:', serie)
-    // TODO: Abrir modal de edición de serie
+  const handleEditSerie = (serie, elemento) => {
+    // Buscar el elemento completo si no viene incluido
+    const elementoCompleto = elementos.find(el => el.id === serie.id_elemento) || elemento
+    setSerieParaEditar({ serie, elemento: elementoCompleto })
   }
 
   const handleDeleteSerie = async (serie) => {
-    const confirmado = await confirm({
-      titulo: `¿Eliminar serie ${serie.numero_serie}?`,
-      mensaje: 'Esta acción no se puede deshacer.',
-      tipo: 'danger',
-      textoConfirmar: 'Sí, eliminar',
-      textoCancelar: 'Cancelar'
-    })
+    if (!serie?.id) {
+      console.error('Error: Serie sin ID', serie)
+      return
+    }
 
-    if (confirmado) {
-      console.log('Eliminar serie:', serie)
-      // TODO: Llamar a useDeleteSerie
+    const confirmar = window.confirm(
+      `¿Eliminar serie "${serie.numero_serie}"?\n\nEsta acción no se puede deshacer.`
+    )
+
+    if (!confirmar) return
+
+    try {
+      console.log('🗑️ Eliminando serie:', serie.id)
+      await deleteSerie(serie.id)
+      console.log('✅ Serie eliminada exitosamente')
+      // React Query invalida automáticamente el cache de series
+    } catch (error) {
+      console.error('❌ Error al eliminar serie:', error)
+      const mensaje = error.response?.data?.mensaje || error.message || 'Error desconocido'
+      alert(`No se pudo eliminar la serie:\n\n${mensaje}`)
     }
   }
 
@@ -224,17 +246,16 @@ function ElementosPage() {
   // ============================================
   // BREADCRUMB
   // ============================================
+  // NOTA: La ruta /subcategorias/:id no existe como página separada
+  // Las subcategorías se muestran en la página de categoría
   const breadcrumbItems = [
     { label: 'Inventario', path: '/inventario' },
     {
       label: subcategoria?.categoria_padre_nombre || 'Categoría',
       path: `/inventario/categorias/${categoriaId}`
     },
-    {
-      label: subcategoria?.nombre || 'Subcategoría',
-      path: `/inventario/categorias/${categoriaId}/subcategorias/${subcategoriaId}`
-    },
-    { label: 'Elementos' }
+    // La subcategoría no tiene página propia, mostramos solo el nombre
+    { label: subcategoria?.nombre || 'Elementos' }
   ]
 
   // ============================================
@@ -304,7 +325,7 @@ function ElementosPage() {
             variant="primary"
             icon={<Plus className="w-5 h-5" />}
             onClick={handleOpenCreateModal}
-            disabled={isDeleting || isDeletingLote}
+            disabled={isDeleting || isDeletingLote || isDeletingSerie}
           >
             Nuevo Elemento
           </Button>
@@ -312,11 +333,11 @@ function ElementosPage() {
       </div>
 
       {/* Indicador de eliminación */}
-      {(isDeleting || isDeletingLote) && (
+      {(isDeleting || isDeletingLote || isDeletingSerie) && (
         <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg flex items-center gap-2">
           <Spinner size="sm" />
           <span className="text-yellow-700">
-            {isDeleting ? 'Eliminando elemento...' : 'Eliminando lote...'}
+            {isDeleting ? 'Eliminando elemento...' : isDeletingLote ? 'Eliminando lote...' : 'Eliminando serie...'}
           </span>
         </div>
       )}
@@ -361,7 +382,7 @@ function ElementosPage() {
                   onEditSerie={handleEditSerie}
                   onDeleteSerie={handleDeleteSerie}
                   onMoveSerie={handleMoveSerie}
-                  disabled={isDeleting || isDeletingLote}
+                  disabled={isDeleting || isDeletingLote || isDeletingSerie}
                 />
               )
             } else {
@@ -379,7 +400,7 @@ function ElementosPage() {
                   onDevolverBodega={handleDevolverBodega}
                   onMoveLote={handleMoveLote}
                   onDeleteLote={handleDeleteLote}
-                  disabled={isDeleting || isDeletingLote}
+                  disabled={isDeleting || isDeletingLote || isDeletingSerie}
                 />
               )
             }
@@ -480,6 +501,20 @@ function ElementosPage() {
           elemento={serieParaMover.elemento}
           onSuccess={() => {
             setSerieParaMover(null)
+            // No necesita refetch, React Query invalida automáticamente
+          }}
+        />
+      )}
+
+      {/* Modal: Editar Serie */}
+      {serieParaEditar && (
+        <SerieFormModal
+          isOpen={!!serieParaEditar}
+          onClose={() => setSerieParaEditar(null)}
+          serie={serieParaEditar.serie}
+          elemento={serieParaEditar.elemento}
+          onSuccess={() => {
+            setSerieParaEditar(null)
             // No necesita refetch, React Query invalida automáticamente
           }}
         />
