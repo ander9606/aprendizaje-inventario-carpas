@@ -23,6 +23,7 @@ import StatCard from '../components/common/StatCard'
 import SerieItem from '../components/elementos/series/SerieItem'
 import LoteUbicacionGroup from '../components/elementos/lotes/LoteUbicacionGroup'
 import EmptyState from '../components/common/EmptyState'
+import DisponibilidadFechaSelector from '../components/elementos/DisponibilidadFechaSelector'
 
 // Modales
 import ElementoFormModal from '../components/forms/ElementoFormModal'
@@ -561,6 +562,17 @@ function ElementoDetallePage() {
           value={estadisticas?.danado || 0}
           color="red"
           size="md"
+        />
+      </div>
+
+      {/* ============================================
+          SELECTOR DE DISPONIBILIDAD POR FECHA
+          ============================================ */}
+      <div className="mb-6">
+        <DisponibilidadFechaSelector
+          elementoId={elementoId}
+          requiereSeries={elemento?.requiere_series}
+          stockTotal={elemento?.requiere_series ? totalSeries : cantidad_total}
         />
       </div>
 
