@@ -653,15 +653,16 @@ class LoteModel {
                 hoy
             );
 
-            // 7. Calcular disponibles HOY
+            // 7. Calcular disponibles HOY (en la fecha de referencia)
             const ocupadosHoy = eventos
                 .filter(e => {
+                    if (!e.fecha_montaje || !e.fecha_desmontaje) return false;
                     const montaje = new Date(e.fecha_montaje);
                     const desmontaje = new Date(e.fecha_desmontaje);
-                    const fechaRef = new Date(hoy);
+                    const fechaRef = new Date(hoy + 'T12:00:00'); // Mediodía para evitar problemas de timezone
                     return montaje <= fechaRef && desmontaje >= fechaRef;
                 })
-                .reduce((sum, e) => sum + e.cantidad, 0);
+                .reduce((sum, e) => sum + (e.cantidad || 0), 0);
 
             const stockTotal = estadisticas.total || 0;
 
@@ -678,6 +679,28 @@ class LoteModel {
             };
         } catch (error) {
             throw error;
+        }
+    }
+
+    // ============================================
+    // HELPER: Convertir fecha a string YYYY-MM-DD
+    // MySQL devuelve Date objects, no strings
+    // ============================================
+    static fechaToString(fecha) {
+        if (!fecha) return null;
+        // Si ya es string, extraer parte de fecha
+        if (typeof fecha === 'string') {
+            return fecha.split('T')[0];
+        }
+        // Si es Date object, convertir
+        if (fecha instanceof Date) {
+            return fecha.toISOString().split('T')[0];
+        }
+        // Intentar crear Date y convertir
+        try {
+            return new Date(fecha).toISOString().split('T')[0];
+        } catch {
+            return null;
         }
     }
 
@@ -701,8 +724,11 @@ class LoteModel {
         fechasCambio.add(fechaDesde);
 
         eventos.forEach(e => {
-            if (e.fecha_montaje) fechasCambio.add(e.fecha_montaje.split('T')[0]);
-            if (e.fecha_desmontaje) {
+            const montajeStr = this.fechaToString(e.fecha_montaje);
+            const desmonStr = this.fechaToString(e.fecha_desmontaje);
+
+            if (montajeStr) fechasCambio.add(montajeStr);
+            if (desmonStr) {
                 // Agregar día después del desmontaje como fin del período
                 const desmontaje = new Date(e.fecha_desmontaje);
                 desmontaje.setDate(desmontaje.getDate() + 1);
@@ -721,8 +747,8 @@ class LoteModel {
 
             // Calcular ocupados en este rango
             const eventosEnRango = eventos.filter(e => {
-                const montaje = e.fecha_montaje ? e.fecha_montaje.split('T')[0] : null;
-                const desmontaje = e.fecha_desmontaje ? e.fecha_desmontaje.split('T')[0] : null;
+                const montaje = this.fechaToString(e.fecha_montaje);
+                const desmontaje = this.fechaToString(e.fecha_desmontaje);
                 return montaje && desmontaje && montaje <= fechaInicio && desmontaje >= fechaInicio;
             });
 
