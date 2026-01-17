@@ -5,6 +5,7 @@
 
 import { useState } from 'react'
 import { MoreVertical } from 'lucide-react'
+import IconoCategoria from './IconoCategoria'
 
 /**
  * Componente Card - Tarjeta contenedora
@@ -90,8 +91,8 @@ export const Card = ({
           {/* Sección izquierda: ícono + título */}
           <div className="flex items-center gap-3 flex-1">
             {icon && (
-              <span className="text-2xl flex-shrink-0">
-                {icon}
+              <span className="flex-shrink-0">
+                <IconoCategoria value={icon} size={28} />
               </span>
             )}
             <div className="flex-1 min-w-0">
