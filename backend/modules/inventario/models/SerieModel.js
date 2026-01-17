@@ -587,7 +587,7 @@ class SerieModel {
             const hoy = fechaReferencia || new Date().toISOString().split('T')[0];
 
             // Query principal: series con evento actual (si existe y no ha terminado)
-            // Usamos subquery para evitar duplicados cuando una serie tiene múltiples alquileres
+            // Usamos subquery para obtener solo un alquiler por serie
             const query = `
                 SELECT
                     s.id,
@@ -595,44 +595,39 @@ class SerieModel {
                     s.estado,
                     s.ubicacion,
                     s.ubicacion_id,
-                    u.nombre AS ubicacion_nombre,
-                    u.tipo AS ubicacion_tipo,
+                    ANY_VALUE(u.nombre) AS ubicacion_nombre,
+                    ANY_VALUE(u.tipo) AS ubicacion_tipo,
                     s.fecha_ingreso,
 
                     -- Datos del alquiler actual (si está alquilado Y no ha terminado)
-                    CASE WHEN a.id IS NOT NULL AND c.fecha_desmontaje >= ? THEN TRUE ELSE FALSE END AS en_alquiler,
-                    CASE WHEN c.fecha_desmontaje >= ? THEN a.id ELSE NULL END AS alquiler_id,
-                    CASE WHEN c.fecha_desmontaje >= ? THEN a.estado ELSE NULL END AS alquiler_estado,
+                    MAX(CASE WHEN a.id IS NOT NULL AND c.fecha_desmontaje >= ? THEN 1 ELSE 0 END) AS en_alquiler,
+                    MAX(CASE WHEN c.fecha_desmontaje >= ? THEN a.id ELSE NULL END) AS alquiler_id,
+                    ANY_VALUE(CASE WHEN c.fecha_desmontaje >= ? THEN a.estado ELSE NULL END) AS alquiler_estado,
 
                     -- Datos del evento actual (solo si no ha terminado)
-                    CASE WHEN c.fecha_desmontaje >= ? THEN c.evento_nombre ELSE NULL END AS evento_nombre,
-                    CASE WHEN c.fecha_desmontaje >= ? THEN c.fecha_montaje ELSE NULL END AS evento_fecha_montaje,
-                    CASE WHEN c.fecha_desmontaje >= ? THEN c.fecha_evento ELSE NULL END AS evento_fecha_inicio,
-                    CASE WHEN c.fecha_desmontaje >= ? THEN c.fecha_desmontaje ELSE NULL END AS evento_fecha_fin,
-                    CASE WHEN c.fecha_desmontaje >= ? THEN c.evento_direccion ELSE NULL END AS evento_ubicacion,
-                    CASE WHEN c.fecha_desmontaje >= ? THEN c.evento_ciudad ELSE NULL END AS evento_ciudad,
+                    ANY_VALUE(CASE WHEN c.fecha_desmontaje >= ? THEN c.evento_nombre ELSE NULL END) AS evento_nombre,
+                    ANY_VALUE(CASE WHEN c.fecha_desmontaje >= ? THEN c.fecha_montaje ELSE NULL END) AS evento_fecha_montaje,
+                    ANY_VALUE(CASE WHEN c.fecha_desmontaje >= ? THEN c.fecha_evento ELSE NULL END) AS evento_fecha_inicio,
+                    ANY_VALUE(CASE WHEN c.fecha_desmontaje >= ? THEN c.fecha_desmontaje ELSE NULL END) AS evento_fecha_fin,
+                    ANY_VALUE(CASE WHEN c.fecha_desmontaje >= ? THEN c.evento_direccion ELSE NULL END) AS evento_ubicacion,
+                    ANY_VALUE(CASE WHEN c.fecha_desmontaje >= ? THEN c.evento_ciudad ELSE NULL END) AS evento_ciudad,
 
                     -- Datos del cliente
-                    CASE WHEN c.fecha_desmontaje >= ? THEN cl.nombre ELSE NULL END AS cliente_nombre,
-                    CASE WHEN c.fecha_desmontaje >= ? THEN cl.telefono ELSE NULL END AS cliente_telefono
+                    ANY_VALUE(CASE WHEN c.fecha_desmontaje >= ? THEN cl.nombre ELSE NULL END) AS cliente_nombre,
+                    ANY_VALUE(CASE WHEN c.fecha_desmontaje >= ? THEN cl.telefono ELSE NULL END) AS cliente_telefono
 
                 FROM series s
                 LEFT JOIN ubicaciones u ON s.ubicacion_id = u.id
 
-                -- Subquery para obtener SOLO el alquiler activo más reciente de cada serie
-                LEFT JOIN (
-                    SELECT ae.serie_id, ae.alquiler_id
-                    FROM alquiler_elementos ae
-                    INNER JOIN alquileres a ON ae.alquiler_id = a.id
-                    WHERE a.estado IN ('programado', 'activo')
-                    ORDER BY a.id DESC
-                ) ae_activo ON s.id = ae_activo.serie_id
-                LEFT JOIN alquileres a ON ae_activo.alquiler_id = a.id
+                -- JOIN directo con alquiler_elementos (puede haber múltiples)
+                LEFT JOIN alquiler_elementos ae ON s.id = ae.serie_id
+                LEFT JOIN alquileres a ON ae.alquiler_id = a.id
+                    AND a.estado IN ('programado', 'activo')
                 LEFT JOIN cotizaciones c ON a.cotizacion_id = c.id
                 LEFT JOIN clientes cl ON c.cliente_id = cl.id
 
                 WHERE s.id_elemento = ?
-                GROUP BY s.id
+                GROUP BY s.id, s.numero_serie, s.estado, s.ubicacion, s.ubicacion_id, s.fecha_ingreso
                 ORDER BY s.numero_serie
             `;
 
