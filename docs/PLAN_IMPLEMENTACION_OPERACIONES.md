@@ -21,6 +21,39 @@ Este documento detalla los pasos para implementar:
 | 24_orden_trabajo_elementos.sql | `orden_trabajo_elementos`, `elemento_incidencias`, `orden_elemento_fotos` | ✅ |
 | 25_alertas_operaciones.sql | `alertas_operaciones`, `notificaciones_pendientes`, `empleado_notificaciones_config` | ✅ |
 
+### ✅ Completado - Selector de Disponibilidad por Fecha
+
+Se implementó un componente para consultar disponibilidad en tiempo real:
+
+| Componente | Ubicación | Descripción |
+|------------|-----------|-------------|
+| **DisponibilidadFechaSelector.jsx** | `frontend/src/components/elementos/` | Selector de fecha con métricas de ocupación |
+| **useGetElementoConOcupaciones** | `frontend/src/hooks/Useelementos.js` | Hook para consultar ocupaciones |
+| **GET /elementos/:id/ocupaciones** | `backend/modules/inventario/routes/` | Endpoint de ocupaciones por fecha |
+| **LoteModel.obtenerPorElementoConContexto** | `backend/modules/inventario/models/` | Query para lotes con contexto |
+| **SerieModel.obtenerPorElementoConContexto** | `backend/modules/inventario/models/` | Query para series con contexto |
+
+#### Funcionalidades del Selector:
+- 📅 **Selector de fecha** - Consulta disponibilidad para cualquier fecha futura
+- 📊 **Métricas visuales** - Total, Ocupados, Disponibles con barra de progreso
+- 🎨 **Colores por ocupación** - Verde (<50%), Amarillo (50-80%), Rojo (>80%)
+- 📋 **Lista de eventos** - Muestra qué eventos ocupan el elemento en esa fecha
+- 🔄 **Tiempo real** - Se actualiza al cambiar la fecha
+
+#### Correcciones Técnicas Aplicadas:
+- ✅ Manejo de fechas MySQL como Date objects (helper `fechaToString`)
+- ✅ GROUP BY compatible con `sql_mode=only_full_group_by`
+- ✅ Uso de `ANY_VALUE()` y `MAX()` para columnas agregadas
+- ✅ Evitar duplicados en series con múltiples alquileres históricos
+
+### ✅ Completado - Renderizado de Iconos
+
+| Componente | Cambio Realizado |
+|------------|------------------|
+| **Card.jsx** | Ahora usa `<IconoCategoria value={icon} />` para renderizar emojis e iconos Lucide |
+| **IconoCategoria.jsx** | Wrapper de `SymbolRenderer` para uso en categorías |
+| **SymbolRenderer.jsx** | Detecta automáticamente emoji vs icono Lucide |
+
 ### Roles Configurados
 
 | Rol | Descripción | Permisos Clave |
@@ -739,3 +772,14 @@ Semana 4: Frontend Operaciones
 **Iniciar con Fase 1: Backend - Autenticación JWT**
 
 Esto es la base para todo lo demás, ya que las rutas protegidas dependen del middleware de auth.
+
+---
+
+## Historial de Cambios
+
+| Fecha | Cambio |
+|-------|--------|
+| 2026-01-17 | ✅ Migraciones de BD ejecutadas (tablas 21-25) |
+| 2026-01-17 | ✅ Selector de disponibilidad por fecha implementado |
+| 2026-01-17 | ✅ Correcciones MySQL (GROUP BY, fechas Date) |
+| 2026-01-17 | ✅ Card.jsx actualizado para usar IconoCategoria |
