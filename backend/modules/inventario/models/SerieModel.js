@@ -587,6 +587,7 @@ class SerieModel {
             const hoy = fechaReferencia || new Date().toISOString().split('T')[0];
 
             // Query principal: series con evento actual (si existe y no ha terminado)
+            // Usamos subquery para evitar duplicados cuando una serie tiene múltiples alquileres
             const query = `
                 SELECT
                     s.id,
@@ -618,14 +619,20 @@ class SerieModel {
                 FROM series s
                 LEFT JOIN ubicaciones u ON s.ubicacion_id = u.id
 
-                -- JOIN para obtener alquiler activo
-                LEFT JOIN alquiler_elementos ae ON s.id = ae.serie_id
-                LEFT JOIN alquileres a ON ae.alquiler_id = a.id
-                    AND a.estado IN ('programado', 'activo')
+                -- Subquery para obtener SOLO el alquiler activo más reciente de cada serie
+                LEFT JOIN (
+                    SELECT ae.serie_id, ae.alquiler_id
+                    FROM alquiler_elementos ae
+                    INNER JOIN alquileres a ON ae.alquiler_id = a.id
+                    WHERE a.estado IN ('programado', 'activo')
+                    ORDER BY a.id DESC
+                ) ae_activo ON s.id = ae_activo.serie_id
+                LEFT JOIN alquileres a ON ae_activo.alquiler_id = a.id
                 LEFT JOIN cotizaciones c ON a.cotizacion_id = c.id
                 LEFT JOIN clientes cl ON c.cliente_id = cl.id
 
                 WHERE s.id_elemento = ?
+                GROUP BY s.id
                 ORDER BY s.numero_serie
             `;
 
