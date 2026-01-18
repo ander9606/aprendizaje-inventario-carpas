@@ -32,7 +32,11 @@ const tarifasTransporteRoutes = require('./modules/alquileres/routes/tarifasTran
 const disponibilidadRoutes = require('./modules/alquileres/routes/disponibilidad');
 
 // Importar rutas - Configuración (Datos maestros)
-const ciudadesRoutes = require('./modules/configuracion/routes/ciudades');  
+const ciudadesRoutes = require('./modules/configuracion/routes/ciudades');
+const empleadosRoutes = require('./modules/configuracion/routes/empleados');
+
+// Importar rutas - Autenticación
+const authRoutes = require('./modules/auth/routes/auth');  
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -105,7 +109,15 @@ app.get('/', (req, res) => {
                 '/api/disponibilidad'
             ],
             configuracion: [
-                '/api/ciudades'
+                '/api/ciudades',
+                '/api/empleados'
+            ],
+            auth: [
+                '/api/auth/login',
+                '/api/auth/logout',
+                '/api/auth/refresh',
+                '/api/auth/me',
+                '/api/auth/password'
             ]
         }
     });
@@ -133,6 +145,10 @@ app.use('/api/disponibilidad', disponibilidadRoutes);
 
 // Registrar rutas - Configuración (Datos maestros)
 app.use('/api/ciudades', ciudadesRoutes);
+app.use('/api/empleados', empleadosRoutes);
+
+// Registrar rutas - Autenticación
+app.use('/api/auth', authRoutes);
 
 // ============================================
 // MANEJO DE ERRORES
@@ -155,7 +171,8 @@ const startServer = async () => {
             console.log(`📦 Inventario: Categorías, Elementos, Series, Lotes, Ubicaciones`);
             console.log(`🏗️  Productos: Categorías Productos, Elementos Compuestos`);
             console.log(`🏷️  Alquileres: Clientes, Cotizaciones, Alquileres`);
-            console.log(`⚙️  Configuración: Ciudades\n`);
+            console.log(`⚙️  Configuración: Ciudades, Empleados`);
+            console.log(`🔐 Auth: Login, Logout, Refresh, Me\n`);
         });
     } catch (error) {
         console.error('\n❌ Error al iniciar:', error.message);
