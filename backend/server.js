@@ -34,6 +34,7 @@ const disponibilidadRoutes = require('./modules/alquileres/routes/disponibilidad
 // Importar rutas - Configuración (Datos maestros)
 const ciudadesRoutes = require('./modules/configuracion/routes/ciudades');
 const empleadosRoutes = require('./modules/configuracion/routes/empleados');
+const vehiculosRoutes = require('./modules/configuracion/routes/vehiculos');
 
 // Importar rutas - Autenticación
 const authRoutes = require('./modules/auth/routes/auth');  
@@ -110,7 +111,8 @@ app.get('/', (req, res) => {
             ],
             configuracion: [
                 '/api/ciudades',
-                '/api/empleados'
+                '/api/empleados',
+                '/api/vehiculos'
             ],
             auth: [
                 '/api/auth/login',
@@ -146,6 +148,7 @@ app.use('/api/disponibilidad', disponibilidadRoutes);
 // Registrar rutas - Configuración (Datos maestros)
 app.use('/api/ciudades', ciudadesRoutes);
 app.use('/api/empleados', empleadosRoutes);
+app.use('/api/vehiculos', vehiculosRoutes);
 
 // Registrar rutas - Autenticación
 app.use('/api/auth', authRoutes);
@@ -171,7 +174,7 @@ const startServer = async () => {
             console.log(`📦 Inventario: Categorías, Elementos, Series, Lotes, Ubicaciones`);
             console.log(`🏗️  Productos: Categorías Productos, Elementos Compuestos`);
             console.log(`🏷️  Alquileres: Clientes, Cotizaciones, Alquileres`);
-            console.log(`⚙️  Configuración: Ciudades, Empleados`);
+            console.log(`⚙️  Configuración: Ciudades, Empleados, Vehículos`);
             console.log(`🔐 Auth: Login, Logout, Refresh, Me\n`);
         });
     } catch (error) {
