@@ -73,8 +73,10 @@ async function crearAdmin() {
             CREATE TABLE IF NOT EXISTS refresh_tokens (
                 id INT PRIMARY KEY AUTO_INCREMENT,
                 empleado_id INT NOT NULL,
-                token VARCHAR(500) NOT NULL,
-                expires_at TIMESTAMP NOT NULL,
+                token VARCHAR(500) NOT NULL UNIQUE,
+                expira_en TIMESTAMP NOT NULL,
+                ultimo_uso TIMESTAMP NULL,
+                revocado BOOLEAN DEFAULT FALSE,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (empleado_id) REFERENCES empleados(id) ON DELETE CASCADE
             )
