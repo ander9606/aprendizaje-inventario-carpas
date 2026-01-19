@@ -74,9 +74,9 @@ async function crearAdmin() {
                 id INT PRIMARY KEY AUTO_INCREMENT,
                 empleado_id INT NOT NULL,
                 token VARCHAR(500) NOT NULL UNIQUE,
-                expira_en TIMESTAMP NOT NULL,
-                ultimo_uso TIMESTAMP NULL,
-                revocado BOOLEAN DEFAULT FALSE,
+                expires_at TIMESTAMP NOT NULL,
+                revoked BOOLEAN DEFAULT FALSE,
+                revoked_at TIMESTAMP NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (empleado_id) REFERENCES empleados(id) ON DELETE CASCADE
             )
