@@ -32,6 +32,7 @@ import CalendarioPage from './pages/CalendarioPage'
 // Importar páginas - Configuración
 import ConfiguracionPage from './pages/ConfiguracionPage'
 import CiudadesPage from './pages/CiudadesPage'
+import EmpleadosPage from './pages/EmpleadosPage'
 
 /**
  * COMPONENTE: App
@@ -143,16 +144,11 @@ function App() {
             </Route>
 
             {/* ============================================
-                RUTAS CON ROLES ESPECÍFICOS
-                (Para futuras páginas de admin)
+                RUTAS CON ROLES ESPECÍFICOS (admin/gerente)
                 ============================================ */}
-
-            {/* Ejemplo: Rutas solo para admin y gerente
             <Route element={<ProtectedRoute roles={['admin', 'gerente']} />}>
                 <Route path="/configuracion/empleados" element={<EmpleadosPage />} />
-                <Route path="/configuracion/vehiculos" element={<VehiculosPage />} />
             </Route>
-            */}
 
             {/* ============================================
                 RUTA 404: Página no encontrada

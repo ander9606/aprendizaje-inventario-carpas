@@ -9,8 +9,10 @@ import {
   Settings,
   MapPin,
   ArrowLeft,
-  ArrowRight
+  ArrowRight,
+  Shield
 } from 'lucide-react'
+import { useAuth } from '../hooks/auth/useAuth'
 
 /**
  * ConfiguracionPage
@@ -22,6 +24,10 @@ import {
 export default function ConfiguracionPage() {
   const { volverAModulos } = useNavigation()
   const navigate = useNavigate()
+  const { hasRole } = useAuth()
+
+  // Verificar si puede ver empleados
+  const canSeeEmpleados = hasRole(['admin', 'gerente'])
 
   // ============================================
   // DATA: Opciones de configuración
@@ -42,7 +48,16 @@ export default function ConfiguracionPage() {
       icon: MapPin,
       color: 'blue',
       ruta: '/configuracion/ubicaciones'
-    }
+    },
+    // Solo mostrar si tiene permisos
+    ...(canSeeEmpleados ? [{
+      id: 'empleados',
+      nombre: 'Empleados',
+      descripcion: 'Gestiona usuarios del sistema, asigna roles y controla permisos de acceso.',
+      icon: Shield,
+      color: 'purple',
+      ruta: '/configuracion/empleados'
+    }] : [])
   ]
 
   const getColorClasses = (color) => {
@@ -67,6 +82,13 @@ export default function ConfiguracionPage() {
         icon: 'bg-green-100 text-green-600',
         text: 'text-green-600',
         hover: 'hover:shadow-lg hover:shadow-green-100'
+      },
+      purple: {
+        bg: 'bg-purple-50',
+        border: 'border-purple-200 hover:border-purple-400',
+        icon: 'bg-purple-100 text-purple-600',
+        text: 'text-purple-600',
+        hover: 'hover:shadow-lg hover:shadow-purple-100'
       }
     }
     return colors[color] || colors.blue
