@@ -3,7 +3,7 @@
 // Gestión de empleados y asignación de roles
 // ============================================
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Plus, Users, ArrowLeft, Search, Filter, UserCheck, UserX, Shield } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -17,6 +17,21 @@ import EmpleadoFormModal from '../components/forms/EmpleadoFormModal'
 import Button from '../components/common/Button'
 import Spinner from '../components/common/Spinner'
 import EmptyState from '../components/common/EmptyState'
+
+// Hook personalizado para debounce
+const useDebounce = (value, delay) => {
+    const [debouncedValue, setDebouncedValue] = useState(value)
+
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            setDebouncedValue(value)
+        }, delay)
+
+        return () => clearTimeout(handler)
+    }, [value, delay])
+
+    return debouncedValue
+}
 
 /**
  * Página EmpleadosPage
@@ -39,18 +54,27 @@ export default function EmpleadosPage() {
     const canCreate = hasRole(['admin'])
 
     // ============================================
-    // STATE: Filtros
+    // STATE: Filtros (separar input de filtro real)
     // ============================================
+    const [searchInput, setSearchInput] = useState('')
     const [filtros, setFiltros] = useState({
-        buscar: '',
         rol_id: '',
         activo: ''
     })
 
+    // Debounce del search input (500ms)
+    const debouncedSearch = useDebounce(searchInput, 500)
+
+    // Combinar filtros con búsqueda debounced
+    const queryParams = {
+        ...filtros,
+        buscar: debouncedSearch
+    }
+
     // ============================================
     // HOOKS: Obtener datos
     // ============================================
-    const { empleados, isLoading, error, refetch } = useGetEmpleados(filtros)
+    const { empleados, isLoading, error, refetch } = useGetEmpleados(queryParams)
     const { roles } = useGetRoles()
     const { mutateAsync: deleteEmpleado, isPending: isDeleting } = useDeleteEmpleado()
     const { mutateAsync: reactivarEmpleado, isPending: isReactivating } = useReactivarEmpleado()
@@ -95,7 +119,7 @@ export default function EmpleadosPage() {
     }
 
     const handleFilterChange = (key, value) => {
-        setFiltros({ ...filtros, [key]: value })
+        setFiltros(prev => ({ ...prev, [key]: value }))
     }
 
     // ============================================
@@ -184,7 +208,7 @@ export default function EmpleadosPage() {
             <div className="container mx-auto px-6 py-4">
                 <div className="bg-white rounded-xl border border-slate-200 p-4 mb-6">
                     <div className="flex flex-wrap gap-4">
-                        {/* Búsqueda */}
+                        {/* Búsqueda con debounce */}
                         <div className="flex-1 min-w-[200px]">
                             <div className="relative">
                                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
@@ -192,8 +216,8 @@ export default function EmpleadosPage() {
                                     type="text"
                                     placeholder="Buscar por nombre o email..."
                                     className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
-                                    value={filtros.buscar}
-                                    onChange={(e) => handleFilterChange('buscar', e.target.value)}
+                                    value={searchInput}
+                                    onChange={(e) => setSearchInput(e.target.value)}
                                 />
                             </div>
                         </div>
@@ -232,15 +256,15 @@ export default function EmpleadosPage() {
                 {/* INFO */}
                 <div className="mb-6">
                     <h2 className="text-xl font-semibold text-slate-900 mb-1">
-                        {filtros.buscar || filtros.rol_id || filtros.activo ? 'Resultados de búsqueda' : 'Todos los Empleados'}
+                        {debouncedSearch || filtros.rol_id || filtros.activo ? 'Resultados de búsqueda' : 'Todos los Empleados'}
                     </h2>
                     <p className="text-slate-600">
-                        {empleados.length} empleado{empleados.length !== 1 ? 's' : ''} encontrado{empleados.length !== 1 ? 's' : ''}
+                        {empleados?.length || 0} empleado{empleados?.length !== 1 ? 's' : ''} encontrado{empleados?.length !== 1 ? 's' : ''}
                     </p>
                 </div>
 
                 {/* TABLA DE EMPLEADOS */}
-                {empleados.length > 0 ? (
+                {empleados?.length > 0 ? (
                     <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
                         <table className="w-full">
                             <thead className="bg-slate-50 border-b border-slate-200">
@@ -339,7 +363,7 @@ export default function EmpleadosPage() {
                         type="no-data"
                         title="No hay empleados"
                         description={
-                            filtros.buscar || filtros.rol_id || filtros.activo
+                            debouncedSearch || filtros.rol_id || filtros.activo
                                 ? "No se encontraron empleados con los filtros aplicados"
                                 : "Crea tu primer empleado para comenzar"
                         }

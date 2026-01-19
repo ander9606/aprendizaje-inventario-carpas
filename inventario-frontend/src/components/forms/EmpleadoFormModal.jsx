@@ -125,8 +125,8 @@ const EmpleadoFormModal = ({
         if (mode === 'crear') {
             if (!formData.password) {
                 newErrors.password = 'La contraseña es obligatoria'
-            } else if (formData.password.length < 6) {
-                newErrors.password = 'Mínimo 6 caracteres'
+            } else if (formData.password.length < 8) {
+                newErrors.password = 'Mínimo 8 caracteres'
             }
 
             if (formData.password !== formData.confirmarPassword) {
@@ -134,8 +134,8 @@ const EmpleadoFormModal = ({
             }
         } else if (formData.password) {
             // En modo editar, validar solo si se ingresó contraseña
-            if (formData.password.length < 6) {
-                newErrors.password = 'Mínimo 6 caracteres'
+            if (formData.password.length < 8) {
+                newErrors.password = 'Mínimo 8 caracteres'
             }
             if (formData.password !== formData.confirmarPassword) {
                 newErrors.confirmarPassword = 'Las contraseñas no coinciden'
