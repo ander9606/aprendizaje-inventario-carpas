@@ -1,4 +1,4 @@
-const pool = require('../../../config/database');
+const { pool } = require('../../../config/database');
 const AppError = require('../../../utils/AppError');
 
 class AlertaModel {

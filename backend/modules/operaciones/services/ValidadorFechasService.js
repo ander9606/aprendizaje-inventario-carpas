@@ -1,4 +1,4 @@
-const pool = require('../../../config/database');
+const { pool } = require('../../../config/database');
 const DisponibilidadModel = require('../../alquileres/models/DisponibilidadModel');
 const AppError = require('../../../utils/AppError');
 

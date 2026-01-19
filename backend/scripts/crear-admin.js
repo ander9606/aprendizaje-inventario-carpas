@@ -55,7 +55,7 @@ async function crearAdmin() {
                 password_hash VARCHAR(255) NOT NULL,
                 rol_id INT,
                 activo BOOLEAN DEFAULT TRUE,
-                ultimo_acceso TIMESTAMP NULL,
+                ultimo_login TIMESTAMP NULL,
                 intentos_fallidos INT DEFAULT 0,
                 bloqueado_hasta TIMESTAMP NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -83,16 +83,19 @@ async function crearAdmin() {
         // ============================================
         // CREAR TABLA DE AUDITORÍA SI NO EXISTE
         // ============================================
-        console.log('📋 Verificando tabla de auditoria_auth...')
+        console.log('📋 Verificando tabla de audit_log...')
 
         await connection.execute(`
-            CREATE TABLE IF NOT EXISTS auditoria_auth (
+            CREATE TABLE IF NOT EXISTS audit_log (
                 id INT PRIMARY KEY AUTO_INCREMENT,
                 empleado_id INT,
                 accion VARCHAR(50) NOT NULL,
-                ip VARCHAR(50),
+                tabla_afectada VARCHAR(100),
+                registro_id INT,
+                datos_anteriores JSON,
+                datos_nuevos JSON,
+                ip_address VARCHAR(50),
                 user_agent TEXT,
-                detalles JSON,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (empleado_id) REFERENCES empleados(id) ON DELETE SET NULL
             )

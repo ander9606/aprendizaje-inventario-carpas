@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
-const pool = require('../../../config/database');
+const { pool } = require('../../../config/database');
 const AppError = require('../../../utils/AppError');
 
 // Configuración JWT desde variables de entorno
@@ -49,7 +49,7 @@ class TokenService {
 
         // Guardar en base de datos
         await pool.query(`
-            INSERT INTO refresh_tokens (empleado_id, token, expira_en)
+            INSERT INTO refresh_tokens (empleado_id, token, expires_at)
             VALUES (?, ?, ?)
         `, [empleado.id, tokenValue, expiraEn]);
 
@@ -95,8 +95,8 @@ class TokenService {
             SELECT
                 rt.id as token_id,
                 rt.empleado_id,
-                rt.expira_en,
-                rt.revocado,
+                rt.expires_at,
+                rt.revoked,
                 e.id,
                 e.nombre,
                 e.apellido,
@@ -118,12 +118,12 @@ class TokenService {
         const tokenData = rows[0];
 
         // Verificar si está revocado
-        if (tokenData.revocado) {
+        if (tokenData.revoked) {
             throw new AppError('Refresh token ha sido revocado', 401);
         }
 
         // Verificar si expiró
-        if (new Date(tokenData.expira_en) < new Date()) {
+        if (new Date(tokenData.expires_at) < new Date()) {
             throw new AppError('Refresh token expirado', 401);
         }
 
@@ -147,7 +147,8 @@ class TokenService {
     static async revocarRefreshToken(token) {
         await pool.query(`
             UPDATE refresh_tokens
-            SET revocado = TRUE
+            SET revoked = TRUE,
+                revoked_at = CURRENT_TIMESTAMP
             WHERE token = ?
         `, [token]);
     }
@@ -160,8 +161,9 @@ class TokenService {
     static async revocarTodosTokensEmpleado(empleadoId) {
         await pool.query(`
             UPDATE refresh_tokens
-            SET revocado = TRUE
-            WHERE empleado_id = ? AND revocado = FALSE
+            SET revoked = TRUE,
+                revoked_at = CURRENT_TIMESTAMP
+            WHERE empleado_id = ? AND revoked = FALSE
         `, [empleadoId]);
     }
 
@@ -172,7 +174,7 @@ class TokenService {
     static async limpiarTokensExpirados() {
         const [result] = await pool.query(`
             DELETE FROM refresh_tokens
-            WHERE expira_en < CURRENT_TIMESTAMP OR revocado = TRUE
+            WHERE expires_at < CURRENT_TIMESTAMP OR revoked = TRUE
         `);
 
         return result.affectedRows;
@@ -188,29 +190,20 @@ class TokenService {
             SELECT
                 id,
                 created_at,
-                expira_en,
-                ultimo_uso
+                expires_at,
+                created_at as last_used
             FROM refresh_tokens
             WHERE empleado_id = ?
-              AND revocado = FALSE
-              AND expira_en > CURRENT_TIMESTAMP
+              AND revoked = FALSE
+              AND expires_at > CURRENT_TIMESTAMP
             ORDER BY created_at DESC
         `, [empleadoId]);
 
         return rows;
     }
 
-    /**
-     * Actualizar último uso del refresh token
-     * @param {string} token
-     */
-    static async actualizarUltimoUso(token) {
-        await pool.query(`
-            UPDATE refresh_tokens
-            SET ultimo_uso = CURRENT_TIMESTAMP
-            WHERE token = ?
-        `, [token]);
-    }
+    // Nota: La columna ultimo_uso no existe en la tabla actual
+    // Si se necesita tracking de último uso, agregar la columna a la tabla
 }
 
 module.exports = TokenService;
