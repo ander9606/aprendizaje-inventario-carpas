@@ -1,9 +1,14 @@
 // ============================================
 // COMPONENTE PRINCIPAL: APP
 // Configuración de rutas con React Router
+// Incluye autenticación y rutas protegidas
 // ============================================
 
 import { Routes, Route } from 'react-router-dom'
+
+// Importar componentes de autenticación
+import ProtectedRoute from './components/auth/ProtectedRoute'
+import LoginPage from './pages/LoginPage'
 
 // Importar páginas - Dashboard principal
 import ModulosDashboard from './pages/ModulosDashboard'
@@ -33,180 +38,149 @@ import CiudadesPage from './pages/CiudadesPage'
  *
  * Este componente define las rutas de la aplicación.
  *
- * RUTAS PRINCIPALES:
- * /                                                                                  → Dashboard de Módulos
+ * RUTAS PÚBLICAS:
+ * /login                                                                                → Página de login
+ *
+ * RUTAS PROTEGIDAS (requieren autenticación):
+ * /                                                                                     → Dashboard de Módulos
  *
  * RUTAS INVENTARIO INDIVIDUAL:
- * /inventario                                                                        → Dashboard Inventario (Categorías padre)
- * /inventario/categorias/:categoriaId                                                → Subcategorias (Nivel 2)
- * /inventario/categorias/:categoriaId/subcategorias/:subcategoriaId/elementos        → Elementos (Nivel 3)
- * /inventario/categorias/:categoriaId/subcategorias/:subcategoriaId/elementos/:id    → Detalle de Elemento (Nivel 4)
- * /inventario/ubicaciones                                                            → Gestión de ubicaciones
+ * /inventario                                                                           → Dashboard Inventario
+ * /inventario/categorias/:categoriaId                                                   → Subcategorias
+ * /inventario/categorias/:categoriaId/subcategorias/:subcategoriaId/elementos           → Elementos
+ * /inventario/categorias/:categoriaId/subcategorias/:subcategoriaId/elementos/:id       → Detalle
+ * /inventario/ubicaciones                                                               → Ubicaciones
  *
  * RUTAS PRODUCTOS DE ALQUILER:
- * /productos                                                                         → Navegación entre módulos
- * /productos/alquiler                                                                → Elementos Compuestos
+ * /productos                                                                            → Navegación
+ * /productos/alquiler                                                                   → Elementos Compuestos
  *
- * RUTAS ALQUILERES (futuro):
- * /alquileres                                                                        → Dashboard de Alquileres
+ * RUTAS ALQUILERES:
+ * /alquileres                                                                           → Dashboard
+ * /alquileres/cotizaciones                                                              → Cotizaciones
+ * /alquileres/clientes                                                                  → Clientes
+ * /alquileres/calendario                                                                → Calendario
  */
 function App() {
-  return (
-    <Routes>
-      {/* ============================================
-          DASHBOARD DE MÓDULOS
-          Ruta: /
-          ============================================ */}
-      <Route
-        path="/"
-        element={<ModulosDashboard />}
-      />
+    return (
+        <Routes>
+            {/* ============================================
+                RUTAS PÚBLICAS (sin autenticación)
+                ============================================ */}
 
-      {/* ============================================
-          INVENTARIO INDIVIDUAL
-          ============================================ */}
+            <Route path="/login" element={<LoginPage />} />
 
-      {/* Dashboard de Inventario (Categorías Padre) */}
-      <Route
-        path="/inventario"
-        element={<Dashboard />}
-      />
+            {/* ============================================
+                RUTAS PROTEGIDAS (requieren autenticación)
+                ============================================ */}
+            <Route element={<ProtectedRoute />}>
 
-      {/* Subcategorías */}
-      <Route
-        path="/inventario/categorias/:categoriaId"
-        element={<Subcategorias />}
-      />
+                {/* Dashboard de Módulos */}
+                <Route path="/" element={<ModulosDashboard />} />
 
-      {/* Elementos */}
-      <Route
-        path="/inventario/categorias/:categoriaId/subcategorias/:subcategoriaId/elementos"
-        element={<ElementosPage />}
-      />
+                {/* ============================================
+                    INVENTARIO INDIVIDUAL
+                    ============================================ */}
 
-      {/* Detalle de Elemento */}
-      <Route
-        path="/inventario/categorias/:categoriaId/subcategorias/:subcategoriaId/elementos/:elementoId"
-        element={<ElementoDetallePage />}
-      />
+                <Route path="/inventario" element={<Dashboard />} />
 
-      {/* Ubicaciones */}
-      <Route
-        path="/inventario/ubicaciones"
-        element={<UbicacionesPage />}
-      />
+                <Route
+                    path="/inventario/categorias/:categoriaId"
+                    element={<Subcategorias />}
+                />
 
-      {/* Rutas antiguas - Redirección temporal para compatibilidad */}
-      <Route
-        path="/categorias/:categoriaId"
-        element={<Subcategorias />}
-      />
-      <Route
-        path="/categorias/:categoriaId/subcategorias/:subcategoriaId/elementos"
-        element={<ElementosPage />}
-      />
-      <Route
-        path="/categorias/:categoriaId/subcategorias/:subcategoriaId/elementos/:elementoId"
-        element={<ElementoDetallePage />}
-      />
-      <Route
-        path="/ubicaciones"
-        element={<UbicacionesPage />}
-      />
+                <Route
+                    path="/inventario/categorias/:categoriaId/subcategorias/:subcategoriaId/elementos"
+                    element={<ElementosPage />}
+                />
 
-      {/* ============================================
-          PRODUCTOS DE ALQUILER
-          ============================================ */}
+                <Route
+                    path="/inventario/categorias/:categoriaId/subcategorias/:subcategoriaId/elementos/:elementoId"
+                    element={<ElementoDetallePage />}
+                />
 
-      {/* Navegación entre módulos de productos */}
-      <Route
-        path="/productos"
-        element={<ProductosPage />}
-      />
+                <Route path="/inventario/ubicaciones" element={<UbicacionesPage />} />
 
-      {/* Elementos Compuestos (Plantillas de alquiler) */}
-      <Route
-        path="/productos/alquiler"
-        element={<ElementosCompuestosPage />}
-      />
+                {/* Rutas antiguas - Compatibilidad */}
+                <Route
+                    path="/categorias/:categoriaId"
+                    element={<Subcategorias />}
+                />
+                <Route
+                    path="/categorias/:categoriaId/subcategorias/:subcategoriaId/elementos"
+                    element={<ElementosPage />}
+                />
+                <Route
+                    path="/categorias/:categoriaId/subcategorias/:subcategoriaId/elementos/:elementoId"
+                    element={<ElementoDetallePage />}
+                />
+                <Route path="/ubicaciones" element={<UbicacionesPage />} />
 
-      {/* ============================================
-          ALQUILERES
-          ============================================ */}
+                {/* ============================================
+                    PRODUCTOS DE ALQUILER
+                    ============================================ */}
 
-      {/* Dashboard de Alquileres - Cotizaciones */}
-      <Route
-        path="/alquileres"
-        element={<CotizacionesPage />}
-      />
+                <Route path="/productos" element={<ProductosPage />} />
+                <Route path="/productos/alquiler" element={<ElementosCompuestosPage />} />
 
-      {/* Cotizaciones */}
-      <Route
-        path="/alquileres/cotizaciones"
-        element={<CotizacionesPage />}
-      />
+                {/* ============================================
+                    ALQUILERES
+                    ============================================ */}
 
-      {/* Clientes */}
-      <Route
-        path="/alquileres/clientes"
-        element={<ClientesPage />}
-      />
+                <Route path="/alquileres" element={<CotizacionesPage />} />
+                <Route path="/alquileres/cotizaciones" element={<CotizacionesPage />} />
+                <Route path="/alquileres/clientes" element={<ClientesPage />} />
+                <Route path="/alquileres/calendario" element={<CalendarioPage />} />
 
-      {/* Calendario */}
-      <Route
-        path="/alquileres/calendario"
-        element={<CalendarioPage />}
-      />
+                {/* ============================================
+                    CONFIGURACIÓN
+                    ============================================ */}
 
-      {/* ============================================
-          CONFIGURACIÓN
-          ============================================ */}
+                <Route path="/configuracion" element={<ConfiguracionPage />} />
+                <Route path="/configuracion/ciudades" element={<CiudadesPage />} />
+                <Route path="/configuracion/ubicaciones" element={<UbicacionesPage />} />
 
-      {/* Dashboard de Configuración */}
-      <Route
-        path="/configuracion"
-        element={<ConfiguracionPage />}
-      />
+            </Route>
 
-      {/* Ciudades (incluye tarifas de transporte) */}
-      <Route
-        path="/configuracion/ciudades"
-        element={<CiudadesPage />}
-      />
+            {/* ============================================
+                RUTAS CON ROLES ESPECÍFICOS
+                (Para futuras páginas de admin)
+                ============================================ */}
 
-      {/* Ubicaciones */}
-      <Route
-        path="/configuracion/ubicaciones"
-        element={<UbicacionesPage />}
-      />
+            {/* Ejemplo: Rutas solo para admin y gerente
+            <Route element={<ProtectedRoute roles={['admin', 'gerente']} />}>
+                <Route path="/configuracion/empleados" element={<EmpleadosPage />} />
+                <Route path="/configuracion/vehiculos" element={<VehiculosPage />} />
+            </Route>
+            */}
 
-      {/* ============================================
-          RUTA 404: Página no encontrada
-          ============================================ */}
-      <Route
-        path="*"
-        element={
-          <div className="min-h-screen flex items-center justify-center">
-            <div className="text-center">
-              <div className="text-6xl mb-4">🔍</div>
-              <h1 className="text-2xl font-bold text-slate-900 mb-2">
-                Página no encontrada
-              </h1>
-              <p className="text-slate-600 mb-6">
-                La página que buscas no existe
-              </p>
-              <a
-                href="/"
-                className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                Volver al inicio
-              </a>
-            </div>
-          </div>
-        }
-      />
-    </Routes>
-  )
+            {/* ============================================
+                RUTA 404: Página no encontrada
+                ============================================ */}
+            <Route
+                path="*"
+                element={
+                    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
+                        <div className="text-center">
+                            <div className="text-6xl mb-4">🔍</div>
+                            <h1 className="text-2xl font-bold text-slate-900 mb-2">
+                                Página no encontrada
+                            </h1>
+                            <p className="text-slate-600 mb-6">
+                                La página que buscas no existe
+                            </p>
+                            <a
+                                href="/"
+                                className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                            >
+                                Volver al inicio
+                            </a>
+                        </div>
+                    </div>
+                }
+            />
+        </Routes>
+    )
 }
 
 export default App
