@@ -20,7 +20,7 @@ import { useAuth } from '../hooks/auth/useAuth'
  */
 const LoginPage = () => {
     const navigate = useNavigate()
-    const { login, isAuthenticated, isLoading, error, clearError } = useAuth()
+    const { login, isAuthenticated, isLoading, error, clearError, checkAuth } = useAuth()
 
     const [showPassword, setShowPassword] = useState(false)
     const [isSubmitting, setIsSubmitting] = useState(false)
@@ -36,6 +36,11 @@ const LoginPage = () => {
             password: ''
         }
     })
+
+    // Verificar auth al montar (resuelve isLoading)
+    useEffect(() => {
+        checkAuth()
+    }, [])
 
     // Redirigir si ya está autenticado
     useEffect(() => {
