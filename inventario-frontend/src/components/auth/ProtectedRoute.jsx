@@ -3,6 +3,7 @@
 // HOC para proteger rutas que requieren autenticación
 // ============================================
 
+import { useEffect } from 'react'
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
 import useAuthStore from '../../stores/authStore'
@@ -26,7 +27,14 @@ import useAuthStore from '../../stores/authStore'
  */
 const ProtectedRoute = ({ roles = null, redirectTo = '/login' }) => {
     const location = useLocation()
-    const { isAuthenticated, isLoading, usuario, hasRole } = useAuthStore()
+    const { isAuthenticated, isLoading, usuario, hasRole, checkAuth } = useAuthStore()
+
+    // ============================================
+    // VERIFICAR AUTH AL MONTAR
+    // ============================================
+    useEffect(() => {
+        checkAuth()
+    }, [])
 
     // ============================================
     // ESTADO DE CARGA

@@ -6,6 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "migrate": "node scripts/migrar-ciudad-id.js",
+    "setup-auth": "node scripts/crear-admin.js",
     "start": "node server.js",
     "dev": "node server.js"
   },
