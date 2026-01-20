@@ -17,6 +17,10 @@ export const useGetEmpleados = (params = {}) => {
         queryFn: () => empleadosAPI.obtenerTodos(params)
     })
 
+    // Debug temporal
+    console.log('useGetEmpleados - data:', data)
+    console.log('useGetEmpleados - empleados:', data?.data)
+
     return {
         empleados: data?.data || [],
         pagination: data?.pagination || null,
