@@ -378,7 +378,8 @@ const EmpleadoFormModal = ({
                                     name="password"
                                     value={formData.password}
                                     onChange={handleChange}
-                                    placeholder={mode === 'crear' ? 'Mínimo 6 caracteres' : 'Nueva contraseña'}
+                                    placeholder={mode === 'crear' ? 'Mínimo 8 caracteres' : 'Nueva contraseña'}
+                                    autoComplete="new-password"
                                     disabled={isLoading}
                                     className={`
                                         w-full px-4 py-2.5 pr-12 border rounded-lg
@@ -412,6 +413,7 @@ const EmpleadoFormModal = ({
                                     value={formData.confirmarPassword}
                                     onChange={handleChange}
                                     placeholder="Confirmar contraseña"
+                                    autoComplete="new-password"
                                     disabled={isLoading}
                                     className={`
                                         w-full px-4 py-2.5 pr-12 border rounded-lg
