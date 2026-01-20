@@ -34,6 +34,9 @@ import ConfiguracionPage from './pages/ConfiguracionPage'
 import CiudadesPage from './pages/CiudadesPage'
 import EmpleadosPage from './pages/EmpleadosPage'
 
+// Importar páginas - Operaciones
+import OperacionesDashboard from './pages/OperacionesDashboard'
+
 /**
  * COMPONENTE: App
  *
@@ -140,6 +143,12 @@ function App() {
                 <Route path="/configuracion" element={<ConfiguracionPage />} />
                 <Route path="/configuracion/ciudades" element={<CiudadesPage />} />
                 <Route path="/configuracion/ubicaciones" element={<UbicacionesPage />} />
+
+                {/* ============================================
+                    OPERACIONES
+                    ============================================ */}
+
+                <Route path="/operaciones" element={<OperacionesDashboard />} />
 
             </Route>
 
