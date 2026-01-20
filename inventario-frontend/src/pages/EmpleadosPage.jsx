@@ -66,9 +66,11 @@ export default function EmpleadosPage() {
     const debouncedSearch = useDebounce(searchInput, 500)
 
     // Combinar filtros con búsqueda debounced
+    // Solo incluir parámetros que tengan valor (no enviar strings vacíos)
     const queryParams = {
-        ...filtros,
-        buscar: debouncedSearch
+        ...(debouncedSearch && { buscar: debouncedSearch }),
+        ...(filtros.rol_id && { rol_id: filtros.rol_id }),
+        ...(filtros.activo && { activo: filtros.activo })
     }
 
     // ============================================
