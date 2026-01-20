@@ -232,6 +232,15 @@ const alertasAPI = {
     },
 
     /**
+     * Marcar alerta como leída
+     * @param {number} id
+     */
+    marcarLeida: async (id) => {
+        const response = await api.put(`/operaciones/alertas/${id}/leida`)
+        return response.data
+    },
+
+    /**
      * Resolver una alerta
      * @param {number} id
      * @param {Object} datos - { notas_resolucion }

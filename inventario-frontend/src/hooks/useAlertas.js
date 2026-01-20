@@ -87,6 +87,52 @@ export const useResolverAlerta = () => {
 }
 
 // ============================================
+// HOOK: useMarcarAlertaLeida
+// Marca una alerta como leída
+// ============================================
+
+export const useMarcarAlertaLeida = () => {
+    const queryClient = useQueryClient()
+
+    const mutation = useMutation({
+        mutationFn: (id) => alertasAPI.marcarLeida(id),
+        retry: 0,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['alertas'] })
+        }
+    })
+
+    return {
+        marcarLeida: mutation.mutateAsync,
+        isLoading: mutation.isPending,
+        error: mutation.error
+    }
+}
+
+// ============================================
+// HOOK: useMarcarAlertaResuelta
+// Marca una alerta como resuelta
+// ============================================
+
+export const useMarcarAlertaResuelta = () => {
+    const queryClient = useQueryClient()
+
+    const mutation = useMutation({
+        mutationFn: (id) => alertasAPI.resolver(id, {}),
+        retry: 0,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['alertas'] })
+        }
+    })
+
+    return {
+        marcarResuelta: mutation.mutateAsync,
+        isLoading: mutation.isPending,
+        error: mutation.error
+    }
+}
+
+// ============================================
 // HOOK: useAlertasCount
 // Hook simple para obtener el conteo de alertas pendientes
 // Útil para badges en navegación
