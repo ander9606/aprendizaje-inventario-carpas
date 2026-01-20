@@ -50,9 +50,9 @@ export default function CalendarioOperaciones() {
     // ============================================
     // HOOKS: Obtener datos del calendario
     // ============================================
-    const { calendario, isLoading } = useGetCalendario({
-        fecha_desde: fechaDesde,
-        fecha_hasta: fechaHasta
+    const { eventos: calendario, isLoading } = useGetCalendario({
+        desde: fechaDesde,
+        hasta: fechaHasta
     })
 
     // ============================================

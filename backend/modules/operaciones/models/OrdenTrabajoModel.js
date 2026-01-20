@@ -72,8 +72,6 @@ class OrdenTrabajoModel {
                 ot.tipo,
                 ot.estado,
                 ot.fecha_programada,
-                ot.hora_inicio,
-                ot.hora_fin,
                 ot.direccion,
                 ot.notas,
                 ot.prioridad,
@@ -217,7 +215,6 @@ class OrdenTrabajoModel {
                 ot.tipo,
                 ot.estado,
                 ot.fecha_programada,
-                ot.hora_inicio,
                 ot.direccion,
                 ot.prioridad,
                 v.placa as vehiculo_placa,
@@ -241,8 +238,6 @@ class OrdenTrabajoModel {
             alquiler_id,
             tipo,
             fecha_programada,
-            hora_inicio,
-            hora_fin,
             direccion,
             notas,
             prioridad = 'normal',
@@ -252,14 +247,12 @@ class OrdenTrabajoModel {
 
         const [result] = await pool.query(`
             INSERT INTO ordenes_trabajo
-            (alquiler_id, tipo, estado, fecha_programada, hora_inicio, hora_fin, direccion, notas, prioridad, vehiculo_id, creado_por)
-            VALUES (?, ?, 'pendiente', ?, ?, ?, ?, ?, ?, ?, ?)
+            (alquiler_id, tipo, estado, fecha_programada, direccion, notas, prioridad, vehiculo_id, creado_por)
+            VALUES (?, ?, 'pendiente', ?, ?, ?, ?, ?, ?)
         `, [
             alquiler_id,
             tipo,
             fecha_programada,
-            hora_inicio || null,
-            hora_fin || null,
             direccion || null,
             notas || null,
             prioridad,
@@ -286,7 +279,7 @@ class OrdenTrabajoModel {
         const valores = [];
 
         const camposPermitidos = [
-            'hora_inicio', 'hora_fin', 'direccion', 'notas', 'prioridad', 'vehiculo_id'
+            'direccion', 'notas', 'prioridad', 'vehiculo_id'
         ];
 
         for (const campo of camposPermitidos) {
@@ -434,8 +427,6 @@ class OrdenTrabajoModel {
                 ot.tipo,
                 ot.estado,
                 ot.fecha_programada,
-                ot.hora_inicio,
-                ot.hora_fin,
                 ot.direccion,
                 ot.prioridad,
                 a.nombre_evento,
@@ -451,7 +442,7 @@ class OrdenTrabajoModel {
             LEFT JOIN vehiculos v ON ot.vehiculo_id = v.id
             WHERE DATE(ot.fecha_programada) BETWEEN ? AND ?
               AND ot.estado NOT IN ('cancelado')
-            ORDER BY ot.fecha_programada ASC, ot.hora_inicio ASC
+            ORDER BY ot.fecha_programada ASC
         `, [desde, hasta]);
 
         return rows;
@@ -471,7 +462,6 @@ class OrdenTrabajoModel {
             alquiler_id: alquilerId,
             tipo: 'montaje',
             fecha_programada: montaje.fecha,
-            hora_inicio: montaje.hora_inicio,
             direccion: montaje.direccion,
             notas: montaje.notas,
             prioridad: montaje.prioridad || 'normal',
@@ -483,7 +473,6 @@ class OrdenTrabajoModel {
             alquiler_id: alquilerId,
             tipo: 'desmontaje',
             fecha_programada: desmontaje.fecha,
-            hora_inicio: desmontaje.hora_inicio,
             direccion: desmontaje.direccion || montaje.direccion,
             notas: desmontaje.notas,
             prioridad: desmontaje.prioridad || 'normal',

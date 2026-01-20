@@ -56,7 +56,6 @@ class AlertaModel {
                 ao.titulo,
                 ao.mensaje,
                 ao.estado,
-                ao.datos,
                 ao.resuelta_por,
                 ao.fecha_resolucion,
                 ao.notas_resolucion,
@@ -76,13 +75,6 @@ class AlertaModel {
             ORDER BY ao.${ordenarCampo} ${ordenarDireccion}
             LIMIT ? OFFSET ?
         `, [...params, limit, offset]);
-
-        // Parsear datos JSON
-        for (const row of rows) {
-            if (row.datos && typeof row.datos === 'string') {
-                row.datos = JSON.parse(row.datos);
-            }
-        }
 
         const [countResult] = await pool.query(`
             SELECT COUNT(*) as total
@@ -112,7 +104,6 @@ class AlertaModel {
                 ao.severidad,
                 ao.titulo,
                 ao.mensaje,
-                ao.datos,
                 ao.created_at,
                 ot.tipo as orden_tipo,
                 ot.fecha_programada,
@@ -132,12 +123,6 @@ class AlertaModel {
                 END,
                 ao.created_at DESC
         `);
-
-        for (const row of rows) {
-            if (row.datos && typeof row.datos === 'string') {
-                row.datos = JSON.parse(row.datos);
-            }
-        }
 
         return rows;
     }
@@ -170,12 +155,7 @@ class AlertaModel {
             return null;
         }
 
-        const alerta = rows[0];
-        if (alerta.datos && typeof alerta.datos === 'string') {
-            alerta.datos = JSON.parse(alerta.datos);
-        }
-
-        return alerta;
+        return rows[0];
     }
 
     /**
@@ -189,8 +169,7 @@ class AlertaModel {
             tipo,
             severidad = 'media',
             titulo,
-            mensaje,
-            datos: datosExtra
+            mensaje
         } = datos;
 
         const tiposValidos = ['conflicto_fecha', 'conflicto_disponibilidad', 'conflicto_equipo',
@@ -206,15 +185,14 @@ class AlertaModel {
 
         const [result] = await pool.query(`
             INSERT INTO alertas_operaciones
-            (orden_id, tipo, severidad, titulo, mensaje, datos)
-            VALUES (?, ?, ?, ?, ?, ?)
+            (orden_id, tipo, severidad, titulo, mensaje)
+            VALUES (?, ?, ?, ?, ?)
         `, [
             orden_id || null,
             tipo,
             severidad,
             titulo,
-            mensaje,
-            datosExtra ? JSON.stringify(datosExtra) : null
+            mensaje
         ]);
 
         return this.obtenerPorId(result.insertId);
@@ -347,8 +325,7 @@ class AlertaModel {
             tipo: 'conflicto_disponibilidad',
             severidad,
             titulo: `Conflicto de disponibilidad - ${conflictos.length} elemento(s)`,
-            mensaje: `Se detectaron ${conflictos.length} elementos con problemas de disponibilidad. Total faltante: ${totalFaltantes} unidades.`,
-            datos: { conflictos, totalFaltantes }
+            mensaje: `Se detectaron ${conflictos.length} elementos con problemas de disponibilidad. Total faltante: ${totalFaltantes} unidades.`
         });
     }
 
@@ -366,8 +343,7 @@ class AlertaModel {
             tipo: 'cambio_fecha',
             severidad: 'media',
             titulo: 'Solicitud de cambio de fecha',
-            mensaje: `Se solicita cambiar la fecha de ${fechaAnterior} a ${fechaNueva}. Motivo: ${motivo}`,
-            datos: { fechaAnterior, fechaNueva, motivo }
+            mensaje: `Se solicita cambiar la fecha de ${fechaAnterior} a ${fechaNueva}. Motivo: ${motivo}`
         });
     }
 
@@ -387,12 +363,6 @@ class AlertaModel {
             WHERE ao.orden_id = ?
             ORDER BY ao.created_at DESC
         `, [ordenId]);
-
-        for (const row of rows) {
-            if (row.datos && typeof row.datos === 'string') {
-                row.datos = JSON.parse(row.datos);
-            }
-        }
 
         return rows;
     }

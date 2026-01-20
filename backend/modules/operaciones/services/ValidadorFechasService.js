@@ -209,7 +209,7 @@ class ValidadorFechasService {
                 SELECT
                     ot.id,
                     ot.tipo,
-                    ot.hora_inicio,
+                    ot.fecha_programada,
                     a.nombre_evento
                 FROM ordenes_trabajo ot
                 INNER JOIN orden_trabajo_equipo ote ON ot.id = ote.orden_id
@@ -230,7 +230,7 @@ class ValidadorFechasService {
                         id: o.id,
                         tipo: o.tipo,
                         evento: o.nombre_evento,
-                        hora: o.hora_inicio
+                        fecha: o.fecha_programada
                     }))
                 });
             }
@@ -251,7 +251,7 @@ class ValidadorFechasService {
             SELECT
                 ot.id,
                 ot.tipo,
-                ot.hora_inicio,
+                ot.fecha_programada,
                 a.nombre_evento,
                 v.placa
             FROM ordenes_trabajo ot
@@ -273,7 +273,7 @@ class ValidadorFechasService {
                     id: o.id,
                     tipo: o.tipo,
                     evento: o.nombre_evento,
-                    hora: o.hora_inicio
+                    fecha: o.fecha_programada
                 }))
             };
         }
