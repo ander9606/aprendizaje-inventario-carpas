@@ -62,14 +62,15 @@ class AlertaModel {
                 ao.created_at,
                 ot.tipo as orden_tipo,
                 ot.fecha_programada,
-                a.nombre_evento,
+                cot.evento_nombre,
                 c.nombre as cliente_nombre,
                 e.nombre as resolutor_nombre,
                 e.apellido as resolutor_apellido
             FROM alertas_operaciones ao
             LEFT JOIN ordenes_trabajo ot ON ao.orden_id = ot.id
             LEFT JOIN alquileres a ON ot.alquiler_id = a.id
-            LEFT JOIN clientes c ON a.cliente_id = c.id
+            LEFT JOIN cotizaciones cot ON a.cotizacion_id = cot.id
+            LEFT JOIN clientes c ON cot.cliente_id = c.id
             LEFT JOIN empleados e ON ao.resuelta_por = e.id
             ${whereClause}
             ORDER BY ao.${ordenarCampo} ${ordenarDireccion}
@@ -107,12 +108,13 @@ class AlertaModel {
                 ao.created_at,
                 ot.tipo as orden_tipo,
                 ot.fecha_programada,
-                a.nombre_evento,
+                cot.evento_nombre,
                 c.nombre as cliente_nombre
             FROM alertas_operaciones ao
             LEFT JOIN ordenes_trabajo ot ON ao.orden_id = ot.id
             LEFT JOIN alquileres a ON ot.alquiler_id = a.id
-            LEFT JOIN clientes c ON a.cliente_id = c.id
+            LEFT JOIN cotizaciones cot ON a.cotizacion_id = cot.id
+            LEFT JOIN clientes c ON cot.cliente_id = c.id
             WHERE ao.estado = 'pendiente'
             ORDER BY
                 CASE ao.severidad
@@ -139,14 +141,15 @@ class AlertaModel {
                 ot.tipo as orden_tipo,
                 ot.fecha_programada,
                 ot.estado as orden_estado,
-                a.nombre_evento,
+                cot.evento_nombre,
                 c.nombre as cliente_nombre,
                 e.nombre as resolutor_nombre,
                 e.apellido as resolutor_apellido
             FROM alertas_operaciones ao
             LEFT JOIN ordenes_trabajo ot ON ao.orden_id = ot.id
             LEFT JOIN alquileres a ON ot.alquiler_id = a.id
-            LEFT JOIN clientes c ON a.cliente_id = c.id
+            LEFT JOIN cotizaciones cot ON a.cotizacion_id = cot.id
+            LEFT JOIN clientes c ON cot.cliente_id = c.id
             LEFT JOIN empleados e ON ao.resuelta_por = e.id
             WHERE ao.id = ?
         `, [id]);

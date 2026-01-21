@@ -72,13 +72,13 @@ class OrdenTrabajoModel {
                 ot.tipo,
                 ot.estado,
                 ot.fecha_programada,
-                ot.direccion,
                 ot.notas,
                 ot.prioridad,
                 ot.vehiculo_id,
                 ot.created_at,
-                a.nombre_evento,
-                a.cliente_id,
+                cot.evento_nombre,
+                cot.evento_direccion,
+                cot.cliente_id,
                 c.nombre as cliente_nombre,
                 v.placa as vehiculo_placa,
                 v.marca as vehiculo_marca,
@@ -86,7 +86,8 @@ class OrdenTrabajoModel {
                 (SELECT COUNT(*) FROM orden_trabajo_equipo WHERE orden_id = ot.id) as total_equipo
             FROM ordenes_trabajo ot
             LEFT JOIN alquileres a ON ot.alquiler_id = a.id
-            LEFT JOIN clientes c ON a.cliente_id = c.id
+            LEFT JOIN cotizaciones cot ON a.cotizacion_id = cot.id
+            LEFT JOIN clientes c ON cot.cliente_id = c.id
             LEFT JOIN vehiculos v ON ot.vehiculo_id = v.id
             ${whereClause}
             ORDER BY ot.${ordenarCampo} ${ordenarDireccion}
@@ -117,10 +118,11 @@ class OrdenTrabajoModel {
         const [rows] = await pool.query(`
             SELECT
                 ot.*,
-                a.nombre_evento,
-                a.fecha_inicio as alquiler_fecha_inicio,
-                a.fecha_fin as alquiler_fecha_fin,
-                a.cliente_id,
+                cot.evento_nombre,
+                cot.evento_direccion,
+                a.fecha_salida as alquiler_fecha_inicio,
+                a.fecha_retorno_esperado as alquiler_fecha_fin,
+                cot.cliente_id,
                 c.nombre as cliente_nombre,
                 c.telefono as cliente_telefono,
                 c.email as cliente_email,
@@ -129,7 +131,8 @@ class OrdenTrabajoModel {
                 v.modelo as vehiculo_modelo
             FROM ordenes_trabajo ot
             LEFT JOIN alquileres a ON ot.alquiler_id = a.id
-            LEFT JOIN clientes c ON a.cliente_id = c.id
+            LEFT JOIN cotizaciones cot ON a.cotizacion_id = cot.id
+            LEFT JOIN clientes c ON cot.cliente_id = c.id
             LEFT JOIN vehiculos v ON ot.vehiculo_id = v.id
             WHERE ot.id = ?
         `, [id]);
@@ -215,7 +218,6 @@ class OrdenTrabajoModel {
                 ot.tipo,
                 ot.estado,
                 ot.fecha_programada,
-                ot.direccion,
                 ot.prioridad,
                 v.placa as vehiculo_placa,
                 (SELECT COUNT(*) FROM orden_trabajo_equipo WHERE orden_id = ot.id) as total_equipo
@@ -238,7 +240,6 @@ class OrdenTrabajoModel {
             alquiler_id,
             tipo,
             fecha_programada,
-            direccion,
             notas,
             prioridad = 'normal',
             vehiculo_id,
@@ -247,13 +248,12 @@ class OrdenTrabajoModel {
 
         const [result] = await pool.query(`
             INSERT INTO ordenes_trabajo
-            (alquiler_id, tipo, estado, fecha_programada, direccion, notas, prioridad, vehiculo_id, creado_por)
-            VALUES (?, ?, 'pendiente', ?, ?, ?, ?, ?, ?)
+            (alquiler_id, tipo, estado, fecha_programada, notas, prioridad, vehiculo_id, creado_por)
+            VALUES (?, ?, 'pendiente', ?, ?, ?, ?, ?)
         `, [
             alquiler_id,
             tipo,
             fecha_programada,
-            direccion || null,
             notas || null,
             prioridad,
             vehiculo_id || null,
@@ -279,7 +279,7 @@ class OrdenTrabajoModel {
         const valores = [];
 
         const camposPermitidos = [
-            'direccion', 'notas', 'prioridad', 'vehiculo_id'
+            'notas', 'prioridad', 'vehiculo_id'
         ];
 
         for (const campo of camposPermitidos) {
@@ -427,9 +427,9 @@ class OrdenTrabajoModel {
                 ot.tipo,
                 ot.estado,
                 ot.fecha_programada,
-                ot.direccion,
                 ot.prioridad,
-                a.nombre_evento,
+                cot.evento_nombre,
+                cot.evento_direccion as ubicacion,
                 c.nombre as cliente_nombre,
                 v.placa as vehiculo_placa,
                 (SELECT GROUP_CONCAT(CONCAT(e.nombre, ' ', e.apellido) SEPARATOR ', ')
@@ -438,7 +438,8 @@ class OrdenTrabajoModel {
                  WHERE ote.orden_id = ot.id) as equipo_nombres
             FROM ordenes_trabajo ot
             LEFT JOIN alquileres a ON ot.alquiler_id = a.id
-            LEFT JOIN clientes c ON a.cliente_id = c.id
+            LEFT JOIN cotizaciones cot ON a.cotizacion_id = cot.id
+            LEFT JOIN clientes c ON cot.cliente_id = c.id
             LEFT JOIN vehiculos v ON ot.vehiculo_id = v.id
             WHERE DATE(ot.fecha_programada) BETWEEN ? AND ?
               AND ot.estado NOT IN ('cancelado')
@@ -462,7 +463,6 @@ class OrdenTrabajoModel {
             alquiler_id: alquilerId,
             tipo: 'montaje',
             fecha_programada: montaje.fecha,
-            direccion: montaje.direccion,
             notas: montaje.notas,
             prioridad: montaje.prioridad || 'normal',
             creado_por
@@ -473,7 +473,6 @@ class OrdenTrabajoModel {
             alquiler_id: alquilerId,
             tipo: 'desmontaje',
             fecha_programada: desmontaje.fecha,
-            direccion: desmontaje.direccion || montaje.direccion,
             notas: desmontaje.notas,
             prioridad: desmontaje.prioridad || 'normal',
             creado_por

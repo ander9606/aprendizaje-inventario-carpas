@@ -210,10 +210,11 @@ class ValidadorFechasService {
                     ot.id,
                     ot.tipo,
                     ot.fecha_programada,
-                    a.nombre_evento
+                    cot.evento_nombre
                 FROM ordenes_trabajo ot
                 INNER JOIN orden_trabajo_equipo ote ON ot.id = ote.orden_id
                 LEFT JOIN alquileres a ON ot.alquiler_id = a.id
+                LEFT JOIN cotizaciones cot ON a.cotizacion_id = cot.id
                 WHERE ote.empleado_id = ?
                   AND DATE(ot.fecha_programada) = DATE(?)
                   AND ot.id != ?
@@ -229,7 +230,7 @@ class ValidadorFechasService {
                     ordenes: otrasOrdenes.map(o => ({
                         id: o.id,
                         tipo: o.tipo,
-                        evento: o.nombre_evento,
+                        evento: o.evento_nombre,
                         fecha: o.fecha_programada
                     }))
                 });
@@ -252,10 +253,11 @@ class ValidadorFechasService {
                 ot.id,
                 ot.tipo,
                 ot.fecha_programada,
-                a.nombre_evento,
+                cot.evento_nombre,
                 v.placa
             FROM ordenes_trabajo ot
             LEFT JOIN alquileres a ON ot.alquiler_id = a.id
+            LEFT JOIN cotizaciones cot ON a.cotizacion_id = cot.id
             LEFT JOIN vehiculos v ON ot.vehiculo_id = v.id
             WHERE ot.vehiculo_id = ?
               AND DATE(ot.fecha_programada) = DATE(?)
@@ -272,7 +274,7 @@ class ValidadorFechasService {
                 ordenes: otrasOrdenes.map(o => ({
                     id: o.id,
                     tipo: o.tipo,
-                    evento: o.nombre_evento,
+                    evento: o.evento_nombre,
                     fecha: o.fecha_programada
                 }))
             };
