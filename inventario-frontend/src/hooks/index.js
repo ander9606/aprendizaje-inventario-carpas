@@ -81,22 +81,22 @@ export { useGetCategorias, useCreateCategoria, useUpdateCategoria, useDeleteCate
 export { useGetElementos, useCreateElemento, useUpdateElemento, useDeleteElemento } from './Useelementos'
 
 // Series
-export { useGetSeriesByElemento, useCreateSerie, useUpdateSerie, useDeleteSerie } from './Useseries'
+export { useGetSeries, useCreateSerie, useUpdateSerie, useDeleteSerie } from './Useseries'
 
 // Lotes
-export { useGetLotes, useGetLotesByMaterial, useCreateLote, useUpdateLote, useDeleteLote } from './Uselotes'
+export { useGetLotes, useDeleteLote } from './Uselotes'
 
 // Materiales
-export { useGetMateriales, useCreateMaterial, useUpdateMaterial, useDeleteMaterial, useGetMaterialById } from './Usemateriales'
+export { useGetMateriales, useGetMaterial, useCreateMaterial, useUpdateMaterial, useDeleteMaterial } from './Usemateriales'
 
 // Unidades
-export { useGetUnidades, useGetUnidadesByMaterial, useCreateUnidad, useUpdateUnidad, useDeleteUnidad, useUpdateStockUnidad } from './Useunidades'
+export { useGetUnidades } from './Useunidades'
 
 // Ubicaciones
-export { useGetUbicaciones, useCreateUbicacion, useUpdateUbicacion, useDeleteUbicacion, useGetArbolUbicaciones } from './Useubicaciones'
+export { useGetUbicaciones, useCreateUbicacion, useUpdateUbicacion, useDeleteUbicacion } from './Useubicaciones'
 
 // Ciudades
-export { useGetCiudades, useGetDepartamentos, useGetCiudadesPorDepartamento, useCreateCiudad, useUpdateCiudad, useDeleteCiudad } from './UseCiudades'
+export { useGetCiudades, useCreateCiudad, useUpdateCiudad, useDeleteCiudad } from './UseCiudades'
 
 // Elementos Compuestos
 export { useGetElementosCompuestos, useGetElementoCompuesto, useCreateElementoCompuesto, useUpdateElementoCompuesto, useDeleteElementoCompuesto } from './UseElementosCompuestos'
@@ -105,13 +105,13 @@ export { useGetElementosCompuestos, useGetElementoCompuesto, useCreateElementoCo
 export { useGetCategoriasProductos, useCreateCategoriaProducto, useUpdateCategoriaProducto, useDeleteCategoriaProducto } from './UseCategoriasProductos'
 
 // Productos de Alquiler
-export { useGetProductosAlquiler, useGetProductoAlquiler, useCreateProductoAlquiler, useUpdateProductoAlquiler, useDeleteProductoAlquiler, useDuplicateProductoAlquiler } from './UseProductosAlquiler'
+export { useGetProductosAlquiler, useGetProductoAlquiler } from './UseProductosAlquiler'
 
 // Tarifas de Transporte
-export { useGetTarifasTransporte, useCreateTarifaTransporte, useUpdateTarifaTransporte, useDeleteTarifaTransporte, useCalcularTransporte } from './UseTarifasTransporte'
+export { useGetTarifasTransporte, useCreateTarifa, useUpdateTarifa, useDeleteTarifa } from './UseTarifasTransporte'
 
 // Disponibilidad
-export { useDisponibilidad, useCheckDisponibilidad, useFechasOcupadas } from './useDisponibilidad'
+export { useVerificarDisponibilidadProductos, useVerificarDisponibilidadCotizacion, useCalendarioOcupacion } from './useDisponibilidad'
 
 // Descuentos
 export {
