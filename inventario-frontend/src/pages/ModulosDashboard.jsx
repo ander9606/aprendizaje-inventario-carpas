@@ -11,7 +11,8 @@ import {
   ArrowRight,
   Boxes,
   ClipboardList,
-  Settings
+  Settings,
+  Truck
 } from 'lucide-react'
 
 /**
@@ -63,6 +64,19 @@ export default function ModulosDashboard() {
       stats: [
         { label: 'Cotizaciones', icon: ClipboardList },
         { label: 'Clientes', icon: Calendar }
+      ]
+    },
+    {
+      id: 'operaciones',
+      nombre: 'Operaciones',
+      descripcion: 'Gestiona montajes, desmontajes, órdenes de trabajo y equipos de operaciones.',
+      icon: Truck,
+      color: 'orange',
+      ruta: '/operaciones',
+      estado: 'activo',
+      stats: [
+        { label: 'Órdenes', icon: ClipboardList },
+        { label: 'Calendario', icon: Calendar }
       ]
     },
     {
@@ -119,6 +133,13 @@ export default function ModulosDashboard() {
         icon: 'bg-amber-100 text-amber-600',
         text: 'text-amber-600',
         hover: 'hover:shadow-lg hover:shadow-amber-100'
+      },
+      orange: {
+        bg: 'bg-orange-50',
+        border: 'border-orange-200 hover:border-orange-400',
+        icon: 'bg-orange-100 text-orange-600',
+        text: 'text-orange-600',
+        hover: 'hover:shadow-lg hover:shadow-orange-100'
       }
     }
 

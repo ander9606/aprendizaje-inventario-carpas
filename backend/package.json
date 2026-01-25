@@ -6,6 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "migrate": "node scripts/migrar-ciudad-id.js",
+    "setup-auth": "node scripts/crear-admin.js",
     "start": "node server.js",
     "dev": "node server.js"
   },
@@ -14,10 +15,12 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "bcryptjs": "^3.0.3",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
     "express-rate-limit": "^8.2.1",
+    "jsonwebtoken": "^9.0.3",
     "mysql2": "^3.15.2"
   }
 }
