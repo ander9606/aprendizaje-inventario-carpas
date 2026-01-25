@@ -83,39 +83,96 @@ Este documento describe las mejoras propuestas para el módulo de cotizaciones, 
 
 ---
 
-## 3. NUEVAS ENTIDADES DE BASE DE DATOS
+## 3. ESTRUCTURA DE BASE DE DATOS
 
-### 3.1 Tabla: `eventos`
+### 3.1 Tabla: `eventos` (YA EXISTE)
+
+**Estructura actual:**
 ```sql
--- Nueva tabla para separar eventos de cotizaciones
-CREATE TABLE IF NOT EXISTS eventos (
+-- Tabla existente - NO MODIFICAR
+CREATE TABLE eventos (
     id INT PRIMARY KEY AUTO_INCREMENT,
-    cliente_id INT NOT NULL,
-
-    -- Información del evento
+    cliente_id INT NOT NULL,                    -- FK a clientes
     nombre VARCHAR(200) NOT NULL,
-    fecha_evento DATE NOT NULL,
-    ciudad VARCHAR(100),
+    descripcion TEXT,
+    fecha_inicio DATE NOT NULL,                 -- Fecha inicio del evento
+    fecha_fin DATE NOT NULL,                    -- Fecha fin del evento
     direccion TEXT,
-    ubicacion_id INT,
-
-    -- Notas
+    ciudad_id INT,                              -- FK a ciudades
+    estado ENUM('activo','completado','cancelado') DEFAULT 'activo',
     notas TEXT,
-
-    -- Estado: activo, cancelado, completado
-    estado ENUM('activo', 'cancelado', 'completado') DEFAULT 'activo',
-
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-
-    FOREIGN KEY (cliente_id) REFERENCES clientes(id),
-    FOREIGN KEY (ubicacion_id) REFERENCES ubicaciones(id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
 ```
 
-### 3.2 Tabla: `descuentos` (Catálogo)
+**Datos de ejemplo existentes:**
+| id | cliente_id | nombre | fecha_inicio | fecha_fin | estado |
+|----|------------|--------|--------------|-----------|--------|
+| 1 | 2 | boda de prueba 2 | 2026-01-25 | 2026-01-27 | activo |
+
+### 3.2 Tabla: `cotizaciones` (YA EXISTE)
+
+**Estructura actual:**
 ```sql
--- Catálogo de descuentos predefinidos
+-- Tabla existente - REQUIERE MODIFICACIONES
+CREATE TABLE cotizaciones (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    cliente_id INT NOT NULL,                    -- FK a clientes
+    evento_id INT,                              -- FK a eventos (YA EXISTE)
+    fecha_evento DATE NOT NULL,
+    fecha_desmontaje DATE,
+    evento_nombre VARCHAR(200),
+    evento_direccion TEXT,
+    evento_ciudad VARCHAR(100),
+    fecha_montaje DATE,
+    subtotal DECIMAL(12,2) DEFAULT 0.00,
+    descuento DECIMAL(12,2) DEFAULT 0.00,       -- Descuento manual actual
+    total DECIMAL(12,2) DEFAULT 0.00,
+    estado ENUM('pendiente','aprobada','rechazada','vencida') DEFAULT 'pendiente',
+    vigencia_dias INT DEFAULT 15,
+    notas TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+```
+
+### 3.3 MIGRACIÓN: Agregar campos a `cotizaciones`
+```sql
+-- ============================================
+-- MIGRACIÓN: Agregar campos para días extra e IVA
+-- Archivo: migrations/add_cotizaciones_iva_campos.sql
+-- ============================================
+
+-- Campos para días adicionales
+ALTER TABLE cotizaciones
+    ADD COLUMN dias_montaje_extra INT DEFAULT 0 AFTER fecha_montaje,
+    ADD COLUMN dias_desmontaje_extra INT DEFAULT 0 AFTER fecha_desmontaje,
+    ADD COLUMN porcentaje_dias_extra DECIMAL(5,2) DEFAULT 15.00 AFTER dias_desmontaje_extra,
+    ADD COLUMN cobro_dias_extra DECIMAL(12,2) DEFAULT 0 AFTER porcentaje_dias_extra;
+
+-- Campos para desglose de totales
+ALTER TABLE cotizaciones
+    ADD COLUMN subtotal_productos DECIMAL(12,2) DEFAULT 0 AFTER subtotal,
+    ADD COLUMN subtotal_transporte DECIMAL(12,2) DEFAULT 0 AFTER subtotal_productos,
+    ADD COLUMN total_descuentos DECIMAL(12,2) DEFAULT 0 AFTER descuento;
+
+-- Campos para IVA
+ALTER TABLE cotizaciones
+    ADD COLUMN base_gravable DECIMAL(12,2) DEFAULT 0 AFTER total_descuentos,
+    ADD COLUMN porcentaje_iva DECIMAL(5,2) DEFAULT 19.00 AFTER base_gravable,
+    ADD COLUMN valor_iva DECIMAL(12,2) DEFAULT 0 AFTER porcentaje_iva;
+
+-- Nota: evento_id ya existe como FK
+```
+
+### 3.4 NUEVA TABLA: `descuentos` (Catálogo)
+```sql
+-- ============================================
+-- NUEVA TABLA: Catálogo de descuentos predefinidos
+-- Archivo: migrations/create_descuentos.sql
+-- ============================================
+
 CREATE TABLE IF NOT EXISTS descuentos (
     id INT PRIMARY KEY AUTO_INCREMENT,
     nombre VARCHAR(100) NOT NULL,
@@ -137,17 +194,22 @@ CREATE TABLE IF NOT EXISTS descuentos (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Ejemplos de descuentos:
--- INSERT INTO descuentos (nombre, tipo, valor) VALUES
--- ('Familia', 'porcentaje', 20),
--- ('Cliente Frecuente', 'porcentaje', 15),
--- ('Referido', 'porcentaje', 10),
--- ('Descuento Corporativo', 'porcentaje', 25);
+-- Datos iniciales de ejemplo
+INSERT INTO descuentos (nombre, tipo, valor, descripcion) VALUES
+('Familia', 'porcentaje', 20.00, 'Descuento para familiares'),
+('Cliente Frecuente', 'porcentaje', 15.00, 'Clientes con más de 3 eventos'),
+('Referido', 'porcentaje', 10.00, 'Descuento por referido'),
+('Descuento Corporativo', 'porcentaje', 25.00, 'Para empresas'),
+('Promoción Temporada', 'fijo', 100000.00, 'Descuento fijo de temporada');
 ```
 
-### 3.3 Tabla: `cotizacion_descuentos` (Pivote)
+### 3.5 NUEVA TABLA: `cotizacion_descuentos` (Pivote)
 ```sql
--- Descuentos aplicados a cada cotización
+-- ============================================
+-- NUEVA TABLA: Descuentos aplicados por cotización
+-- Archivo: migrations/create_cotizacion_descuentos.sql
+-- ============================================
+
 CREATE TABLE IF NOT EXISTS cotizacion_descuentos (
     id INT PRIMARY KEY AUTO_INCREMENT,
     cotizacion_id INT NOT NULL,
@@ -170,23 +232,14 @@ CREATE TABLE IF NOT EXISTS cotizacion_descuentos (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 ```
 
-### 3.4 Modificar tabla: `cotizaciones`
-```sql
--- Agregar nuevos campos a cotizaciones
-ALTER TABLE cotizaciones
-    ADD COLUMN evento_id INT AFTER cliente_id,
-    ADD COLUMN dias_montaje_extra INT DEFAULT 0 AFTER fecha_montaje,
-    ADD COLUMN dias_desmontaje_extra INT DEFAULT 0 AFTER fecha_desmontaje,
-    ADD COLUMN porcentaje_dias_extra DECIMAL(5,2) DEFAULT 15.00,
-    ADD COLUMN cobro_dias_extra DECIMAL(12,2) DEFAULT 0,
-    ADD COLUMN subtotal_productos DECIMAL(12,2) DEFAULT 0,
-    ADD COLUMN subtotal_transporte DECIMAL(12,2) DEFAULT 0,
-    ADD COLUMN total_descuentos DECIMAL(12,2) DEFAULT 0,
-    ADD COLUMN base_gravable DECIMAL(12,2) DEFAULT 0,
-    ADD COLUMN porcentaje_iva DECIMAL(5,2) DEFAULT 19.00,
-    ADD COLUMN valor_iva DECIMAL(12,2) DEFAULT 0,
-    ADD FOREIGN KEY (evento_id) REFERENCES eventos(id);
-```
+### 3.6 Resumen de Cambios en BD
+
+| Tabla | Acción | Descripción |
+|-------|--------|-------------|
+| `eventos` | Sin cambios | Ya existe con estructura correcta |
+| `cotizaciones` | ALTER TABLE | Agregar 9 campos (días extra, IVA, desgloses) |
+| `descuentos` | CREATE | Nueva tabla para catálogo de descuentos |
+| `cotizacion_descuentos` | CREATE | Nueva tabla pivote para descuentos aplicados |
 
 ---
 
