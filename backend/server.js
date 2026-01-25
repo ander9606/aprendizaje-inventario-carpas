@@ -30,6 +30,7 @@ const cotizacionesRoutes = require('./modules/alquileres/routes/cotizaciones');
 const alquileresRoutes = require('./modules/alquileres/routes/alquileres');
 const tarifasTransporteRoutes = require('./modules/alquileres/routes/tarifasTransporte');
 const disponibilidadRoutes = require('./modules/alquileres/routes/disponibilidad');
+const descuentosRoutes = require('./modules/alquileres/routes/descuentos');
 
 // Importar rutas - Configuración (Datos maestros)
 const ciudadesRoutes = require('./modules/configuracion/routes/ciudades');
@@ -110,7 +111,8 @@ app.get('/', (req, res) => {
                 '/api/cotizaciones',
                 '/api/alquileres',
                 '/api/tarifas-transporte',
-                '/api/disponibilidad'
+                '/api/disponibilidad',
+                '/api/descuentos'
             ],
             configuracion: [
                 '/api/ciudades',
@@ -153,6 +155,7 @@ app.use('/api/cotizaciones', cotizacionesRoutes);
 app.use('/api/alquileres', alquileresRoutes);
 app.use('/api/tarifas-transporte', tarifasTransporteRoutes);
 app.use('/api/disponibilidad', disponibilidadRoutes);
+app.use('/api/descuentos', descuentosRoutes);
 
 // Registrar rutas - Configuración (Datos maestros)
 app.use('/api/ciudades', ciudadesRoutes);
@@ -185,7 +188,7 @@ const startServer = async () => {
             console.log(`🌐 http://localhost:${PORT}`);
             console.log(`📦 Inventario: Categorías, Elementos, Series, Lotes, Ubicaciones`);
             console.log(`🏗️  Productos: Categorías Productos, Elementos Compuestos`);
-            console.log(`🏷️  Alquileres: Clientes, Cotizaciones, Alquileres`);
+            console.log(`🏷️  Alquileres: Clientes, Cotizaciones, Alquileres, Descuentos`);
             console.log(`⚙️  Configuración: Ciudades, Empleados, Vehículos`);
             console.log(`🔐 Auth: Login, Logout, Refresh, Me`);
             console.log(`🔧 Operaciones: Órdenes, Calendario, Alertas\n`);
