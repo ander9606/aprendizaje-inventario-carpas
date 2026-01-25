@@ -56,7 +56,7 @@ Este documento describe las mejoras propuestas para el módulo de cotizaciones, 
 │                                                                      │
 │  PASO 2: CREAR COTIZACIÓN (para el evento)                           │
 │  ├── Fechas de montaje y desmontaje                                  │
-│  │   └── Restricción: máximo 2 días antes/después                    │
+│  │   └── Restricción: máximo 2 días antes / 1 día después            │
 │  │   └── Días adicionales = cobro por porcentaje                     │
 │  │                                                                   │
 │  ├── Selección de productos (interfaz de tarjetas)                   │
@@ -246,7 +246,7 @@ CREATE TABLE IF NOT EXISTS cotizacion_descuentos (
 ## 4. LÓGICA DE DÍAS ADICIONALES
 
 ### Regla de Negocio
-- **Días incluidos gratis**: Hasta 2 días antes (montaje) y 2 días después (desmontaje)
+- **Días incluidos gratis**: Hasta 2 días antes (montaje) y 1 día después (desmontaje)
 - **Días adicionales**: Cada día extra tiene un cobro porcentual sobre el valor de productos
 
 ### Ejemplo de Cálculo
@@ -256,12 +256,13 @@ const calcularDiasAdicionales = (fechaEvento, fechaMontaje, fechaDesmontaje, sub
     const diasMontaje = diferenciaEnDias(fechaEvento, fechaMontaje);
     const diasDesmontaje = diferenciaEnDias(fechaDesmontaje, fechaEvento);
 
-    // Días incluidos gratis
-    const DIAS_GRATIS = 2;
+    // Días incluidos gratis (diferentes para montaje y desmontaje)
+    const DIAS_GRATIS_MONTAJE = 2;      // 2 días antes del evento
+    const DIAS_GRATIS_DESMONTAJE = 1;   // 1 día después del evento
 
     // Días adicionales
-    const diasMontajeExtra = Math.max(0, diasMontaje - DIAS_GRATIS);
-    const diasDesmontrajeExtra = Math.max(0, diasDesmontaje - DIAS_GRATIS);
+    const diasMontajeExtra = Math.max(0, diasMontaje - DIAS_GRATIS_MONTAJE);
+    const diasDesmontrajeExtra = Math.max(0, diasDesmontaje - DIAS_GRATIS_DESMONTAJE);
     const totalDiasExtra = diasMontajeExtra + diasDesmontrajeExtra;
 
     // Porcentaje por día adicional (configurable)
@@ -287,10 +288,10 @@ const calcularDiasAdicionales = (fechaEvento, fechaMontaje, fechaDesmontaje, sub
 | Fecha montaje | 10 de enero (5 días antes) |
 | Fecha desmontaje | 18 de enero (3 días después) |
 | Días montaje extra | 5 - 2 = **3 días** |
-| Días desmontaje extra | 3 - 2 = **1 día** |
-| Total días extra | **4 días** |
+| Días desmontaje extra | 3 - 1 = **2 días** |
+| Total días extra | **5 días** |
 | Subtotal productos | $1,000,000 |
-| Cobro 15% × 4 días | $600,000 |
+| Cobro 15% × 5 días | $750,000 |
 
 ---
 
@@ -734,13 +735,13 @@ const calcularTotales = (datos) => {
 │                                                                  │
 │  Fecha de desmontaje:                                            │
 │  [    17 de Febrero, 2025    ▼]                                 │
-│  ⚠️ 2 días después = 0 días adicionales                         │
+│  ⚠️ 2 días después = 1 día adicional                            │
 │                                                                  │
 │  ┌──────────────────────────────────────────────────────────┐   │
 │  │ 📊 Resumen días adicionales:                              │   │
 │  │    • Días extra montaje: 1                                │   │
-│  │    • Días extra desmontaje: 0                             │   │
-│  │    • Total días extra: 1                                  │   │
+│  │    • Días extra desmontaje: 1                             │   │
+│  │    • Total días extra: 2                                  │   │
 │  │    • Cobro adicional (15%): Pendiente calcular            │   │
 │  └──────────────────────────────────────────────────────────┘   │
 │                                                                  │
