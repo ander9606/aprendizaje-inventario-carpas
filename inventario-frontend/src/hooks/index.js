@@ -124,3 +124,12 @@ export {
     useAplicarDescuento,
     useEliminarDescuentoCotizacion
 } from './descuentos'
+
+// Configuración de Alquileres
+export {
+    useGetConfiguraciones,
+    useGetConfiguracionCompleta,
+    useGetConfiguracionPorCategoria,
+    useUpdateConfiguracion,
+    useUpdateConfiguraciones
+} from './useConfiguracion'

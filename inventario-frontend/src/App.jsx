@@ -28,6 +28,8 @@ import ElementosCompuestosPage from './pages/ElementosCompuestosPage'
 import ClientesPage from './pages/ClientesPage'
 import CotizacionesPage from './pages/CotizacionesPage'
 import CalendarioPage from './pages/CalendarioPage'
+import DescuentosPage from './pages/DescuentosPage'
+import ConfiguracionAlquileresPage from './pages/ConfiguracionAlquileresPage'
 
 // Importar páginas - Configuración
 import ConfiguracionPage from './pages/ConfiguracionPage'
@@ -138,6 +140,11 @@ function App() {
                 <Route path="/alquileres/cotizaciones" element={<CotizacionesPage />} />
                 <Route path="/alquileres/clientes" element={<ClientesPage />} />
                 <Route path="/alquileres/calendario" element={<CalendarioPage />} />
+                <Route path="/alquileres/descuentos" element={<DescuentosPage />} />
+                <Route path="/alquileres/configuracion" element={<ConfiguracionAlquileresPage />} />
+                <Route path="/alquileres/configuracion/impuestos" element={<ConfiguracionAlquileresPage />} />
+                <Route path="/alquileres/configuracion/dias-extra" element={<ConfiguracionAlquileresPage />} />
+                <Route path="/alquileres/configuracion/empresa" element={<ConfiguracionAlquileresPage />} />
 
                 {/* ============================================
                     CONFIGURACIÓN

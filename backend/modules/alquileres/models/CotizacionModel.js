@@ -5,15 +5,51 @@
 
 const { pool } = require('../../../config/database');
 
+// Importación diferida para evitar dependencia circular
+let ConfiguracionModel = null;
+const getConfiguracionModel = () => {
+  if (!ConfiguracionModel) {
+    ConfiguracionModel = require('./ConfiguracionModel');
+  }
+  return ConfiguracionModel;
+};
+
 class CotizacionModel {
 
   // ============================================
-  // CONSTANTES DE NEGOCIO
+  // CONSTANTES DE NEGOCIO (valores por defecto)
   // ============================================
   static DIAS_GRATIS_MONTAJE = 2;
   static DIAS_GRATIS_DESMONTAJE = 1;
   static PORCENTAJE_DIAS_EXTRA_DEFAULT = 15.00;
   static PORCENTAJE_IVA_DEFAULT = 19.00;
+
+  // ============================================
+  // OBTENER CONFIGURACIÓN DINÁMICA
+  // ============================================
+  static async obtenerConfiguracion() {
+    try {
+      const Config = getConfiguracionModel();
+      return await Config.obtenerValores([
+        'dias_gratis_montaje',
+        'dias_gratis_desmontaje',
+        'porcentaje_dias_extra',
+        'porcentaje_iva',
+        'aplicar_iva',
+        'vigencia_cotizacion_dias'
+      ]);
+    } catch (error) {
+      // Si falla, usar valores por defecto
+      return {
+        dias_gratis_montaje: this.DIAS_GRATIS_MONTAJE,
+        dias_gratis_desmontaje: this.DIAS_GRATIS_DESMONTAJE,
+        porcentaje_dias_extra: this.PORCENTAJE_DIAS_EXTRA_DEFAULT,
+        porcentaje_iva: this.PORCENTAJE_IVA_DEFAULT,
+        aplicar_iva: true,
+        vigencia_cotizacion_dias: 15
+      };
+    }
+  }
 
   // ============================================
   // OBTENER TODAS
@@ -195,22 +231,30 @@ class CotizacionModel {
   }
 
   // ============================================
-  // CALCULAR DÍAS EXTRA
+  // CALCULAR DÍAS EXTRA (con configuración dinámica)
   // ============================================
-  static calcularDiasExtra(fechaMontaje, fechaEvento, fechaDesmontaje) {
+  static async calcularDiasExtra(fechaMontaje, fechaEvento, fechaDesmontaje, config = null) {
+    // Obtener configuración si no se proporciona
+    if (!config) {
+      config = await this.obtenerConfiguracion();
+    }
+
     const montaje = new Date(fechaMontaje);
     const evento = new Date(fechaEvento);
     const desmontaje = new Date(fechaDesmontaje);
 
+    const diasGratisMontaje = config.dias_gratis_montaje || this.DIAS_GRATIS_MONTAJE;
+    const diasGratisDesmontaje = config.dias_gratis_desmontaje || this.DIAS_GRATIS_DESMONTAJE;
+
     // Días entre montaje y evento
     const diasMontaje = Math.floor((evento - montaje) / (1000 * 60 * 60 * 24));
-    const diasMontajeExtra = Math.max(0, diasMontaje - this.DIAS_GRATIS_MONTAJE);
+    const diasMontajeExtra = Math.max(0, diasMontaje - diasGratisMontaje);
 
     // Días entre evento y desmontaje
     const diasDesmontaje = Math.floor((desmontaje - evento) / (1000 * 60 * 60 * 24));
-    const diasDesmontajeExtra = Math.max(0, diasDesmontaje - this.DIAS_GRATIS_DESMONTAJE);
+    const diasDesmontajeExtra = Math.max(0, diasDesmontaje - diasGratisDesmontaje);
 
-    return { diasMontajeExtra, diasDesmontajeExtra };
+    return { diasMontajeExtra, diasDesmontajeExtra, config };
   }
 
   // ============================================
@@ -222,16 +266,25 @@ class CotizacionModel {
     dias_montaje_extra, dias_desmontaje_extra, porcentaje_dias_extra,
     cobro_dias_extra, porcentaje_iva, valor_iva, evento_id
   }) {
+    // Obtener configuración dinámica
+    const config = await this.obtenerConfiguracion();
+
     // Calcular días extra si no se proporcionan
     if (dias_montaje_extra === undefined || dias_desmontaje_extra === undefined) {
-      const calculados = this.calcularDiasExtra(
+      const calculados = await this.calcularDiasExtra(
         fecha_montaje || fecha_evento,
         fecha_evento,
-        fecha_desmontaje || fecha_evento
+        fecha_desmontaje || fecha_evento,
+        config
       );
       dias_montaje_extra = dias_montaje_extra ?? calculados.diasMontajeExtra;
       dias_desmontaje_extra = dias_desmontaje_extra ?? calculados.diasDesmontajeExtra;
     }
+
+    // Usar valores de configuración si no se especifican
+    porcentaje_dias_extra = porcentaje_dias_extra ?? config.porcentaje_dias_extra;
+    porcentaje_iva = porcentaje_iva ?? config.porcentaje_iva;
+    vigencia_dias = vigencia_dias ?? config.vigencia_cotizacion_dias;
 
     const query = `
       INSERT INTO cotizaciones
@@ -276,7 +329,7 @@ class CotizacionModel {
   }) {
     // Calcular días extra si las fechas cambian
     if (fecha_evento && (dias_montaje_extra === undefined || dias_desmontaje_extra === undefined)) {
-      const calculados = this.calcularDiasExtra(
+      const calculados = await this.calcularDiasExtra(
         fecha_montaje || fecha_evento,
         fecha_evento,
         fecha_desmontaje || fecha_evento

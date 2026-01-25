@@ -31,6 +31,7 @@ const alquileresRoutes = require('./modules/alquileres/routes/alquileres');
 const tarifasTransporteRoutes = require('./modules/alquileres/routes/tarifasTransporte');
 const disponibilidadRoutes = require('./modules/alquileres/routes/disponibilidad');
 const descuentosRoutes = require('./modules/alquileres/routes/descuentos');
+const configuracionAlquileresRoutes = require('./modules/alquileres/routes/configuracion');
 
 // Importar rutas - Configuración (Datos maestros)
 const ciudadesRoutes = require('./modules/configuracion/routes/ciudades');
@@ -112,7 +113,8 @@ app.get('/', (req, res) => {
                 '/api/alquileres',
                 '/api/tarifas-transporte',
                 '/api/disponibilidad',
-                '/api/descuentos'
+                '/api/descuentos',
+                '/api/configuracion-alquileres'
             ],
             configuracion: [
                 '/api/ciudades',
@@ -156,6 +158,7 @@ app.use('/api/alquileres', alquileresRoutes);
 app.use('/api/tarifas-transporte', tarifasTransporteRoutes);
 app.use('/api/disponibilidad', disponibilidadRoutes);
 app.use('/api/descuentos', descuentosRoutes);
+app.use('/api/configuracion-alquileres', configuracionAlquileresRoutes);
 
 // Registrar rutas - Configuración (Datos maestros)
 app.use('/api/ciudades', ciudadesRoutes);
