@@ -133,3 +133,16 @@ export {
     useUpdateConfiguracion,
     useUpdateConfiguraciones
 } from './useConfiguracion'
+
+// Eventos
+export {
+    useGetEventos,
+    useGetEvento,
+    useGetEventosPorCliente,
+    useGetEventosPorEstado,
+    useGetCotizacionesEvento,
+    useCreateEvento,
+    useUpdateEvento,
+    useCambiarEstadoEvento,
+    useDeleteEvento
+} from './useEventos'
