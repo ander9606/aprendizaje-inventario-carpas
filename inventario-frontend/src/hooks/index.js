@@ -112,3 +112,15 @@ export { useGetTarifasTransporte, useCreateTarifaTransporte, useUpdateTarifaTran
 
 // Disponibilidad
 export { useDisponibilidad, useCheckDisponibilidad, useFechasOcupadas } from './useDisponibilidad'
+
+// Descuentos
+export {
+    useGetDescuentos,
+    useGetDescuento,
+    useGetDescuentosCotizacion,
+    useCreateDescuento,
+    useUpdateDescuento,
+    useDeleteDescuento,
+    useAplicarDescuento,
+    useEliminarDescuentoCotizacion
+} from './descuentos'
