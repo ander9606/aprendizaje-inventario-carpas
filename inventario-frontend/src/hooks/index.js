@@ -78,7 +78,7 @@ export {
 export { useGetCategorias, useCreateCategoria, useUpdateCategoria, useDeleteCategoria } from './Usecategorias'
 
 // Elementos
-export { useGetElementos, useCreateElemento, useUpdateElemento, useDeleteElemento, useBulkCreateElementos } from './Useelementos'
+export { useGetElementos, useCreateElemento, useUpdateElemento, useDeleteElemento } from './Useelementos'
 
 // Series
 export { useGetSeriesByElemento, useCreateSerie, useUpdateSerie, useDeleteSerie } from './Useseries'
