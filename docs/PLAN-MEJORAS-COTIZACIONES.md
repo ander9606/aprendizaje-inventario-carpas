@@ -258,6 +258,7 @@ const calcularDiasAdicionales = (fechaEvento, fechaMontaje, fechaDesmontaje, sub
 
 ### Diseño de Tarjeta de Producto
 
+**Estado: DISPONIBLE (todos los componentes OK)**
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │  ┌─────────────┐  │ CARPA 10x10 PREMIUM                     │
@@ -268,13 +269,87 @@ const calcularDiasAdicionales = (fechaEvento, fechaMontaje, fechaDesmontaje, sub
 │  └─────────────┘  │ Depósito: $500,000                       │
 │                   │                                          │
 │  ┌───────────────────────────────────────────────────────┐  │
-│  │ Disponibilidad: ████████░░ 8/10 disponibles           │  │
+│  │ ✅ Disponible para las fechas seleccionadas           │  │
+│  │    Máximo disponible: 5 unidades                      │  │
 │  └───────────────────────────────────────────────────────┘  │
 │                                                              │
 │  ┌─────────┐  ┌──────────────────┐  ┌──────────────────┐    │
-│  │  [-]  1  [+]  │ │ ⚙️ Configurar     │  │ ➕ Agregar       │    │
+│  │ [-] 1 [+]  │  │ 📋 Ver componentes │  │ ➕ Agregar       │    │
 │  └─────────┘  └──────────────────┘  └──────────────────┘    │
 └─────────────────────────────────────────────────────────────┘
+```
+
+**Estado: PARCIALMENTE DISPONIBLE (faltan algunos componentes)**
+```
+┌─────────────────────────────────────────────────────────────┐
+│  ┌─────────────┐  │ CARPA 10x10 PREMIUM                     │
+│  │             │  │ ────────────────────                    │
+│  │   [IMAGEN]  │  │ Categoría: Carpas Grandes               │
+│  │             │  │                                          │
+│  │             │  │ Precio: $850,000 / evento                │
+│  └─────────────┘  │ Depósito: $500,000                       │
+│                   │                                          │
+│  ┌───────────────────────────────────────────────────────┐  │
+│  │ ⚠️ Disponibilidad limitada (3 de 5 solicitadas)       │  │
+│  │    Componentes faltantes:                             │  │
+│  │    • Tubo central 6m: faltan 4 unidades               │  │
+│  │    • Lona lateral: faltan 2 unidades                  │  │
+│  └───────────────────────────────────────────────────────┘  │
+│                                                              │
+│  ┌─────────┐  ┌──────────────────┐  ┌──────────────────┐    │
+│  │ [-] 3 [+]  │  │ 📋 Ver componentes │  │ ➕ Agregar (3)    │    │
+│  └─────────┘  └──────────────────┘  └──────────────────┘    │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Estado: NO DISPONIBLE (componentes críticos faltantes)**
+```
+┌─────────────────────────────────────────────────────────────┐
+│  ┌─────────────┐  │ CARPA 10x10 PREMIUM                     │
+│  │             │  │ ────────────────────                    │
+│  │   [IMAGEN]  │  │ Categoría: Carpas Grandes               │
+│  │             │  │                                          │
+│  │             │  │ Precio: $850,000 / evento                │
+│  └─────────────┘  │ Depósito: $500,000                       │
+│                   │                                          │
+│  ┌───────────────────────────────────────────────────────┐  │
+│  │ ❌ No disponible para fechas: 12-17 Feb 2025          │  │
+│  │    Componentes en uso:                                │  │
+│  │    • Lona principal 10x10: 0 disponibles (5 en uso)   │  │
+│  │    • Tubo central 6m: 2 disponibles (necesita 8)      │  │
+│  │    [Ver eventos que usan estos componentes]           │  │
+│  └───────────────────────────────────────────────────────┘  │
+│                                                              │
+│  ┌─────────┐  ┌──────────────────┐  ┌──────────────────┐    │
+│  │ [-] 0 [+]  │  │ 📋 Ver componentes │  │    Agregar       │    │
+│  └─────────┘  └──────────────────┘  └────(deshabilitado)───┘    │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Modal: Ver Componentes del Producto
+
+Al hacer clic en "Ver componentes" se muestra el desglose:
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  COMPONENTES: CARPA 10x10 PREMIUM                    [X]        │
+├─────────────────────────────────────────────────────────────────┤
+│  Fechas: 12 Feb - 17 Feb 2025 | Cantidad solicitada: 3          │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  Componente           │ Necesario │ Disponible │ Estado         │
+│  ─────────────────────┼───────────┼────────────┼───────────     │
+│  Lona principal 10x10 │    3      │     5      │ ✅ OK          │
+│  Tubo esquina 3m      │   12      │    20      │ ✅ OK          │
+│  Tubo central 6m      │   24      │    20      │ ⚠️ Faltan 4    │
+│  Lona lateral         │    6      │     4      │ ⚠️ Faltan 2    │
+│  Estacas              │   24      │   100      │ ✅ OK          │
+│  Cuerdas tensoras     │   12      │    50      │ ✅ OK          │
+│                                                                  │
+│  ────────────────────────────────────────────────────────────   │
+│  Resumen: 4 de 6 componentes disponibles                        │
+│  Máximo de carpas posibles: 3 unidades (limitado por tubos)     │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
 ### Funcionalidades del Selector de Tarjetas
@@ -282,24 +357,70 @@ const calcularDiasAdicionales = (fechaEvento, fechaMontaje, fechaDesmontaje, sub
 1. **Filtros superiores**
    - Por categoría (Carpas, Mobiliario, Accesorios)
    - Por rango de precio
-   - Solo disponibles
+   - Solo disponibles (todos los componentes OK)
    - Búsqueda por nombre
 
 2. **Ordenamiento**
    - Por precio (menor a mayor / mayor a menor)
    - Por popularidad
-   - Por disponibilidad
+   - Por disponibilidad de componentes
    - Alfabético
 
-3. **Indicadores visuales**
-   - Verde: Disponible
-   - Amarillo: Pocas unidades
-   - Rojo: No disponible para las fechas
+3. **Indicadores visuales (basados en componentes)**
+   - ✅ Verde: Todos los componentes disponibles para la cantidad solicitada
+   - ⚠️ Amarillo: Disponible parcialmente (algunos componentes limitados)
+   - ❌ Rojo: No disponible (componentes críticos en uso para las fechas)
 
 4. **Acciones rápidas**
-   - Ajustar cantidad con +/-
-   - Ver detalles ampliados
+   - Ajustar cantidad con +/- (limitado por componentes disponibles)
+   - Ver desglose de componentes y su disponibilidad
    - Agregar al carrito de cotización
+
+### Cálculo de Disponibilidad
+
+```javascript
+const calcularDisponibilidadProducto = (productoCompuesto, cantidad, fechaInicio, fechaFin) => {
+    const componentes = productoCompuesto.componentes;
+    const resultado = {
+        disponible: true,
+        maxDisponible: Infinity,
+        componentesFaltantes: [],
+        componentesOK: []
+    };
+
+    for (const comp of componentes) {
+        // Cantidad necesaria = cantidad por unidad × unidades solicitadas
+        const necesario = comp.cantidad_por_unidad * cantidad;
+
+        // Disponibilidad del componente para las fechas
+        const disponible = getDisponibilidadElemento(comp.elemento_id, fechaInicio, fechaFin);
+
+        if (disponible >= necesario) {
+            resultado.componentesOK.push({
+                nombre: comp.nombre,
+                necesario,
+                disponible,
+                estado: 'ok'
+            });
+        } else {
+            resultado.disponible = false;
+            resultado.componentesFaltantes.push({
+                nombre: comp.nombre,
+                necesario,
+                disponible,
+                faltante: necesario - disponible,
+                estado: disponible === 0 ? 'sin_stock' : 'parcial'
+            });
+        }
+
+        // Calcular máximo posible basado en este componente
+        const maxPorComponente = Math.floor(disponible / comp.cantidad_por_unidad);
+        resultado.maxDisponible = Math.min(resultado.maxDisponible, maxPorComponente);
+    }
+
+    return resultado;
+};
+```
 
 ---
 
