@@ -119,9 +119,10 @@ export default function CotizacionesPage() {
   // FILTRAR COTIZACIONES
   // ============================================
 
+  const listaCotizaciones = cotizaciones || []
   const cotizacionesFiltradas = filtroEstado === 'todos'
-    ? cotizaciones
-    : cotizaciones.filter(c => c.estado === filtroEstado)
+    ? listaCotizaciones
+    : listaCotizaciones.filter(c => c.estado === filtroEstado)
 
   // ============================================
   // RENDER
