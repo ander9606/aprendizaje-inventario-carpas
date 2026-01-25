@@ -32,7 +32,7 @@ import Spinner from '../components/common/Spinner'
  */
 export default function CalendarioOperaciones() {
     const navigate = useNavigate()
-    const { hasRole } = useAuth()
+    useAuth()
 
     // ============================================
     // ESTADO: Fecha actual y seleccionada
@@ -386,10 +386,10 @@ export default function CalendarioOperaciones() {
                                                                 minute: '2-digit'
                                                             })}
                                                         </div>
-                                                        {orden.ubicacion && (
+                                                        {(orden.ciudad_evento || orden.direccion_evento) && (
                                                             <div className="flex items-center gap-2 text-xs text-slate-500 mt-1">
                                                                 <MapPin className="w-3 h-3" />
-                                                                <span className="truncate">{orden.ubicacion}</span>
+                                                                <span className="truncate">{orden.ciudad_evento || 'Sin ciudad'}{orden.direccion_evento ? ` - ${orden.direccion_evento}` : ''}</span>
                                                             </div>
                                                         )}
                                                     </div>

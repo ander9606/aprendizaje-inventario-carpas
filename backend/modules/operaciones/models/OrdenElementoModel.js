@@ -21,9 +21,8 @@ class OrdenElementoModel {
                 ote.verificado_retorno,
                 ote.notas,
                 el.nombre as elemento_nombre,
-                el.codigo as elemento_codigo,
                 s.numero_serie,
-                l.codigo_lote
+                l.lote_numero
             FROM orden_trabajo_elementos ote
             INNER JOIN elementos el ON ote.elemento_id = el.id
             LEFT JOIN series s ON ote.serie_id = s.id
@@ -67,9 +66,8 @@ class OrdenElementoModel {
             SELECT
                 ote.*,
                 el.nombre as elemento_nombre,
-                el.codigo as elemento_codigo,
                 s.numero_serie,
-                l.codigo_lote
+                l.lote_numero
             FROM orden_trabajo_elementos ote
             INNER JOIN elementos el ON ote.elemento_id = el.id
             LEFT JOIN series s ON ote.serie_id = s.id
@@ -142,9 +140,8 @@ class OrdenElementoModel {
             SELECT
                 ote.*,
                 el.nombre as elemento_nombre,
-                el.codigo as elemento_codigo,
                 s.numero_serie,
-                l.codigo_lote
+                l.lote_numero
             FROM orden_trabajo_elementos ote
             INNER JOIN elementos el ON ote.elemento_id = el.id
             LEFT JOIN series s ON ote.serie_id = s.id

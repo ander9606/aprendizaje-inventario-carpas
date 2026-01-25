@@ -1,3 +1,4 @@
+const { pool } = require('../../../config/database');
 const OrdenTrabajoModel = require('../models/OrdenTrabajoModel');
 const OrdenElementoModel = require('../models/OrdenElementoModel');
 const AlertaModel = require('../models/AlertaModel');
@@ -54,6 +55,28 @@ const getOrdenes = async (req, res, next) => {
 const getOrdenById = async (req, res, next) => {
     try {
         const orden = await OrdenTrabajoModel.obtenerPorId(parseInt(req.params.id));
+
+        if (!orden) {
+            throw new AppError('Orden de trabajo no encontrada', 404);
+        }
+
+        res.json({
+            success: true,
+            data: orden
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * GET /api/operaciones/ordenes/:id/completa
+ * Obtener orden completa con toda la información de cotización
+ * Incluye: productos, transporte, elementos del alquiler
+ */
+const getOrdenCompleta = async (req, res, next) => {
+    try {
+        const orden = await OrdenTrabajoModel.obtenerOrdenCompleta(parseInt(req.params.id));
 
         if (!orden) {
             throw new AppError('Orden de trabajo no encontrada', 404);
@@ -607,11 +630,98 @@ const validarCambioFecha = async (req, res, next) => {
     }
 };
 
+/**
+ * POST /api/operaciones/ordenes
+ * Crear orden manual (mantenimiento, traslado, revisión, etc.)
+ */
+const crearOrdenManual = async (req, res, next) => {
+    try {
+        const {
+            tipo,
+            fecha_programada,
+            direccion_destino,
+            ciudad_destino,
+            notas,
+            prioridad = 'normal',
+            elementos = []
+        } = req.body;
+
+        // Validar campos requeridos
+        if (!tipo) {
+            throw new AppError('El tipo de orden es requerido', 400);
+        }
+
+        if (!fecha_programada) {
+            throw new AppError('La fecha programada es requerida', 400);
+        }
+
+        // Validar tipo de orden
+        const tiposValidos = ['mantenimiento', 'traslado', 'revision', 'inventario', 'otro'];
+        if (!tiposValidos.includes(tipo)) {
+            throw new AppError(`Tipo inválido. Valores permitidos: ${tiposValidos.join(', ')}`, 400);
+        }
+
+        // Crear la orden
+        const orden = await OrdenTrabajoModel.crear({
+            alquiler_id: null, // Orden manual sin alquiler
+            tipo,
+            fecha_programada,
+            direccion_evento: direccion_destino || null,
+            ciudad_evento: ciudad_destino || null,
+            notas,
+            prioridad,
+            creado_por: req.usuario.id
+        });
+
+        // Agregar elementos si se proporcionaron
+        if (elementos.length > 0) {
+            for (const elem of elementos) {
+                await pool.query(`
+                    INSERT INTO orden_trabajo_elementos
+                    (orden_id, elemento_id, serie_id, lote_id, cantidad, estado)
+                    VALUES (?, ?, ?, ?, ?, 'pendiente')
+                `, [
+                    orden.id,
+                    elem.elemento_id,
+                    elem.serie_id || null,
+                    elem.lote_id || null,
+                    elem.cantidad || 1
+                ]);
+            }
+        }
+
+        await AuthModel.registrarAuditoria({
+            empleado_id: req.usuario.id,
+            accion: 'CREAR_ORDEN_MANUAL',
+            tabla_afectada: 'ordenes_trabajo',
+            registro_id: orden.id,
+            datos_nuevos: { tipo, fecha_programada, elementos: elementos.length },
+            ip_address: req.ip,
+            user_agent: req.get('User-Agent')
+        });
+
+        logger.info('operaciones', `Orden manual ${orden.id} creada por ${req.usuario.email}`);
+
+        // Obtener la orden completa con elementos
+        const ordenCompleta = await OrdenTrabajoModel.obtenerPorId(orden.id);
+
+        res.status(201).json({
+            success: true,
+            message: 'Orden creada correctamente',
+            data: ordenCompleta
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 module.exports = {
     // Órdenes
     getOrdenes,
     getOrdenById,
+    getOrdenCompleta,
     getOrdenesPorAlquiler,
+    crearOrdenManual,
     updateOrden,
     cambiarFechaOrden,
     cambiarEstadoOrden,

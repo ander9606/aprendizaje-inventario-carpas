@@ -9,6 +9,7 @@ const { verificarToken, verificarRol } = require('../../auth/middleware/authMidd
  * ÓRDENES DE TRABAJO:
  * GET    /api/operaciones/ordenes                           - Listar órdenes
  * GET    /api/operaciones/ordenes/:id                       - Obtener orden por ID
+ * GET    /api/operaciones/ordenes/:id/completa              - Orden con info completa de cotización
  * GET    /api/operaciones/alquiler/:id/ordenes              - Órdenes de un alquiler
  * PUT    /api/operaciones/ordenes/:id                       - Actualizar orden
  * PUT    /api/operaciones/ordenes/:id/fecha                 - Cambiar fecha (con validación)
@@ -60,10 +61,23 @@ router.get(
     ordenTrabajoController.getOrdenes
 );
 
+// Crear orden manual (mantenimiento, traslado, etc.)
+router.post(
+    '/ordenes',
+    verificarRol(['admin', 'gerente', 'operaciones']),
+    ordenTrabajoController.crearOrdenManual
+);
+
 router.get(
     '/ordenes/:id',
     verificarRol(['admin', 'gerente', 'operaciones']),
     ordenTrabajoController.getOrdenById
+);
+
+router.get(
+    '/ordenes/:id/completa',
+    verificarRol(['admin', 'gerente', 'operaciones']),
+    ordenTrabajoController.getOrdenCompleta
 );
 
 router.get(
