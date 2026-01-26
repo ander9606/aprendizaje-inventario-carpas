@@ -55,15 +55,25 @@ const EventoCard = ({ evento, onVer, onEditar, onEliminar, onCambiarEstado }) =>
 
     const formatFecha = (fecha) => {
         if (!fecha) return '-'
-        // Manejar tanto formato ISO completo como solo fecha
-        const fechaStr = typeof fecha === 'string' ? fecha.split('T')[0] : fecha
-        const fechaObj = new Date(fechaStr + 'T12:00:00')
-        if (isNaN(fechaObj.getTime())) return '-'
-        return fechaObj.toLocaleDateString('es-CO', {
-            day: 'numeric',
-            month: 'short',
-            year: 'numeric'
-        })
+        try {
+            // Si es un objeto Date de MySQL, convertir a string
+            let fechaStr = fecha
+            if (fecha instanceof Date) {
+                fechaStr = fecha.toISOString().split('T')[0]
+            } else if (typeof fecha === 'string') {
+                // Manejar formato ISO completo o solo fecha
+                fechaStr = fecha.split('T')[0]
+            }
+            const fechaObj = new Date(fechaStr + 'T12:00:00')
+            if (isNaN(fechaObj.getTime())) return '-'
+            return fechaObj.toLocaleDateString('es-CO', {
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric'
+            })
+        } catch {
+            return '-'
+        }
     }
 
     const formatMoneda = (valor) => {
