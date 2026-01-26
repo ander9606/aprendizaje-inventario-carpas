@@ -239,7 +239,7 @@ export default function CotizacionesPage() {
   // FILTRAR EVENTOS
   // ============================================
 
-  const eventosFiltrados = eventos.filter(e => {
+  const eventosFiltrados = (eventos || []).filter(e => {
     // Filtro por búsqueda
     if (busqueda) {
       const termino = busqueda.toLowerCase()
@@ -332,54 +332,6 @@ export default function CotizacionesPage() {
   const handleIrCalendario = () => {
     navigate('/alquileres/calendario')
   }
-
-  // Abrir modal de aprobación
-  const handleAprobar = (cotizacion) => {
-    setSelectedCotizacionId(cotizacion.id)
-    setModalState({ ...modalState, detalle: false, aprobar: true })
-  }
-
-  // Confirmar aprobación desde el modal
-  const handleConfirmarAprobacion = async ({ id, opciones }) => {
-    try {
-      await aprobarCotizacion({ id, opciones })
-      handleCloseModal()
-      // Navegar a alquileres después de aprobar
-      navigate('/alquileres')
-    } catch (error) {
-      console.error('Error al aprobar:', error)
-      alert(error.response?.data?.mensaje || error.response?.data?.message || 'Error al aprobar la cotización')
-    }
-  }
-
-  const handleEliminar = async (cotizacion) => {
-    try {
-      await eliminarCotizacion(cotizacion.id)
-      handleCloseModal()
-    } catch (error) {
-      console.error('Error al eliminar:', error)
-      alert(error.response?.data?.message || 'Error al eliminar la cotización')
-    }
-  }
-
-  const handleRechazar = async (cotizacion) => {
-    try {
-      await cambiarEstado({ id: cotizacion.id, estado: 'rechazada' })
-      handleCloseModal()
-    } catch (error) {
-      console.error('Error al rechazar:', error)
-      alert(error.response?.data?.message || 'Error al rechazar la cotización')
-    }
-  }
-
-  // ============================================
-  // FILTRAR COTIZACIONES
-  // ============================================
-
-  const listaCotizaciones = cotizaciones || []
-  const cotizacionesFiltradas = filtroEstado === 'todos'
-    ? listaCotizaciones
-    : listaCotizaciones.filter(c => c.estado === filtroEstado)
 
   // ============================================
   // RENDER
