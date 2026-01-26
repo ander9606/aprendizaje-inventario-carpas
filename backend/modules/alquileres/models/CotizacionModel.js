@@ -123,7 +123,9 @@ class CotizacionModel {
         cl.email AS cliente_email,
         cl.direccion AS cliente_direccion,
         cl.tipo_documento AS cliente_tipo_documento,
-        cl.numero_documento AS cliente_numero_documento
+        cl.numero_documento AS cliente_numero_documento,
+        (SELECT a.id FROM alquileres a WHERE a.cotizacion_id = cot.id LIMIT 1) AS alquiler_id,
+        (SELECT a.estado FROM alquileres a WHERE a.cotizacion_id = cot.id LIMIT 1) AS alquiler_estado
       FROM cotizaciones cot
       INNER JOIN clientes cl ON cot.cliente_id = cl.id
       WHERE cot.id = ?
