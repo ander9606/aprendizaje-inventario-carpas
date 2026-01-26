@@ -11,6 +11,11 @@
 -- 12_tarifas_transporte.sql         → Catálogo tipo_camion + ciudad + precio
 -- 13_cotizacion_transportes.sql     → Camiones por cotización
 -- 14_indices_alquileres.sql         → Índices de rendimiento
+-- ...
+-- 20_fechas_montaje_desmontaje.sql  → Fechas de montaje/desmontaje
+-- 21_agregar_campos_cotizaciones_iva.sql → Campos para días extra e IVA
+-- 22_crear_descuentos.sql           → Catálogo de descuentos predefinidos
+-- 23_crear_cotizacion_descuentos.sql → Descuentos aplicados por cotización
 --
 -- ============================================================
 -- ESTRUCTURA FINAL:
@@ -18,7 +23,11 @@
 -- cotizaciones
 --   ├── cotizacion_productos (1:N) → elementos_compuestos
 --   │     └── cotizacion_detalles (1:N) → componentes elegidos
---   └── cotizacion_transportes (1:N) → tarifas_transporte
+--   ├── cotizacion_transportes (1:N) → tarifas_transporte
+--   └── cotizacion_descuentos (1:N) → descuentos aplicados
+--
+-- descuentos (catálogo)
+--   └── cotizacion_descuentos (1:N) → uso en cotizaciones
 --
 -- alquileres
 --   └── alquiler_elementos (1:N) → series o lotes asignados
