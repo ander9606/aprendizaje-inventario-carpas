@@ -4,13 +4,14 @@
 // ============================================
 
 import { useState, useEffect, useMemo } from 'react'
-import { Plus, Trash2, Package, Truck, MapPin, CalendarDays, Clock, Percent } from 'lucide-react'
+import { Plus, Trash2, Package, Truck, MapPin, CalendarDays, Clock, Percent, ChevronDown, ChevronUp } from 'lucide-react'
 import Modal from '../common/Modal'
 import Button from '../common/Button'
 import ProductoSelector from '../common/ProductoSelector'
 import ProductoConfiguracion from './ProductoConfiguracion'
 import VerificacionDisponibilidad from '../disponibilidad/VerificacionDisponibilidad'
 import RecargoModal from '../modals/RecargoModal'
+import { ProductoSelectorTarjetas } from '../cotizaciones'
 import { useCreateCotizacion, useUpdateCotizacion, useGetCotizacionCompleta } from '../../hooks/cotizaciones'
 import { useGetClientesActivos } from '../../hooks/UseClientes'
 import { useGetProductosAlquiler } from '../../hooks/UseProductosAlquiler'
@@ -51,6 +52,7 @@ const CotizacionFormModal = ({
   const [productosSeleccionados, setProductosSeleccionados] = useState([])
   const [transporteSeleccionado, setTransporteSeleccionado] = useState([])
   const [errors, setErrors] = useState({})
+  const [mostrarSelectorProductos, setMostrarSelectorProductos] = useState(true)
 
   // Estado para el modal de recargos
   const [recargoModal, setRecargoModal] = useState({
@@ -205,6 +207,19 @@ const CotizacionFormModal = ({
       cantidad: 1,
       precio_base: 0,
       deposito: 0,
+      precio_adicionales: 0,
+      configuracion: null,
+      recargos: []
+    }])
+  }
+
+  // Handler para agregar producto desde el selector de tarjetas
+  const agregarProductoDesdeTarjetas = (producto, cantidad) => {
+    setProductosSeleccionados(prev => [...prev, {
+      compuesto_id: producto.id.toString(),
+      cantidad: cantidad,
+      precio_base: producto.precio_base || 0,
+      deposito: producto.deposito || 0,
       precio_adicionales: 0,
       configuracion: null,
       recargos: []
@@ -731,16 +746,20 @@ const CotizacionFormModal = ({
             <h3 className="font-semibold text-slate-900 flex items-center gap-2">
               <Package className="w-5 h-5" />
               Productos *
+              {productosSeleccionados.length > 0 && (
+                <span className="text-sm font-normal text-slate-500">
+                  ({productosSeleccionados.length} agregado{productosSeleccionados.length !== 1 ? 's' : ''})
+                </span>
+              )}
             </h3>
             <Button
               type="button"
-              variant="secondary"
+              variant="ghost"
               size="sm"
-              icon={<Plus className="w-4 h-4" />}
-              onClick={agregarProducto}
-              disabled={isLoading || loadingProductos}
+              icon={mostrarSelectorProductos ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              onClick={() => setMostrarSelectorProductos(!mostrarSelectorProductos)}
             >
-              Agregar
+              {mostrarSelectorProductos ? 'Ocultar selector' : 'Mostrar selector'}
             </Button>
           </div>
 
@@ -748,31 +767,57 @@ const CotizacionFormModal = ({
             <p className="text-sm text-red-600">{errors.productos}</p>
           )}
 
+          {/* SELECTOR DE PRODUCTOS CON TARJETAS */}
+          {mostrarSelectorProductos && (
+            <div className="border border-slate-200 rounded-lg p-4 bg-slate-50">
+              <ProductoSelectorTarjetas
+                onProductoAgregado={agregarProductoDesdeTarjetas}
+                disabled={isLoading}
+              />
+            </div>
+          )}
+
+          {/* LISTA DE PRODUCTOS SELECCIONADOS */}
           {productosSeleccionados.length === 0 ? (
             <p className="text-sm text-slate-500 italic py-4 text-center border border-dashed rounded-lg">
-              No hay productos agregados
+              No hay productos agregados. Seleccione productos arriba.
             </p>
           ) : (
             <div className="space-y-3">
-              {productosSeleccionados.map((prod, index) => (
-                <div key={index} className="p-3 bg-slate-50 rounded-lg">
+              {productosSeleccionados.map((prod, index) => {
+                const productoInfo = productos.find(p => p.id === parseInt(prod.compuesto_id))
+                return (
+                <div key={index} className="p-3 bg-white border border-slate-200 rounded-lg">
                   <div className="flex gap-3 items-start">
+                    {/* Nombre del producto */}
                     <div className="flex-1">
-                      <ProductoSelector
-                        value={prod.compuesto_id}
-                        onChange={(producto) => {
-                          if (producto) {
-                            actualizarProducto(index, 'compuesto_id', producto.id.toString())
-                          } else {
-                            actualizarProducto(index, 'compuesto_id', '')
-                          }
-                        }}
-                        disabled={isLoading}
-                        placeholder="Buscar producto..."
-                      />
+                      {productoInfo ? (
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg">{productoInfo.categoria_emoji || '📦'}</span>
+                          <div>
+                            <p className="font-medium text-slate-800">{productoInfo.nombre}</p>
+                            <p className="text-xs text-slate-500">{productoInfo.categoria_nombre}</p>
+                          </div>
+                        </div>
+                      ) : (
+                        <ProductoSelector
+                          value={prod.compuesto_id}
+                          onChange={(producto) => {
+                            if (producto) {
+                              actualizarProducto(index, 'compuesto_id', producto.id.toString())
+                            } else {
+                              actualizarProducto(index, 'compuesto_id', '')
+                            }
+                          }}
+                          disabled={isLoading}
+                          placeholder="Buscar producto..."
+                        />
+                      )}
                     </div>
 
+                    {/* Cantidad */}
                     <div className="w-20">
+                      <label className="block text-xs text-slate-500 mb-1">Cant.</label>
                       <input
                         type="number"
                         min="1"
@@ -780,11 +825,12 @@ const CotizacionFormModal = ({
                         onChange={(e) => actualizarProducto(index, 'cantidad', e.target.value)}
                         disabled={isLoading}
                         className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-center"
-                        placeholder="Cant."
                       />
                     </div>
 
+                    {/* Precio */}
                     <div className="w-28">
+                      <label className="block text-xs text-slate-500 mb-1">Precio</label>
                       <input
                         type="number"
                         min="0"
@@ -792,15 +838,16 @@ const CotizacionFormModal = ({
                         onChange={(e) => actualizarProducto(index, 'precio_base', e.target.value)}
                         disabled={isLoading}
                         className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-right"
-                        placeholder="Precio"
                       />
                     </div>
 
+                    {/* Boton eliminar */}
                     <button
                       type="button"
                       onClick={() => eliminarProducto(index)}
-                      className="p-2 text-red-500 hover:bg-red-50 rounded-lg"
+                      className="p-2 text-red-500 hover:bg-red-50 rounded-lg mt-5"
                       disabled={isLoading}
+                      title="Eliminar producto"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -908,7 +955,7 @@ const CotizacionFormModal = ({
                     </div>
                   )}
                 </div>
-              ))}
+              )})}
             </div>
           )}
 

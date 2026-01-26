@@ -102,10 +102,20 @@ export { useGetCiudades, useCreateCiudad, useUpdateCiudad, useDeleteCiudad } fro
 export { useGetElementosCompuestos, useGetElementoCompuesto, useCreateElementoCompuesto, useUpdateElementoCompuesto, useDeleteElementoCompuesto } from './UseElementosCompuestos'
 
 // Categorías de Productos
-export { useGetCategoriasProductos, useCreateCategoriaProducto, useUpdateCategoriaProducto, useDeleteCategoriaProducto } from './UseCategoriasProductos'
+export {
+    useGetCategoriasProductos,
+    useGetCategoriasConConteo,
+    useCreateCategoriaProducto,
+    useUpdateCategoriaProducto,
+    useDeleteCategoriaProducto
+} from './UseCategoriasProductos'
 
 // Productos de Alquiler
-export { useGetProductosAlquiler, useGetProductoAlquiler } from './UseProductosAlquiler'
+export {
+    useGetProductosAlquiler,
+    useGetProductoAlquiler,
+    useGetProductosPorCategoria
+} from './UseProductosAlquiler'
 
 // Tarifas de Transporte
 export { useGetTarifasTransporte, useCreateTarifa, useUpdateTarifa, useDeleteTarifa } from './UseTarifasTransporte'
