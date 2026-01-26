@@ -17,14 +17,13 @@ class CotizacionDescuentoModel {
         cd.id,
         cd.cotizacion_id,
         cd.descuento_id,
-        cd.monto,
-        cd.es_porcentaje,
-        cd.notas,
+        cd.tipo,
+        cd.valor,
+        cd.monto_calculado,
+        cd.descripcion,
         cd.created_at,
         d.nombre AS descuento_nombre,
-        d.descripcion AS descuento_descripcion,
-        d.tipo AS descuento_tipo,
-        d.valor AS descuento_valor
+        d.descripcion AS descuento_descripcion
       FROM cotizacion_descuentos cd
       LEFT JOIN descuentos d ON cd.descuento_id = d.id
       WHERE cd.cotizacion_id = ?
@@ -37,7 +36,7 @@ class CotizacionDescuentoModel {
   // ============================================
   // AGREGAR DESCUENTO PREDEFINIDO
   // ============================================
-  static async agregarDescuentoPredefinido(cotizacionId, descuentoId, baseCalculo, notas = null) {
+  static async agregarDescuentoPredefinido(cotizacionId, descuentoId, baseCalculo, descripcion = null) {
     // Obtener info del descuento
     const [descuentoData] = await pool.query(
       'SELECT tipo, valor FROM descuentos WHERE id = ? AND activo = TRUE',
@@ -49,22 +48,24 @@ class CotizacionDescuentoModel {
     }
 
     const descuento = descuentoData[0];
-    const esPorcentaje = descuento.tipo === 'porcentaje';
-    const monto = esPorcentaje
-      ? baseCalculo * (parseFloat(descuento.valor) / 100)
-      : parseFloat(descuento.valor);
+    const tipo = descuento.tipo; // 'porcentaje' o 'fijo'
+    const valor = parseFloat(descuento.valor);
+    const montoCalculado = tipo === 'porcentaje'
+      ? baseCalculo * (valor / 100)
+      : valor;
 
     const query = `
       INSERT INTO cotizacion_descuentos
-        (cotizacion_id, descuento_id, monto, es_porcentaje, notas)
-      VALUES (?, ?, ?, ?, ?)
+        (cotizacion_id, descuento_id, tipo, valor, monto_calculado, descripcion)
+      VALUES (?, ?, ?, ?, ?, ?)
     `;
     const [result] = await pool.query(query, [
       cotizacionId,
       descuentoId,
-      monto,
-      esPorcentaje,
-      notas
+      tipo,
+      valor,
+      montoCalculado,
+      descripcion
     ]);
 
     // Recalcular totales
@@ -76,21 +77,23 @@ class CotizacionDescuentoModel {
   // ============================================
   // AGREGAR DESCUENTO MANUAL
   // ============================================
-  static async agregarDescuentoManual(cotizacionId, monto, esPorcentaje, baseCalculo, notas = null) {
-    const montoFinal = esPorcentaje
-      ? baseCalculo * (parseFloat(monto) / 100)
-      : parseFloat(monto);
+  static async agregarDescuentoManual(cotizacionId, valor, tipo, baseCalculo, descripcion = null) {
+    const valorNum = parseFloat(valor);
+    const montoCalculado = tipo === 'porcentaje'
+      ? baseCalculo * (valorNum / 100)
+      : valorNum;
 
     const query = `
       INSERT INTO cotizacion_descuentos
-        (cotizacion_id, descuento_id, monto, es_porcentaje, notas)
-      VALUES (?, NULL, ?, ?, ?)
+        (cotizacion_id, descuento_id, tipo, valor, monto_calculado, descripcion)
+      VALUES (?, NULL, ?, ?, ?, ?)
     `;
     const [result] = await pool.query(query, [
       cotizacionId,
-      montoFinal,
-      esPorcentaje,
-      notas || 'Descuento manual'
+      tipo,
+      valorNum,
+      montoCalculado,
+      descripcion || 'Descuento manual'
     ]);
 
     // Recalcular totales
@@ -146,7 +149,7 @@ class CotizacionDescuentoModel {
   // ============================================
   static async obtenerTotalDescuentos(cotizacionId) {
     const [result] = await pool.query(
-      'SELECT COALESCE(SUM(monto), 0) AS total FROM cotizacion_descuentos WHERE cotizacion_id = ?',
+      'SELECT COALESCE(SUM(monto_calculado), 0) AS total FROM cotizacion_descuentos WHERE cotizacion_id = ?',
       [cotizacionId]
     );
     return parseFloat(result[0].total);

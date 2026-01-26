@@ -185,9 +185,10 @@ class CotizacionModel {
       SELECT
         cd.id,
         cd.descuento_id,
-        cd.monto,
-        cd.es_porcentaje,
-        cd.notas,
+        cd.tipo,
+        cd.valor,
+        cd.monto_calculado,
+        cd.descripcion,
         d.nombre AS descuento_nombre,
         d.descripcion AS descuento_descripcion
       FROM cotizacion_descuentos cd
@@ -200,7 +201,7 @@ class CotizacionModel {
     const subtotalProductos = productos.reduce((sum, p) => sum + parseFloat(p.subtotal), 0);
     const subtotalTransporte = transporte.reduce((sum, t) => sum + parseFloat(t.subtotal), 0);
     const totalDeposito = productos.reduce((sum, p) => sum + (parseFloat(p.deposito) * p.cantidad), 0);
-    const totalDescuentosAplicados = descuentos.reduce((sum, d) => sum + parseFloat(d.monto), 0);
+    const totalDescuentosAplicados = descuentos.reduce((sum, d) => sum + parseFloat(d.monto_calculado || 0), 0);
 
     // Calcular días extra
     const totalDiasExtra = (cotizacion.dias_montaje_extra || 0) + (cotizacion.dias_desmontaje_extra || 0);
@@ -477,7 +478,7 @@ class CotizacionModel {
 
     // Obtener total de descuentos aplicados (tabla pivote)
     const [descuentosAplicados] = await pool.query(
-      'SELECT COALESCE(SUM(monto), 0) AS total FROM cotizacion_descuentos WHERE cotizacion_id = ?',
+      'SELECT COALESCE(SUM(monto_calculado), 0) AS total FROM cotizacion_descuentos WHERE cotizacion_id = ?',
       [id]
     );
 

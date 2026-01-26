@@ -166,10 +166,11 @@ exports.aplicarACotizacion = async (req, res, next) => {
       );
     } else if (monto !== undefined) {
       // Aplicar descuento manual
+      const tipo = es_porcentaje ? 'porcentaje' : 'fijo';
       resultado = await CotizacionDescuentoModel.agregarDescuentoManual(
         id,
         monto,
-        es_porcentaje || false,
+        tipo,
         baseCalculo,
         notas
       );
