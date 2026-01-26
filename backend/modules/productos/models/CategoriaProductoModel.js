@@ -256,6 +256,7 @@ class CategoriaProductoModel {
   // ============================================
   // OBTENER CATEGORÍAS CON CONTEO DE PRODUCTOS
   // Para el selector de productos en cotizaciones
+  // Muestra todas las categorías que tienen productos
   // ============================================
   static async obtenerCategoriasConConteo() {
     const query = `
@@ -264,14 +265,16 @@ class CategoriaProductoModel {
         cp.nombre,
         cp.descripcion,
         cp.emoji,
+        cp.categoria_padre_id,
+        padre.nombre AS categoria_padre_nombre,
         COUNT(ec.id) AS total_productos
       FROM categorias_productos cp
+      LEFT JOIN categorias_productos padre ON cp.categoria_padre_id = padre.id
       LEFT JOIN elementos_compuestos ec ON ec.categoria_id = cp.id AND ec.activo = TRUE
       WHERE cp.activo = TRUE
-        AND cp.categoria_padre_id IS NULL
-      GROUP BY cp.id, cp.nombre, cp.descripcion, cp.emoji
+      GROUP BY cp.id, cp.nombre, cp.descripcion, cp.emoji, cp.categoria_padre_id, padre.nombre
       HAVING COUNT(ec.id) > 0
-      ORDER BY cp.nombre
+      ORDER BY COALESCE(padre.nombre, cp.nombre), cp.nombre
     `;
     const [rows] = await pool.query(query);
     return rows;
