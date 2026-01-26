@@ -19,6 +19,9 @@ router.get('/arbol', categoriaProductoController.obtenerArbol);
 // GET /api/categorias-productos/activas/arbol - Obtener activas en árbol
 router.get('/activas/arbol', categoriaProductoController.obtenerActivasArbol);
 
+// GET /api/categorias-productos/con-conteo - Obtener categorías con conteo de productos
+router.get('/con-conteo', categoriaProductoController.obtenerCategoriasConConteo);
+
 // GET /api/categorias-productos/:id - Obtener por ID
 router.get('/:id', validateId(), categoriaProductoController.obtenerPorId);
 

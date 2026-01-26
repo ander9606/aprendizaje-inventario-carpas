@@ -234,3 +234,21 @@ exports.eliminar = async (req, res, next) => {
     next(error);
   }
 };
+
+// ============================================
+// OBTENER CATEGORÍAS CON CONTEO DE PRODUCTOS
+// Para selector de productos en cotizaciones
+// ============================================
+exports.obtenerCategoriasConConteo = async (req, res, next) => {
+  try {
+    const categorias = await CategoriaProductoModel.obtenerCategoriasConConteo();
+    res.json({
+      success: true,
+      data: categorias,
+      total: categorias.length
+    });
+  } catch (error) {
+    logger.error('categoriaProductoController.obtenerCategoriasConConteo', error);
+    next(error);
+  }
+};

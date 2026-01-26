@@ -254,6 +254,30 @@ class CategoriaProductoModel {
   }
 
   // ============================================
+  // OBTENER CATEGORÍAS CON CONTEO DE PRODUCTOS
+  // Para el selector de productos en cotizaciones
+  // ============================================
+  static async obtenerCategoriasConConteo() {
+    const query = `
+      SELECT
+        cp.id,
+        cp.nombre,
+        cp.descripcion,
+        cp.emoji,
+        COUNT(ec.id) AS total_productos
+      FROM categorias_productos cp
+      LEFT JOIN elementos_compuestos ec ON ec.categoria_id = cp.id AND ec.activo = TRUE
+      WHERE cp.activo = TRUE
+        AND cp.categoria_padre_id IS NULL
+      GROUP BY cp.id, cp.nombre, cp.descripcion, cp.emoji
+      HAVING COUNT(ec.id) > 0
+      ORDER BY cp.nombre
+    `;
+    const [rows] = await pool.query(query);
+    return rows;
+  }
+
+  // ============================================
   // CONTAR TODAS
   // ============================================
   static async contarTodas() {
