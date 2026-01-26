@@ -7,7 +7,8 @@ import { useState, useEffect } from 'react'
 import { X, Calendar, MapPin, FileText, Save } from 'lucide-react'
 import Button from '../common/Button'
 import { useGetClientes } from '../../hooks/UseClientes'
-import { useGetCiudades } from '../../hooks/UseCiudades'
+import { useGetCiudadesActivas } from '../../hooks/UseCiudades'
+import { useGetUbicacionesActivas } from '../../hooks/Useubicaciones'
 
 /**
  * Modal para crear o editar un evento
@@ -40,7 +41,14 @@ const EventoFormModal = ({
     const [errors, setErrors] = useState({})
 
     const { clientes, isLoading: loadingClientes } = useGetClientes()
-    const { ciudades, isLoading: loadingCiudades } = useGetCiudades()
+    const { ciudades, isLoading: loadingCiudades } = useGetCiudadesActivas()
+    const { ubicaciones, isLoading: loadingUbicaciones } = useGetUbicacionesActivas()
+
+    // Filtrar ubicaciones por ciudad seleccionada
+    const ciudadSeleccionada = ciudades.find(c => c.id === parseInt(formData.ciudad_id))
+    const ubicacionesFiltradas = ciudadSeleccionada
+        ? ubicaciones.filter(u => u.ciudad === ciudadSeleccionada.nombre)
+        : []
 
     const isEditing = !!evento
 
@@ -75,12 +83,42 @@ const EventoFormModal = ({
     // Manejar cambios
     const handleChange = (e) => {
         const { name, value } = e.target
-        setFormData(prev => ({ ...prev, [name]: value }))
+
+        // Si cambia fecha_inicio, auto-completar fecha_fin con el mismo valor
+        if (name === 'fecha_inicio') {
+            setFormData(prev => ({
+                ...prev,
+                fecha_inicio: value,
+                // Solo auto-completar si fecha_fin está vacía o es igual a la fecha_inicio anterior
+                fecha_fin: (!prev.fecha_fin || prev.fecha_fin === prev.fecha_inicio) ? value : prev.fecha_fin
+            }))
+        }
+        // Si cambia la ciudad, limpiar dirección
+        else if (name === 'ciudad_id') {
+            setFormData(prev => ({
+                ...prev,
+                ciudad_id: value,
+                direccion: ''
+            }))
+        }
+        else {
+            setFormData(prev => ({ ...prev, [name]: value }))
+        }
 
         // Limpiar error del campo
         if (errors[name]) {
             setErrors(prev => ({ ...prev, [name]: null }))
         }
+    }
+
+    // Manejar selección de ubicación
+    const handleUbicacionChange = (e) => {
+        const ubicacionId = e.target.value
+        const ubicacion = ubicacionesFiltradas.find(u => u.id === parseInt(ubicacionId))
+        setFormData(prev => ({
+            ...prev,
+            direccion: ubicacion ? ubicacion.direccion : ''
+        }))
     }
 
     // Validar formulario
@@ -255,24 +293,54 @@ const EventoFormModal = ({
                         </div>
                     </div>
 
-                    {/* Ciudad */}
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">
-                            <MapPin className="w-4 h-4 inline mr-1" />
-                            Ciudad
-                        </label>
-                        <select
-                            name="ciudad_id"
-                            value={formData.ciudad_id}
-                            onChange={handleChange}
-                            disabled={loadingCiudades}
-                            className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                        >
-                            <option value="">Seleccionar ciudad...</option>
-                            {ciudades.map(c => (
-                                <option key={c.id} value={c.id}>{c.nombre}</option>
-                            ))}
-                        </select>
+                    {/* Ciudad y Ubicación */}
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">
+                                <MapPin className="w-4 h-4 inline mr-1" />
+                                Ciudad
+                            </label>
+                            <select
+                                name="ciudad_id"
+                                value={formData.ciudad_id}
+                                onChange={handleChange}
+                                disabled={loadingCiudades}
+                                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                            >
+                                <option value="">Seleccionar ciudad...</option>
+                                {ciudades.map(c => (
+                                    <option key={c.id} value={c.id}>{c.nombre}</option>
+                                ))}
+                            </select>
+                            {ciudades.length === 0 && !loadingCiudades && (
+                                <p className="text-xs text-amber-600 mt-1">
+                                    No hay ciudades. Cree ciudades en Configuración.
+                                </p>
+                            )}
+                        </div>
+
+                        {formData.ciudad_id && (
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">
+                                    Ubicación predefinida
+                                </label>
+                                <select
+                                    onChange={handleUbicacionChange}
+                                    disabled={loadingUbicaciones}
+                                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                                >
+                                    <option value="">Seleccionar ubicación...</option>
+                                    {ubicacionesFiltradas.map(u => (
+                                        <option key={u.id} value={u.id}>{u.nombre}</option>
+                                    ))}
+                                </select>
+                                {ubicacionesFiltradas.length === 0 && !loadingUbicaciones && (
+                                    <p className="text-xs text-slate-500 mt-1">
+                                        No hay ubicaciones para esta ciudad
+                                    </p>
+                                )}
+                            </div>
+                        )}
                     </div>
 
                     {/* Dirección */}
@@ -288,6 +356,9 @@ const EventoFormModal = ({
                             placeholder="Dirección del evento..."
                             className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                         />
+                        <p className="text-xs text-slate-500 mt-1">
+                            Seleccione una ubicación predefinida o ingrese la dirección manualmente
+                        </p>
                     </div>
 
                     {/* Notas */}
