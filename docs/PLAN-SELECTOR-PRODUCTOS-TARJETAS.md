@@ -35,39 +35,76 @@ Reemplazar el selector dropdown actual de productos por una interfaz visual de t
 
 ## 2. SOLUCIÓN PROPUESTA
 
-### Nuevo Flujo (Tarjetas)
+### Nuevo Flujo en 2 Pasos
+
+#### PASO 1: Seleccionar Categoría
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
-│ SELECCIONAR PRODUCTOS                                                    │
+│ SELECCIONAR CATEGORÍA                                                    │
 ├─────────────────────────────────────────────────────────────────────────┤
-│ [🔍 Buscar...]  [Categoría ▼]  [Precio ▼]  [☑ Solo disponibles]         │
+│                                                                          │
+│  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐       │
+│  │                  │  │                  │  │                  │       │
+│  │    🏕️ CARPAS     │  │   🪑 MOBILIARIO  │  │  💡 ILUMINACIÓN  │       │
+│  │                  │  │                  │  │                  │       │
+│  │   12 productos   │  │   25 productos   │  │   8 productos    │       │
+│  │   ✅ 10 disp.    │  │   ⚠️ 18 disp.    │  │   ✅ 8 disp.     │       │
+│  │                  │  │                  │  │                  │       │
+│  └──────────────────┘  └──────────────────┘  └──────────────────┘       │
+│                                                                          │
+│  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐       │
+│  │                  │  │                  │  │                  │       │
+│  │  🍽️ MENAJE       │  │   🎪 DECORACIÓN  │  │   📦 OTROS       │       │
+│  │                  │  │                  │  │                  │       │
+│  │   30 productos   │  │   15 productos   │  │   5 productos    │       │
+│  │   ✅ 28 disp.    │  │   ✅ 15 disp.    │  │   ✅ 5 disp.     │       │
+│  │                  │  │                  │  │                  │       │
+│  └──────────────────┘  └──────────────────┘  └──────────────────┘       │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+#### PASO 2: Seleccionar Productos de la Categoría
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│ ← Volver a categorías                    🏕️ CARPAS                      │
+├─────────────────────────────────────────────────────────────────────────┤
+│ [🔍 Buscar en carpas...]                      [☑ Solo disponibles]      │
 ├─────────────────────────────────────────────────────────────────────────┤
 │                                                                          │
 │ ┌────────────────────┐  ┌────────────────────┐  ┌────────────────────┐  │
 │ │ ┌────────────────┐ │  │ ┌────────────────┐ │  │ ┌────────────────┐ │  │
 │ │ │    [IMAGEN]    │ │  │ │    [IMAGEN]    │ │  │ │    [IMAGEN]    │ │  │
 │ │ └────────────────┘ │  │ └────────────────┘ │  │ └────────────────┘ │  │
-│ │ Carpa 10x10 Premium│  │ Carpa 6x6 Económica│  │ Silla Tiffany      │  │
+│ │ Carpa 10x10 Premium│  │ Carpa 6x6 Económica│  │ Carpa 4x4 Básica   │  │
 │ │ ─────────────────  │  │ ─────────────────  │  │ ─────────────────  │  │
-│ │ $850,000 / evento  │  │ $450,000 / evento  │  │ $15,000 / unidad   │  │
-│ │ Depósito: $500,000 │  │ Depósito: $250,000 │  │ Depósito: $10,000  │  │
+│ │ $850,000 / evento  │  │ $450,000 / evento  │  │ $250,000 / evento  │  │
+│ │ Depósito: $500,000 │  │ Depósito: $250,000 │  │ Depósito: $150,000 │  │
 │ │                    │  │                    │  │                    │  │
 │ │ ✅ Disponible (5)  │  │ ⚠️ Parcial (2/4)   │  │ ❌ No disponible   │  │
 │ │                    │  │                    │  │                    │  │
-│ │ [-] 1 [+]  [➕ Add]│  │ [-] 2 [+]  [➕ Add]│  │ Ver componentes    │  │
+│ │ [-] 1 [+]  [➕ Add]│  │ [-] 2 [+]  [➕ Add]│  │ 📋 Ver componentes │  │
 │ └────────────────────┘  └────────────────────┘  └────────────────────┘  │
 │                                                                          │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
+### Ventajas del Flujo en 2 Pasos
+| Ventaja | Descripción |
+|---------|-------------|
+| **Organización** | Usuario ve solo productos de una categoría a la vez |
+| **Rapidez** | Menos productos que cargar = más rápido |
+| **Claridad** | Sabe exactamente qué tipo de producto busca |
+| **Disponibilidad** | Ve resumen de disponibilidad por categoría antes de entrar |
+
 ---
 
 ## 3. COMPONENTES A CREAR
 
-### 3.1 ProductoCardSelector (Contenedor Principal)
+### 3.1 ProductoSelector (Contenedor Principal con 2 Pasos)
 ```jsx
-// Componente contenedor con filtros y grid de tarjetas
-<ProductoCardSelector
+// Componente contenedor que maneja el flujo de 2 pasos
+<ProductoSelector
   fechaInicio={fechaMontaje}
   fechaFin={fechaDesmontaje}
   onProductoAgregado={(producto, cantidad) => {...}}
@@ -75,13 +112,35 @@ Reemplazar el selector dropdown actual de productos por una interfaz visual de t
 />
 ```
 
-**Responsabilidades:**
-- Cargar productos desde API
-- Manejar filtros (categoría, precio, búsqueda)
-- Calcular disponibilidad por fechas
-- Renderizar grid de tarjetas
+**Estado interno:**
+```jsx
+const [paso, setPaso] = useState('categorias'); // 'categorias' | 'productos'
+const [categoriaSeleccionada, setCategoriaSeleccionada] = useState(null);
+```
 
-### 3.2 ProductoCard (Tarjeta Individual)
+**Responsabilidades:**
+- Paso 1: Mostrar grid de categorías
+- Paso 2: Mostrar productos de la categoría seleccionada
+- Botón "Volver" para regresar a categorías
+- Calcular disponibilidad por fechas
+
+### 3.2 CategoriaCard (Tarjeta de Categoría)
+```jsx
+<CategoriaCard
+  categoria={categoria}
+  totalProductos={12}
+  productosDisponibles={10}
+  onClick={() => seleccionarCategoria(categoria)}
+/>
+```
+
+**Información mostrada:**
+- Icono/emoji de la categoría
+- Nombre de la categoría
+- Total de productos
+- Cuántos disponibles para las fechas
+
+### 3.3 ProductoCard (Tarjeta de Producto)
 ```jsx
 <ProductoCard
   producto={producto}
