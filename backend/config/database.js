@@ -12,11 +12,17 @@ require('dotenv').config();
 // CREAR POOL DE CONEXIONES
 // ============================================
 
+// Asegurar que la contraseña de la BD se proporciona vía variable de entorno
+const dbPassword = process.env.DB_PASSWORD;
+if (!dbPassword) {
+    throw new Error('DB_PASSWORD environment variable is required but not set.');
+}
+
 // Pool = grupo de conexiones reutilizables (más eficiente)
 const pool = mysql.createPool({
     host: process.env.DB_HOST || 'localhost',
     user: process.env.DB_USER || 'root',
-    password: process.env.DB_PASSWORD || '',
+    password: dbPassword,
     database: process.env.DB_NAME || 'aprendizaje_inventario',
     waitForConnections: true,
     connectionLimit: 10,
