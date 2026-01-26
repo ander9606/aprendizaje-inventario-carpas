@@ -19,16 +19,32 @@ import {
     AlertCircle,
     Eye,
     Plus,
-    ChevronRight
+    ChevronRight,
+    Edit,
+    Trash2
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
 import { useGetEvento } from '../../hooks/useEventos'
+import { useDeleteCotizacion, useAprobarCotizacion, useCambiarEstadoCotizacion } from '../../hooks/cotizaciones'
 import Spinner from '../common/Spinner'
 import Button from '../common/Button'
+import CotizacionDetalleModal from './CotizacionDetalleModal'
+import AprobarCotizacionModal from './AprobarCotizacionModal'
 
-const EventoDetalleModal = ({ isOpen, onClose, eventoId, onCrearCotizacion }) => {
+const EventoDetalleModal = ({ isOpen, onClose, eventoId, onCrearCotizacion, onEditarCotizacion }) => {
     const navigate = useNavigate()
+    const queryClient = useQueryClient()
     const { evento, isLoading, error } = useGetEvento(eventoId)
+
+    // Estado para modales
+    const [cotizacionDetalleId, setCotizacionDetalleId] = useState(null)
+    const [cotizacionAprobarId, setCotizacionAprobarId] = useState(null)
+
+    // Mutations
+    const deleteMutation = useDeleteCotizacion()
+    const aprobarMutation = useAprobarCotizacion()
+    const cambiarEstadoMutation = useCambiarEstadoCotizacion()
 
     if (!isOpen) return null
 
@@ -74,9 +90,49 @@ const EventoDetalleModal = ({ isOpen, onClose, eventoId, onCrearCotizacion }) =>
     }
 
     const handleVerCotizacion = (cotizacionId) => {
-        // Navegar a la página de cotizaciones (o abrir modal de detalle)
-        navigate('/alquileres/cotizaciones')
-        onClose()
+        setCotizacionDetalleId(cotizacionId)
+    }
+
+    const handleEditarCotizacion = (cotizacion) => {
+        if (onEditarCotizacion) {
+            onEditarCotizacion(cotizacion)
+            onClose()
+        }
+    }
+
+    const handleEliminarCotizacion = async (cotizacionId) => {
+        if (!confirm('¿Está seguro de eliminar esta cotización? Esta acción no se puede deshacer.')) {
+            return
+        }
+        try {
+            await deleteMutation.mutateAsync(cotizacionId)
+            // Invalidar cache del evento para refrescar la lista
+            queryClient.invalidateQueries(['evento', eventoId])
+        } catch (error) {
+            alert('Error al eliminar la cotización: ' + error.message)
+        }
+    }
+
+    const handleAprobarCotizacion = async ({ id, opciones }) => {
+        try {
+            await aprobarMutation.mutateAsync({ id, opciones })
+            setCotizacionAprobarId(null)
+            setCotizacionDetalleId(null)
+            // Invalidar cache del evento
+            queryClient.invalidateQueries(['evento', eventoId])
+        } catch (error) {
+            alert('Error al aprobar la cotización: ' + error.message)
+        }
+    }
+
+    const handleRechazarCotizacion = async (cotizacion) => {
+        try {
+            await cambiarEstadoMutation.mutateAsync({ id: cotizacion.id, estado: 'rechazada' })
+            setCotizacionDetalleId(null)
+            queryClient.invalidateQueries(['evento', eventoId])
+        } catch (error) {
+            alert('Error al rechazar la cotización: ' + error.message)
+        }
     }
 
     const handleCrearCotizacion = () => {
@@ -264,6 +320,8 @@ const EventoDetalleModal = ({ isOpen, onClose, eventoId, onCrearCotizacion }) =>
                                         {evento.cotizaciones.map((cot) => {
                                             const estadoConfig = getEstadoConfig(cot.estado)
                                             const EstadoIcon = estadoConfig.icon
+                                            const puedeEditar = cot.estado === 'pendiente'
+                                            const puedeEliminar = cot.estado === 'pendiente' && cot.tiene_alquiler === 0
 
                                             return (
                                                 <div
@@ -330,6 +388,38 @@ const EventoDetalleModal = ({ isOpen, onClose, eventoId, onCrearCotizacion }) =>
                                                             )}
                                                         </div>
                                                     )}
+
+                                                    {/* Botones de acción */}
+                                                    <div className="mt-3 pt-3 border-t border-slate-100 flex items-center gap-2">
+                                                        <button
+                                                            onClick={() => handleVerCotizacion(cot.id)}
+                                                            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                                        >
+                                                            <Eye className="w-4 h-4" />
+                                                            Ver
+                                                        </button>
+
+                                                        {puedeEditar && (
+                                                            <button
+                                                                onClick={() => handleEditarCotizacion(cot)}
+                                                                className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                                                            >
+                                                                <Edit className="w-4 h-4" />
+                                                                Editar
+                                                            </button>
+                                                        )}
+
+                                                        {puedeEliminar && (
+                                                            <button
+                                                                onClick={() => handleEliminarCotizacion(cot.id)}
+                                                                disabled={deleteMutation.isPending}
+                                                                className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                                                            >
+                                                                <Trash2 className="w-4 h-4" />
+                                                                Eliminar
+                                                            </button>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             )
                                         })}
@@ -361,6 +451,26 @@ const EventoDetalleModal = ({ isOpen, onClose, eventoId, onCrearCotizacion }) =>
                     </Button>
                 </div>
             </div>
+
+            {/* Modal de detalle de cotización */}
+            <CotizacionDetalleModal
+                isOpen={!!cotizacionDetalleId}
+                onClose={() => setCotizacionDetalleId(null)}
+                cotizacionId={cotizacionDetalleId}
+                onEditar={handleEditarCotizacion}
+                onAprobar={(cot) => setCotizacionAprobarId(cot.id)}
+                onRechazar={handleRechazarCotizacion}
+                isAprobando={cambiarEstadoMutation.isPending}
+            />
+
+            {/* Modal de aprobación de cotización */}
+            <AprobarCotizacionModal
+                isOpen={!!cotizacionAprobarId}
+                onClose={() => setCotizacionAprobarId(null)}
+                cotizacionId={cotizacionAprobarId}
+                onAprobar={handleAprobarCotizacion}
+                isAprobando={aprobarMutation.isPending}
+            />
         </div>
     )
 }

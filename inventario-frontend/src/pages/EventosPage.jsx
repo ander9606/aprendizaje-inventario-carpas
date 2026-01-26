@@ -216,6 +216,7 @@ export default function EventosPage() {
     const [eventoDetalle, setEventoDetalle] = useState(null)
     const [showModalCotizacion, setShowModalCotizacion] = useState(false)
     const [eventoParaCotizacion, setEventoParaCotizacion] = useState(null)
+    const [cotizacionEditar, setCotizacionEditar] = useState(null)
 
     // Queries y mutations
     const { eventos, isLoading, refetch } = useGetEventos({ estado: filtroEstado || undefined })
@@ -286,12 +287,20 @@ export default function EventosPage() {
 
     const handleCrearCotizacionDesdeEvento = (evento) => {
         setEventoParaCotizacion(evento)
+        setCotizacionEditar(null)
+        setShowModalCotizacion(true)
+    }
+
+    const handleEditarCotizacionDesdeEvento = (cotizacion) => {
+        setCotizacionEditar(cotizacion)
+        setEventoParaCotizacion(null)
         setShowModalCotizacion(true)
     }
 
     const handleCerrarModalCotizacion = () => {
         setShowModalCotizacion(false)
         setEventoParaCotizacion(null)
+        setCotizacionEditar(null)
         refetch()
     }
 
@@ -441,15 +450,16 @@ export default function EventosPage() {
                 onClose={() => setEventoDetalle(null)}
                 eventoId={eventoDetalle}
                 onCrearCotizacion={handleCrearCotizacionDesdeEvento}
+                onEditarCotizacion={handleEditarCotizacionDesdeEvento}
             />
 
-            {/* Modal crear cotización desde evento */}
+            {/* Modal crear/editar cotización desde evento */}
             {showModalCotizacion && (
                 <CotizacionFormModal
                     isOpen={showModalCotizacion}
                     onClose={handleCerrarModalCotizacion}
-                    mode="crear"
-                    cotizacion={null}
+                    mode={cotizacionEditar ? 'editar' : 'crear'}
+                    cotizacion={cotizacionEditar}
                     eventoPreseleccionado={eventoParaCotizacion}
                 />
             )}
