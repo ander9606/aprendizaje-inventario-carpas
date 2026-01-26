@@ -42,6 +42,7 @@ class EventoModel {
   // OBTENER POR ID
   // ============================================
   static async obtenerPorId(id) {
+    // Obtener evento con info básica
     const query = `
       SELECT
         e.*,
@@ -55,7 +56,43 @@ class EventoModel {
       WHERE e.id = ?
     `;
     const [rows] = await pool.query(query, [id]);
-    return rows[0];
+    const evento = rows[0];
+
+    if (!evento) return null;
+
+    // Obtener cotizaciones del evento
+    const cotizacionesQuery = `
+      SELECT
+        cot.id,
+        cot.subtotal,
+        cot.total,
+        cot.descuento,
+        cot.estado,
+        cot.fecha_evento,
+        cot.fecha_montaje,
+        cot.fecha_desmontaje,
+        cot.created_at,
+        (SELECT COUNT(*) FROM cotizacion_productos WHERE cotizacion_id = cot.id) AS total_productos,
+        (SELECT COUNT(*) FROM alquileres WHERE cotizacion_id = cot.id) AS tiene_alquiler
+      FROM cotizaciones cot
+      WHERE cot.evento_id = ?
+      ORDER BY cot.created_at DESC
+    `;
+    const [cotizaciones] = await pool.query(cotizacionesQuery, [id]);
+
+    // Calcular resumen
+    const resumen = {
+      total_cotizaciones: cotizaciones.length,
+      total_valor: cotizaciones.reduce((sum, c) => sum + (parseFloat(c.total) || 0), 0),
+      cotizaciones_pendientes: cotizaciones.filter(c => c.estado === 'pendiente').length,
+      cotizaciones_aprobadas: cotizaciones.filter(c => c.estado === 'aprobada').length
+    };
+
+    return {
+      ...evento,
+      cotizaciones,
+      resumen
+    };
   }
 
   // ============================================

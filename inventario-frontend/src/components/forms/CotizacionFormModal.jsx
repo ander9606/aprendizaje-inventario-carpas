@@ -4,12 +4,12 @@
 // ============================================
 
 import { useState, useEffect, useMemo } from 'react'
-import { Plus, Trash2, Package, Truck, MapPin, CalendarDays, Clock, Percent, ChevronDown, ChevronUp } from 'lucide-react'
+import { Plus, Trash2, Package, Truck, MapPin, CalendarDays, Clock, Percent, ChevronDown, ChevronUp, CheckCircle } from 'lucide-react'
 import Modal from '../common/Modal'
 import Button from '../common/Button'
 import ProductoSelector from '../common/ProductoSelector'
 import ProductoConfiguracion from './ProductoConfiguracion'
-import VerificacionDisponibilidad from '../disponibilidad/VerificacionDisponibilidad'
+import DisponibilidadModal from '../disponibilidad/DisponibilidadModal'
 import RecargoModal from '../modals/RecargoModal'
 import { ProductoSelectorTarjetas } from '../cotizaciones'
 import { useCreateCotizacion, useUpdateCotizacion, useGetCotizacionCompleta } from '../../hooks/cotizaciones'
@@ -60,6 +60,9 @@ const CotizacionFormModal = ({
     productoIndex: null,
     recargoIndex: null
   })
+
+  // Estado para el modal de disponibilidad
+  const [showDisponibilidadModal, setShowDisponibilidadModal] = useState(false)
 
   // ============================================
   // HOOKS
@@ -976,17 +979,21 @@ const CotizacionFormModal = ({
             </div>
           </div>
 
-          {/* VERIFICACIÓN DE DISPONIBILIDAD */}
-          <VerificacionDisponibilidad
-            productos={productosSeleccionados.map(p => ({
-              compuesto_id: parseInt(p.compuesto_id) || null,
-              cantidad: parseInt(p.cantidad) || 1,
-              configuracion: p.configuracion || null
-            })).filter(p => p.compuesto_id)}
-            fechaMontaje={formData.fecha_montaje || formData.fecha_evento}
-            fechaDesmontaje={formData.fecha_desmontaje || formData.fecha_evento}
-            mostrar={productosSeleccionados.some(p => p.compuesto_id) && (formData.fecha_montaje || formData.fecha_evento)}
-          />
+          {/* BOTÓN VERIFICAR DISPONIBILIDAD */}
+          {productosSeleccionados.some(p => p.compuesto_id) && (formData.fecha_montaje || formData.fecha_evento) && (
+            <div className="pt-3">
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => setShowDisponibilidadModal(true)}
+                icon={<CheckCircle className="w-4 h-4" />}
+                className="w-full"
+              >
+                Verificar Disponibilidad
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* TRANSPORTE */}
@@ -1171,6 +1178,20 @@ const CotizacionFormModal = ({
           }
         />
       )}
+
+      {/* MODAL DE DISPONIBILIDAD */}
+      <DisponibilidadModal
+        isOpen={showDisponibilidadModal}
+        onClose={() => setShowDisponibilidadModal(false)}
+        productos={productosSeleccionados.map(p => ({
+          compuesto_id: parseInt(p.compuesto_id) || null,
+          cantidad: parseInt(p.cantidad) || 1,
+          configuracion: p.configuracion || null
+        })).filter(p => p.compuesto_id)}
+        fechaMontaje={formData.fecha_montaje || formData.fecha_evento}
+        fechaDesmontaje={formData.fecha_desmontaje || formData.fecha_evento}
+        productosInfo={productos}
+      />
     </Modal>
   )
 }
