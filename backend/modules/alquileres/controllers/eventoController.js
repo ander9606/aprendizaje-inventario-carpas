@@ -68,7 +68,7 @@ exports.obtenerPorCliente = async (req, res, next) => {
 exports.obtenerPorEstado = async (req, res, next) => {
   try {
     const { estado } = req.params;
-    const estadosValidos = ['pendiente', 'confirmado', 'en_curso', 'completado', 'cancelado'];
+    const estadosValidos = ['activo', 'completado', 'cancelado'];
 
     if (!estadosValidos.includes(estado)) {
       throw new AppError(`Estado inválido. Valores permitidos: ${estadosValidos.join(', ')}`, 400);
@@ -90,15 +90,19 @@ exports.obtenerPorEstado = async (req, res, next) => {
 // ============================================
 exports.crear = async (req, res, next) => {
   try {
-    const { cliente_id, nombre, fecha_evento, fecha_montaje, fecha_desmontaje, direccion, ciudad, notas } = req.body;
+    const { cliente_id, nombre, descripcion, fecha_inicio, fecha_fin, direccion, ciudad_id, notas } = req.body;
 
     // Validaciones
     if (!cliente_id) {
       throw new AppError('El cliente es requerido', 400);
     }
 
-    if (!fecha_evento) {
-      throw new AppError('La fecha del evento es requerida', 400);
+    if (!nombre) {
+      throw new AppError('El nombre del evento es requerido', 400);
+    }
+
+    if (!fecha_inicio) {
+      throw new AppError('La fecha de inicio es requerida', 400);
     }
 
     // Verificar que el cliente existe
@@ -110,11 +114,11 @@ exports.crear = async (req, res, next) => {
     const resultado = await EventoModel.crear({
       cliente_id,
       nombre,
-      fecha_evento,
-      fecha_montaje,
-      fecha_desmontaje,
+      descripcion,
+      fecha_inicio,
+      fecha_fin,
       direccion,
-      ciudad,
+      ciudad_id,
       notas
     });
 
@@ -136,7 +140,7 @@ exports.crear = async (req, res, next) => {
 exports.actualizar = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { nombre, fecha_evento, fecha_montaje, fecha_desmontaje, direccion, ciudad, notas, estado } = req.body;
+    const { nombre, descripcion, fecha_inicio, fecha_fin, direccion, ciudad_id, notas, estado } = req.body;
 
     const eventoExistente = await EventoModel.obtenerPorId(id);
     if (!eventoExistente) {
@@ -145,12 +149,12 @@ exports.actualizar = async (req, res, next) => {
 
     await EventoModel.actualizar(id, {
       nombre: nombre || eventoExistente.nombre,
-      fecha_evento: fecha_evento || eventoExistente.fecha_evento,
-      fecha_montaje: fecha_montaje || eventoExistente.fecha_montaje,
-      fecha_desmontaje: fecha_desmontaje || eventoExistente.fecha_desmontaje,
-      direccion,
-      ciudad,
-      notas,
+      descripcion: descripcion !== undefined ? descripcion : eventoExistente.descripcion,
+      fecha_inicio: fecha_inicio || eventoExistente.fecha_inicio,
+      fecha_fin: fecha_fin || eventoExistente.fecha_fin,
+      direccion: direccion !== undefined ? direccion : eventoExistente.direccion,
+      ciudad_id: ciudad_id !== undefined ? ciudad_id : eventoExistente.ciudad_id,
+      notas: notas !== undefined ? notas : eventoExistente.notas,
       estado
     });
 
@@ -174,7 +178,7 @@ exports.cambiarEstado = async (req, res, next) => {
     const { id } = req.params;
     const { estado } = req.body;
 
-    const estadosValidos = ['pendiente', 'confirmado', 'en_curso', 'completado', 'cancelado'];
+    const estadosValidos = ['activo', 'completado', 'cancelado'];
     if (!estadosValidos.includes(estado)) {
       throw new AppError(`Estado inválido. Valores permitidos: ${estadosValidos.join(', ')}`, 400);
     }
