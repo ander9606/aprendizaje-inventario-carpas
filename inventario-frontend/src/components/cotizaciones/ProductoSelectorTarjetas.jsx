@@ -28,8 +28,8 @@ const ProductoSelectorTarjetas = ({
   // ============================================
   // HOOKS
   // ============================================
-  const { categorias, isLoading: loadingCategorias } = useGetCategoriasConConteo()
-  const { productos, isLoading: loadingProductos } = useGetProductosPorCategoria(
+  const { categorias, isLoading: loadingCategorias, error: errorCategorias } = useGetCategoriasConConteo()
+  const { productos, isLoading: loadingProductos, error: errorProductos } = useGetProductosPorCategoria(
     categoriaSeleccionada?.id
   )
 
@@ -81,9 +81,13 @@ const ProductoSelectorTarjetas = ({
           <div className="flex justify-center py-8">
             <Spinner />
           </div>
+        ) : errorCategorias ? (
+          <div className="text-center py-8 text-red-500">
+            Error al cargar categorías: {errorCategorias.message}
+          </div>
         ) : categorias.length === 0 ? (
           <div className="text-center py-8 text-slate-500">
-            No hay categorias con productos disponibles
+            No hay categorías con productos disponibles
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
@@ -145,11 +149,15 @@ const ProductoSelectorTarjetas = ({
         <div className="flex justify-center py-8">
           <Spinner />
         </div>
+      ) : errorProductos ? (
+        <div className="text-center py-8 text-red-500">
+          Error al cargar productos: {errorProductos.message}
+        </div>
       ) : productosFiltrados.length === 0 ? (
         <div className="text-center py-8 text-slate-500">
           {busqueda
             ? 'No se encontraron productos con ese nombre'
-            : 'No hay productos en esta categoria'
+            : 'No hay productos en esta categoría'
           }
         </div>
       ) : (
