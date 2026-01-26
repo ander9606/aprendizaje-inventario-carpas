@@ -108,7 +108,7 @@ class AlertaModel {
                 ao.created_at,
                 ot.tipo as orden_tipo,
                 ot.fecha_programada,
-                cot.evento_nombre,
+                a.nombre_evento,
                 c.nombre as cliente_nombre
             FROM alertas_operaciones ao
             LEFT JOIN ordenes_trabajo ot ON ao.orden_id = ot.id

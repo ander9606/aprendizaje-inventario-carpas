@@ -60,6 +60,15 @@ const ordenesAPI = {
     },
 
     /**
+     * Crear orden manual (mantenimiento, traslado, revisión, etc.)
+     * @param {Object} datos - { tipo, fecha_programada, direccion_destino, ciudad_destino, notas, prioridad, elementos }
+     */
+    crearManual: async (datos) => {
+        const response = await api.post('/operaciones/ordenes', datos)
+        return response.data
+    },
+
+    /**
      * Obtener órdenes de un alquiler específico
      * @param {number} alquilerId
      */

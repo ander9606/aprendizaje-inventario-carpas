@@ -125,7 +125,8 @@ const CotizacionCard = ({
   }
 
   // Determinar si mostrar menu kebab
-  const mostrarMenu = cotizacion.estado === 'pendiente' || cotizacion.estado === 'rechazada'
+  // Mostrar menú para pendiente, rechazada y aprobada (solo para pruebas)
+  const mostrarMenu = cotizacion.estado === 'pendiente' || cotizacion.estado === 'rechazada' || cotizacion.estado === 'aprobada'
 
   // ============================================
   // RENDER

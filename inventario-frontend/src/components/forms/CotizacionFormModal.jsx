@@ -3,19 +3,21 @@
 // Modal para crear/editar cotizaciones
 // ============================================
 
-import { useState, useEffect } from 'react'
-import { Plus, Trash2, Package, Truck, MapPin } from 'lucide-react'
+import { useState, useEffect, useMemo } from 'react'
+import { Plus, Trash2, Package, Truck, MapPin, CalendarDays, Clock, Percent } from 'lucide-react'
 import Modal from '../common/Modal'
 import Button from '../common/Button'
 import ProductoSelector from '../common/ProductoSelector'
 import ProductoConfiguracion from './ProductoConfiguracion'
 import VerificacionDisponibilidad from '../disponibilidad/VerificacionDisponibilidad'
+import RecargoModal from '../modals/RecargoModal'
 import { useCreateCotizacion, useUpdateCotizacion, useGetCotizacionCompleta } from '../../hooks/cotizaciones'
 import { useGetClientesActivos } from '../../hooks/UseClientes'
 import { useGetProductosAlquiler } from '../../hooks/UseProductosAlquiler'
 import { useGetTarifasTransporte } from '../../hooks/UseTarifasTransporte'
 import { useGetCiudadesActivas } from '../../hooks/UseCiudades'
 import { useGetUbicacionesActivas } from '../../hooks/Useubicaciones'
+import { useGetEventosPorCliente } from '../../hooks/useEventos'
 
 /**
  * CotizacionFormModal
@@ -24,7 +26,8 @@ const CotizacionFormModal = ({
   isOpen,
   onClose,
   mode = 'crear',
-  cotizacion = null
+  cotizacion = null,
+  eventoPreseleccionado = null
 }) => {
 
   // ============================================
@@ -33,6 +36,7 @@ const CotizacionFormModal = ({
 
   const [formData, setFormData] = useState({
     cliente_id: '',
+    evento_id: '',
     fecha_montaje: '',
     fecha_evento: '',
     fecha_desmontaje: '',
@@ -47,6 +51,13 @@ const CotizacionFormModal = ({
   const [productosSeleccionados, setProductosSeleccionados] = useState([])
   const [transporteSeleccionado, setTransporteSeleccionado] = useState([])
   const [errors, setErrors] = useState({})
+
+  // Estado para el modal de recargos
+  const [recargoModal, setRecargoModal] = useState({
+    isOpen: false,
+    productoIndex: null,
+    recargoIndex: null
+  })
 
   // ============================================
   // HOOKS
@@ -66,6 +77,11 @@ const CotizacionFormModal = ({
     mode === 'editar' && cotizacion?.id && isOpen ? cotizacion.id : null
   )
 
+  // Cargar eventos del cliente seleccionado
+  const { eventos: eventosCliente, isLoading: loadingEventos } = useGetEventosPorCliente(
+    formData.cliente_id ? parseInt(formData.cliente_id) : null
+  )
+
   const isLoading = isCreating || isUpdating || loadingCotizacion
 
   // ============================================
@@ -79,6 +95,7 @@ const CotizacionFormModal = ({
     if (mode === 'editar' && datosACopiar) {
       setFormData({
         cliente_id: datosACopiar.cliente_id || '',
+        evento_id: datosACopiar.evento_id || '',
         fecha_montaje: datosACopiar.fecha_montaje?.split('T')[0] || '',
         fecha_evento: datosACopiar.fecha_evento?.split('T')[0] || '',
         fecha_desmontaje: datosACopiar.fecha_desmontaje?.split('T')[0] || '',
@@ -92,14 +109,25 @@ const CotizacionFormModal = ({
 
       // Solo cargar productos/transporte cuando tenemos la cotización completa
       if (cotizacionCompleta) {
-        // Mapear productos para el formato del formulario
+        // Mapear productos para el formato del formulario (incluir recargos)
         const productosFormateados = (cotizacionCompleta.productos || []).map(p => ({
+          id: p.id || null,
           compuesto_id: p.compuesto_id?.toString() || '',
           cantidad: p.cantidad || 1,
           precio_base: p.precio_base || 0,
           deposito: p.deposito || 0,
           precio_adicionales: p.precio_adicionales || 0,
-          configuracion: p.configuracion || null
+          configuracion: p.configuracion || null,
+          recargos: (p.recargos || []).map(r => ({
+            id: r.id,
+            tipo: r.tipo,
+            dias: r.dias,
+            porcentaje: r.porcentaje,
+            monto_recargo: r.monto_recargo,
+            fecha_original: r.fecha_original,
+            fecha_modificada: r.fecha_modificada,
+            notas: r.notas
+          }))
         }))
         setProductosSeleccionados(productosFormateados)
 
@@ -111,23 +139,41 @@ const CotizacionFormModal = ({
         setTransporteSeleccionado(transporteFormateado)
       }
     } else if (mode === 'crear') {
-      setFormData({
-        cliente_id: '',
-        fecha_montaje: '',
-        fecha_evento: '',
-        fecha_desmontaje: '',
-        evento_nombre: '',
-        evento_direccion: '',
-        evento_ciudad: '',
-        descuento: 0,
-        vigencia_dias: 15,
-        notas: ''
-      })
+      // Si hay un evento preseleccionado, pre-llenar los campos
+      if (eventoPreseleccionado) {
+        setFormData({
+          cliente_id: eventoPreseleccionado.cliente_id?.toString() || '',
+          evento_id: eventoPreseleccionado.id?.toString() || '',
+          fecha_montaje: eventoPreseleccionado.fecha_inicio?.split('T')[0] || '',
+          fecha_evento: eventoPreseleccionado.fecha_inicio?.split('T')[0] || '',
+          fecha_desmontaje: eventoPreseleccionado.fecha_fin?.split('T')[0] || '',
+          evento_nombre: eventoPreseleccionado.nombre || '',
+          evento_direccion: eventoPreseleccionado.direccion || '',
+          evento_ciudad: eventoPreseleccionado.ciudad_nombre || '',
+          descuento: 0,
+          vigencia_dias: 15,
+          notas: ''
+        })
+      } else {
+        setFormData({
+          cliente_id: '',
+          evento_id: '',
+          fecha_montaje: '',
+          fecha_evento: '',
+          fecha_desmontaje: '',
+          evento_nombre: '',
+          evento_direccion: '',
+          evento_ciudad: '',
+          descuento: 0,
+          vigencia_dias: 15,
+          notas: ''
+        })
+      }
       setProductosSeleccionados([])
       setTransporteSeleccionado([])
     }
     setErrors({})
-  }, [mode, cotizacion, cotizacionCompleta, isOpen])
+  }, [mode, cotizacion, cotizacionCompleta, isOpen, eventoPreseleccionado])
 
   // ============================================
   // HANDLERS
@@ -160,7 +206,8 @@ const CotizacionFormModal = ({
       precio_base: 0,
       deposito: 0,
       precio_adicionales: 0,
-      configuracion: null
+      configuracion: null,
+      recargos: []
     }])
   }
 
@@ -168,7 +215,7 @@ const CotizacionFormModal = ({
     setProductosSeleccionados(prev => {
       const nuevos = [...prev]
 
-      // Si cambio el producto, actualizar precios y resetear configuración
+      // Si cambio el producto, actualizar precios y resetear configuración y recargos
       if (campo === 'compuesto_id' && valor) {
         const producto = productos.find(p => p.id === parseInt(valor))
         if (producto) {
@@ -178,7 +225,8 @@ const CotizacionFormModal = ({
             precio_base: producto.precio_base || 0,
             deposito: producto.deposito || 0,
             configuracion: null,
-            precio_adicionales: 0
+            precio_adicionales: 0,
+            recargos: []
           }
           return nuevos
         }
@@ -205,6 +253,92 @@ const CotizacionFormModal = ({
     })
   }
 
+  // ============================================
+  // FUNCIONES DE RECARGOS
+  // ============================================
+
+  const abrirModalRecargo = (productoIndex, recargoIndex = null) => {
+    setRecargoModal({
+      isOpen: true,
+      productoIndex,
+      recargoIndex
+    })
+  }
+
+  const cerrarModalRecargo = () => {
+    setRecargoModal({
+      isOpen: false,
+      productoIndex: null,
+      recargoIndex: null
+    })
+  }
+
+  const agregarRecargo = (productoIndex, recargo) => {
+    setProductosSeleccionados(prev => {
+      const nuevos = [...prev]
+      const producto = nuevos[productoIndex]
+      const precioBase = parseFloat(producto.precio_base) || 0
+
+      // Calcular monto del recargo
+      const montoRecargo = Math.round((precioBase * (recargo.porcentaje / 100) * recargo.dias) * 100) / 100
+
+      const nuevoRecargo = {
+        ...recargo,
+        monto_recargo: montoRecargo
+      }
+
+      nuevos[productoIndex] = {
+        ...producto,
+        recargos: [...(producto.recargos || []), nuevoRecargo]
+      }
+      return nuevos
+    })
+    cerrarModalRecargo()
+  }
+
+  const actualizarRecargo = (productoIndex, recargoIndex, recargo) => {
+    setProductosSeleccionados(prev => {
+      const nuevos = [...prev]
+      const producto = nuevos[productoIndex]
+      const precioBase = parseFloat(producto.precio_base) || 0
+
+      // Calcular monto del recargo
+      const montoRecargo = Math.round((precioBase * (recargo.porcentaje / 100) * recargo.dias) * 100) / 100
+
+      const recargosActualizados = [...(producto.recargos || [])]
+      recargosActualizados[recargoIndex] = {
+        ...recargo,
+        monto_recargo: montoRecargo
+      }
+
+      nuevos[productoIndex] = {
+        ...producto,
+        recargos: recargosActualizados
+      }
+      return nuevos
+    })
+    cerrarModalRecargo()
+  }
+
+  const eliminarRecargo = (productoIndex, recargoIndex) => {
+    setProductosSeleccionados(prev => {
+      const nuevos = [...prev]
+      const producto = nuevos[productoIndex]
+      const recargosActualizados = (producto.recargos || []).filter((_, i) => i !== recargoIndex)
+      nuevos[productoIndex] = {
+        ...producto,
+        recargos: recargosActualizados
+      }
+      return nuevos
+    })
+  }
+
+  // Calcular total de recargos de un producto
+  const calcularTotalRecargosProducto = (producto) => {
+    if (!producto.recargos || producto.recargos.length === 0) return 0
+    return producto.recargos.reduce((total, r) => total + (parseFloat(r.monto_recargo) || 0), 0)
+  }
+
   const agregarTransporte = () => {
     setTransporteSeleccionado(prev => [...prev, {
       tarifa_id: '',
@@ -227,7 +361,23 @@ const CotizacionFormModal = ({
   const calcularSubtotalProductos = () => {
     return productosSeleccionados.reduce((total, p) => {
       const subtotal = (parseFloat(p.precio_base) + parseFloat(p.precio_adicionales || 0)) * parseInt(p.cantidad || 1)
+      const recargos = calcularTotalRecargosProducto(p)
+      return total + subtotal + recargos
+    }, 0)
+  }
+
+  // Calcular subtotal de productos sin recargos (para mostrar)
+  const calcularSubtotalProductosSinRecargos = () => {
+    return productosSeleccionados.reduce((total, p) => {
+      const subtotal = (parseFloat(p.precio_base) + parseFloat(p.precio_adicionales || 0)) * parseInt(p.cantidad || 1)
       return total + subtotal
+    }, 0)
+  }
+
+  // Calcular total de todos los recargos
+  const calcularTotalRecargos = () => {
+    return productosSeleccionados.reduce((total, p) => {
+      return total + calcularTotalRecargosProducto(p)
     }, 0)
   }
 
@@ -276,6 +426,7 @@ const CotizacionFormModal = ({
 
     const dataToSend = {
       cliente_id: parseInt(formData.cliente_id),
+      evento_id: formData.evento_id ? parseInt(formData.evento_id) : null,
       fecha_montaje: formData.fecha_montaje || formData.fecha_evento,
       fecha_evento: formData.fecha_evento,
       fecha_desmontaje: formData.fecha_desmontaje || formData.fecha_evento,
@@ -291,7 +442,15 @@ const CotizacionFormModal = ({
         precio_base: parseFloat(p.precio_base) || 0,
         deposito: parseFloat(p.deposito) || 0,
         precio_adicionales: parseFloat(p.precio_adicionales) || 0,
-        configuracion: p.configuracion || null
+        configuracion: p.configuracion || null,
+        recargos: (p.recargos || []).map(r => ({
+          tipo: r.tipo,
+          dias: r.dias,
+          porcentaje: parseFloat(r.porcentaje),
+          fecha_original: r.fecha_original || null,
+          fecha_modificada: r.fecha_modificada || null,
+          notas: r.notas || null
+        }))
       })),
       transporte: transporteSeleccionado.filter(t => t.tarifa_id).map(t => ({
         tarifa_id: parseInt(t.tarifa_id),
@@ -355,31 +514,64 @@ const CotizacionFormModal = ({
           </div>
         )}
 
-        {/* CLIENTE */}
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-2">
-            Cliente *
-          </label>
-          <select
-            name="cliente_id"
-            value={formData.cliente_id}
-            onChange={handleChange}
-            disabled={isLoading || loadingClientes}
-            className={`
-              w-full px-4 py-2.5 border rounded-lg
-              focus:outline-none focus:ring-2 focus:ring-blue-500
-              disabled:bg-slate-100
-              ${errors.cliente_id ? 'border-red-300' : 'border-slate-300'}
-            `}
-          >
-            <option value="">Seleccionar...</option>
-            {clientes.map(c => (
-              <option key={c.id} value={c.id}>{c.nombre}</option>
-            ))}
-          </select>
-          {errors.cliente_id && (
-            <p className="mt-1 text-sm text-red-600">{errors.cliente_id}</p>
-          )}
+        {/* CLIENTE Y EVENTO */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* CLIENTE */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Cliente *
+            </label>
+            <select
+              name="cliente_id"
+              value={formData.cliente_id}
+              onChange={(e) => {
+                handleChange(e)
+                // Limpiar evento si cambia el cliente
+                setFormData(prev => ({ ...prev, cliente_id: e.target.value, evento_id: '' }))
+              }}
+              disabled={isLoading || loadingClientes}
+              className={`
+                w-full px-4 py-2.5 border rounded-lg
+                focus:outline-none focus:ring-2 focus:ring-blue-500
+                disabled:bg-slate-100
+                ${errors.cliente_id ? 'border-red-300' : 'border-slate-300'}
+              `}
+            >
+              <option value="">Seleccionar...</option>
+              {clientes.map(c => (
+                <option key={c.id} value={c.id}>{c.nombre}</option>
+              ))}
+            </select>
+            {errors.cliente_id && (
+              <p className="mt-1 text-sm text-red-600">{errors.cliente_id}</p>
+            )}
+          </div>
+
+          {/* EVENTO (opcional) */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              <CalendarDays className="w-4 h-4 inline mr-1" />
+              Evento (opcional)
+            </label>
+            <select
+              name="evento_id"
+              value={formData.evento_id}
+              onChange={handleChange}
+              disabled={isLoading || loadingEventos || !formData.cliente_id}
+              className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-100"
+            >
+              <option value="">Sin evento asociado</option>
+              {(eventosCliente || []).filter(e => e.estado === 'activo').map(e => (
+                <option key={e.id} value={e.id}>{e.nombre}</option>
+              ))}
+            </select>
+            {!formData.cliente_id && (
+              <p className="mt-1 text-xs text-slate-500">Seleccione un cliente primero</p>
+            )}
+            {formData.cliente_id && (eventosCliente || []).length === 0 && !loadingEventos && (
+              <p className="mt-1 text-xs text-slate-500">Este cliente no tiene eventos activos</p>
+            )}
+          </div>
         </div>
 
         {/* FECHAS: Montaje, Evento, Desmontaje */}
@@ -633,14 +825,108 @@ const CotizacionFormModal = ({
                       Adicionales: +{formatearMoneda(prod.precio_adicionales)}
                     </div>
                   )}
+
+                  {/* SECCIÓN DE RECARGOS */}
+                  {prod.compuesto_id && (
+                    <div className="mt-3 pt-3 border-t border-slate-200">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-medium text-slate-600 flex items-center gap-1">
+                          <Clock className="w-3.5 h-3.5" />
+                          Recargos (adelanto/extensión)
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => abrirModalRecargo(index)}
+                          className="text-xs text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1"
+                          disabled={isLoading}
+                        >
+                          <Plus className="w-3 h-3" />
+                          Agregar recargo
+                        </button>
+                      </div>
+
+                      {/* Lista de recargos del producto */}
+                      {(prod.recargos || []).length > 0 ? (
+                        <div className="space-y-1">
+                          {prod.recargos.map((recargo, recargoIndex) => (
+                            <div
+                              key={recargoIndex}
+                              className={`flex items-center justify-between p-2 rounded text-xs ${
+                                recargo.tipo === 'adelanto'
+                                  ? 'bg-blue-50 border border-blue-100'
+                                  : 'bg-orange-50 border border-orange-100'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2">
+                                <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                                  recargo.tipo === 'adelanto'
+                                    ? 'bg-blue-100 text-blue-700'
+                                    : 'bg-orange-100 text-orange-700'
+                                }`}>
+                                  {recargo.tipo === 'adelanto' ? 'Adelanto' : 'Extensión'}
+                                </span>
+                                <span className="text-slate-600">
+                                  {recargo.dias} día{recargo.dias > 1 ? 's' : ''} @ {recargo.porcentaje}%
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className={`font-medium ${
+                                  recargo.tipo === 'adelanto' ? 'text-blue-700' : 'text-orange-700'
+                                }`}>
+                                  +{formatearMoneda(recargo.monto_recargo)}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => abrirModalRecargo(index, recargoIndex)}
+                                  className="p-1 hover:bg-white rounded"
+                                  title="Editar recargo"
+                                >
+                                  <Percent className="w-3 h-3 text-slate-400" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => eliminarRecargo(index, recargoIndex)}
+                                  className="p-1 hover:bg-white rounded text-red-400 hover:text-red-600"
+                                  title="Eliminar recargo"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                          {/* Total recargos del producto */}
+                          <div className="text-right text-xs pt-1">
+                            <span className="text-slate-500">Total recargos: </span>
+                            <span className="font-medium text-slate-700">
+                              +{formatearMoneda(calcularTotalRecargosProducto(prod))}
+                            </span>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-xs text-slate-400 italic">Sin recargos</p>
+                      )}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
           )}
 
-          <div className="text-right text-sm">
-            <span className="text-slate-600">Subtotal productos: </span>
-            <span className="font-semibold">{formatearMoneda(calcularSubtotalProductos())}</span>
+          <div className="text-right text-sm space-y-1">
+            <div>
+              <span className="text-slate-600">Subtotal productos: </span>
+              <span className="font-medium">{formatearMoneda(calcularSubtotalProductosSinRecargos())}</span>
+            </div>
+            {calcularTotalRecargos() > 0 && (
+              <div>
+                <span className="text-slate-600">Total recargos: </span>
+                <span className="font-medium text-orange-600">+{formatearMoneda(calcularTotalRecargos())}</span>
+              </div>
+            )}
+            <div className="pt-1 border-t border-slate-200">
+              <span className="text-slate-700 font-medium">Total productos: </span>
+              <span className="font-semibold">{formatearMoneda(calcularSubtotalProductos())}</span>
+            </div>
           </div>
 
           {/* VERIFICACIÓN DE DISPONIBILIDAD */}
@@ -806,6 +1092,38 @@ const CotizacionFormModal = ({
           </Button>
         </div>
       </form>
+
+      {/* MODAL DE RECARGOS */}
+      {recargoModal.isOpen && recargoModal.productoIndex !== null && (
+        <RecargoModal
+          isOpen={recargoModal.isOpen}
+          onClose={cerrarModalRecargo}
+          onSave={(recargo) => {
+            if (recargoModal.recargoIndex !== null) {
+              actualizarRecargo(recargoModal.productoIndex, recargoModal.recargoIndex, recargo)
+            } else {
+              agregarRecargo(recargoModal.productoIndex, recargo)
+            }
+          }}
+          producto={(() => {
+            const prod = productosSeleccionados[recargoModal.productoIndex]
+            const productoInfo = productos.find(p => p.id === parseInt(prod?.compuesto_id))
+            return {
+              ...prod,
+              producto_nombre: productoInfo?.nombre || 'Producto'
+            }
+          })()}
+          fechasCotizacion={{
+            fecha_montaje: formData.fecha_montaje || formData.fecha_evento,
+            fecha_desmontaje: formData.fecha_desmontaje || formData.fecha_evento
+          }}
+          recargoEditar={
+            recargoModal.recargoIndex !== null
+              ? productosSeleccionados[recargoModal.productoIndex]?.recargos?.[recargoModal.recargoIndex]
+              : null
+          }
+        />
+      )}
     </Modal>
   )
 }
