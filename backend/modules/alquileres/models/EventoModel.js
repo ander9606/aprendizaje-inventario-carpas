@@ -16,20 +16,23 @@ class EventoModel {
         e.id,
         e.cliente_id,
         e.nombre,
-        e.fecha_evento,
-        e.fecha_montaje,
-        e.fecha_desmontaje,
+        e.descripcion,
+        e.fecha_inicio,
+        e.fecha_fin,
         e.direccion,
-        e.ciudad,
+        e.ciudad_id,
         e.notas,
         e.estado,
         e.created_at,
         c.nombre AS cliente_nombre,
         c.telefono AS cliente_telefono,
-        (SELECT COUNT(*) FROM cotizaciones WHERE evento_id = e.id) AS total_cotizaciones
+        ci.nombre AS ciudad_nombre,
+        (SELECT COUNT(*) FROM cotizaciones WHERE evento_id = e.id) AS total_cotizaciones,
+        (SELECT COALESCE(SUM(total), 0) FROM cotizaciones WHERE evento_id = e.id) AS total_valor
       FROM eventos e
       INNER JOIN clientes c ON e.cliente_id = c.id
-      ORDER BY e.fecha_evento DESC
+      LEFT JOIN ciudades ci ON e.ciudad_id = ci.id
+      ORDER BY e.fecha_inicio DESC
     `;
     const [rows] = await pool.query(query);
     return rows;
@@ -44,9 +47,11 @@ class EventoModel {
         e.*,
         c.nombre AS cliente_nombre,
         c.telefono AS cliente_telefono,
-        c.email AS cliente_email
+        c.email AS cliente_email,
+        ci.nombre AS ciudad_nombre
       FROM eventos e
       INNER JOIN clientes c ON e.cliente_id = c.id
+      LEFT JOIN ciudades ci ON e.ciudad_id = ci.id
       WHERE e.id = ?
     `;
     const [rows] = await pool.query(query, [id]);
@@ -61,14 +66,17 @@ class EventoModel {
       SELECT
         e.id,
         e.nombre,
-        e.fecha_evento,
-        e.ciudad,
+        e.fecha_inicio,
+        e.fecha_fin,
+        e.ciudad_id,
+        ci.nombre AS ciudad_nombre,
         e.estado,
         e.created_at,
         (SELECT COUNT(*) FROM cotizaciones WHERE evento_id = e.id) AS total_cotizaciones
       FROM eventos e
+      LEFT JOIN ciudades ci ON e.ciudad_id = ci.id
       WHERE e.cliente_id = ?
-      ORDER BY e.fecha_evento DESC
+      ORDER BY e.fecha_inicio DESC
     `;
     const [rows] = await pool.query(query, [clienteId]);
     return rows;
@@ -83,14 +91,17 @@ class EventoModel {
         e.id,
         e.cliente_id,
         e.nombre,
-        e.fecha_evento,
-        e.ciudad,
+        e.fecha_inicio,
+        e.fecha_fin,
+        e.ciudad_id,
+        ci.nombre AS ciudad_nombre,
         e.estado,
         c.nombre AS cliente_nombre
       FROM eventos e
       INNER JOIN clientes c ON e.cliente_id = c.id
+      LEFT JOIN ciudades ci ON e.ciudad_id = ci.id
       WHERE e.estado = ?
-      ORDER BY e.fecha_evento ASC
+      ORDER BY e.fecha_inicio ASC
     `;
     const [rows] = await pool.query(query, [estado]);
     return rows;
@@ -99,20 +110,20 @@ class EventoModel {
   // ============================================
   // CREAR
   // ============================================
-  static async crear({ cliente_id, nombre, fecha_evento, fecha_montaje, fecha_desmontaje, direccion, ciudad, notas }) {
+  static async crear({ cliente_id, nombre, descripcion, fecha_inicio, fecha_fin, direccion, ciudad_id, notas }) {
     const query = `
       INSERT INTO eventos
-        (cliente_id, nombre, fecha_evento, fecha_montaje, fecha_desmontaje, direccion, ciudad, notas)
+        (cliente_id, nombre, descripcion, fecha_inicio, fecha_fin, direccion, ciudad_id, notas)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `;
     const [result] = await pool.query(query, [
       cliente_id,
       nombre,
-      fecha_evento,
-      fecha_montaje || fecha_evento,
-      fecha_desmontaje || fecha_evento,
+      descripcion || null,
+      fecha_inicio,
+      fecha_fin || fecha_inicio,
       direccion || null,
-      ciudad || null,
+      ciudad_id || null,
       notas || null
     ]);
     return result;
@@ -121,20 +132,20 @@ class EventoModel {
   // ============================================
   // ACTUALIZAR
   // ============================================
-  static async actualizar(id, { nombre, fecha_evento, fecha_montaje, fecha_desmontaje, direccion, ciudad, notas, estado }) {
+  static async actualizar(id, { nombre, descripcion, fecha_inicio, fecha_fin, direccion, ciudad_id, notas, estado }) {
     const query = `
       UPDATE eventos
-      SET nombre = ?, fecha_evento = ?, fecha_montaje = ?, fecha_desmontaje = ?,
-          direccion = ?, ciudad = ?, notas = ?, estado = COALESCE(?, estado)
+      SET nombre = ?, descripcion = ?, fecha_inicio = ?, fecha_fin = ?,
+          direccion = ?, ciudad_id = ?, notas = ?, estado = COALESCE(?, estado)
       WHERE id = ?
     `;
     const [result] = await pool.query(query, [
       nombre,
-      fecha_evento,
-      fecha_montaje || fecha_evento,
-      fecha_desmontaje || fecha_evento,
+      descripcion || null,
+      fecha_inicio,
+      fecha_fin || fecha_inicio,
       direccion || null,
-      ciudad || null,
+      ciudad_id || null,
       notas || null,
       estado,
       id
