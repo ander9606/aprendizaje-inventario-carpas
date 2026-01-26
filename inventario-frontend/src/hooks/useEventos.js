@@ -9,59 +9,94 @@ import apiEventos from '../api/apiEventos'
  * Hook para obtener todos los eventos
  */
 export const useGetEventos = () => {
-  return useQuery({
+  const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['eventos'],
     queryFn: apiEventos.obtenerTodos,
-    select: (data) => data.data
+    select: (response) => response.data
   })
+
+  return {
+    eventos: data || [],
+    isLoading,
+    error,
+    refetch
+  }
 }
 
 /**
  * Hook para obtener evento por ID
  */
 export const useGetEvento = (id) => {
-  return useQuery({
+  const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['eventos', id],
     queryFn: () => apiEventos.obtenerPorId(id),
     enabled: !!id,
-    select: (data) => data.data
+    select: (response) => response.data
   })
+
+  return {
+    evento: data || null,
+    isLoading,
+    error,
+    refetch
+  }
 }
 
 /**
  * Hook para obtener eventos por cliente
  */
 export const useGetEventosPorCliente = (clienteId) => {
-  return useQuery({
+  const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['eventos', 'cliente', clienteId],
     queryFn: () => apiEventos.obtenerPorCliente(clienteId),
     enabled: !!clienteId,
-    select: (data) => data.data
+    select: (response) => response.data
   })
+
+  return {
+    eventos: data || [],
+    isLoading,
+    error,
+    refetch
+  }
 }
 
 /**
  * Hook para obtener eventos por estado
  */
 export const useGetEventosPorEstado = (estado) => {
-  return useQuery({
+  const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['eventos', 'estado', estado],
     queryFn: () => apiEventos.obtenerPorEstado(estado),
     enabled: !!estado,
-    select: (data) => data.data
+    select: (response) => response.data
   })
+
+  return {
+    eventos: data || [],
+    isLoading,
+    error,
+    refetch
+  }
 }
 
 /**
  * Hook para obtener cotizaciones de un evento
  */
 export const useGetCotizacionesEvento = (eventoId) => {
-  return useQuery({
+  const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['eventos', eventoId, 'cotizaciones'],
     queryFn: () => apiEventos.obtenerCotizaciones(eventoId),
     enabled: !!eventoId,
-    select: (data) => data.data
+    select: (response) => response.data
   })
+
+  return {
+    cotizaciones: data || [],
+    isLoading,
+    error,
+    refetch
+  }
 }
 
 /**
@@ -74,7 +109,7 @@ export const useCreateEvento = () => {
     mutationFn: apiEventos.crear,
     retry: 0,
     onSuccess: () => {
-      queryClient.invalidateQueries(['eventos'])
+      queryClient.invalidateQueries({ queryKey: ['eventos'] })
     }
   })
 }
@@ -89,8 +124,8 @@ export const useUpdateEvento = () => {
     mutationFn: ({ id, data }) => apiEventos.actualizar(id, data),
     retry: 0,
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries(['eventos'])
-      queryClient.invalidateQueries(['eventos', variables.id])
+      queryClient.invalidateQueries({ queryKey: ['eventos'] })
+      queryClient.invalidateQueries({ queryKey: ['eventos', variables.id] })
     }
   })
 }
@@ -105,8 +140,8 @@ export const useCambiarEstadoEvento = () => {
     mutationFn: ({ id, estado }) => apiEventos.cambiarEstado(id, estado),
     retry: 0,
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries(['eventos'])
-      queryClient.invalidateQueries(['eventos', variables.id])
+      queryClient.invalidateQueries({ queryKey: ['eventos'] })
+      queryClient.invalidateQueries({ queryKey: ['eventos', variables.id] })
     }
   })
 }
@@ -121,7 +156,7 @@ export const useDeleteEvento = () => {
     mutationFn: apiEventos.eliminar,
     retry: 0,
     onSuccess: () => {
-      queryClient.invalidateQueries(['eventos'])
+      queryClient.invalidateQueries({ queryKey: ['eventos'] })
     }
   })
 }
