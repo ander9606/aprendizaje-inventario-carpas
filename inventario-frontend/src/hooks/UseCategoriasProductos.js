@@ -93,6 +93,10 @@ export const useGetCategoriasConConteo = () => {
     queryFn: categoriasProductosAPI.obtenerConConteo
   })
 
+  // DEBUG
+  console.log('useGetCategoriasConConteo - raw data:', data)
+  console.log('useGetCategoriasConConteo - data.data:', data?.data)
+
   return {
     categorias: data?.data || [],
     isLoading,

@@ -33,6 +33,9 @@ const ProductoSelectorTarjetas = ({
     categoriaSeleccionada?.id
   )
 
+  // DEBUG: Ver estado de las categorías
+  console.log('ProductoSelectorTarjetas - categorias:', { categorias, loadingCategorias, errorCategorias })
+
   // ============================================
   // HANDLERS
   // ============================================
