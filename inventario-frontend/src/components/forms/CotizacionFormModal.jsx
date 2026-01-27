@@ -928,6 +928,8 @@ const CotizacionFormModal = ({
               <ProductoSelectorTarjetas
                 onProductoAgregado={agregarProductoDesdeTarjetas}
                 disabled={isLoading}
+                fechaMontaje={formData.fecha_montaje || formData.fecha_evento}
+                fechaDesmontaje={formData.fecha_desmontaje || formData.fecha_evento}
               />
             </div>
           )}

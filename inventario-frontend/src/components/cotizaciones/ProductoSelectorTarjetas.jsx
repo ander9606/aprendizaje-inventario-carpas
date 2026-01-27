@@ -3,12 +3,14 @@
 // Selector de productos con tarjetas en 2 pasos
 // Paso 1: Seleccionar categoria
 // Paso 2: Seleccionar productos de esa categoria
+// Con verificación de disponibilidad por fechas
 // ============================================
 
-import { useState } from 'react'
-import { ArrowLeft, Package, Search, Loader2 } from 'lucide-react'
+import { useState, useEffect, useMemo } from 'react'
+import { ArrowLeft, Package, Search, Loader2, Calendar } from 'lucide-react'
 import { useGetCategoriasConConteo } from '../../hooks/UseCategoriasProductos'
 import { useGetProductosPorCategoria } from '../../hooks/UseProductosAlquiler'
+import { useVerificarDisponibilidadProductos } from '../../hooks/useDisponibilidad'
 import CategoriaCardSelector from './CategoriaCardSelector'
 import ProductoCardSelector from './ProductoCardSelector'
 import Button from '../common/Button'
@@ -16,7 +18,9 @@ import Spinner from '../common/Spinner'
 
 const ProductoSelectorTarjetas = ({
   onProductoAgregado,
-  disabled = false
+  disabled = false,
+  fechaMontaje = null,
+  fechaDesmontaje = null
 }) => {
   // ============================================
   // ESTADO
@@ -32,6 +36,64 @@ const ProductoSelectorTarjetas = ({
   const { productos, isLoading: loadingProductos, error: errorProductos } = useGetProductosPorCategoria(
     categoriaSeleccionada?.id
   )
+
+  // Hook para verificar disponibilidad
+  const { verificar, resultado: disponibilidadResultado, isLoading: loadingDisponibilidad, limpiar } = useVerificarDisponibilidadProductos()
+
+  // ============================================
+  // DISPONIBILIDAD: Verificar cuando hay productos y fechas
+  // ============================================
+  useEffect(() => {
+    if (paso === 'productos' && productos.length > 0 && fechaMontaje) {
+      // Preparar productos para verificación (1 de cada uno)
+      const productosParaVerificar = productos.map(p => ({
+        compuesto_id: p.id,
+        cantidad: 1
+      }))
+      verificar(productosParaVerificar, fechaMontaje, fechaDesmontaje || fechaMontaje)
+    } else {
+      limpiar()
+    }
+  }, [paso, productos.length, fechaMontaje, fechaDesmontaje])
+
+  // Crear mapa de disponibilidad por producto_id
+  const disponibilidadPorProducto = useMemo(() => {
+    if (!disponibilidadResultado?.elementos) return {}
+
+    // El resultado tiene elementos por elemento_id, necesitamos mapearlo por producto
+    // Para cada producto, encontramos el elemento más limitante
+    const mapa = {}
+
+    productos.forEach(producto => {
+      // Buscar si algún elemento del resultado corresponde a este producto
+      // Como verificamos con cantidad 1, el disponible es el mínimo entre componentes
+      const elementosDelProducto = disponibilidadResultado.elementos
+
+      if (elementosDelProducto && elementosDelProducto.length > 0) {
+        // Encontrar el componente más limitante
+        let minDisponibles = Infinity
+        let hayInsuficiente = false
+
+        elementosDelProducto.forEach(elem => {
+          if (elem.disponibles < minDisponibles) {
+            minDisponibles = elem.disponibles
+          }
+          if (elem.estado === 'insuficiente') {
+            hayInsuficiente = true
+          }
+        })
+
+        // Como todos los productos verificados comparten elementos, distribuimos proporcionalmente
+        // Pero por ahora mostramos el mínimo disponible global
+        mapa[producto.id] = {
+          disponibles: minDisponibles === Infinity ? 0 : minDisponibles,
+          estado: hayInsuficiente ? 'insuficiente' : 'ok'
+        }
+      }
+    })
+
+    return mapa
+  }, [disponibilidadResultado, productos])
 
   // ============================================
   // HANDLERS
@@ -132,6 +194,26 @@ const ProductoSelectorTarjetas = ({
         </div>
       </div>
 
+      {/* Indicador de fechas para disponibilidad */}
+      {!fechaMontaje ? (
+        <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-700">
+          <Calendar className="w-5 h-5" />
+          <span className="text-sm">
+            Seleccione fechas de montaje para ver disponibilidad en tiempo real
+          </span>
+        </div>
+      ) : (
+        <div className="flex items-center gap-2 p-2 bg-blue-50 border border-blue-200 rounded-lg text-blue-700">
+          <Calendar className="w-4 h-4" />
+          <span className="text-sm">
+            Disponibilidad para: {fechaMontaje} - {fechaDesmontaje || fechaMontaje}
+          </span>
+          {loadingDisponibilidad && (
+            <Loader2 className="w-4 h-4 animate-spin ml-auto" />
+          )}
+        </div>
+      )}
+
       {/* Buscador */}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -168,6 +250,10 @@ const ProductoSelectorTarjetas = ({
               producto={producto}
               onAgregar={handleAgregarProducto}
               disabled={disabled}
+              fechaMontaje={fechaMontaje}
+              fechaDesmontaje={fechaDesmontaje}
+              disponibilidadInfo={disponibilidadPorProducto[producto.id]}
+              loadingDisponibilidad={loadingDisponibilidad}
             />
           ))}
         </div>
