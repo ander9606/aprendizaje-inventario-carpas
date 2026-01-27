@@ -409,9 +409,80 @@ const CotizacionFormModal = ({
     }, 0)
   }
 
+  // ============================================
+  // CÁLCULO DE DÍAS ADICIONALES
+  // ============================================
+  const DIAS_GRATIS_MONTAJE = 2
+  const DIAS_GRATIS_DESMONTAJE = 1
+  const PORCENTAJE_DIA_EXTRA = 15 // 15% por día adicional
+  const PORCENTAJE_IVA = 19 // 19% IVA Colombia
+
+  const calcularDiasAdicionales = () => {
+    if (!formData.fecha_evento) {
+      return { diasMontajeExtra: 0, diasDesmontrajeExtra: 0, totalDiasExtra: 0, cobroDiasExtra: 0 }
+    }
+
+    const fechaEvento = new Date(formData.fecha_evento + 'T12:00:00')
+    const fechaMontaje = formData.fecha_montaje ? new Date(formData.fecha_montaje + 'T12:00:00') : fechaEvento
+    const fechaDesmontaje = formData.fecha_desmontaje ? new Date(formData.fecha_desmontaje + 'T12:00:00') : fechaEvento
+
+    // Calcular días de diferencia
+    const diasMontaje = Math.max(0, Math.floor((fechaEvento - fechaMontaje) / (1000 * 60 * 60 * 24)))
+    const diasDesmontaje = Math.max(0, Math.floor((fechaDesmontaje - fechaEvento) / (1000 * 60 * 60 * 24)))
+
+    // Días adicionales (descontando los gratis)
+    const diasMontajeExtra = Math.max(0, diasMontaje - DIAS_GRATIS_MONTAJE)
+    const diasDesmontrajeExtra = Math.max(0, diasDesmontaje - DIAS_GRATIS_DESMONTAJE)
+    const totalDiasExtra = diasMontajeExtra + diasDesmontrajeExtra
+
+    // Cobro por días adicionales (% sobre subtotal de productos)
+    const subtotalProductos = calcularSubtotalProductos()
+    const cobroDiasExtra = totalDiasExtra > 0
+      ? (subtotalProductos * (PORCENTAJE_DIA_EXTRA / 100) * totalDiasExtra)
+      : 0
+
+    return {
+      diasMontaje,
+      diasDesmontaje,
+      diasMontajeExtra,
+      diasDesmontrajeExtra,
+      totalDiasExtra,
+      cobroDiasExtra,
+      porcentaje: PORCENTAJE_DIA_EXTRA
+    }
+  }
+
+  // ============================================
+  // CÁLCULO DE TOTALES CON IVA
+  // ============================================
+  const calcularTotalesConIVA = () => {
+    const subtotalProductos = calcularSubtotalProductos()
+    const subtotalTransporte = calcularSubtotalTransporte()
+    const { cobroDiasExtra, totalDiasExtra } = calcularDiasAdicionales()
+    const descuento = parseFloat(formData.descuento || 0)
+
+    const subtotalBruto = subtotalProductos + subtotalTransporte + cobroDiasExtra
+    const baseGravable = Math.max(0, subtotalBruto - descuento)
+    const valorIVA = baseGravable * (PORCENTAJE_IVA / 100)
+    const totalFinal = baseGravable + valorIVA
+
+    return {
+      subtotalProductos,
+      subtotalTransporte,
+      cobroDiasExtra,
+      totalDiasExtra,
+      subtotalBruto,
+      descuento,
+      baseGravable,
+      porcentajeIVA: PORCENTAJE_IVA,
+      valorIVA,
+      totalFinal
+    }
+  }
+
   const calcularTotal = () => {
-    const subtotal = calcularSubtotalProductos() + calcularSubtotalTransporte()
-    return subtotal - parseFloat(formData.descuento || 0)
+    const { totalFinal } = calcularTotalesConIVA()
+    return totalFinal
   }
 
   const validate = () => {
@@ -694,6 +765,40 @@ const CotizacionFormModal = ({
             <p className="mt-1 text-xs text-slate-500">Cuando se recoge</p>
           </div>
         </div>
+
+        {/* INDICADOR DE DÍAS ADICIONALES */}
+        {formData.fecha_evento && (formData.fecha_montaje || formData.fecha_desmontaje) && (() => {
+          const { diasMontajeExtra, diasDesmontrajeExtra, totalDiasExtra, cobroDiasExtra, porcentaje } = calcularDiasAdicionales()
+          if (totalDiasExtra > 0) {
+            return (
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <Clock className="w-5 h-5 text-amber-600 mt-0.5" />
+                  <div className="flex-1">
+                    <h4 className="font-medium text-amber-800">Días adicionales detectados</h4>
+                    <div className="mt-2 text-sm text-amber-700 space-y-1">
+                      {diasMontajeExtra > 0 && (
+                        <p>• Montaje: {diasMontajeExtra} día{diasMontajeExtra > 1 ? 's' : ''} extra (gratis: {DIAS_GRATIS_MONTAJE} días antes)</p>
+                      )}
+                      {diasDesmontrajeExtra > 0 && (
+                        <p>• Desmontaje: {diasDesmontrajeExtra} día{diasDesmontrajeExtra > 1 ? 's' : ''} extra (gratis: {DIAS_GRATIS_DESMONTAJE} día después)</p>
+                      )}
+                    </div>
+                    <div className="mt-3 pt-2 border-t border-amber-200 flex justify-between items-center">
+                      <span className="text-sm text-amber-800">
+                        Recargo: {totalDiasExtra} día{totalDiasExtra > 1 ? 's' : ''} × {porcentaje}%
+                      </span>
+                      <span className="font-semibold text-amber-900">
+                        +{formatearMoneda(cobroDiasExtra)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )
+          }
+          return null
+        })()}
 
         {/* INFORMACION DEL EVENTO - Solo si NO viene de un evento preseleccionado */}
         {!eventoPreseleccionado && (
@@ -1128,31 +1233,78 @@ const CotizacionFormModal = ({
           )}
         </div>
 
-        {/* TOTALES */}
-        <div className="bg-slate-100 rounded-lg p-4 space-y-2">
-          <div className="flex justify-between items-center">
-            <span className="text-slate-600">Subtotal:</span>
-            <span className="font-medium">{formatearMoneda(calcularSubtotalProductos() + calcularSubtotalTransporte())}</span>
-          </div>
+        {/* TOTALES CON DESGLOSE IVA */}
+        {(() => {
+          const totales = calcularTotalesConIVA()
+          return (
+            <div className="bg-slate-100 rounded-lg p-4 space-y-2">
+              {/* Subtotal Productos */}
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-slate-600">Subtotal productos:</span>
+                <span className="font-medium">{formatearMoneda(totales.subtotalProductos)}</span>
+              </div>
 
-          <div className="flex justify-between items-center">
-            <label className="text-slate-600">Descuento:</label>
-            <input
-              type="number"
-              name="descuento"
-              min="0"
-              value={formData.descuento}
-              onChange={handleChange}
-              disabled={isLoading}
-              className="w-32 px-3 py-1 border border-slate-300 rounded-lg text-sm text-right"
-            />
-          </div>
+              {/* Subtotal Transporte */}
+              {totales.subtotalTransporte > 0 && (
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-slate-600">Subtotal transporte:</span>
+                  <span className="font-medium">{formatearMoneda(totales.subtotalTransporte)}</span>
+                </div>
+              )}
 
-          <div className="flex justify-between items-center pt-2 border-t border-slate-300">
-            <span className="text-lg font-bold text-slate-900">TOTAL:</span>
-            <span className="text-lg font-bold text-slate-900">{formatearMoneda(calcularTotal())}</span>
-          </div>
-        </div>
+              {/* Días Adicionales */}
+              {totales.cobroDiasExtra > 0 && (
+                <div className="flex justify-between items-center text-sm text-amber-700">
+                  <span>Días adicionales ({totales.totalDiasExtra} días):</span>
+                  <span className="font-medium">+{formatearMoneda(totales.cobroDiasExtra)}</span>
+                </div>
+              )}
+
+              {/* Línea separadora */}
+              <div className="border-t border-slate-300 pt-2">
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-slate-600">Subtotal:</span>
+                  <span className="font-medium">{formatearMoneda(totales.subtotalBruto)}</span>
+                </div>
+              </div>
+
+              {/* Descuento */}
+              <div className="flex justify-between items-center">
+                <label className="text-slate-600 text-sm">Descuento:</label>
+                <div className="flex items-center gap-2">
+                  <span className="text-red-600 text-sm">-</span>
+                  <input
+                    type="number"
+                    name="descuento"
+                    min="0"
+                    value={formData.descuento}
+                    onChange={handleChange}
+                    disabled={isLoading}
+                    className="w-28 px-3 py-1 border border-slate-300 rounded-lg text-sm text-right"
+                  />
+                </div>
+              </div>
+
+              {/* Base Gravable */}
+              <div className="flex justify-between items-center text-sm border-t border-slate-300 pt-2">
+                <span className="text-slate-700 font-medium">Base gravable:</span>
+                <span className="font-medium">{formatearMoneda(totales.baseGravable)}</span>
+              </div>
+
+              {/* IVA */}
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-slate-600">IVA ({totales.porcentajeIVA}%):</span>
+                <span className="font-medium">+{formatearMoneda(totales.valorIVA)}</span>
+              </div>
+
+              {/* TOTAL FINAL */}
+              <div className="flex justify-between items-center pt-3 border-t-2 border-slate-400">
+                <span className="text-lg font-bold text-slate-900">TOTAL:</span>
+                <span className="text-lg font-bold text-blue-600">{formatearMoneda(totales.totalFinal)}</span>
+              </div>
+            </div>
+          )
+        })()}
 
         {/* NOTAS */}
         <div>

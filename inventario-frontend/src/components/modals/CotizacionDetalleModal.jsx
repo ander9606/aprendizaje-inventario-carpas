@@ -269,25 +269,65 @@ const CotizacionDetalleModal = ({
               </div>
             </div>
 
-            {/* TOTALES - Simplificado */}
+            {/* TOTALES CON DESGLOSE COMPLETO */}
             <div className="border-t-2 border-slate-200 pt-4">
               <div className="flex justify-end">
-                <div className="w-72">
-                  {descuento > 0 && (
-                    <>
-                      <div className="flex justify-between py-2">
-                        <span className="text-slate-600">Subtotal:</span>
-                        <span className="font-medium">{formatearMoneda(subtotalProductos + subtotalTransporte)}</span>
-                      </div>
-                      <div className="flex justify-between py-2 text-green-600">
-                        <span>Descuento:</span>
-                        <span className="font-medium">-{formatearMoneda(descuento)}</span>
-                      </div>
-                    </>
+                <div className="w-80">
+                  {/* Subtotal Productos */}
+                  <div className="flex justify-between py-1.5 text-sm">
+                    <span className="text-slate-600">Subtotal productos:</span>
+                    <span className="font-medium">{formatearMoneda(subtotalProductos)}</span>
+                  </div>
+
+                  {/* Subtotal Transporte */}
+                  {subtotalTransporte > 0 && (
+                    <div className="flex justify-between py-1.5 text-sm">
+                      <span className="text-slate-600">Subtotal transporte:</span>
+                      <span className="font-medium">{formatearMoneda(subtotalTransporte)}</span>
+                    </div>
                   )}
+
+                  {/* Días Adicionales */}
+                  {cotizacion.cobro_dias_extra > 0 && (
+                    <div className="flex justify-between py-1.5 text-sm text-amber-700">
+                      <span>Días adicionales ({(cotizacion.dias_montaje_extra || 0) + (cotizacion.dias_desmontaje_extra || 0)} días):</span>
+                      <span className="font-medium">+{formatearMoneda(cotizacion.cobro_dias_extra)}</span>
+                    </div>
+                  )}
+
+                  {/* Línea separadora */}
+                  <div className="border-t border-slate-200 my-2"></div>
+
+                  {/* Subtotal */}
+                  <div className="flex justify-between py-1.5 text-sm">
+                    <span className="text-slate-600">Subtotal:</span>
+                    <span className="font-medium">{formatearMoneda(subtotalProductos + subtotalTransporte + (cotizacion.cobro_dias_extra || 0))}</span>
+                  </div>
+
+                  {/* Descuento */}
+                  {descuento > 0 && (
+                    <div className="flex justify-between py-1.5 text-sm text-green-600">
+                      <span>Descuento:</span>
+                      <span className="font-medium">-{formatearMoneda(descuento)}</span>
+                    </div>
+                  )}
+
+                  {/* Base Gravable */}
+                  <div className="flex justify-between py-1.5 text-sm border-t border-slate-200 mt-2 pt-2">
+                    <span className="text-slate-700 font-medium">Base gravable:</span>
+                    <span className="font-medium">{formatearMoneda(cotizacion.base_gravable || (subtotalProductos + subtotalTransporte - descuento))}</span>
+                  </div>
+
+                  {/* IVA */}
+                  <div className="flex justify-between py-1.5 text-sm">
+                    <span className="text-slate-600">IVA ({cotizacion.porcentaje_iva || 19}%):</span>
+                    <span className="font-medium">+{formatearMoneda(cotizacion.valor_iva || 0)}</span>
+                  </div>
+
+                  {/* TOTAL FINAL */}
                   <div className="flex justify-between py-3 border-t-2 border-slate-900 mt-2">
                     <span className="text-xl font-bold text-slate-900">TOTAL:</span>
-                    <span className="text-xl font-bold text-slate-900">{formatearMoneda(total)}</span>
+                    <span className="text-xl font-bold text-blue-700">{formatearMoneda(cotizacion.total || total)}</span>
                   </div>
                 </div>
               </div>
