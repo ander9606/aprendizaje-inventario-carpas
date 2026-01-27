@@ -19,6 +19,7 @@ import { useGetTarifasTransporte } from '../../hooks/UseTarifasTransporte'
 import { useGetCiudadesActivas } from '../../hooks/UseCiudades'
 import { useGetUbicacionesActivas } from '../../hooks/Useubicaciones'
 import { useGetEventosPorCliente } from '../../hooks/useEventos'
+import { useGetConfiguracionCompleta } from '../../hooks/useConfiguracion'
 
 /**
  * CotizacionFormModal
@@ -73,6 +74,7 @@ const CotizacionFormModal = ({
   const { tarifas, isLoading: loadingTarifas } = useGetTarifasTransporte()
   const { ciudades, isLoading: loadingCiudades } = useGetCiudadesActivas()
   const { ubicaciones, isLoading: loadingUbicaciones } = useGetUbicacionesActivas()
+  const { data: configuracion } = useGetConfiguracionCompleta()
 
   const { mutateAsync: createCotizacion, isLoading: isCreating } = useCreateCotizacion()
   const { mutateAsync: updateCotizacion, isLoading: isUpdating } = useUpdateCotizacion()
@@ -411,11 +413,12 @@ const CotizacionFormModal = ({
 
   // ============================================
   // CÁLCULO DE DÍAS ADICIONALES
+  // Valores desde configuración del sistema
   // ============================================
-  const DIAS_GRATIS_MONTAJE = 2
-  const DIAS_GRATIS_DESMONTAJE = 1
-  const PORCENTAJE_DIA_EXTRA = 15 // 15% por día adicional
-  const PORCENTAJE_IVA = 19 // 19% IVA Colombia
+  const DIAS_GRATIS_MONTAJE = configuracion?.dias_gratis_montaje ?? 2
+  const DIAS_GRATIS_DESMONTAJE = configuracion?.dias_gratis_desmontaje ?? 1
+  const PORCENTAJE_DIA_EXTRA = configuracion?.porcentaje_dias_extra ?? 15
+  const PORCENTAJE_IVA = configuracion?.porcentaje_iva ?? 19
 
   const calcularDiasAdicionales = () => {
     if (!formData.fecha_evento) {
