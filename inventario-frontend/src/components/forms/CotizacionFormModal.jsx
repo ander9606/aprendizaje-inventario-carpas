@@ -4,7 +4,7 @@
 // ============================================
 
 import { useState, useEffect, useMemo } from 'react'
-import { Plus, Trash2, Package, Truck, MapPin, CalendarDays, Clock, Percent, ChevronDown, ChevronUp, CheckCircle } from 'lucide-react'
+import { Plus, Trash2, Package, Truck, MapPin, CalendarDays, Calendar, Clock, Percent, ChevronDown, ChevronUp, CheckCircle, User } from 'lucide-react'
 import Modal from '../common/Modal'
 import Button from '../common/Button'
 import ProductoSelector from '../common/ProductoSelector'
@@ -417,13 +417,15 @@ const CotizacionFormModal = ({
   const validate = () => {
     const newErrors = {}
 
-    if (!formData.cliente_id) {
+    // Cliente solo es requerido si no viene de evento preseleccionado
+    if (!eventoPreseleccionado && !formData.cliente_id) {
       newErrors.cliente_id = 'Seleccione un cliente'
     }
     if (!formData.fecha_evento) {
       newErrors.fecha_evento = 'La fecha del evento es obligatoria'
     }
-    if (!formData.evento_ciudad) {
+    // Ciudad solo es requerida si no viene de evento preseleccionado
+    if (!eventoPreseleccionado && !formData.evento_ciudad) {
       newErrors.evento_ciudad = 'Seleccione una ciudad'
     }
     if (productosSeleccionados.length === 0) {
@@ -532,65 +534,108 @@ const CotizacionFormModal = ({
           </div>
         )}
 
-        {/* CLIENTE Y EVENTO */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* CLIENTE */}
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
-              Cliente *
-            </label>
-            <select
-              name="cliente_id"
-              value={formData.cliente_id}
-              onChange={(e) => {
-                handleChange(e)
-                // Limpiar evento si cambia el cliente
-                setFormData(prev => ({ ...prev, cliente_id: e.target.value, evento_id: '' }))
-              }}
-              disabled={isLoading || loadingClientes}
-              className={`
-                w-full px-4 py-2.5 border rounded-lg
-                focus:outline-none focus:ring-2 focus:ring-blue-500
-                disabled:bg-slate-100
-                ${errors.cliente_id ? 'border-red-300' : 'border-slate-300'}
-              `}
-            >
-              <option value="">Seleccionar...</option>
-              {clientes.map(c => (
-                <option key={c.id} value={c.id}>{c.nombre}</option>
-              ))}
-            </select>
-            {errors.cliente_id && (
-              <p className="mt-1 text-sm text-red-600">{errors.cliente_id}</p>
-            )}
+        {/* RESUMEN DEL EVENTO - Cuando viene de un evento preseleccionado */}
+        {eventoPreseleccionado && (
+          <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-xl p-4">
+            <div className="flex items-start gap-4">
+              <div className="p-2 bg-purple-100 rounded-lg">
+                <CalendarDays className="w-5 h-5 text-purple-600" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-semibold text-slate-900 text-lg">
+                  {eventoPreseleccionado.nombre}
+                </h3>
+                <div className="mt-2 grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm">
+                  <div className="flex items-center gap-1.5 text-slate-600">
+                    <User className="w-4 h-4 text-slate-400" />
+                    <span className="truncate">{eventoPreseleccionado.cliente_nombre || 'Cliente'}</span>
+                  </div>
+                  {eventoPreseleccionado.ciudad_nombre && (
+                    <div className="flex items-center gap-1.5 text-slate-600">
+                      <MapPin className="w-4 h-4 text-slate-400" />
+                      <span className="truncate">{eventoPreseleccionado.ciudad_nombre}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-1.5 text-slate-600">
+                    <Calendar className="w-4 h-4 text-slate-400" />
+                    <span>
+                      {eventoPreseleccionado.fecha_inicio?.split('T')[0]}
+                      {eventoPreseleccionado.fecha_fin !== eventoPreseleccionado.fecha_inicio &&
+                        ` → ${eventoPreseleccionado.fecha_fin?.split('T')[0]}`}
+                    </span>
+                  </div>
+                </div>
+                {eventoPreseleccionado.direccion && (
+                  <p className="mt-2 text-sm text-slate-500 truncate">
+                    📍 {eventoPreseleccionado.direccion}
+                  </p>
+                )}
+              </div>
+            </div>
           </div>
+        )}
 
-          {/* EVENTO (opcional) */}
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
-              <CalendarDays className="w-4 h-4 inline mr-1" />
-              Evento (opcional)
-            </label>
-            <select
-              name="evento_id"
-              value={formData.evento_id}
-              onChange={handleChange}
-              disabled={isLoading || loadingEventos || !formData.cliente_id}
-              className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-100"
-            >
-              <option value="">Sin evento asociado</option>
-              {(eventosCliente || []).filter(e => e.estado === 'activo').map(e => (
-                <option key={e.id} value={e.id}>{e.nombre}</option>
-              ))}
-            </select>
-            {!formData.cliente_id && (
-              <p className="mt-1 text-xs text-slate-500">Seleccione un cliente primero</p>
-            )}
-            {formData.cliente_id && (eventosCliente || []).length === 0 && !loadingEventos && (
-              <p className="mt-1 text-xs text-slate-500">Este cliente no tiene eventos activos</p>
-            )}
+        {/* CLIENTE Y EVENTO - Solo si NO viene de un evento preseleccionado */}
+        {!eventoPreseleccionado && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* CLIENTE */}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Cliente *
+              </label>
+              <select
+                name="cliente_id"
+                value={formData.cliente_id}
+                onChange={(e) => {
+                  handleChange(e)
+                  // Limpiar evento si cambia el cliente
+                  setFormData(prev => ({ ...prev, cliente_id: e.target.value, evento_id: '' }))
+                }}
+                disabled={isLoading || loadingClientes}
+                className={`
+                  w-full px-4 py-2.5 border rounded-lg
+                  focus:outline-none focus:ring-2 focus:ring-blue-500
+                  disabled:bg-slate-100
+                  ${errors.cliente_id ? 'border-red-300' : 'border-slate-300'}
+                `}
+              >
+                <option value="">Seleccionar...</option>
+                {clientes.map(c => (
+                  <option key={c.id} value={c.id}>{c.nombre}</option>
+                ))}
+              </select>
+              {errors.cliente_id && (
+                <p className="mt-1 text-sm text-red-600">{errors.cliente_id}</p>
+              )}
+            </div>
+
+            {/* EVENTO (opcional) */}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                <CalendarDays className="w-4 h-4 inline mr-1" />
+                Evento (opcional)
+              </label>
+              <select
+                name="evento_id"
+                value={formData.evento_id}
+                onChange={handleChange}
+                disabled={isLoading || loadingEventos || !formData.cliente_id}
+                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-100"
+              >
+                <option value="">Sin evento asociado</option>
+                {(eventosCliente || []).filter(e => e.estado === 'activo').map(e => (
+                  <option key={e.id} value={e.id}>{e.nombre}</option>
+                ))}
+              </select>
+              {!formData.cliente_id && (
+                <p className="mt-1 text-xs text-slate-500">Seleccione un cliente primero</p>
+              )}
+              {formData.cliente_id && (eventosCliente || []).length === 0 && !loadingEventos && (
+                <p className="mt-1 text-xs text-slate-500">Este cliente no tiene eventos activos</p>
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* FECHAS: Montaje, Evento, Desmontaje */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -650,98 +695,100 @@ const CotizacionFormModal = ({
           </div>
         </div>
 
-        {/* INFORMACION DEL EVENTO */}
-        <div className="space-y-4">
-          <h3 className="font-semibold text-slate-900">Informacion del Evento</h3>
+        {/* INFORMACION DEL EVENTO - Solo si NO viene de un evento preseleccionado */}
+        {!eventoPreseleccionado && (
+          <div className="space-y-4">
+            <h3 className="font-semibold text-slate-900">Informacion del Evento</h3>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Nombre del Evento
-              </label>
-              <input
-                type="text"
-                name="evento_nombre"
-                value={formData.evento_nombre}
-                onChange={handleChange}
-                placeholder="Ej: Boda Garcia"
-                disabled={isLoading}
-                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-100"
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Nombre del Evento
+                </label>
+                <input
+                  type="text"
+                  name="evento_nombre"
+                  value={formData.evento_nombre}
+                  onChange={handleChange}
+                  placeholder="Ej: Boda Garcia"
+                  disabled={isLoading}
+                  className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-100"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Ciudad *
+                </label>
+                <select
+                  name="evento_ciudad"
+                  value={formData.evento_ciudad}
+                  onChange={handleChange}
+                  disabled={isLoading || loadingCiudades}
+                  className={`
+                    w-full px-4 py-2.5 border rounded-lg
+                    focus:outline-none focus:ring-2 focus:ring-blue-500
+                    disabled:bg-slate-100
+                    ${errors.evento_ciudad ? 'border-red-300' : 'border-slate-300'}
+                  `}
+                >
+                  <option value="">Seleccionar ciudad...</option>
+                  {ciudades.map(ciudad => (
+                    <option key={ciudad.id} value={ciudad.nombre}>{ciudad.nombre}</option>
+                  ))}
+                </select>
+                {errors.evento_ciudad && (
+                  <p className="mt-1 text-sm text-red-600">{errors.evento_ciudad}</p>
+                )}
+                {ciudades.length === 0 && !loadingCiudades && (
+                  <p className="mt-1 text-xs text-amber-600">
+                    No hay ciudades. Cree ciudades en Configuracion primero.
+                  </p>
+                )}
+              </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Ciudad *
-              </label>
-              <select
-                name="evento_ciudad"
-                value={formData.evento_ciudad}
-                onChange={handleChange}
-                disabled={isLoading || loadingCiudades}
-                className={`
-                  w-full px-4 py-2.5 border rounded-lg
-                  focus:outline-none focus:ring-2 focus:ring-blue-500
-                  disabled:bg-slate-100
-                  ${errors.evento_ciudad ? 'border-red-300' : 'border-slate-300'}
-                `}
-              >
-                <option value="">Seleccionar ciudad...</option>
-                {ciudades.map(ciudad => (
-                  <option key={ciudad.id} value={ciudad.nombre}>{ciudad.nombre}</option>
-                ))}
-              </select>
-              {errors.evento_ciudad && (
-                <p className="mt-1 text-sm text-red-600">{errors.evento_ciudad}</p>
-              )}
-              {ciudades.length === 0 && !loadingCiudades && (
-                <p className="mt-1 text-xs text-amber-600">
-                  No hay ciudades. Cree ciudades en Configuracion primero.
-                </p>
-              )}
-            </div>
+            {/* Ubicacion del evento */}
+            {formData.evento_ciudad && (
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  <MapPin className="w-4 h-4 inline mr-1" />
+                  Ubicacion del Evento
+                </label>
+                <select
+                  name="evento_ubicacion_id"
+                  value={formData.evento_direccion}
+                  onChange={(e) => {
+                    const ubicacion = ubicacionesFiltradas.find(u => u.id === parseInt(e.target.value))
+                    setFormData(prev => ({
+                      ...prev,
+                      evento_direccion: ubicacion ? ubicacion.direccion : ''
+                    }))
+                  }}
+                  disabled={isLoading || loadingUbicaciones}
+                  className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-100"
+                >
+                  <option value="">Seleccionar ubicacion...</option>
+                  {ubicacionesFiltradas.map(u => (
+                    <option key={u.id} value={u.id}>
+                      {u.nombre} {u.direccion ? `- ${u.direccion}` : ''}
+                    </option>
+                  ))}
+                </select>
+                {ubicacionesFiltradas.length === 0 && !loadingUbicaciones && (
+                  <p className="mt-1 text-xs text-slate-500">
+                    No hay ubicaciones para {formData.evento_ciudad}
+                  </p>
+                )}
+                {formData.evento_direccion && (
+                  <p className="mt-2 text-sm text-slate-600">
+                    <strong>Direccion:</strong> {formData.evento_direccion}
+                  </p>
+                )}
+              </div>
+            )}
           </div>
-
-          {/* Ubicacion del evento */}
-          {formData.evento_ciudad && (
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                <MapPin className="w-4 h-4 inline mr-1" />
-                Ubicacion del Evento
-              </label>
-              <select
-                name="evento_ubicacion_id"
-                value={formData.evento_direccion}
-                onChange={(e) => {
-                  const ubicacion = ubicacionesFiltradas.find(u => u.id === parseInt(e.target.value))
-                  setFormData(prev => ({
-                    ...prev,
-                    evento_direccion: ubicacion ? ubicacion.direccion : ''
-                  }))
-                }}
-                disabled={isLoading || loadingUbicaciones}
-                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-100"
-              >
-                <option value="">Seleccionar ubicacion...</option>
-                {ubicacionesFiltradas.map(u => (
-                  <option key={u.id} value={u.id}>
-                    {u.nombre} {u.direccion ? `- ${u.direccion}` : ''}
-                  </option>
-                ))}
-              </select>
-              {ubicacionesFiltradas.length === 0 && !loadingUbicaciones && (
-                <p className="mt-1 text-xs text-slate-500">
-                  No hay ubicaciones para {formData.evento_ciudad}
-                </p>
-              )}
-              {formData.evento_direccion && (
-                <p className="mt-2 text-sm text-slate-600">
-                  <strong>Direccion:</strong> {formData.evento_direccion}
-                </p>
-              )}
-            </div>
-          )}
-        </div>
+        )}
 
         {/* PRODUCTOS */}
         <div className="space-y-4">
