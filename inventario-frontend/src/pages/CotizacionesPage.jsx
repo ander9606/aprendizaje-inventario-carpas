@@ -61,11 +61,40 @@ const EventoCard = ({ evento, onVer, onEditar, onEliminar, onCambiarEstado }) =>
 
   const formatFecha = (fecha) => {
     if (!fecha) return '-'
-    return new Date(fecha + 'T00:00:00').toLocaleDateString('es-CO', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric'
-    })
+    try {
+      let fechaStr = ''
+
+      // Caso 1: Es un objeto Date nativo
+      if (fecha instanceof Date) {
+        fechaStr = fecha.toISOString().split('T')[0]
+      }
+      // Caso 2: Es un string
+      else if (typeof fecha === 'string') {
+        fechaStr = fecha.split('T')[0]
+      }
+      // Caso 3: Es un objeto MySQL Date
+      else if (typeof fecha === 'object') {
+        const str = String(fecha)
+        if (str && str !== '[object Object]' && !str.includes('Invalid')) {
+          fechaStr = str.split('T')[0]
+        } else {
+          return '-'
+        }
+      }
+
+      if (!fechaStr) return '-'
+
+      const fechaObj = new Date(fechaStr + 'T12:00:00')
+      if (isNaN(fechaObj.getTime())) return '-'
+
+      return fechaObj.toLocaleDateString('es-CO', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric'
+      })
+    } catch {
+      return '-'
+    }
   }
 
   const formatMoneda = (valor) => {
