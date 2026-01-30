@@ -939,24 +939,39 @@ const CotizacionFormModal = ({
 
           {/* LISTA DE PRODUCTOS SELECCIONADOS */}
           {productosSeleccionados.length === 0 ? (
-            <p className="text-sm text-slate-500 italic py-4 text-center border border-dashed rounded-lg">
-              No hay productos agregados. Seleccione productos arriba.
-            </p>
+            <div className="py-8 text-center border-2 border-dashed border-slate-200 rounded-xl bg-slate-50/50">
+              <Package className="w-10 h-10 mx-auto text-slate-300 mb-2" />
+              <p className="text-sm text-slate-500">No hay productos agregados</p>
+              <p className="text-xs text-slate-400 mt-1">Seleccione productos de las categorías arriba</p>
+            </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-2">
+              {/* Header de la lista */}
+              <div className="flex items-center justify-between px-1">
+                <span className="text-xs font-medium text-slate-500 uppercase tracking-wide">
+                  {productosSeleccionados.length} producto{productosSeleccionados.length !== 1 ? 's' : ''} seleccionado{productosSeleccionados.length !== 1 ? 's' : ''}
+                </span>
+                <span className="text-xs text-slate-500">
+                  Subtotal: {formatearMoneda(calcularSubtotalProductos())}
+                </span>
+              </div>
+
               {productosSeleccionados.map((prod, index) => {
                 const productoInfo = productos.find(p => p.id === parseInt(prod.compuesto_id))
+                const subtotalProducto = (parseFloat(prod.precio_base) || 0) * (parseInt(prod.cantidad) || 1) + (parseFloat(prod.precio_adicionales) || 0)
+
                 return (
-                <div key={index} className="p-3 bg-white border border-slate-200 rounded-lg">
-                  <div className="flex gap-3 items-start">
-                    {/* Nombre del producto */}
-                    <div className="flex-1">
+                <div key={index} className="bg-white border border-slate-200 rounded-xl overflow-hidden hover:border-slate-300 transition-colors">
+                  {/* Header del producto - siempre visible */}
+                  <div className="p-3 flex gap-3 items-center">
+                    {/* Emoji y nombre */}
+                    <div className="flex-1 min-w-0">
                       {productoInfo ? (
                         <div className="flex items-center gap-2">
-                          <span className="text-lg">{productoInfo.categoria_emoji || '📦'}</span>
-                          <div>
-                            <p className="font-medium text-slate-800">{productoInfo.nombre}</p>
-                            <p className="text-xs text-slate-500">{productoInfo.categoria_nombre}</p>
+                          <span className="text-xl flex-shrink-0">{productoInfo.categoria_emoji || '📦'}</span>
+                          <div className="min-w-0">
+                            <p className="font-medium text-slate-800 truncate">{productoInfo.nombre}</p>
+                            <p className="text-xs text-slate-400">{productoInfo.categoria_nombre}</p>
                           </div>
                         </div>
                       ) : (
@@ -975,37 +990,59 @@ const CotizacionFormModal = ({
                       )}
                     </div>
 
-                    {/* Cantidad */}
-                    <div className="w-20">
-                      <label className="block text-xs text-slate-500 mb-1">Cant.</label>
+                    {/* Cantidad - compacto */}
+                    <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-1">
+                      <button
+                        type="button"
+                        onClick={() => actualizarProducto(index, 'cantidad', Math.max(1, (parseInt(prod.cantidad) || 1) - 1).toString())}
+                        disabled={isLoading || parseInt(prod.cantidad) <= 1}
+                        className="w-7 h-7 flex items-center justify-center text-slate-600 hover:bg-white rounded disabled:opacity-40"
+                      >
+                        -
+                      </button>
                       <input
                         type="number"
                         min="1"
                         value={prod.cantidad}
                         onChange={(e) => actualizarProducto(index, 'cantidad', e.target.value)}
                         disabled={isLoading}
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-center"
+                        className="w-10 text-center text-sm font-medium bg-transparent border-none focus:outline-none"
                       />
+                      <button
+                        type="button"
+                        onClick={() => actualizarProducto(index, 'cantidad', ((parseInt(prod.cantidad) || 1) + 1).toString())}
+                        disabled={isLoading}
+                        className="w-7 h-7 flex items-center justify-center text-slate-600 hover:bg-white rounded"
+                      >
+                        +
+                      </button>
                     </div>
 
-                    {/* Precio */}
+                    {/* Precio unitario */}
                     <div className="w-28">
-                      <label className="block text-xs text-slate-500 mb-1">Precio</label>
                       <input
                         type="number"
                         min="0"
                         value={prod.precio_base}
                         onChange={(e) => actualizarProducto(index, 'precio_base', e.target.value)}
                         disabled={isLoading}
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-right"
+                        className="w-full px-2 py-1.5 border border-slate-200 rounded-lg text-sm text-right font-medium focus:border-blue-400 focus:ring-1 focus:ring-blue-400"
                       />
+                    </div>
+
+                    {/* Subtotal del producto */}
+                    <div className="w-24 text-right">
+                      <p className="text-sm font-semibold text-slate-800">{formatearMoneda(subtotalProducto)}</p>
+                      {prod.precio_adicionales > 0 && (
+                        <p className="text-xs text-blue-600">+{formatearMoneda(prod.precio_adicionales)}</p>
+                      )}
                     </div>
 
                     {/* Boton eliminar */}
                     <button
                       type="button"
                       onClick={() => eliminarProducto(index)}
-                      className="p-2 text-red-500 hover:bg-red-50 rounded-lg mt-5"
+                      className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                       disabled={isLoading}
                       title="Eliminar producto"
                     >
@@ -1013,7 +1050,7 @@ const CotizacionFormModal = ({
                     </button>
                   </div>
 
-                  {/* Configuracion de componentes */}
+                  {/* Configuracion de componentes - colapsable */}
                   {prod.compuesto_id && (
                     <ProductoConfiguracion
                       productoId={parseInt(prod.compuesto_id)}
@@ -1024,13 +1061,6 @@ const CotizacionFormModal = ({
                       }
                       disabled={isLoading}
                     />
-                  )}
-
-                  {/* Mostrar precio adicionales si hay */}
-                  {prod.precio_adicionales > 0 && (
-                    <div className="mt-2 text-right text-xs text-blue-600">
-                      Adicionales: +{formatearMoneda(prod.precio_adicionales)}
-                    </div>
                   )}
 
                   {/* SECCIÓN DE RECARGOS */}
