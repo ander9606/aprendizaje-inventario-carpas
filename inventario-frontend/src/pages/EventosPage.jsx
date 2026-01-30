@@ -56,16 +56,32 @@ const EventoCard = ({ evento, onVer, onEditar, onEliminar, onCambiarEstado }) =>
     const formatFecha = (fecha) => {
         if (!fecha) return '-'
         try {
-            // Si es un objeto Date de MySQL, convertir a string
-            let fechaStr = fecha
+            let fechaStr = ''
+
+            // Caso 1: Es un objeto Date nativo de JavaScript
             if (fecha instanceof Date) {
                 fechaStr = fecha.toISOString().split('T')[0]
-            } else if (typeof fecha === 'string') {
-                // Manejar formato ISO completo o solo fecha
+            }
+            // Caso 2: Es un string (ISO o solo fecha)
+            else if (typeof fecha === 'string') {
                 fechaStr = fecha.split('T')[0]
             }
+            // Caso 3: Es un objeto tipo MySQL Date (tiene propiedades o es convertible a string)
+            else if (typeof fecha === 'object') {
+                // Intentar convertir a string primero
+                const str = String(fecha)
+                if (str && str !== '[object Object]' && !str.includes('Invalid')) {
+                    fechaStr = str.split('T')[0]
+                } else {
+                    return '-'
+                }
+            }
+
+            if (!fechaStr) return '-'
+
             const fechaObj = new Date(fechaStr + 'T12:00:00')
             if (isNaN(fechaObj.getTime())) return '-'
+
             return fechaObj.toLocaleDateString('es-CO', {
                 day: 'numeric',
                 month: 'short',
@@ -162,10 +178,14 @@ const EventoCard = ({ evento, onVer, onEditar, onEliminar, onCambiarEstado }) =>
                     <Calendar className="w-4 h-4 text-slate-400" />
                     <span>{formatFecha(evento.fecha_inicio)} - {formatFecha(evento.fecha_fin)}</span>
                 </div>
-                {evento.ciudad_nombre && (
+                {(evento.ciudad_nombre || evento.direccion) && (
                     <div className="flex items-center gap-2 text-sm text-slate-600">
                         <MapPin className="w-4 h-4 text-slate-400" />
-                        <span>{evento.ciudad_nombre}</span>
+                        <span>
+                            {evento.ciudad_nombre}
+                            {evento.ciudad_nombre && evento.direccion && ' - '}
+                            {evento.direccion}
+                        </span>
                     </div>
                 )}
             </div>
