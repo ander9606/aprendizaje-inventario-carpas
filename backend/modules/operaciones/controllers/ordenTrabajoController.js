@@ -3,6 +3,7 @@ const OrdenTrabajoModel = require('../models/OrdenTrabajoModel');
 const OrdenElementoModel = require('../models/OrdenElementoModel');
 const AlertaModel = require('../models/AlertaModel');
 const ValidadorFechasService = require('../services/ValidadorFechasService');
+const SincronizacionAlquilerService = require('../services/SincronizacionAlquilerService');
 const AuthModel = require('../../auth/models/AuthModel');
 const AppError = require('../../../utils/AppError');
 const logger = require('../../../utils/logger');
@@ -715,6 +716,114 @@ const crearOrdenManual = async (req, res, next) => {
     }
 };
 
+// ============================================
+// PREPARACIÓN Y EJECUCIÓN DE ÓRDENES
+// ============================================
+
+/**
+ * GET /api/operaciones/ordenes/:id/elementos-disponibles
+ * Obtener elementos disponibles para asignar a la orden
+ */
+const getElementosDisponibles = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const resultado = await SincronizacionAlquilerService.obtenerElementosDisponibles(parseInt(id));
+
+        res.json({
+            success: true,
+            data: resultado
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * POST /api/operaciones/ordenes/:id/preparar-elementos
+ * Asignar elementos (series/lotes) a la orden
+ */
+const prepararElementos = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const { elementos } = req.body;
+
+        if (!elementos || !Array.isArray(elementos) || elementos.length === 0) {
+            throw new AppError('Debe proporcionar al menos un elemento', 400);
+        }
+
+        const resultado = await SincronizacionAlquilerService.asignarElementosAOrden(
+            parseInt(id),
+            elementos
+        );
+
+        logger.info('operaciones', `Elementos preparados para orden ${id} por ${req.usuario.email}`);
+
+        res.json({
+            success: true,
+            message: resultado.mensaje,
+            data: resultado
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * POST /api/operaciones/ordenes/:id/ejecutar-salida
+ * Ejecutar salida de elementos (montaje inicia)
+ */
+const ejecutarSalida = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const datos = req.body;
+
+        const resultado = await SincronizacionAlquilerService.ejecutarSalida(
+            parseInt(id),
+            datos
+        );
+
+        logger.info('operaciones', `Salida ejecutada - Orden ${id} por ${req.usuario.email}`);
+
+        res.json({
+            success: true,
+            message: resultado.mensaje,
+            data: resultado
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * POST /api/operaciones/ordenes/:id/ejecutar-retorno
+ * Registrar retorno de elementos (desmontaje finaliza)
+ */
+const ejecutarRetorno = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const { retornos } = req.body;
+
+        if (!retornos || !Array.isArray(retornos) || retornos.length === 0) {
+            throw new AppError('Debe proporcionar el estado de retorno de los elementos', 400);
+        }
+
+        const resultado = await SincronizacionAlquilerService.ejecutarRetorno(
+            parseInt(id),
+            retornos
+        );
+
+        logger.info('operaciones', `Retorno ejecutado - Orden ${id} por ${req.usuario.email}`);
+
+        res.json({
+            success: true,
+            message: resultado.mensaje,
+            data: resultado
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 module.exports = {
     // Órdenes
     getOrdenes,
@@ -743,5 +852,11 @@ module.exports = {
     resolverAlerta,
 
     // Validación
-    validarCambioFecha
+    validarCambioFecha,
+
+    // Preparación y Ejecución
+    getElementosDisponibles,
+    prepararElementos,
+    ejecutarSalida,
+    ejecutarRetorno
 };

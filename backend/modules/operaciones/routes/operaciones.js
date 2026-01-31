@@ -118,6 +118,38 @@ router.put(
 );
 
 // ============================================
+// RUTAS DE PREPARACIÓN Y EJECUCIÓN
+// ============================================
+
+// Obtener elementos disponibles para asignar a la orden
+router.get(
+    '/ordenes/:id/elementos-disponibles',
+    verificarRol(['admin', 'gerente', 'operaciones']),
+    ordenTrabajoController.getElementosDisponibles
+);
+
+// Preparar orden: asignar elementos (series/lotes)
+router.post(
+    '/ordenes/:id/preparar-elementos',
+    verificarRol(['admin', 'gerente', 'operaciones']),
+    ordenTrabajoController.prepararElementos
+);
+
+// Ejecutar salida (para órdenes de montaje)
+router.post(
+    '/ordenes/:id/ejecutar-salida',
+    verificarRol(['admin', 'gerente', 'operaciones']),
+    ordenTrabajoController.ejecutarSalida
+);
+
+// Ejecutar retorno (para órdenes de desmontaje)
+router.post(
+    '/ordenes/:id/ejecutar-retorno',
+    verificarRol(['admin', 'gerente', 'operaciones']),
+    ordenTrabajoController.ejecutarRetorno
+);
+
+// ============================================
 // RUTAS DE ELEMENTOS DE ÓRDENES
 // ============================================
 
