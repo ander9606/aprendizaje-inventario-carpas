@@ -96,7 +96,7 @@ export default function AlquileresPage() {
   // ============================================
   // FILTRADO
   // ============================================
-  const alquileresFiltrados = alquileres.filter(a => {
+  const alquileresFiltrados = (Array.isArray(alquileres) ? alquileres : []).filter(a => {
     // Filtro por estado
     if (filtroEstado && a.estado !== filtroEstado) return false
 
