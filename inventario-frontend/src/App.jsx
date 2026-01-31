@@ -30,6 +30,8 @@ import CotizacionesPage from './pages/CotizacionesPage'
 import CalendarioPage from './pages/CalendarioPage'
 import DescuentosPage from './pages/DescuentosPage'
 import ConfiguracionAlquileresPage from './pages/ConfiguracionAlquileresPage'
+import AlquileresPage from './pages/AlquileresPage'
+import AlquilerDetallePage from './pages/AlquilerDetallePage'
 
 // Importar páginas - Configuración
 import ConfiguracionPage from './pages/ConfiguracionPage'
@@ -141,6 +143,8 @@ function App() {
                 <Route path="/alquileres/clientes" element={<ClientesPage />} />
                 <Route path="/alquileres/calendario" element={<CalendarioPage />} />
                 <Route path="/alquileres/descuentos" element={<DescuentosPage />} />
+                <Route path="/alquileres/gestion" element={<AlquileresPage />} />
+                <Route path="/alquileres/gestion/:id" element={<AlquilerDetallePage />} />
                 <Route path="/alquileres/configuracion" element={<ConfiguracionAlquileresPage />} />
                 <Route path="/alquileres/configuracion/impuestos" element={<ConfiguracionAlquileresPage />} />
                 <Route path="/alquileres/configuracion/dias-extra" element={<ConfiguracionAlquileresPage />} />
