@@ -6,256 +6,427 @@ El módulo de alquileres permite crear cotizaciones para clientes, seleccionando
 
 ---
 
-## 1. Análisis del Estado Actual
+## 1. Estado de Implementación (Actualizado Enero 2026)
 
-### Lo que YA existe en el backend:
+### BACKEND - Estado Actual
 
 | Componente | Estado | Ubicación |
 |------------|--------|-----------|
 | ClienteModel | ✅ Completo | `backend/modules/alquileres/models/ClienteModel.js` |
-| CotizacionModel | ⚠️ Parcial | `backend/modules/alquileres/models/CotizacionModel.js` |
-| AlquilerModel | ⚠️ Parcial | `backend/modules/alquileres/models/AlquilerModel.js` |
-| Controladores | ✅ CRUD básico | `backend/modules/alquileres/controllers/` |
-| Rutas API | ✅ Definidas | `backend/modules/alquileres/routes/` |
+| CotizacionModel | ✅ Completo | `backend/modules/alquileres/models/CotizacionModel.js` |
+| CotizacionProductoModel | ✅ Completo | `backend/modules/alquileres/models/CotizacionProductoModel.js` |
+| CotizacionTransporteModel | ✅ Completo | `backend/modules/alquileres/models/CotizacionTransporteModel.js` |
+| CotizacionDescuentoModel | ✅ Completo | `backend/modules/alquileres/models/CotizacionDescuentoModel.js` |
+| CotizacionProductoRecargoModel | ✅ Completo | `backend/modules/alquileres/models/CotizacionProductoRecargoModel.js` |
+| AlquilerModel | ✅ Completo | `backend/modules/alquileres/models/AlquilerModel.js` |
+| AlquilerElementoModel | ✅ Completo | `backend/modules/alquileres/models/AlquilerElementoModel.js` |
+| TarifaTransporteModel | ✅ Completo | `backend/modules/alquileres/models/TarifaTransporteModel.js` |
+| EventoModel | ✅ Completo | `backend/modules/alquileres/models/EventoModel.js` |
+| DisponibilidadModel | ✅ Completo | `backend/modules/alquileres/models/DisponibilidadModel.js` |
+| ConfiguracionModel | ✅ Completo | `backend/modules/alquileres/models/ConfiguracionModel.js` |
+| DescuentoModel | ✅ Completo | `backend/modules/alquileres/models/DescuentoModel.js` |
+| Controladores | ✅ Completo | `backend/modules/alquileres/controllers/` |
+| Rutas API | ✅ Completo | `backend/modules/alquileres/routes/` |
 
-### Problemas identificados:
+### FRONTEND - Estado Actual
 
-1. **Cotizaciones solo permiten UN elemento compuesto** (`compuesto_id` directo)
-   - El usuario necesita seleccionar MÚLTIPLES elementos compuestos/productos
+| Componente | Estado | Ubicación |
+|------------|--------|-----------|
+| apiClientes | ✅ Completo | `inventario-frontend/src/api/apiClientes.js` |
+| apiCotizaciones | ✅ Completo | `inventario-frontend/src/api/apiCotizaciones.js` |
+| apiAlquileres | ✅ Completo | `inventario-frontend/src/api/apiAlquileres.js` |
+| apiTarifasTransporte | ✅ Completo | `inventario-frontend/src/api/apiTarifasTransporte.js` |
+| apiEventos | ✅ Completo | `inventario-frontend/src/api/apiEventos.js` |
+| apiDescuentos | ✅ Completo | `inventario-frontend/src/api/apiDescuentos.js` |
+| apiDisponibilidad | ✅ Completo | `inventario-frontend/src/api/apiDisponibilidad.js` |
+| apiConfiguracion | ✅ Completo | `inventario-frontend/src/api/apiConfiguracion.js` |
+| apiCiudades | ✅ Completo | `inventario-frontend/src/api/apiCiudades.js` |
+| UseClientes | ✅ Completo | `inventario-frontend/src/hooks/UseClientes.js` |
+| useCotizaciones | ✅ Completo | `inventario-frontend/src/hooks/cotizaciones/` |
+| useAlquileres | ✅ Completo | `inventario-frontend/src/hooks/useAlquileres.js` |
+| UseTarifasTransporte | ✅ Completo | `inventario-frontend/src/hooks/UseTarifasTransporte.js` |
+| useEventos | ✅ Completo | `inventario-frontend/src/hooks/useEventos.js` |
+| useDescuentos | ✅ Completo | `inventario-frontend/src/hooks/descuentos/` |
+| useDisponibilidad | ✅ Completo | `inventario-frontend/src/hooks/useDisponibilidad.js` |
+| useConfiguracion | ✅ Completo | `inventario-frontend/src/hooks/useConfiguracion.js` |
+| UseCiudades | ✅ Completo | `inventario-frontend/src/hooks/UseCiudades.js` |
+| useCalendar | ✅ Completo | `inventario-frontend/src/hooks/calendar/` |
 
-2. **No hay soporte para transporte**
-   - Falta ubicación destino del evento
-   - Falta cantidad de camiones
-   - Falta cálculo de costo de transporte
+### PÁGINAS - Estado Actual
 
-3. **No hay rastreo de elementos individuales**
-   - Cuando se confirma el alquiler, no hay forma de saber QUÉ series/lotes específicos se asignan
-   - No existe la lógica para cambiar estados de elementos individuales
+| Página | Estado | Ubicación |
+|--------|--------|-----------|
+| ClientesPage | ✅ Completo | `inventario-frontend/src/pages/ClientesPage.jsx` |
+| CotizacionesPage | ✅ Completo | `inventario-frontend/src/pages/CotizacionesPage.jsx` (vista de Eventos) |
+| EventosPage | ✅ Completo | `inventario-frontend/src/pages/EventosPage.jsx` |
+| CalendarioPage | ✅ Completo | `inventario-frontend/src/pages/CalendarioPage.jsx` |
+| ConfiguracionAlquileresPage | ✅ Completo | `inventario-frontend/src/pages/ConfiguracionAlquileresPage.jsx` |
+| DescuentosPage | ✅ Completo | `inventario-frontend/src/pages/DescuentosPage.jsx` |
+| CiudadesPage | ✅ Completo | `inventario-frontend/src/pages/CiudadesPage.jsx` |
+| AlquileresPage (Dashboard) | ⚠️ Pendiente | Por implementar - Vista de alquileres activos/programados |
+| AlquilerDetallePage | ⚠️ Pendiente | Por implementar - Detalle de alquiler específico |
 
-4. **Frontend inexistente**
-   - No hay páginas para clientes, cotizaciones ni alquileres
+### COMPONENTES - Estado Actual
 
----
+| Componente | Estado | Ubicación |
+|------------|--------|-----------|
+| ClienteCard | ✅ Completo | `inventario-frontend/src/components/cards/ClienteCard.jsx` |
+| ClienteFormModal | ✅ Completo | `inventario-frontend/src/components/forms/ClienteFormModal.jsx` |
+| CotizacionFormModal | ✅ Completo | `inventario-frontend/src/components/forms/CotizacionFormModal.jsx` |
+| EventoFormModal | ✅ Completo | `inventario-frontend/src/components/modals/EventoFormModal.jsx` |
+| EventoDetalleModal | ✅ Completo | `inventario-frontend/src/components/modals/EventoDetalleModal.jsx` |
+| CotizacionDetalleModal | ✅ Completo | `inventario-frontend/src/components/modals/CotizacionDetalleModal.jsx` |
+| CalendarWrapper | ✅ Completo | `inventario-frontend/src/components/calendar/` |
+| EventTooltip | ✅ Completo | `inventario-frontend/src/components/calendar/` |
+| CalendarFilters | ✅ Completo | `inventario-frontend/src/components/calendar/` |
+| CalendarLegend | ✅ Completo | `inventario-frontend/src/components/calendar/` |
+| CalendarStats | ✅ Completo | `inventario-frontend/src/components/calendar/` |
+| AlquilerCard | ⚠️ Pendiente | Por implementar |
+| AsignacionElementosModal | ⚠️ Pendiente | Por implementar - Para marcar salida |
+| RetornoElementosModal | ⚠️ Pendiente | Por implementar - Para marcar retorno |
+| AlquilerTimeline | ⚠️ Pendiente | Por implementar - Historial visual |
 
-## 2. Cambios Requeridos en Base de Datos
+### BASE DE DATOS - Migraciones Ejecutadas
 
-### 2.1 Modificar tabla `cotizaciones`
-
-```sql
--- Eliminar compuesto_id directo (ahora será en tabla pivote)
--- Agregar campos de transporte y ubicación
-
-ALTER TABLE cotizaciones
-  DROP FOREIGN KEY cotizaciones_ibfk_2,  -- FK a elementos_compuestos
-  DROP COLUMN compuesto_id,
-  ADD COLUMN ubicacion_id INT AFTER evento_ciudad,
-  ADD COLUMN direccion_evento TEXT AFTER ubicacion_id,
-  ADD COLUMN cantidad_camiones INT DEFAULT 1 AFTER direccion_evento,
-  ADD COLUMN costo_transporte DECIMAL(12,2) DEFAULT 0 AFTER cantidad_camiones,
-  ADD COLUMN costo_transporte_unitario DECIMAL(12,2) DEFAULT 0 AFTER costo_transporte,
-  ADD FOREIGN KEY (ubicacion_id) REFERENCES ubicaciones(id);
-```
-
-### 2.2 Nueva tabla `cotizacion_productos` (reemplaza la relación directa)
-
-```sql
--- Permite múltiples elementos compuestos por cotización
-CREATE TABLE IF NOT EXISTS cotizacion_productos (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    cotizacion_id INT NOT NULL,
-    compuesto_id INT NOT NULL,
-
-    -- Cantidad de este producto en la cotización
-    cantidad INT DEFAULT 1,
-
-    -- Precios copiados al momento de cotizar
-    precio_base DECIMAL(12,2) DEFAULT 0,
-    precio_adicional DECIMAL(12,2) DEFAULT 0,  -- Por configuración especial
-    subtotal DECIMAL(12,2) DEFAULT 0,
-
-    -- Notas específicas de este producto
-    notas TEXT,
-
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-
-    FOREIGN KEY (cotizacion_id) REFERENCES cotizaciones(id) ON DELETE CASCADE,
-    FOREIGN KEY (compuesto_id) REFERENCES elementos_compuestos(id),
-
-    -- Un mismo producto puede aparecer solo una vez por cotización
-    UNIQUE KEY uk_cotizacion_producto (cotizacion_id, compuesto_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-```
-
-### 2.3 Modificar tabla `cotizacion_detalles`
-
-```sql
--- Ahora referencia a cotizacion_productos en lugar de cotizacion directamente
-ALTER TABLE cotizacion_detalles
-  ADD COLUMN cotizacion_producto_id INT AFTER cotizacion_id,
-  ADD FOREIGN KEY (cotizacion_producto_id) REFERENCES cotizacion_productos(id) ON DELETE CASCADE;
-```
-
-### 2.4 Nueva tabla `alquiler_elementos` (rastreo de elementos físicos)
-
-```sql
--- Registra QUÉ series o lotes específicos se asignan a cada alquiler
-CREATE TABLE IF NOT EXISTS alquiler_elementos (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    alquiler_id INT NOT NULL,
-
-    -- Referencia al elemento base
-    elemento_id INT NOT NULL,
-
-    -- Si es serie individual
-    serie_id INT DEFAULT NULL,
-
-    -- Si es lote (cantidad parcial)
-    lote_id INT DEFAULT NULL,
-    cantidad_lote INT DEFAULT NULL,
-
-    -- Estado al momento de asignar
-    estado_salida ENUM('nuevo', 'bueno', 'mantenimiento') DEFAULT 'bueno',
-
-    -- Estado al momento de retorno
-    estado_retorno ENUM('bueno', 'dañado', 'perdido') DEFAULT NULL,
-    costo_dano DECIMAL(12,2) DEFAULT 0,
-    notas_retorno TEXT,
-
-    -- Ubicación original (para retornar después)
-    ubicacion_original_id INT,
-
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-
-    FOREIGN KEY (alquiler_id) REFERENCES alquileres(id) ON DELETE CASCADE,
-    FOREIGN KEY (elemento_id) REFERENCES elementos(id),
-    FOREIGN KEY (serie_id) REFERENCES series(id),
-    FOREIGN KEY (lote_id) REFERENCES lotes(id),
-    FOREIGN KEY (ubicacion_original_id) REFERENCES ubicaciones(id),
-
-    -- Una serie solo puede estar en un alquiler a la vez
-    UNIQUE KEY uk_alquiler_serie (alquiler_id, serie_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-```
-
-### 2.5 Nueva tabla `tarifas_transporte` (opcional, para cálculo automático)
-
-```sql
--- Tarifas de transporte por zona/ciudad
-CREATE TABLE IF NOT EXISTS tarifas_transporte (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    ciudad VARCHAR(100) NOT NULL,
-    zona VARCHAR(100),  -- Para subdividir ciudades grandes
-
-    -- Precio por camión
-    precio_camion DECIMAL(12,2) NOT NULL,
-
-    -- Tiempo estimado (horas)
-    tiempo_estimado DECIMAL(5,2),
-
-    activo BOOLEAN DEFAULT TRUE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-
-    UNIQUE KEY uk_ciudad_zona (ciudad, zona)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-```
+| Migración | Estado |
+|-----------|--------|
+| 04_clientes.sql | ✅ Ejecutada |
+| 05_cotizaciones.sql | ✅ Ejecutada |
+| 06_cotizacion_detalles.sql | ✅ Ejecutada |
+| 07_alquileres.sql | ✅ Ejecutada |
+| 08_modificar_cotizaciones.sql | ✅ Ejecutada |
+| 09_cotizacion_productos.sql | ✅ Ejecutada |
+| 10_modificar_cotizacion_detalles.sql | ✅ Ejecutada |
+| 11_alquiler_elementos.sql | ✅ Ejecutada |
+| 12_tarifas_transporte.sql | ✅ Ejecutada |
+| 13_cotizacion_transportes.sql | ✅ Ejecutada |
+| 14_indices_alquileres.sql | ✅ Ejecutada |
+| 15_modificar_alquiler_elementos.sql | ✅ Ejecutada |
+| 16_quitar_unique_cotizacion_productos.sql | ✅ Ejecutada |
+| 17_ciudades.sql | ✅ Ejecutada |
+| 18_agregar_ciudad_id.sql | ✅ Ejecutada |
+| 19_migracion_ciudad_id_completa.sql | ✅ Ejecutada |
+| 20_fechas_montaje_desmontaje.sql | ✅ Ejecutada |
+| 21_eventos_y_recargos.sql | ✅ Ejecutada |
+| 21_agregar_campos_cotizaciones_iva.sql | ✅ Ejecutada |
+| 22_crear_descuentos.sql | ✅ Ejecutada |
+| 23_crear_cotizacion_descuentos.sql | ✅ Ejecutada |
+| 24_crear_configuracion_alquileres.sql | ✅ Ejecutada |
 
 ---
 
-## 3. Flujo de Negocio Completo
+## 2. Funcionalidades Implementadas
 
-### 3.1 Crear Cotización
+### 2.1 Gestión de Clientes ✅
+- CRUD completo de clientes
+- Búsqueda y filtrado
+- Historial de cotizaciones por cliente
+
+### 2.2 Gestión de Eventos ✅
+- Crear eventos que agrupan múltiples cotizaciones
+- Estados: activo, completado, cancelado
+- Asociación con cliente y ciudad
+- Fechas de inicio y fin
+
+### 2.3 Gestión de Cotizaciones ✅
+- Múltiples productos por cotización
+- Múltiples líneas de transporte
+- Cálculo automático de días extra (montaje/desmontaje)
+- IVA configurable
+- Descuentos predefinidos y manuales
+- Recargos por adelanto/extensión de fechas
+- Estados: pendiente, aprobada, rechazada, vencida
+- Duplicar cotizaciones
+- Asociación con eventos
+
+### 2.4 Tarifas de Transporte ✅
+- CRUD de tarifas por ciudad y tipo de camión
+- Cálculo automático en cotizaciones
+
+### 2.5 Calendario ✅
+- Vista de calendario con FullCalendar
+- Filtros por tipo (montaje/evento/desmontaje)
+- Filtros por estado
+- Estadísticas visuales
+- Tooltips con información del evento
+
+### 2.6 Configuración del Sistema ✅
+- Días gratis de montaje/desmontaje
+- Porcentaje por días extra
+- Porcentaje de IVA
+- Vigencia de cotizaciones
+- Datos de empresa
+
+### 2.7 Descuentos ✅
+- Descuentos predefinidos (porcentaje o fijo)
+- Aplicación a cotizaciones
+- Cálculo automático
+
+### 2.8 Alquileres (Backend) ✅
+- Crear alquiler desde cotización aprobada
+- Asignación automática de elementos disponibles
+- Verificación de disponibilidad
+- Marcar salida (cambio de estado de series/lotes)
+- Marcar retorno
+- Registro de daños
+- Cancelación
+
+---
+
+## 3. Funcionalidades Pendientes
+
+### 3.1 UI de Alquileres (Prioridad Alta)
+
+#### AlquileresPage (Dashboard)
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    DASHBOARD ALQUILERES                         │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  RESUMEN                                                        │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐           │
+│  │Programados│ │  Activos  │ │Finalizados│ │ Cancelados│        │
+│  │    5     │ │    3     │ │   12    │ │    2    │           │
+│  └──────────┘ └──────────┘ └──────────┘ └──────────┘           │
+│                                                                 │
+│  ALQUILERES ACTIVOS                                             │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │ [AlquilerCard] Evento X - Cliente Y                      │   │
+│  │   Fecha salida: 01/01  |  Retorno esperado: 05/01       │   │
+│  │   Elementos: 15 asignados  |  Estado: ACTIVO            │   │
+│  │   [Ver Detalle] [Marcar Retorno]                        │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                                                                 │
+│  PRÓXIMOS (Programados)                                         │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │ [AlquilerCard] Evento Z - Cliente W                      │   │
+│  │   Fecha salida: 10/01  |  Retorno esperado: 15/01       │   │
+│  │   Elementos: Pendientes de asignar                       │   │
+│  │   [Ver Detalle] [Marcar Salida]                         │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Archivos a crear:**
+- `inventario-frontend/src/pages/AlquileresPage.jsx`
+- `inventario-frontend/src/components/cards/AlquilerCard.jsx`
+
+#### AlquilerDetallePage
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    DETALLE ALQUILER #123                        │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  INFORMACIÓN GENERAL                                            │
+│  Cliente: Juan Pérez  |  Evento: Boda García                   │
+│  Fecha Salida: 01/01/2024  |  Retorno Esperado: 05/01/2024    │
+│  Estado: ACTIVO                                                 │
+│                                                                 │
+│  PRODUCTOS COTIZADOS                                            │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │ Carpa 6x12  (2 unidades)                                │   │
+│  │ Sillas plásticas (100 unidades)                         │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                                                                 │
+│  ELEMENTOS ASIGNADOS                                            │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │ Lona 6x12 | Serie: LN-001 | Estado salida: Bueno        │   │
+│  │ Estructura | Serie: EST-015 | Estado salida: Bueno      │   │
+│  │ Sillas | Lote: L-045 | Cantidad: 100 | Estado: Bueno    │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                                                                 │
+│  ACCIONES                                                       │
+│  [Asignar Más Elementos] [Cambiar Elemento] [Marcar Retorno]   │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Archivos a crear:**
+- `inventario-frontend/src/pages/AlquilerDetallePage.jsx`
+
+### 3.2 Modales de Operación
+
+#### AsignacionElementosModal (Para marcar salida)
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                  ASIGNAR ELEMENTOS - SALIDA                     │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  Para: Carpa 6x12 (necesita 2)                                 │
+│                                                                 │
+│  LONAS 6x12 (requiere series)                                  │
+│  ☑ Serie LN-001 - Ubicación: Bodega A - Estado: Bueno         │
+│  ☑ Serie LN-003 - Ubicación: Bodega A - Estado: Bueno         │
+│  ☐ Serie LN-005 - Ubicación: Bodega B - Estado: Bueno         │
+│                                                                 │
+│  ESTRUCTURAS 6x12 (requiere series)                            │
+│  ☑ Serie EST-015 - Ubicación: Bodega A                         │
+│  ☑ Serie EST-018 - Ubicación: Bodega A                         │
+│                                                                 │
+│  ESTACAS (lotes)                                               │
+│  De lote L-100 (disponibles: 500): [    100    ] unidades     │
+│                                                                 │
+│  ────────────────────────────────────────────────────────────  │
+│                        [Cancelar]  [Confirmar Salida]          │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Archivos a crear:**
+- `inventario-frontend/src/components/modals/AsignacionElementosModal.jsx`
+
+#### RetornoElementosModal (Para marcar retorno)
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                  REGISTRAR RETORNO                              │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ELEMENTOS A RETORNAR                                           │
+│                                                                 │
+│  Lona 6x12 - Serie LN-001                                      │
+│  Estado: [Bueno ▼]  Daño: $[      ]  Notas: [            ]    │
+│                                                                 │
+│  Lona 6x12 - Serie LN-003                                      │
+│  Estado: [Dañado ▼] Daño: $[ 50000 ] Notas: [Rasgadura     ]  │
+│                                                                 │
+│  Estructura - Serie EST-015                                     │
+│  Estado: [Bueno ▼]  Daño: $[      ]  Notas: [            ]    │
+│                                                                 │
+│  Sillas - Lote L-045 (100 unidades)                            │
+│  Estado: [Bueno ▼]  Perdidas: [ 2 ]  Daño: $[ 20000 ]         │
+│                                                                 │
+│  ────────────────────────────────────────────────────────────  │
+│  RESUMEN                                                        │
+│  Total daños: $70,000                                          │
+│  Depósito cobrado: $200,000                                    │
+│  Diferencia a devolver: $130,000                               │
+│  ────────────────────────────────────────────────────────────  │
+│                        [Cancelar]  [Confirmar Retorno]         │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Archivos a crear:**
+- `inventario-frontend/src/components/modals/RetornoElementosModal.jsx`
+
+### 3.3 Componentes Adicionales
+
+#### AlquilerTimeline
+Componente visual que muestra el historial del alquiler:
+- Cotización creada
+- Cotización aprobada
+- Alquiler programado
+- Elementos asignados
+- Salida marcada
+- Retorno registrado
+- Finalizado
+
+**Archivo a crear:**
+- `inventario-frontend/src/components/alquileres/AlquilerTimeline.jsx`
+
+---
+
+## 4. Flujo de Negocio Actual
+
+### 4.1 Crear Cotización ✅ (Implementado)
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                    CREAR COTIZACIÓN                             │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
-│  1. SELECCIONAR CLIENTE                                         │
-│     ├── Buscar cliente existente                                │
-│     └── O crear nuevo cliente                                   │
+│  1. SELECCIONAR/CREAR EVENTO                                    │
+│     ├── Asociar a evento existente                              │
+│     └── O crear nuevo evento con cliente                        │
 │                                                                 │
-│  2. DATOS DEL EVENTO                                            │
+│  2. DATOS DEL EVENTO (desde evento)                             │
 │     ├── Nombre del evento                                       │
-│     ├── Fecha inicio                                            │
-│     ├── Fecha fin                                               │
-│     ├── Ubicación/Ciudad destino                                │
-│     └── Dirección específica                                    │
+│     ├── Fecha montaje                                           │
+│     ├── Fecha evento                                            │
+│     ├── Fecha desmontaje                                        │
+│     └── Ciudad destino                                          │
 │                                                                 │
 │  3. SELECCIONAR PRODUCTOS (múltiples)                           │
 │     ├── Buscar elementos compuestos                             │
 │     ├── Seleccionar cantidad de cada uno                        │
-│     ├── Ver desglose de componentes                             │
-│     └── Seleccionar alternativas si aplica                      │
+│     └── Agregar recargos si aplica                              │
 │                                                                 │
 │  4. CONFIGURAR TRANSPORTE                                       │
-│     ├── Cantidad de camiones                                    │
-│     └── Cálculo automático según ubicación                      │
+│     ├── Seleccionar tipo de camión                              │
+│     ├── Ciudad (auto-cálculo de tarifa)                         │
+│     └── Cantidad de viajes                                      │
 │                                                                 │
-│  5. RESUMEN Y TOTALES                                           │
+│  5. APLICAR DESCUENTOS                                          │
+│     ├── Descuentos predefinidos                                 │
+│     └── Descuento manual                                        │
+│                                                                 │
+│  6. RESUMEN Y TOTALES (automático)                              │
 │     ├── Subtotal productos                                      │
-│     ├── Costo transporte                                        │
-│     ├── Descuento (opcional)                                    │
-│     ├── Depósito sugerido                                       │
+│     ├── Subtotal transporte                                     │
+│     ├── Cobro días extra                                        │
+│     ├── Descuentos                                              │
+│     ├── Base gravable                                           │
+│     ├── IVA                                                     │
 │     └── TOTAL                                                   │
 │                                                                 │
-│  6. GUARDAR                                                     │
+│  7. GUARDAR                                                     │
 │     └── Estado: PENDIENTE                                       │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-### 3.2 Aprobar Cotización → Crear Alquiler
+### 4.2 Aprobar Cotización → Crear Alquiler ✅ (Backend implementado)
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │              APROBAR COTIZACIÓN → CREAR ALQUILER                │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
-│  1. CAMBIAR ESTADO COTIZACIÓN                                   │
+│  1. VERIFICAR DISPONIBILIDAD (automático)                       │
+│     ├── Verificar stock de cada componente                     │
+│     └── Alertar si hay faltantes                               │
+│                                                                 │
+│  2. CAMBIAR ESTADO COTIZACIÓN                                   │
 │     └── pendiente → aprobada                                    │
 │                                                                 │
-│  2. CREAR REGISTRO DE ALQUILER                                  │
+│  3. CREAR REGISTRO DE ALQUILER                                  │
 │     ├── Estado: PROGRAMADO                                      │
-│     ├── Fechas de salida/retorno                                │
+│     ├── Fechas desde cotización                                 │
 │     └── Totales desde cotización                                │
 │                                                                 │
-│  3. (OPCIONAL) RESERVAR ELEMENTOS                               │
-│     └── Marcar elementos como "reservados" si se desea         │
+│  4. ASIGNAR ELEMENTOS AUTOMÁTICAMENTE                           │
+│     ├── Buscar series/lotes disponibles                         │
+│     └── Registrar en alquiler_elementos                         │
+│                                                                 │
+│  5. CREAR ÓRDENES DE TRABAJO                                    │
+│     ├── Orden de montaje                                        │
+│     └── Orden de desmontaje                                     │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-### 3.3 Marcar Salida (Inicio del Alquiler)
+### 4.3 Marcar Salida ✅ (Backend implementado, UI pendiente)
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                    MARCAR SALIDA                                │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
-│  1. ASIGNAR ELEMENTOS FÍSICOS                                   │
-│     Para cada producto de la cotización:                        │
-│     ├── Buscar componentes requeridos                           │
-│     ├── Seleccionar series específicas (si requiere_series)     │
-│     └── Seleccionar lotes con cantidad (si no requiere_series)  │
+│  1. VERIFICAR/AJUSTAR ELEMENTOS                                 │
+│     ├── Mostrar elementos pre-asignados                         │
+│     └── Permitir cambiar por otros disponibles                  │
 │                                                                 │
-│  2. CAMBIAR ESTADOS                                             │
-│     ├── Series seleccionadas → estado: 'alquilado'             │
-│     ├── Lotes seleccionados → estado: 'alquilado'              │
-│     └── Ubicación → evento/cliente                              │
+│  2. CAMBIAR ESTADOS DE INVENTARIO                               │
+│     ├── Series → estado: 'alquilado'                           │
+│     ├── Lotes → crear lote temporal 'alquilado'                │
+│     └── Registrar ubicación original                            │
 │                                                                 │
-│  3. REGISTRAR EN alquiler_elementos                             │
-│     ├── Guardar estado_salida                                   │
-│     └── Guardar ubicacion_original_id                           │
-│                                                                 │
-│  4. CAMBIAR ESTADO ALQUILER                                     │
+│  3. CAMBIAR ESTADO ALQUILER                                     │
 │     └── programado → ACTIVO                                     │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-### 3.4 Marcar Retorno (Fin del Alquiler)
+### 4.4 Marcar Retorno ✅ (Backend implementado, UI pendiente)
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -263,14 +434,13 @@ CREATE TABLE IF NOT EXISTS tarifas_transporte (
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
 │  1. REVISAR CADA ELEMENTO                                       │
-│     Para cada elemento en alquiler_elementos:                   │
 │     ├── Registrar estado_retorno (bueno/dañado/perdido)         │
 │     └── Registrar costo_dano si aplica                          │
 │                                                                 │
-│  2. RESTAURAR ESTADOS                                           │
+│  2. RESTAURAR INVENTARIO                                        │
 │     ├── Series → estado según condición                         │
-│     ├── Lotes → estado según condición                          │
-│     └── Ubicación → ubicacion_original_id                       │
+│     ├── Lotes → devolver cantidad al lote original              │
+│     └── Ubicación → restaurar ubicación original                │
 │                                                                 │
 │  3. CALCULAR DAÑOS                                              │
 │     └── Sumar todos los costo_dano                              │
@@ -283,94 +453,9 @@ CREATE TABLE IF NOT EXISTS tarifas_transporte (
 
 ---
 
-## 4. Estructura de Implementación
+## 5. API Endpoints Implementados
 
-### 4.1 Backend - Archivos a Crear/Modificar
-
-```
-backend/
-├── sql/productos_alquiler/
-│   ├── 08_cotizacion_productos.sql          [CREAR]
-│   ├── 09_alquiler_elementos.sql            [CREAR]
-│   ├── 10_tarifas_transporte.sql            [CREAR]
-│   ├── 11_modificar_cotizaciones.sql        [CREAR]
-│   └── 12_modificar_cotizacion_detalles.sql [CREAR]
-│
-├── modules/alquileres/
-│   ├── models/
-│   │   ├── ClienteModel.js                  [SIN CAMBIOS]
-│   │   ├── CotizacionModel.js               [MODIFICAR]
-│   │   ├── CotizacionProductoModel.js       [CREAR]
-│   │   ├── AlquilerModel.js                 [MODIFICAR]
-│   │   ├── AlquilerElementoModel.js         [CREAR]
-│   │   └── TarifaTransporteModel.js         [CREAR]
-│   │
-│   ├── controllers/
-│   │   ├── clienteController.js             [SIN CAMBIOS]
-│   │   ├── cotizacionController.js          [MODIFICAR]
-│   │   ├── alquilerController.js            [MODIFICAR]
-│   │   └── tarifaTransporteController.js    [CREAR]
-│   │
-│   ├── routes/
-│   │   ├── clientes.js                      [SIN CAMBIOS]
-│   │   ├── cotizaciones.js                  [MODIFICAR]
-│   │   ├── alquileres.js                    [MODIFICAR]
-│   │   └── tarifasTransporte.js             [CREAR]
-│   │
-│   └── services/
-│       ├── calculoTransporteService.js      [CREAR]
-│       └── asignacionElementosService.js    [CREAR]
-```
-
-### 4.2 Frontend - Archivos a Crear
-
-```
-inventario-frontend/src/
-├── api/
-│   ├── apiClientes.js                       [CREAR]
-│   ├── apiCotizaciones.js                   [CREAR]
-│   ├── apiAlquileres.js                     [CREAR]
-│   └── apiTarifasTransporte.js              [CREAR]
-│
-├── hooks/
-│   ├── UseClientes.js                       [CREAR]
-│   ├── UseCotizaciones.js                   [CREAR]
-│   ├── UseAlquileres.js                     [CREAR]
-│   └── UseTarifasTransporte.js              [CREAR]
-│
-├── pages/
-│   ├── alquileres/
-│   │   ├── AlquileresPage.jsx               [CREAR] - Dashboard de alquileres
-│   │   ├── ClientesPage.jsx                 [CREAR] - CRUD de clientes
-│   │   ├── CotizacionesPage.jsx             [CREAR] - Lista de cotizaciones
-│   │   ├── CotizacionDetallePage.jsx        [CREAR] - Detalle/edición
-│   │   ├── AlquilerDetallePage.jsx          [CREAR] - Detalle de alquiler
-│   │   └── TarifasTransportePage.jsx        [CREAR] - Config de tarifas
-│   │
-├── components/
-│   ├── alquileres/
-│   │   ├── ClienteCard.jsx                  [CREAR]
-│   │   ├── ClienteFormModal.jsx             [CREAR]
-│   │   ├── ClienteSelector.jsx              [CREAR]
-│   │   ├── CotizacionCard.jsx               [CREAR]
-│   │   ├── CotizacionFormWizard.jsx         [CREAR] - Multi-paso
-│   │   ├── ProductoSelectorModal.jsx        [CREAR]
-│   │   ├── TransporteCalculator.jsx         [CREAR]
-│   │   ├── AlquilerCard.jsx                 [CREAR]
-│   │   ├── AsignacionElementosModal.jsx     [CREAR]
-│   │   ├── RetornoElementosModal.jsx        [CREAR]
-│   │   └── AlquilerTimeline.jsx             [CREAR]
-│   │
-│   └── common/
-│       └── DateRangePicker.jsx              [CREAR]
-```
-
----
-
-## 5. API Endpoints
-
-### 5.1 Clientes (ya existe, verificar)
-
+### 5.1 Clientes ✅
 ```
 GET    /api/clientes                    → Obtener todos
 GET    /api/clientes/activos            → Obtener activos
@@ -381,287 +466,279 @@ PUT    /api/clientes/:id                → Actualizar
 DELETE /api/clientes/:id                → Eliminar
 ```
 
-### 5.2 Cotizaciones (modificar)
-
+### 5.2 Cotizaciones ✅
 ```
 GET    /api/cotizaciones                → Obtener todas
 GET    /api/cotizaciones/estado/:estado → Por estado
 GET    /api/cotizaciones/:id            → Obtener por ID
 GET    /api/cotizaciones/:id/completa   → Con productos y detalles
 GET    /api/cotizaciones/cliente/:id    → Por cliente
+GET    /api/cotizaciones/:id/disponibilidad → Verificar disponibilidad
 POST   /api/cotizaciones                → Crear (con productos)
 PUT    /api/cotizaciones/:id            → Actualizar
+PATCH  /api/cotizaciones/:id/estado     → Cambiar estado
 DELETE /api/cotizaciones/:id            → Eliminar
 
 POST   /api/cotizaciones/:id/aprobar    → Aprobar y crear alquiler
-POST   /api/cotizaciones/:id/rechazar   → Rechazar
 POST   /api/cotizaciones/:id/duplicar   → Duplicar cotización
+
+POST   /api/cotizaciones/:id/productos                → Agregar producto
+DELETE /api/cotizaciones/:id/productos/:productoId    → Eliminar producto
+
+POST   /api/cotizaciones/:id/transporte               → Agregar transporte
+DELETE /api/cotizaciones/:id/transporte/:transporteId → Eliminar transporte
+
+GET    /api/cotizaciones/:id/descuentos                      → Obtener descuentos
+POST   /api/cotizaciones/:id/descuentos                      → Aplicar descuento
+DELETE /api/cotizaciones/:id/descuentos/:descuentoAplicadoId → Eliminar descuento
 ```
 
-### 5.3 Alquileres (modificar)
-
+### 5.3 Alquileres ✅
 ```
 GET    /api/alquileres                  → Obtener todos
 GET    /api/alquileres/estado/:estado   → Por estado
 GET    /api/alquileres/activos          → Activos
 GET    /api/alquileres/programados      → Programados
+GET    /api/alquileres/estadisticas     → Estadísticas
+GET    /api/alquileres/fechas           → Por rango de fechas
 GET    /api/alquileres/:id              → Obtener por ID
+GET    /api/alquileres/:id/completo     → Con productos y elementos
 GET    /api/alquileres/:id/elementos    → Elementos asignados
 
-POST   /api/alquileres/:id/salida       → Marcar salida + asignar elementos
-POST   /api/alquileres/:id/retorno      → Marcar retorno + revisar elementos
-POST   /api/alquileres/:id/cancelar     → Cancelar
+POST   /api/alquileres/:id/elementos                    → Asignar elementos
+PUT    /api/alquileres/:id/elementos/:asignacionId      → Cambiar elemento
+POST   /api/alquileres/:id/elementos/:elementoId/retorno → Retorno individual
 
-GET    /api/alquileres/calendario       → Para vista de calendario
-GET    /api/alquileres/disponibilidad   → Verificar disponibilidad de elementos
+POST   /api/alquileres/:id/salida       → Marcar salida
+POST   /api/alquileres/:id/retorno      → Marcar retorno
+POST   /api/alquileres/:id/cancelar     → Cancelar
 ```
 
-### 5.4 Tarifas de Transporte (nuevo)
+### 5.4 Eventos ✅
+```
+GET    /api/eventos                     → Obtener todos
+GET    /api/eventos/:id                 → Obtener por ID
+GET    /api/eventos/:id/cotizaciones    → Cotizaciones del evento
+POST   /api/eventos                     → Crear
+PUT    /api/eventos/:id                 → Actualizar
+PATCH  /api/eventos/:id/estado          → Cambiar estado
+DELETE /api/eventos/:id                 → Eliminar
+```
 
+### 5.5 Tarifas de Transporte ✅
 ```
 GET    /api/tarifas-transporte          → Obtener todas
+GET    /api/tarifas-transporte/activas  → Solo activas
 GET    /api/tarifas-transporte/:id      → Obtener por ID
-GET    /api/tarifas-transporte/ciudad/:ciudad → Por ciudad
+GET    /api/tarifas-transporte/ciudad/:ciudadId → Por ciudad
 POST   /api/tarifas-transporte          → Crear
 PUT    /api/tarifas-transporte/:id      → Actualizar
 DELETE /api/tarifas-transporte/:id      → Eliminar
+```
 
-GET    /api/tarifas-transporte/calcular → Calcular costo (ciudad + camiones)
+### 5.6 Descuentos ✅
+```
+GET    /api/descuentos                  → Obtener todos
+GET    /api/descuentos/activos          → Solo activos
+GET    /api/descuentos/:id              → Obtener por ID
+POST   /api/descuentos                  → Crear
+PUT    /api/descuentos/:id              → Actualizar
+DELETE /api/descuentos/:id              → Eliminar
+```
+
+### 5.7 Disponibilidad ✅
+```
+GET    /api/disponibilidad/cotizacion/:id → Verificar para cotización
+GET    /api/disponibilidad/elemento/:id   → Disponibilidad de elemento
+GET    /api/disponibilidad/fechas         → Por rango de fechas
+```
+
+### 5.8 Configuración ✅
+```
+GET    /api/configuracion               → Obtener todas las configuraciones
+PUT    /api/configuracion               → Actualizar múltiples valores
+GET    /api/configuracion/:clave        → Obtener valor específico
+PUT    /api/configuracion/:clave        → Actualizar valor específico
 ```
 
 ---
 
-## 6. Fases de Implementación
-
-### Fase 1: Base de Datos y Modelos (Backend)
-1. Crear migraciones SQL
-2. Ejecutar migraciones
-3. Crear/modificar modelos
-4. Tests de modelos
-
-### Fase 2: Controladores y Rutas (Backend)
-1. Modificar cotizacionController para múltiples productos
-2. Crear servicios de cálculo de transporte
-3. Crear servicios de asignación de elementos
-4. Modificar alquilerController para gestión de elementos
-5. Crear tarifaTransporteController
-
-### Fase 3: API Frontend
-1. Crear clientes API (Axios)
-2. Crear hooks de React Query
-3. Tests de integración
-
-### Fase 4: UI Clientes
-1. ClientesPage (lista)
-2. ClienteFormModal
-3. ClienteSelector para uso en cotizaciones
-
-### Fase 5: UI Cotizaciones
-1. CotizacionesPage (lista con filtros)
-2. CotizacionFormWizard (multi-paso)
-3. ProductoSelectorModal
-4. TransporteCalculator
-5. CotizacionDetallePage
-
-### Fase 6: UI Alquileres
-1. AlquileresPage (dashboard)
-2. AlquilerCard con estados visuales
-3. AsignacionElementosModal (para marcar salida)
-4. RetornoElementosModal (para marcar retorno)
-5. AlquilerDetallePage
-6. AlquilerTimeline (historial visual)
-
-### Fase 7: Configuración
-1. TarifasTransportePage
-2. Integración con ubicaciones existentes
-
----
-
-## 7. Modelo de Datos - Diagrama
+## 6. Modelo de Datos Actual
 
 ```
 ┌─────────────────┐      ┌──────────────────────┐
-│    clientes     │      │     ubicaciones      │
+│    clientes     │      │      ciudades        │
 ├─────────────────┤      ├──────────────────────┤
 │ id              │      │ id                   │
 │ tipo_documento  │      │ nombre               │
-│ numero_documento│      │ ciudad               │
-│ nombre          │      │ ...                  │
-│ telefono        │      └──────────┬───────────┘
-│ email           │                 │
-│ direccion       │                 │
-│ ciudad          │                 │
-│ notas           │      ┌──────────┴───────────┐
-│ activo          │      │  tarifas_transporte  │
-└────────┬────────┘      ├──────────────────────┤
-         │               │ id                   │
-         │               │ ciudad               │
-         │               │ zona                 │
-         │               │ precio_camion        │
-         │               └──────────────────────┘
-         │
-         │ 1:N
+│ numero_documento│      └──────────┬───────────┘
+│ nombre          │                 │
+│ telefono        │      ┌──────────┴───────────┐
+│ email           │      │  tarifas_transporte  │
+│ direccion       │      ├──────────────────────┤
+│ ciudad          │      │ id                   │
+│ notas           │      │ ciudad_id            │
+│ activo          │      │ tipo_camion          │
+└────────┬────────┘      │ precio               │
+         │               │ activo               │
+         │ 1:N           └──────────────────────┘
          ▼
+┌─────────────────────────────────────────────────┐
+│                    eventos                      │
+├─────────────────────────────────────────────────┤
+│ id                                              │
+│ cliente_id ─────────────────────────────────────│
+│ nombre                                          │
+│ ciudad_id                                       │
+│ fecha_inicio, fecha_fin                         │
+│ estado (activo/completado/cancelado)            │
+└─────────────────────┬───────────────────────────┘
+                      │ 1:N
+                      ▼
 ┌─────────────────────────────────────────────────┐
 │                  cotizaciones                   │
 ├─────────────────────────────────────────────────┤
 │ id                                              │
-│ cliente_id ────────────────────────────────────►│
-│ fecha_evento                                    │
-│ fecha_fin_evento                                │
-│ evento_nombre                                   │
-│ evento_ciudad                                   │
-│ ubicacion_id ──────────────────────────────────►│
-│ direccion_evento                                │
-│ cantidad_camiones                               │
-│ costo_transporte                                │
+│ cliente_id                                      │
+│ evento_id (opcional)                            │
+│ fecha_montaje, fecha_evento, fecha_desmontaje   │
+│ evento_nombre, evento_direccion, evento_ciudad  │
+│ dias_montaje_extra, dias_desmontaje_extra       │
+│ porcentaje_dias_extra, cobro_dias_extra         │
+│ subtotal_productos, subtotal_transporte         │
+│ total_descuentos, base_gravable                 │
+│ porcentaje_iva, valor_iva                       │
 │ subtotal, descuento, total                      │
+│ vigencia_dias                                   │
 │ estado (pendiente/aprobada/rechazada/vencida)   │
 └─────────────────────┬───────────────────────────┘
-                      │
                       │ 1:N
-                      ▼
-         ┌────────────────────────────┐
-         │    cotizacion_productos    │
-         ├────────────────────────────┤
-         │ id                         │
-         │ cotizacion_id ────────────►│
-         │ compuesto_id ─────────────►│ elementos_compuestos
-         │ cantidad                   │
-         │ precio_base                │
-         │ subtotal                   │
-         └─────────────┬──────────────┘
-                       │
-                       │ 1:N
-                       ▼
-              ┌──────────────────────┐
-              │  cotizacion_detalles │ (componentes elegidos)
-              ├──────────────────────┤
-              │ id                   │
-              │ cotizacion_id        │
-              │ cotizacion_producto_id│
-              │ elemento_id ────────►│ elementos
-              │ cantidad             │
-              │ precio_unitario      │
-              └──────────────────────┘
+         ┌────────────┴────────────┐
+         ▼                         ▼
+┌────────────────────────┐  ┌────────────────────────┐
+│  cotizacion_productos  │  │  cotizacion_transportes│
+├────────────────────────┤  ├────────────────────────┤
+│ id                     │  │ id                     │
+│ cotizacion_id          │  │ cotizacion_id          │
+│ compuesto_id           │  │ tarifa_id              │
+│ cantidad               │  │ cantidad               │
+│ precio_base            │  │ precio_unitario        │
+│ deposito               │  │ subtotal               │
+│ precio_adicionales     │  └────────────────────────┘
+│ subtotal               │
+└─────────────┬──────────┘
+              │ 1:N
+              ▼
+┌────────────────────────────────┐
+│  cotizacion_producto_recargos  │
+├────────────────────────────────┤
+│ id                             │
+│ cotizacion_producto_id         │
+│ tipo (adelanto/extension)      │
+│ dias, porcentaje               │
+│ monto_recargo                  │
+└────────────────────────────────┘
 
 
 ┌─────────────────────────────────────────────────┐
 │                   alquileres                    │
 ├─────────────────────────────────────────────────┤
 │ id                                              │
-│ cotizacion_id ─────────────────────────────────►│
+│ cotizacion_id ─────────────────────────────────│
 │ fecha_salida                                    │
 │ fecha_retorno_esperado                          │
 │ fecha_retorno_real                              │
 │ total, deposito_cobrado, costo_danos            │
+│ notas_salida, notas_retorno                     │
 │ estado (programado/activo/finalizado/cancelado) │
 └─────────────────────┬───────────────────────────┘
-                      │
                       │ 1:N
                       ▼
-         ┌────────────────────────────┐
-         │     alquiler_elementos     │
-         ├────────────────────────────┤
-         │ id                         │
-         │ alquiler_id ──────────────►│
-         │ elemento_id ──────────────►│ elementos
-         │ serie_id ─────────────────►│ series (si aplica)
-         │ lote_id ──────────────────►│ lotes (si aplica)
-         │ cantidad_lote              │
-         │ estado_salida              │
-         │ estado_retorno             │
-         │ costo_dano                 │
-         │ ubicacion_original_id ────►│ ubicaciones
-         └────────────────────────────┘
+┌────────────────────────────────┐
+│       alquiler_elementos       │
+├────────────────────────────────┤
+│ id                             │
+│ alquiler_id                    │
+│ elemento_id                    │
+│ serie_id (si aplica)           │
+│ lote_id (si aplica)            │
+│ lote_alquilado_id              │
+│ cantidad_lote                  │
+│ estado_salida                  │
+│ estado_retorno                 │
+│ costo_dano                     │
+│ notas_retorno                  │
+│ ubicacion_original_id          │
+│ fecha_asignacion               │
+│ fecha_retorno                  │
+└────────────────────────────────┘
+
+
+┌────────────────────────┐
+│       descuentos       │
+├────────────────────────┤
+│ id                     │
+│ nombre                 │
+│ descripcion            │
+│ tipo (porcentaje/fijo) │
+│ valor                  │
+│ activo                 │
+└───────────┬────────────┘
+            │ 1:N
+            ▼
+┌────────────────────────────┐
+│   cotizacion_descuentos    │
+├────────────────────────────┤
+│ id                         │
+│ cotizacion_id              │
+│ descuento_id (opcional)    │
+│ tipo                       │
+│ valor                      │
+│ monto_calculado            │
+│ descripcion                │
+└────────────────────────────┘
+
+
+┌────────────────────────────────┐
+│   configuracion_alquileres     │
+├────────────────────────────────┤
+│ id                             │
+│ clave                          │
+│ valor                          │
+│ tipo                           │
+│ categoria                      │
+│ descripcion                    │
+└────────────────────────────────┘
 ```
 
 ---
 
-## 8. Estados y Transiciones
+## 7. Próximos Pasos
 
-### Cotización
-```
-PENDIENTE ──┬──► APROBADA ──► (crea alquiler)
-            │
-            ├──► RECHAZADA
-            │
-            └──► VENCIDA (automático por fecha)
-```
+### Prioridad Alta
+1. **Crear AlquileresPage** - Dashboard de alquileres activos/programados
+2. **Crear AlquilerDetallePage** - Vista detallada de un alquiler
+3. **Crear AsignacionElementosModal** - Para marcar salida con UI
+4. **Crear RetornoElementosModal** - Para marcar retorno con UI
 
-### Alquiler
-```
-PROGRAMADO ──► ACTIVO ──┬──► FINALIZADO
-                        │
-                        └──► CANCELADO
-```
+### Prioridad Media
+5. **Crear AlquilerCard** - Tarjeta de resumen de alquiler
+6. **Crear AlquilerTimeline** - Historial visual del alquiler
+7. **Integrar notificaciones** - Alertas de alquileres próximos a vencer
 
-### Elementos (Series/Lotes) durante alquiler
-```
-bueno ──► alquilado ──┬──► bueno (retorno OK)
-                      │
-                      ├──► dañado (retorno con daño)
-                      │
-                      └──► perdido (no retornó)
-```
+### Prioridad Baja
+8. **Reportes de alquileres** - Estadísticas y gráficos
+9. **Exportar a PDF** - Cotizaciones y contratos
+10. **Historial de cambios** - Auditoría de modificaciones
 
 ---
 
-## 9. Cálculo de Totales
+## 8. Notas Técnicas
 
-```javascript
-// Pseudocódigo del cálculo
-const calcularTotalCotizacion = (productos, transporte, descuento) => {
-  // 1. Sumar productos
-  let subtotalProductos = 0;
-  for (const prod of productos) {
-    const precioProducto = prod.precio_base * prod.cantidad;
-    const precioAdicionales = calcularAdicionales(prod.detalles);
-    subtotalProductos += precioProducto + precioAdicionales;
-  }
-
-  // 2. Calcular transporte
-  const costoTransporte = transporte.precioCamion * transporte.cantidadCamiones;
-
-  // 3. Subtotal
-  const subtotal = subtotalProductos + costoTransporte;
-
-  // 4. Aplicar descuento
-  const totalDescuento = descuento || 0;
-
-  // 5. Total final
-  const total = subtotal - totalDescuento;
-
-  // 6. Depósito sugerido (ej: 30% del total productos)
-  const depositoSugerido = subtotalProductos * 0.30;
-
-  return {
-    subtotalProductos,
-    costoTransporte,
-    subtotal,
-    descuento: totalDescuento,
-    total,
-    depositoSugerido
-  };
-};
-```
-
----
-
-## 10. Próximos Pasos
-
-1. **Revisar este plan** y confirmar los requisitos
-2. **Ejecutar migraciones** de base de datos
-3. **Implementar backend** fase por fase
-4. **Implementar frontend** componente por componente
-5. **Pruebas de integración**
-6. **Ajustes según feedback**
-
----
-
-## Notas Adicionales
-
-- La tabla de clientes ya existe y está funcional
+- La tabla de clientes está completa y funcional
 - Los elementos compuestos ya tienen precio_base y deposito definidos
-- Las ubicaciones ya existen y pueden usarse para el cálculo de transporte
-- El sistema de series/lotes ya maneja estados, solo hay que integrar la lógica de alquiler
+- Las ubicaciones ya existen y se usan para el cálculo de transporte
+- El sistema de series/lotes ya maneja estados, solo hay que usar la lógica existente
+- La asignación automática de elementos ya está implementada en DisponibilidadModel
+- Las órdenes de trabajo se crean automáticamente al aprobar cotización
+- La configuración es dinámica y se carga desde ConfiguracionModel
