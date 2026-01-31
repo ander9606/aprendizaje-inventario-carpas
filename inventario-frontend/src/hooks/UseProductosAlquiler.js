@@ -61,6 +61,25 @@ export const useGetProductoCompleto = (id) => {
 }
 
 // ============================================
+// HOOK: useGetProductosPorCategoria
+// ============================================
+
+export const useGetProductosPorCategoria = (categoriaId) => {
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ['productos-alquiler', 'categoria', categoriaId],
+    queryFn: () => apiProductosAlquiler.obtenerPorCategoria(categoriaId),
+    enabled: !!categoriaId
+  })
+
+  return {
+    productos: data?.data || [],
+    isLoading,
+    error,
+    refetch
+  }
+}
+
+// ============================================
 // HOOK: useBuscarProductos
 // ============================================
 

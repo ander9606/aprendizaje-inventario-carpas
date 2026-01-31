@@ -5,6 +5,7 @@
 const express = require('express');
 const router = express.Router();
 const cotizacionController = require('../controllers/cotizacionController');
+const descuentoController = require('../controllers/descuentoController');
 const { validateId } = require('../../../middleware/validator');
 
 // GET /api/cotizaciones - Obtener todas
@@ -66,5 +67,18 @@ router.delete('/:id/transporte/:transporteId', validateId(), cotizacionControlle
 
 // POST /api/cotizaciones/:id/duplicar - Duplicar cotización
 router.post('/:id/duplicar', validateId(), cotizacionController.duplicar);
+
+// ============================================
+// DESCUENTOS
+// ============================================
+
+// GET /api/cotizaciones/:id/descuentos - Obtener descuentos de una cotización
+router.get('/:id/descuentos', validateId(), descuentoController.obtenerDeCotizacion);
+
+// POST /api/cotizaciones/:id/descuentos - Aplicar descuento a cotización
+router.post('/:id/descuentos', validateId(), descuentoController.aplicarACotizacion);
+
+// DELETE /api/cotizaciones/:id/descuentos/:descuentoAplicadoId - Eliminar descuento de cotización
+router.delete('/:id/descuentos/:descuentoAplicadoId', validateId(), descuentoController.eliminarDeCotizacion);
 
 module.exports = router;

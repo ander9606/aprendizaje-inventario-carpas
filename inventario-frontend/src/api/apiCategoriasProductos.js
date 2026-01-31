@@ -44,6 +44,12 @@ const categoriasProductosAPI = {
     return response.data
   },
 
+  // Obtener categorías con conteo de productos (para selector)
+  obtenerConConteo: async () => {
+    const response = await api.get('/categorias-productos/con-conteo')
+    return response.data
+  },
+
   // Obtener subcategorías de una categoría
   obtenerHijos: async (id) => {
     const response = await api.get(`/categorias-productos/${id}/hijos`)

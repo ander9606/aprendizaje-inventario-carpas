@@ -5,7 +5,51 @@
 
 const { pool } = require('../../../config/database');
 
+// Importación diferida para evitar dependencia circular
+let ConfiguracionModel = null;
+const getConfiguracionModel = () => {
+  if (!ConfiguracionModel) {
+    ConfiguracionModel = require('./ConfiguracionModel');
+  }
+  return ConfiguracionModel;
+};
+
 class CotizacionModel {
+
+  // ============================================
+  // CONSTANTES DE NEGOCIO (valores por defecto)
+  // ============================================
+  static DIAS_GRATIS_MONTAJE = 2;
+  static DIAS_GRATIS_DESMONTAJE = 1;
+  static PORCENTAJE_DIAS_EXTRA_DEFAULT = 15.00;
+  static PORCENTAJE_IVA_DEFAULT = 19.00;
+
+  // ============================================
+  // OBTENER CONFIGURACIÓN DINÁMICA
+  // ============================================
+  static async obtenerConfiguracion() {
+    try {
+      const Config = getConfiguracionModel();
+      return await Config.obtenerValores([
+        'dias_gratis_montaje',
+        'dias_gratis_desmontaje',
+        'porcentaje_dias_extra',
+        'porcentaje_iva',
+        'aplicar_iva',
+        'vigencia_cotizacion_dias'
+      ]);
+    } catch (error) {
+      // Si falla, usar valores por defecto
+      return {
+        dias_gratis_montaje: this.DIAS_GRATIS_MONTAJE,
+        dias_gratis_desmontaje: this.DIAS_GRATIS_DESMONTAJE,
+        porcentaje_dias_extra: this.PORCENTAJE_DIAS_EXTRA_DEFAULT,
+        porcentaje_iva: this.PORCENTAJE_IVA_DEFAULT,
+        aplicar_iva: true,
+        vigencia_cotizacion_dias: 15
+      };
+    }
+  }
 
   // ============================================
   // OBTENER TODAS
@@ -26,6 +70,12 @@ class CotizacionModel {
         cot.estado,
         cot.vigencia_dias,
         cot.created_at,
+        cot.dias_montaje_extra,
+        cot.dias_desmontaje_extra,
+        cot.porcentaje_dias_extra,
+        cot.cobro_dias_extra,
+        cot.porcentaje_iva,
+        cot.valor_iva,
         cl.nombre AS cliente_nombre,
         cl.telefono AS cliente_telefono,
         (SELECT COUNT(*) FROM cotizacion_productos WHERE cotizacion_id = cot.id) AS total_productos
@@ -73,7 +123,9 @@ class CotizacionModel {
         cl.email AS cliente_email,
         cl.direccion AS cliente_direccion,
         cl.tipo_documento AS cliente_tipo_documento,
-        cl.numero_documento AS cliente_numero_documento
+        cl.numero_documento AS cliente_numero_documento,
+        (SELECT a.id FROM alquileres a WHERE a.cotizacion_id = cot.id LIMIT 1) AS alquiler_id,
+        (SELECT a.estado FROM alquileres a WHERE a.cotizacion_id = cot.id LIMIT 1) AS alquiler_estado
       FROM cotizaciones cot
       INNER JOIN clientes cl ON cot.cliente_id = cl.id
       WHERE cot.id = ?
@@ -83,7 +135,7 @@ class CotizacionModel {
   }
 
   // ============================================
-  // OBTENER COMPLETA (con productos y transporte)
+  // OBTENER COMPLETA (con productos, transporte y descuentos)
   // ============================================
   static async obtenerCompleta(id) {
     const cotizacion = await this.obtenerPorId(id);
@@ -130,32 +182,120 @@ class CotizacionModel {
     `;
     const [transporte] = await pool.query(queryTransporte, [id]);
 
+    // Obtener descuentos aplicados
+    const queryDescuentos = `
+      SELECT
+        cd.id,
+        cd.descuento_id,
+        cd.tipo,
+        cd.valor,
+        cd.monto_calculado,
+        cd.descripcion,
+        d.nombre AS descuento_nombre,
+        d.descripcion AS descuento_descripcion
+      FROM cotizacion_descuentos cd
+      LEFT JOIN descuentos d ON cd.descuento_id = d.id
+      WHERE cd.cotizacion_id = ?
+    `;
+    const [descuentos] = await pool.query(queryDescuentos, [id]);
+
     // Calcular totales
     const subtotalProductos = productos.reduce((sum, p) => sum + parseFloat(p.subtotal), 0);
     const subtotalTransporte = transporte.reduce((sum, t) => sum + parseFloat(t.subtotal), 0);
     const totalDeposito = productos.reduce((sum, p) => sum + (parseFloat(p.deposito) * p.cantidad), 0);
+    const totalDescuentosAplicados = descuentos.reduce((sum, d) => sum + parseFloat(d.monto_calculado || 0), 0);
+
+    // Calcular días extra
+    const totalDiasExtra = (cotizacion.dias_montaje_extra || 0) + (cotizacion.dias_desmontaje_extra || 0);
 
     return {
       ...cotizacion,
       productos,
       transporte,
+      descuentos_aplicados: descuentos,
       resumen: {
         subtotal_productos: subtotalProductos,
         subtotal_transporte: subtotalTransporte,
-        total_deposito: totalDeposito
+        total_deposito: totalDeposito,
+        dias_montaje_extra: cotizacion.dias_montaje_extra || 0,
+        dias_desmontaje_extra: cotizacion.dias_desmontaje_extra || 0,
+        total_dias_extra: totalDiasExtra,
+        porcentaje_dias_extra: cotizacion.porcentaje_dias_extra || this.PORCENTAJE_DIAS_EXTRA_DEFAULT,
+        cobro_dias_extra: parseFloat(cotizacion.cobro_dias_extra || 0),
+        descuento_manual: parseFloat(cotizacion.descuento || 0),
+        total_descuentos_aplicados: totalDescuentosAplicados,
+        total_descuentos: parseFloat(cotizacion.total_descuentos || 0),
+        base_gravable: parseFloat(cotizacion.base_gravable || 0),
+        porcentaje_iva: cotizacion.porcentaje_iva || this.PORCENTAJE_IVA_DEFAULT,
+        valor_iva: parseFloat(cotizacion.valor_iva || 0),
+        total: parseFloat(cotizacion.total || 0)
       }
     };
   }
 
   // ============================================
+  // CALCULAR DÍAS EXTRA (con configuración dinámica)
+  // ============================================
+  static async calcularDiasExtra(fechaMontaje, fechaEvento, fechaDesmontaje, config = null) {
+    // Obtener configuración si no se proporciona
+    if (!config) {
+      config = await this.obtenerConfiguracion();
+    }
+
+    const montaje = new Date(fechaMontaje);
+    const evento = new Date(fechaEvento);
+    const desmontaje = new Date(fechaDesmontaje);
+
+    const diasGratisMontaje = config.dias_gratis_montaje || this.DIAS_GRATIS_MONTAJE;
+    const diasGratisDesmontaje = config.dias_gratis_desmontaje || this.DIAS_GRATIS_DESMONTAJE;
+
+    // Días entre montaje y evento
+    const diasMontaje = Math.floor((evento - montaje) / (1000 * 60 * 60 * 24));
+    const diasMontajeExtra = Math.max(0, diasMontaje - diasGratisMontaje);
+
+    // Días entre evento y desmontaje
+    const diasDesmontaje = Math.floor((desmontaje - evento) / (1000 * 60 * 60 * 24));
+    const diasDesmontajeExtra = Math.max(0, diasDesmontaje - diasGratisDesmontaje);
+
+    return { diasMontajeExtra, diasDesmontajeExtra, config };
+  }
+
+  // ============================================
   // CREAR
   // ============================================
-  static async crear({ cliente_id, fecha_montaje, fecha_evento, fecha_desmontaje, evento_nombre, evento_direccion, evento_ciudad, subtotal, descuento, total, vigencia_dias, notas }) {
+  static async crear({
+    cliente_id, fecha_montaje, fecha_evento, fecha_desmontaje, evento_nombre,
+    evento_direccion, evento_ciudad, subtotal, descuento, total, vigencia_dias, notas,
+    dias_montaje_extra, dias_desmontaje_extra, porcentaje_dias_extra,
+    cobro_dias_extra, porcentaje_iva, valor_iva, evento_id
+  }) {
+    // Obtener configuración dinámica
+    const config = await this.obtenerConfiguracion();
+
+    // Calcular días extra si no se proporcionan
+    if (dias_montaje_extra === undefined || dias_desmontaje_extra === undefined) {
+      const calculados = await this.calcularDiasExtra(
+        fecha_montaje || fecha_evento,
+        fecha_evento,
+        fecha_desmontaje || fecha_evento,
+        config
+      );
+      dias_montaje_extra = dias_montaje_extra ?? calculados.diasMontajeExtra;
+      dias_desmontaje_extra = dias_desmontaje_extra ?? calculados.diasDesmontajeExtra;
+    }
+
+    // Usar valores de configuración si no se especifican
+    porcentaje_dias_extra = porcentaje_dias_extra ?? config.porcentaje_dias_extra;
+    porcentaje_iva = porcentaje_iva ?? config.porcentaje_iva;
+    vigencia_dias = vigencia_dias ?? config.vigencia_cotizacion_dias;
+
     const query = `
       INSERT INTO cotizaciones
         (cliente_id, fecha_montaje, fecha_evento, fecha_desmontaje, evento_nombre,
-         evento_direccion, evento_ciudad, subtotal, descuento, total, vigencia_dias, notas)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         evento_direccion, evento_ciudad, subtotal, descuento, total, vigencia_dias, notas,
+         dias_montaje_extra, dias_desmontaje_extra, porcentaje_dias_extra,
+         cobro_dias_extra, porcentaje_iva, valor_iva, evento_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     const [result] = await pool.query(query, [
       cliente_id,
@@ -169,7 +309,14 @@ class CotizacionModel {
       descuento || 0,
       total || 0,
       vigencia_dias || 15,
-      notas || null
+      notas || null,
+      dias_montaje_extra || 0,
+      dias_desmontaje_extra || 0,
+      porcentaje_dias_extra || this.PORCENTAJE_DIAS_EXTRA_DEFAULT,
+      cobro_dias_extra || 0,
+      porcentaje_iva || this.PORCENTAJE_IVA_DEFAULT,
+      valor_iva || 0,
+      evento_id || null
     ]);
     return result;
   }
@@ -177,12 +324,34 @@ class CotizacionModel {
   // ============================================
   // ACTUALIZAR
   // ============================================
-  static async actualizar(id, { fecha_montaje, fecha_evento, fecha_desmontaje, evento_nombre, evento_direccion, evento_ciudad, subtotal, descuento, total, vigencia_dias, notas }) {
+  static async actualizar(id, {
+    fecha_montaje, fecha_evento, fecha_desmontaje, evento_nombre, evento_direccion,
+    evento_ciudad, subtotal, descuento, total, vigencia_dias, notas,
+    dias_montaje_extra, dias_desmontaje_extra, porcentaje_dias_extra,
+    cobro_dias_extra, porcentaje_iva, valor_iva
+  }) {
+    // Calcular días extra si las fechas cambian
+    if (fecha_evento && (dias_montaje_extra === undefined || dias_desmontaje_extra === undefined)) {
+      const calculados = await this.calcularDiasExtra(
+        fecha_montaje || fecha_evento,
+        fecha_evento,
+        fecha_desmontaje || fecha_evento
+      );
+      dias_montaje_extra = dias_montaje_extra ?? calculados.diasMontajeExtra;
+      dias_desmontaje_extra = dias_desmontaje_extra ?? calculados.diasDesmontajeExtra;
+    }
+
     const query = `
       UPDATE cotizaciones
       SET fecha_montaje = ?, fecha_evento = ?, fecha_desmontaje = ?, evento_nombre = ?,
           evento_direccion = ?, evento_ciudad = ?, subtotal = ?,
-          descuento = ?, total = ?, vigencia_dias = ?, notas = ?
+          descuento = ?, total = ?, vigencia_dias = ?, notas = ?,
+          dias_montaje_extra = COALESCE(?, dias_montaje_extra),
+          dias_desmontaje_extra = COALESCE(?, dias_desmontaje_extra),
+          porcentaje_dias_extra = COALESCE(?, porcentaje_dias_extra),
+          cobro_dias_extra = COALESCE(?, cobro_dias_extra),
+          porcentaje_iva = COALESCE(?, porcentaje_iva),
+          valor_iva = COALESCE(?, valor_iva)
       WHERE id = ?
     `;
     const [result] = await pool.query(query, [
@@ -197,6 +366,12 @@ class CotizacionModel {
       total || 0,
       vigencia_dias || 15,
       notas || null,
+      dias_montaje_extra,
+      dias_desmontaje_extra,
+      porcentaje_dias_extra,
+      cobro_dias_extra,
+      porcentaje_iva,
+      valor_iva,
       id
     ]);
     return result;
@@ -205,13 +380,27 @@ class CotizacionModel {
   // ============================================
   // ACTUALIZAR TOTALES
   // ============================================
-  static async actualizarTotales(id, { subtotal, descuento, total }) {
+  static async actualizarTotales(id, {
+    subtotal, descuento, total, cobro_dias_extra, valor_iva,
+    subtotal_productos, subtotal_transporte, total_descuentos, base_gravable
+  }) {
     const query = `
       UPDATE cotizaciones
-      SET subtotal = ?, descuento = ?, total = ?
+      SET subtotal = ?, descuento = ?, total = ?,
+          cobro_dias_extra = COALESCE(?, cobro_dias_extra),
+          valor_iva = COALESCE(?, valor_iva),
+          subtotal_productos = COALESCE(?, subtotal_productos),
+          subtotal_transporte = COALESCE(?, subtotal_transporte),
+          total_descuentos = COALESCE(?, total_descuentos),
+          base_gravable = COALESCE(?, base_gravable)
       WHERE id = ?
     `;
-    const [result] = await pool.query(query, [subtotal, descuento || 0, total, id]);
+    const [result] = await pool.query(query, [
+      subtotal, descuento || 0, total,
+      cobro_dias_extra, valor_iva,
+      subtotal_productos, subtotal_transporte, total_descuentos, base_gravable,
+      id
+    ]);
     return result;
   }
 
@@ -266,7 +455,7 @@ class CotizacionModel {
   }
 
   // ============================================
-  // RECALCULAR TOTALES
+  // RECALCULAR TOTALES (con IVA y días extra)
   // ============================================
   static async recalcularTotales(id) {
     // Obtener subtotal de productos
@@ -281,19 +470,70 @@ class CotizacionModel {
       [id]
     );
 
-    // Obtener descuento actual
-    const [cotizacion] = await pool.query(
-      'SELECT descuento FROM cotizaciones WHERE id = ?',
+    // Obtener datos actuales de la cotización
+    const [cotizacionData] = await pool.query(
+      `SELECT descuento, dias_montaje_extra, dias_desmontaje_extra,
+              porcentaje_dias_extra, porcentaje_iva
+       FROM cotizaciones WHERE id = ?`,
       [id]
     );
 
-    const subtotal = parseFloat(productos[0].subtotal) + parseFloat(transporte[0].subtotal);
-    const descuento = parseFloat(cotizacion[0]?.descuento || 0);
-    const total = subtotal - descuento;
+    // Obtener total de descuentos aplicados (tabla pivote)
+    const [descuentosAplicados] = await pool.query(
+      'SELECT COALESCE(SUM(monto_calculado), 0) AS total FROM cotizacion_descuentos WHERE cotizacion_id = ?',
+      [id]
+    );
 
-    await this.actualizarTotales(id, { subtotal, descuento, total });
+    const cot = cotizacionData[0];
+    const subtotalProductos = parseFloat(productos[0].subtotal);
+    const subtotalTransporte = parseFloat(transporte[0].subtotal);
+    const subtotal = subtotalProductos + subtotalTransporte;
 
-    return { subtotal, descuento, total };
+    // Calcular cobro por días extra
+    const totalDiasExtra = (cot?.dias_montaje_extra || 0) + (cot?.dias_desmontaje_extra || 0);
+    const porcentajeDiasExtra = parseFloat(cot?.porcentaje_dias_extra || this.PORCENTAJE_DIAS_EXTRA_DEFAULT);
+    const cobroDiasExtra = totalDiasExtra > 0
+      ? (subtotalProductos * (porcentajeDiasExtra / 100) * totalDiasExtra)
+      : 0;
+
+    // Calcular descuentos totales (manual + aplicados)
+    const descuentoManual = parseFloat(cot?.descuento || 0);
+    const descuentosTabla = parseFloat(descuentosAplicados[0].total);
+    const totalDescuentos = descuentoManual + descuentosTabla;
+
+    // Base gravable = subtotal + días extra - descuentos
+    const baseGravable = subtotal + cobroDiasExtra - totalDescuentos;
+
+    // Calcular IVA
+    const porcentajeIva = parseFloat(cot?.porcentaje_iva || this.PORCENTAJE_IVA_DEFAULT);
+    const valorIva = baseGravable * (porcentajeIva / 100);
+
+    // Total final
+    const total = baseGravable + valorIva;
+
+    await this.actualizarTotales(id, {
+      subtotal,
+      descuento: descuentoManual,
+      total,
+      cobro_dias_extra: cobroDiasExtra,
+      valor_iva: valorIva,
+      subtotal_productos: subtotalProductos,
+      subtotal_transporte: subtotalTransporte,
+      total_descuentos: totalDescuentos,
+      base_gravable: baseGravable
+    });
+
+    return {
+      subtotal_productos: subtotalProductos,
+      subtotal_transporte: subtotalTransporte,
+      subtotal,
+      cobro_dias_extra: cobroDiasExtra,
+      total_descuentos: totalDescuentos,
+      base_gravable: baseGravable,
+      porcentaje_iva: porcentajeIva,
+      valor_iva: valorIva,
+      total
+    };
   }
 
   // ============================================

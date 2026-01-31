@@ -78,37 +78,81 @@ export {
 export { useGetCategorias, useCreateCategoria, useUpdateCategoria, useDeleteCategoria } from './Usecategorias'
 
 // Elementos
-export { useGetElementos, useCreateElemento, useUpdateElemento, useDeleteElemento, useBulkCreateElementos } from './Useelementos'
+export { useGetElementos, useCreateElemento, useUpdateElemento, useDeleteElemento } from './Useelementos'
 
 // Series
-export { useGetSeriesByElemento, useCreateSerie, useUpdateSerie, useDeleteSerie } from './Useseries'
+export { useGetSeries, useCreateSerie, useUpdateSerie, useDeleteSerie } from './Useseries'
 
 // Lotes
-export { useGetLotes, useGetLotesByMaterial, useCreateLote, useUpdateLote, useDeleteLote } from './Uselotes'
+export { useGetLotes, useDeleteLote } from './Uselotes'
 
 // Materiales
-export { useGetMateriales, useCreateMaterial, useUpdateMaterial, useDeleteMaterial, useGetMaterialById } from './Usemateriales'
+export { useGetMateriales, useGetMaterial, useCreateMaterial, useUpdateMaterial, useDeleteMaterial } from './Usemateriales'
 
 // Unidades
-export { useGetUnidades, useGetUnidadesByMaterial, useCreateUnidad, useUpdateUnidad, useDeleteUnidad, useUpdateStockUnidad } from './Useunidades'
+export { useGetUnidades } from './Useunidades'
 
 // Ubicaciones
-export { useGetUbicaciones, useCreateUbicacion, useUpdateUbicacion, useDeleteUbicacion, useGetArbolUbicaciones } from './Useubicaciones'
+export { useGetUbicaciones, useCreateUbicacion, useUpdateUbicacion, useDeleteUbicacion } from './Useubicaciones'
 
 // Ciudades
-export { useGetCiudades, useGetDepartamentos, useGetCiudadesPorDepartamento, useCreateCiudad, useUpdateCiudad, useDeleteCiudad } from './UseCiudades'
+export { useGetCiudades, useCreateCiudad, useUpdateCiudad, useDeleteCiudad } from './UseCiudades'
 
 // Elementos Compuestos
 export { useGetElementosCompuestos, useGetElementoCompuesto, useCreateElementoCompuesto, useUpdateElementoCompuesto, useDeleteElementoCompuesto } from './UseElementosCompuestos'
 
 // Categorías de Productos
-export { useGetCategoriasProductos, useCreateCategoriaProducto, useUpdateCategoriaProducto, useDeleteCategoriaProducto } from './UseCategoriasProductos'
+export {
+    useGetCategoriasProductos,
+    useGetCategoriasConConteo,
+    useCreateCategoriaProducto,
+    useUpdateCategoriaProducto,
+    useDeleteCategoriaProducto
+} from './UseCategoriasProductos'
 
 // Productos de Alquiler
-export { useGetProductosAlquiler, useGetProductoAlquiler, useCreateProductoAlquiler, useUpdateProductoAlquiler, useDeleteProductoAlquiler, useDuplicateProductoAlquiler } from './UseProductosAlquiler'
+export {
+    useGetProductosAlquiler,
+    useGetProductoAlquiler,
+    useGetProductosPorCategoria
+} from './UseProductosAlquiler'
 
 // Tarifas de Transporte
-export { useGetTarifasTransporte, useCreateTarifaTransporte, useUpdateTarifaTransporte, useDeleteTarifaTransporte, useCalcularTransporte } from './UseTarifasTransporte'
+export { useGetTarifasTransporte, useCreateTarifa, useUpdateTarifa, useDeleteTarifa } from './UseTarifasTransporte'
 
 // Disponibilidad
-export { useDisponibilidad, useCheckDisponibilidad, useFechasOcupadas } from './useDisponibilidad'
+export { useVerificarDisponibilidadProductos, useVerificarDisponibilidadCotizacion, useCalendarioOcupacion } from './useDisponibilidad'
+
+// Descuentos
+export {
+    useGetDescuentos,
+    useGetDescuento,
+    useGetDescuentosCotizacion,
+    useCreateDescuento,
+    useUpdateDescuento,
+    useDeleteDescuento,
+    useAplicarDescuento,
+    useEliminarDescuentoCotizacion
+} from './descuentos'
+
+// Configuración de Alquileres
+export {
+    useGetConfiguraciones,
+    useGetConfiguracionCompleta,
+    useGetConfiguracionPorCategoria,
+    useUpdateConfiguracion,
+    useUpdateConfiguraciones
+} from './useConfiguracion'
+
+// Eventos
+export {
+    useGetEventos,
+    useGetEvento,
+    useGetEventosPorCliente,
+    useGetEventosPorEstado,
+    useGetCotizacionesEvento,
+    useCreateEvento,
+    useUpdateEvento,
+    useCambiarEstadoEvento,
+    useDeleteEvento
+} from './useEventos'

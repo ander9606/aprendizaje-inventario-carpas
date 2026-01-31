@@ -83,6 +83,25 @@ export const useGetCategoriasProductosActivasArbol = () => {
 }
 
 // ============================================
+// HOOK: useGetCategoriasConConteo
+// Obtiene categorías con conteo de productos (para selector)
+// ============================================
+
+export const useGetCategoriasConConteo = () => {
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ['categorias-productos', 'con-conteo'],
+    queryFn: categoriasProductosAPI.obtenerConConteo
+  })
+
+  return {
+    categorias: data?.data || [],
+    isLoading,
+    error,
+    refetch
+  }
+}
+
+// ============================================
 // HOOK: useGetCategoriaProducto
 // Obtiene UNA categoría específica por ID
 // ============================================

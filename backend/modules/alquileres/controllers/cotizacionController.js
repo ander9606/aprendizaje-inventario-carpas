@@ -6,11 +6,15 @@
 const CotizacionModel = require('../models/CotizacionModel');
 const CotizacionProductoModel = require('../models/CotizacionProductoModel');
 const CotizacionTransporteModel = require('../models/CotizacionTransporteModel');
+const CotizacionProductoRecargoModel = require('../models/CotizacionProductoRecargoModel');
+const CotizacionDescuentoModel = require('../models/CotizacionDescuentoModel');
 const ClienteModel = require('../models/ClienteModel');
 const TarifaTransporteModel = require('../models/TarifaTransporteModel');
 const AlquilerModel = require('../models/AlquilerModel');
 const AlquilerElementoModel = require('../models/AlquilerElementoModel');
 const DisponibilidadModel = require('../models/DisponibilidadModel');
+const OrdenTrabajoModel = require('../../operaciones/models/OrdenTrabajoModel');
+const EventoModel = require('../models/EventoModel');
 const AppError = require('../../../utils/AppError');
 const logger = require('../../../utils/logger');
 
@@ -131,6 +135,7 @@ exports.crear = async (req, res, next) => {
   try {
     const {
       cliente_id,
+      evento_id,
       fecha_montaje,
       fecha_evento,
       fecha_desmontaje,
@@ -141,7 +146,8 @@ exports.crear = async (req, res, next) => {
       vigencia_dias,
       notas,
       productos,
-      transporte
+      transporte,
+      descuentos
     } = req.body;
 
     // Validaciones
@@ -161,14 +167,27 @@ exports.crear = async (req, res, next) => {
       throw new AppError('Cliente no encontrado', 404);
     }
 
+    // Si viene evento_id, verificar que existe y pertenece al cliente
+    if (evento_id) {
+      const evento = await EventoModel.obtenerPorId(evento_id);
+      if (!evento) {
+        throw new AppError('Evento no encontrado', 404);
+      }
+      if (evento.cliente_id !== cliente_id) {
+        throw new AppError('El evento no pertenece al cliente seleccionado', 400);
+      }
+    }
+
     logger.info('cotizacionController.crear', 'Creando cotización', {
       cliente: cliente.nombre,
-      productos: productos.length
+      productos: productos.length,
+      evento_id: evento_id || null
     });
 
     // Crear cotización (sin totales, se calcularán después)
     const resultado = await CotizacionModel.crear({
       cliente_id,
+      evento_id: evento_id || null,
       fecha_montaje,
       fecha_evento,
       fecha_desmontaje,
@@ -184,13 +203,55 @@ exports.crear = async (req, res, next) => {
 
     const cotizacionId = resultado.insertId;
 
-    // Agregar productos
-    await CotizacionProductoModel.agregarMultiples(cotizacionId, productos);
+    // Agregar productos (ahora soporta recargos en cada producto)
+    for (const producto of productos) {
+      const resultadoProducto = await CotizacionProductoModel.agregar({
+        cotizacion_id: cotizacionId,
+        compuesto_id: producto.compuesto_id,
+        cantidad: producto.cantidad,
+        precio_base: producto.precio_base,
+        deposito: producto.deposito,
+        precio_adicionales: producto.precio_adicionales,
+        notas: producto.notas
+      });
+
+      // Si el producto tiene recargos, agregarlos
+      if (producto.recargos && producto.recargos.length > 0) {
+        for (const recargo of producto.recargos) {
+          await CotizacionProductoRecargoModel.agregar({
+            cotizacion_producto_id: resultadoProducto.insertId,
+            tipo: recargo.tipo,
+            dias: recargo.dias,
+            porcentaje: recargo.porcentaje,
+            fecha_original: recargo.fecha_original,
+            fecha_modificada: recargo.fecha_modificada,
+            notas: recargo.notas
+          });
+        }
+      }
+    }
 
     // Agregar transporte si viene (enriquecer con precios)
     if (transporte && transporte.length > 0) {
       const transporteConPrecios = await enriquecerTransporteConPrecios(transporte);
       await CotizacionTransporteModel.agregarMultiples(cotizacionId, transporteConPrecios);
+    }
+
+    // Agregar descuentos si vienen (necesitamos el subtotal para calcular montos)
+    if (descuentos && descuentos.length > 0) {
+      // Calcular subtotal bruto para los descuentos porcentuales
+      const subtotalProductos = productos.reduce((total, p) => {
+        const precio = parseFloat(p.precio_base) + parseFloat(p.precio_adicionales || 0);
+        return total + (precio * parseInt(p.cantidad || 1));
+      }, 0);
+      const subtotalTransporte = transporte
+        ? (await enriquecerTransporteConPrecios(transporte)).reduce((total, t) => {
+            return total + (parseFloat(t.precio_unitario) * parseInt(t.cantidad || 1));
+          }, 0)
+        : 0;
+      const baseCalculo = subtotalProductos + subtotalTransporte;
+
+      await CotizacionDescuentoModel.agregarMultiples(cotizacionId, descuentos, baseCalculo);
     }
 
     // Recalcular totales
@@ -226,7 +287,8 @@ exports.actualizar = async (req, res, next) => {
       vigencia_dias,
       notas,
       productos,
-      transporte
+      transporte,
+      descuentos
     } = req.body;
 
     const cotizacionExistente = await CotizacionModel.obtenerPorId(id);
@@ -268,6 +330,15 @@ exports.actualizar = async (req, res, next) => {
         const transporteConPrecios = await enriquecerTransporteConPrecios(transporte);
         await CotizacionTransporteModel.agregarMultiples(id, transporteConPrecios);
       }
+    }
+
+    // Si vienen descuentos, reemplazar
+    if (descuentos !== undefined) {
+      // Calcular base para los descuentos
+      const cotizacionActual = await CotizacionModel.obtenerCompleta(id);
+      const baseCalculo = parseFloat(cotizacionActual.resumen?.subtotal || 0);
+
+      await CotizacionDescuentoModel.reemplazarDescuentos(id, descuentos, baseCalculo);
     }
 
     // Recalcular totales
@@ -591,13 +662,52 @@ exports.aprobarYCrearAlquiler = async (req, res, next) => {
       await AlquilerElementoModel.asignarMultiples(alquilerId, asignacion.asignaciones);
     }
 
+    // =============================================
+    // CREAR ÓRDENES DE TRABAJO (montaje y desmontaje)
+    // =============================================
+    let ordenesTrabajo = null;
+    try {
+      ordenesTrabajo = await OrdenTrabajoModel.crearDesdeAlquiler(alquilerId, {
+        montaje: {
+          fecha: fechaSalida,
+          notas: `Montaje para evento: ${cotizacion.evento_nombre || 'Sin nombre'}`,
+          prioridad: 'normal'
+        },
+        desmontaje: {
+          fecha: fechaRetorno,
+          notas: `Desmontaje para evento: ${cotizacion.evento_nombre || 'Sin nombre'}`,
+          prioridad: 'normal'
+        },
+        elementos: asignacion.asignaciones.map(a => ({
+          elemento_id: a.elemento_id,
+          serie_id: a.serie_id || null,
+          lote_id: a.lote_id || null,
+          cantidad: a.cantidad_lote || 1
+        })),
+        creado_por: req.usuario?.id || null
+      });
+
+      logger.info('cotizacionController.aprobarYCrearAlquiler', 'Órdenes de trabajo creadas', {
+        alquilerId,
+        montajeId: ordenesTrabajo.montaje.id,
+        desmontajeId: ordenesTrabajo.desmontaje.id
+      });
+    } catch (ordenError) {
+      // Si falla la creación de órdenes, solo loguear advertencia pero no fallar el proceso
+      logger.warn('cotizacionController.aprobarYCrearAlquiler', 'No se pudieron crear órdenes de trabajo', {
+        alquilerId,
+        error: ordenError.message
+      });
+    }
+
     const alquiler = await AlquilerModel.obtenerCompleto(alquilerId);
 
     logger.info('cotizacionController.aprobarYCrearAlquiler', 'Cotización aprobada y alquiler creado', {
       cotizacionId: id,
       alquilerId: alquiler.id,
       elementosAsignados: asignacion.asignaciones.length,
-      conAdvertencias: asignacion.hay_advertencias
+      conAdvertencias: asignacion.hay_advertencias,
+      ordenesCreadas: ordenesTrabajo ? true : false
     });
 
     res.json({
@@ -608,6 +718,10 @@ exports.aprobarYCrearAlquiler = async (req, res, next) => {
       advertencia: asignacion.hay_advertencias,
       elementos_asignados: asignacion.asignaciones.length,
       advertencias: asignacion.hay_advertencias ? asignacion.advertencias : undefined,
+      ordenes_trabajo: ordenesTrabajo ? {
+        montaje_id: ordenesTrabajo.montaje.id,
+        desmontaje_id: ordenesTrabajo.desmontaje.id
+      } : null,
       data: alquiler
     });
   } catch (error) {
@@ -696,6 +810,242 @@ exports.obtenerPorCliente = async (req, res, next) => {
       total: cotizaciones.length
     });
   } catch (error) {
+    next(error);
+  }
+};
+
+// ============================================
+// AGREGAR RECARGO A PRODUCTO
+// ============================================
+exports.agregarRecargoProducto = async (req, res, next) => {
+  try {
+    const { id, productoId } = req.params;
+    const { tipo, dias, porcentaje, fecha_original, fecha_modificada, notas } = req.body;
+
+    // Validar cotización
+    const cotizacion = await CotizacionModel.obtenerPorId(id);
+    if (!cotizacion) {
+      throw new AppError('Cotización no encontrada', 404);
+    }
+
+    if (cotizacion.estado !== 'pendiente') {
+      throw new AppError('Solo se pueden modificar cotizaciones pendientes', 400);
+    }
+
+    // Validar producto
+    const producto = await CotizacionProductoModel.obtenerPorId(productoId);
+    if (!producto || producto.cotizacion_id !== parseInt(id)) {
+      throw new AppError('Producto no encontrado en esta cotización', 404);
+    }
+
+    // Validar tipo de recargo
+    if (!['adelanto', 'extension'].includes(tipo)) {
+      throw new AppError('Tipo de recargo inválido. Valores permitidos: adelanto, extension', 400);
+    }
+
+    // Validar días y porcentaje
+    if (!dias || dias < 1) {
+      throw new AppError('Los días deben ser al menos 1', 400);
+    }
+    if (!porcentaje || porcentaje <= 0) {
+      throw new AppError('El porcentaje debe ser mayor a 0', 400);
+    }
+
+    // Agregar recargo
+    const recargo = await CotizacionProductoRecargoModel.agregar({
+      cotizacion_producto_id: productoId,
+      tipo,
+      dias,
+      porcentaje,
+      fecha_original,
+      fecha_modificada,
+      notas
+    });
+
+    // Recalcular totales de la cotización
+    await CotizacionModel.recalcularTotales(id);
+
+    const cotizacionActualizada = await CotizacionModel.obtenerCompleta(id);
+
+    logger.info('cotizacionController.agregarRecargoProducto', 'Recargo agregado', {
+      cotizacionId: id,
+      productoId,
+      tipo,
+      monto: recargo.monto_recargo
+    });
+
+    res.json({
+      success: true,
+      mensaje: `Recargo de ${tipo} agregado exitosamente`,
+      data: cotizacionActualizada
+    });
+  } catch (error) {
+    logger.error('cotizacionController.agregarRecargoProducto', error);
+    next(error);
+  }
+};
+
+// ============================================
+// ACTUALIZAR RECARGO DE PRODUCTO
+// ============================================
+exports.actualizarRecargoProducto = async (req, res, next) => {
+  try {
+    const { id, productoId, recargoId } = req.params;
+    const { dias, porcentaje, fecha_modificada, notas } = req.body;
+
+    // Validar cotización
+    const cotizacion = await CotizacionModel.obtenerPorId(id);
+    if (!cotizacion) {
+      throw new AppError('Cotización no encontrada', 404);
+    }
+
+    if (cotizacion.estado !== 'pendiente') {
+      throw new AppError('Solo se pueden modificar cotizaciones pendientes', 400);
+    }
+
+    // Validar recargo
+    const recargo = await CotizacionProductoRecargoModel.obtenerPorId(recargoId);
+    if (!recargo || recargo.cotizacion_producto_id !== parseInt(productoId)) {
+      throw new AppError('Recargo no encontrado', 404);
+    }
+
+    // Actualizar recargo
+    await CotizacionProductoRecargoModel.actualizar(recargoId, {
+      dias,
+      porcentaje,
+      fecha_modificada,
+      notas
+    });
+
+    // Recalcular totales
+    await CotizacionModel.recalcularTotales(id);
+
+    const cotizacionActualizada = await CotizacionModel.obtenerCompleta(id);
+
+    res.json({
+      success: true,
+      mensaje: 'Recargo actualizado exitosamente',
+      data: cotizacionActualizada
+    });
+  } catch (error) {
+    logger.error('cotizacionController.actualizarRecargoProducto', error);
+    next(error);
+  }
+};
+
+// ============================================
+// ELIMINAR RECARGO DE PRODUCTO
+// ============================================
+exports.eliminarRecargoProducto = async (req, res, next) => {
+  try {
+    const { id, productoId, recargoId } = req.params;
+
+    // Validar cotización
+    const cotizacion = await CotizacionModel.obtenerPorId(id);
+    if (!cotizacion) {
+      throw new AppError('Cotización no encontrada', 404);
+    }
+
+    if (cotizacion.estado !== 'pendiente') {
+      throw new AppError('Solo se pueden modificar cotizaciones pendientes', 400);
+    }
+
+    // Validar recargo
+    const recargo = await CotizacionProductoRecargoModel.obtenerPorId(recargoId);
+    if (!recargo || recargo.cotizacion_producto_id !== parseInt(productoId)) {
+      throw new AppError('Recargo no encontrado', 404);
+    }
+
+    // Eliminar recargo
+    await CotizacionProductoRecargoModel.eliminar(recargoId);
+
+    // Recalcular totales
+    await CotizacionModel.recalcularTotales(id);
+
+    const cotizacionActualizada = await CotizacionModel.obtenerCompleta(id);
+
+    logger.info('cotizacionController.eliminarRecargoProducto', 'Recargo eliminado', {
+      cotizacionId: id,
+      productoId,
+      recargoId
+    });
+
+    res.json({
+      success: true,
+      mensaje: 'Recargo eliminado exitosamente',
+      data: cotizacionActualizada
+    });
+  } catch (error) {
+    logger.error('cotizacionController.eliminarRecargoProducto', error);
+    next(error);
+  }
+};
+
+// ============================================
+// OBTENER RECARGOS DE UN PRODUCTO
+// ============================================
+exports.obtenerRecargosProducto = async (req, res, next) => {
+  try {
+    const { id, productoId } = req.params;
+
+    // Validar cotización
+    const cotizacion = await CotizacionModel.obtenerPorId(id);
+    if (!cotizacion) {
+      throw new AppError('Cotización no encontrada', 404);
+    }
+
+    // Validar producto
+    const producto = await CotizacionProductoModel.obtenerPorId(productoId);
+    if (!producto || producto.cotizacion_id !== parseInt(id)) {
+      throw new AppError('Producto no encontrado en esta cotización', 404);
+    }
+
+    const recargos = await CotizacionProductoRecargoModel.obtenerPorProducto(productoId);
+
+    res.json({
+      success: true,
+      data: recargos,
+      total: recargos.length
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ============================================
+// ASIGNAR COTIZACIÓN A EVENTO
+// ============================================
+exports.asignarEvento = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { evento_id } = req.body;
+
+    const cotizacion = await CotizacionModel.obtenerPorId(id);
+    if (!cotizacion) {
+      throw new AppError('Cotización no encontrada', 404);
+    }
+
+    if (evento_id) {
+      const evento = await EventoModel.obtenerPorId(evento_id);
+      if (!evento) {
+        throw new AppError('Evento no encontrado', 404);
+      }
+      if (evento.cliente_id !== cotizacion.cliente_id) {
+        throw new AppError('El evento no pertenece al mismo cliente de la cotización', 400);
+      }
+    }
+
+    await CotizacionModel.asignarEvento(id, evento_id);
+
+    const cotizacionActualizada = await CotizacionModel.obtenerCompleta(id);
+
+    res.json({
+      success: true,
+      mensaje: evento_id ? 'Cotización asignada al evento' : 'Cotización desvinculada del evento',
+      data: cotizacionActualizada
+    });
+  } catch (error) {
+    logger.error('cotizacionController.asignarEvento', error);
     next(error);
   }
 };

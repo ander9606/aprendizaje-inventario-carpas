@@ -20,11 +20,12 @@ const ProductoConfiguracion = ({
   cantidad = 1,
   configuracion,
   onConfiguracionChange,
-  disabled = false
+  disabled = false,
+  defaultExpanded = false // Por defecto colapsado para mejor UX
 }) => {
   const [componentes, setComponentes] = useState(null)
   const [loading, setLoading] = useState(false)
-  const [expanded, setExpanded] = useState(true)
+  const [expanded, setExpanded] = useState(defaultExpanded)
 
   // ============================================
   // FUNCIONES HELPER (definidas antes del useEffect)
@@ -202,28 +203,53 @@ const ProductoConfiguracion = ({
 
   const precioAlternativas = calcularPrecioAlternativas()
   const precioAdicionales = calcularPrecioAdicionales()
+  const precioTotal = precioAlternativas + precioAdicionales
+
+  // Calcular resumen para mostrar cuando está colapsado
+  const totalFijos = componentes.fijos?.length || 0
+  const totalAlternativas = componentes.alternativas?.reduce((sum, g) => sum + g.opciones.length, 0) || 0
+  const totalAdicionales = componentes.adicionales?.length || 0
+  const adicionalesSeleccionados = Object.values(configuracion?.adicionales || {}).filter(v => v > 0).length
+
+  const getResumenTexto = () => {
+    const partes = []
+    if (totalFijos > 0) partes.push(`${totalFijos} incluido${totalFijos > 1 ? 's' : ''}`)
+    if (totalAlternativas > 0) partes.push(`${totalAlternativas} alternativa${totalAlternativas > 1 ? 's' : ''}`)
+    if (adicionalesSeleccionados > 0) partes.push(`${adicionalesSeleccionados} adicional${adicionalesSeleccionados > 1 ? 'es' : ''}`)
+    return partes.length > 0 ? partes.join(' · ') : 'Sin componentes'
+  }
 
   return (
     <div className="mt-2 border border-slate-200 rounded-lg overflow-hidden">
-      {/* Header colapsable */}
+      {/* Header colapsable con resumen */}
       <button
         type="button"
         onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center justify-between px-3 py-2 bg-slate-50 hover:bg-slate-100 transition-colors"
+        className={`w-full flex items-center justify-between px-3 py-2 transition-colors ${
+          expanded ? 'bg-slate-100' : 'bg-slate-50 hover:bg-slate-100'
+        }`}
         disabled={disabled}
       >
-        <span className="flex items-center gap-2 text-sm font-medium text-slate-700">
-          <Settings className="w-4 h-4" />
-          Configurar componentes
-        </span>
-        <div className="flex items-center gap-2">
-          {(precioAlternativas > 0 || precioAdicionales > 0) && (
-            <span className="text-xs text-blue-600 font-medium">
-              +{formatearMoneda(precioAlternativas + precioAdicionales)}
+        <div className="flex items-center gap-2 text-sm">
+          {expanded ? (
+            <ChevronUp className="w-4 h-4 text-slate-500" />
+          ) : (
+            <ChevronDown className="w-4 h-4 text-slate-400" />
+          )}
+          <span className={`font-medium ${expanded ? 'text-slate-800' : 'text-slate-600'}`}>
+            {expanded ? 'Componentes' : 'Ver componentes'}
+          </span>
+          {!expanded && (
+            <span className="text-xs text-slate-500">
+              ({getResumenTexto()})
             </span>
           )}
-          {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
         </div>
+        {precioTotal > 0 && (
+          <span className="text-xs text-blue-600 font-medium bg-blue-50 px-2 py-0.5 rounded">
+            +{formatearMoneda(precioTotal)}
+          </span>
+        )}
       </button>
 
       {expanded && (

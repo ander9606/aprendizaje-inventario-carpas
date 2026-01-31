@@ -106,6 +106,23 @@ export const useGetEstadisticasOperaciones = () => {
 }
 
 // ============================================
+// HOOK: useCrearOrdenManual
+// Crea una orden manual (mantenimiento, traslado, etc.)
+// ============================================
+
+export const useCrearOrdenManual = () => {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: (data) => ordenesAPI.crearManual(data),
+        retry: 0,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['ordenes'] })
+        }
+    })
+}
+
+// ============================================
 // HOOK: useUpdateOrden
 // Actualiza una orden
 // ============================================

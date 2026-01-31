@@ -194,7 +194,7 @@ export default function OperacionesDashboard() {
                             <span className="text-xs font-medium text-slate-500 uppercase">Activo</span>
                         </div>
                         <p className="text-3xl font-bold text-slate-900">
-                            {estadisticas?.en_proceso || 0}
+                            {estadisticas?.en_progreso || 0}
                         </p>
                         <p className="text-sm text-slate-600">En proceso</p>
                     </div>
@@ -283,16 +283,17 @@ export default function OperacionesDashboard() {
                                                             </span>
                                                             <span className="flex items-center gap-1">
                                                                 <MapPin className="w-4 h-4" />
-                                                                {orden.ubicacion || 'Sin ubicación'}
+                                                                {orden.ciudad_evento || 'Sin ciudad'}
+                                                                {orden.direccion_evento ? ` - ${orden.direccion_evento}` : ''}
                                                             </span>
                                                         </div>
                                                     </div>
                                                 </div>
                                                 <div className="flex items-center gap-3">
-                                                    {orden.equipo_count > 0 && (
+                                                    {orden.total_equipo > 0 && (
                                                         <span className="flex items-center gap-1 text-sm text-slate-600">
                                                             <Users className="w-4 h-4" />
-                                                            {orden.equipo_count}
+                                                            {orden.total_equipo}
                                                         </span>
                                                     )}
                                                     <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getEstadoColor(orden.estado)}`}>

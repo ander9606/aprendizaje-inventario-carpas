@@ -3,6 +3,7 @@
 // Botón reutilizable con variantes y estados
 // ============================================
 
+import React from 'react'
 import { Loader2 } from 'lucide-react'
 
 /**
@@ -25,6 +26,7 @@ import { Loader2 } from 'lucide-react'
  */
 export const Button = ({
   variant = 'primary',
+  color,
   size = 'md',
   icon = null,
   loading = false,
@@ -36,7 +38,7 @@ export const Button = ({
   className = '',
   ...props
 }) => {
-  
+
   // ============================================
   // ESTILOS BASE (siempre se aplican)
   // ============================================
@@ -48,7 +50,7 @@ export const Button = ({
     disabled:opacity-50 disabled:cursor-not-allowed
     ${fullWidth ? 'w-full' : ''}
   `
-  
+
   // ============================================
   // ESTILOS POR TAMAÑO
   // ============================================
@@ -57,7 +59,43 @@ export const Button = ({
     md: 'px-4 py-2 text-base gap-2',
     lg: 'px-6 py-3 text-lg gap-2.5'
   }
-  
+
+  // ============================================
+  // ESTILOS POR COLOR (alternativa a variant)
+  // ============================================
+  const colorStyles = {
+    blue: `
+      bg-blue-600 text-white
+      hover:bg-blue-700
+      focus:ring-blue-500
+      active:bg-blue-800
+    `,
+    green: `
+      bg-green-600 text-white
+      hover:bg-green-700
+      focus:ring-green-500
+      active:bg-green-800
+    `,
+    red: `
+      bg-red-600 text-white
+      hover:bg-red-700
+      focus:ring-red-500
+      active:bg-red-800
+    `,
+    orange: `
+      bg-orange-600 text-white
+      hover:bg-orange-700
+      focus:ring-orange-500
+      active:bg-orange-800
+    `,
+    slate: `
+      bg-slate-600 text-white
+      hover:bg-slate-700
+      focus:ring-slate-500
+      active:bg-slate-800
+    `
+  }
+
   // ============================================
   // ESTILOS POR VARIANTE (colores)
   // ============================================
@@ -111,12 +149,33 @@ export const Button = ({
   }
   
   // ============================================
+  // DETERMINAR ESTILOS DE COLOR
+  // Si se pasa color, se usa colorStyles; si es outline con color, se aplica borde
+  // ============================================
+  const getColorStyles = () => {
+    if (variant === 'outline' && color) {
+      const outlineColorStyles = {
+        blue: 'bg-transparent text-blue-600 border-2 border-blue-300 hover:bg-blue-50 focus:ring-blue-400',
+        green: 'bg-transparent text-green-600 border-2 border-green-300 hover:bg-green-50 focus:ring-green-400',
+        red: 'bg-transparent text-red-600 border-2 border-red-300 hover:bg-red-50 focus:ring-red-400',
+        orange: 'bg-transparent text-orange-600 border-2 border-orange-300 hover:bg-orange-50 focus:ring-orange-400',
+        slate: 'bg-transparent text-slate-600 border-2 border-slate-300 hover:bg-slate-50 focus:ring-slate-400'
+      }
+      return outlineColorStyles[color] || variantStyles.outline
+    }
+    if (color && colorStyles[color]) {
+      return colorStyles[color]
+    }
+    return variantStyles[variant]
+  }
+
+  // ============================================
   // COMBINAMOS TODOS LOS ESTILOS
   // ============================================
   const buttonClasses = `
     ${baseStyles}
     ${sizeStyles[size]}
-    ${variantStyles[variant]}
+    ${getColorStyles()}
     ${className}
   `
   
@@ -135,9 +194,9 @@ export const Button = ({
       
       {/* Ícono (solo si no está cargando) */}
       {!loading && icon && (
-        <span className={iconSizes[size]}>
-          {icon}
-        </span>
+        React.isValidElement(icon)
+          ? <span className={iconSizes[size]}>{icon}</span>
+          : <span className={iconSizes[size]}>{React.createElement(icon, { className: iconSizes[size] })}</span>
       )}
       
       {/* Texto del botón */}

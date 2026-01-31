@@ -20,12 +20,19 @@ import {
     Users,
     ChevronDown,
     Eye,
-    RefreshCw
+    RefreshCw,
+    X,
+    Save,
+    Wrench,
+    ArrowRightLeft,
+    ClipboardCheck,
+    Boxes
 } from 'lucide-react'
-import { useGetOrdenes } from '../hooks/useOrdenesTrabajo'
+import { useGetOrdenes, useCrearOrdenManual } from '../hooks/useOrdenesTrabajo'
 import { useAuth } from '../hooks/auth/useAuth'
 import Button from '../components/common/Button'
 import Spinner from '../components/common/Spinner'
+import { toast } from 'sonner'
 
 // Hook para debounce
 const useDebounce = (value, delay) => {
@@ -47,6 +54,213 @@ const useDebounce = (value, delay) => {
  * - Búsqueda por cliente o ubicación
  * - Vista de lista con detalles
  */
+// ============================================
+// COMPONENTE: Modal Nueva Orden Manual
+// ============================================
+const ModalNuevaOrden = ({ onClose, onSave }) => {
+    const [formData, setFormData] = useState({
+        tipo: 'mantenimiento',
+        fecha_programada: '',
+        hora_programada: '08:00',
+        direccion_destino: '',
+        ciudad_destino: '',
+        notas: '',
+        prioridad: 'normal'
+    })
+    const [saving, setSaving] = useState(false)
+
+    const tiposOrden = [
+        { value: 'mantenimiento', label: 'Mantenimiento', icon: Wrench, color: 'text-blue-600' },
+        { value: 'traslado', label: 'Traslado', icon: ArrowRightLeft, color: 'text-purple-600' },
+        { value: 'revision', label: 'Revisión', icon: ClipboardCheck, color: 'text-green-600' },
+        { value: 'inventario', label: 'Inventario', icon: Boxes, color: 'text-amber-600' },
+        { value: 'otro', label: 'Otro', icon: Package, color: 'text-slate-600' }
+    ]
+
+    const handleChange = (e) => {
+        const { name, value } = e.target
+        setFormData(prev => ({ ...prev, [name]: value }))
+    }
+
+    const handleGuardar = async () => {
+        if (!formData.fecha_programada) {
+            toast.error('La fecha es requerida')
+            return
+        }
+
+        setSaving(true)
+        try {
+            const fechaCompleta = `${formData.fecha_programada}T${formData.hora_programada}:00`
+            await onSave({
+                tipo: formData.tipo,
+                fecha_programada: fechaCompleta,
+                direccion_destino: formData.direccion_destino || null,
+                ciudad_destino: formData.ciudad_destino || null,
+                notas: formData.notas || null,
+                prioridad: formData.prioridad,
+                elementos: [] // Por ahora vacío, se puede agregar selección de elementos después
+            })
+            onClose()
+        } catch (error) {
+            console.error('Error al crear orden:', error)
+        } finally {
+            setSaving(false)
+        }
+    }
+
+    return (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl w-full max-w-lg max-h-[90vh] overflow-hidden">
+                <div className="p-6 border-b border-slate-200">
+                    <div className="flex items-center justify-between">
+                        <h3 className="text-lg font-semibold text-slate-900">
+                            Nueva Orden de Trabajo
+                        </h3>
+                        <button
+                            onClick={onClose}
+                            className="p-2 hover:bg-slate-100 rounded-lg"
+                        >
+                            <X className="w-5 h-5" />
+                        </button>
+                    </div>
+                </div>
+                <div className="p-6 overflow-y-auto max-h-[60vh] space-y-4">
+                    {/* Tipo de orden */}
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-2">
+                            Tipo de Orden
+                        </label>
+                        <div className="grid grid-cols-2 gap-2">
+                            {tiposOrden.map((tipo) => {
+                                const IconComponent = tipo.icon
+                                return (
+                                    <button
+                                        key={tipo.value}
+                                        type="button"
+                                        onClick={() => setFormData(prev => ({ ...prev, tipo: tipo.value }))}
+                                        className={`flex items-center gap-2 p-3 border rounded-lg transition-colors ${
+                                            formData.tipo === tipo.value
+                                                ? 'border-orange-500 bg-orange-50'
+                                                : 'border-slate-200 hover:bg-slate-50'
+                                        }`}
+                                    >
+                                        <IconComponent className={`w-5 h-5 ${tipo.color}`} />
+                                        <span className="font-medium text-slate-700">{tipo.label}</span>
+                                    </button>
+                                )
+                            })}
+                        </div>
+                    </div>
+
+                    {/* Fecha y hora */}
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">
+                                Fecha *
+                            </label>
+                            <input
+                                type="date"
+                                name="fecha_programada"
+                                value={formData.fecha_programada}
+                                onChange={handleChange}
+                                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">
+                                Hora
+                            </label>
+                            <input
+                                type="time"
+                                name="hora_programada"
+                                value={formData.hora_programada}
+                                onChange={handleChange}
+                                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+                            />
+                        </div>
+                    </div>
+
+                    {/* Prioridad */}
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">
+                            Prioridad
+                        </label>
+                        <select
+                            name="prioridad"
+                            value={formData.prioridad}
+                            onChange={handleChange}
+                            className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+                        >
+                            <option value="baja">Baja</option>
+                            <option value="normal">Normal</option>
+                            <option value="alta">Alta</option>
+                            <option value="urgente">Urgente</option>
+                        </select>
+                    </div>
+
+                    {/* Dirección */}
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">
+                            Dirección (opcional)
+                        </label>
+                        <input
+                            type="text"
+                            name="direccion_destino"
+                            value={formData.direccion_destino}
+                            onChange={handleChange}
+                            placeholder="Dirección del destino..."
+                            className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+                        />
+                    </div>
+
+                    {/* Ciudad */}
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">
+                            Ciudad (opcional)
+                        </label>
+                        <input
+                            type="text"
+                            name="ciudad_destino"
+                            value={formData.ciudad_destino}
+                            onChange={handleChange}
+                            placeholder="Ciudad..."
+                            className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+                        />
+                    </div>
+
+                    {/* Notas */}
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">
+                            Notas
+                        </label>
+                        <textarea
+                            name="notas"
+                            value={formData.notas}
+                            onChange={handleChange}
+                            rows={3}
+                            placeholder="Descripción de la orden..."
+                            className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 resize-none"
+                        />
+                    </div>
+                </div>
+                <div className="p-6 border-t border-slate-200 flex gap-3 justify-end">
+                    <Button variant="secondary" onClick={onClose}>
+                        Cancelar
+                    </Button>
+                    <Button
+                        color="orange"
+                        icon={Save}
+                        onClick={handleGuardar}
+                        disabled={saving || !formData.fecha_programada}
+                    >
+                        {saving ? 'Creando...' : 'Crear Orden'}
+                    </Button>
+                </div>
+            </div>
+        </div>
+    )
+}
+
 export default function OrdenesTrabajoPage() {
     const navigate = useNavigate()
     const { hasRole } = useAuth()
@@ -54,7 +268,7 @@ export default function OrdenesTrabajoPage() {
     const canManage = hasRole(['admin', 'gerente', 'operaciones'])
 
     // ============================================
-    // ESTADO: Filtros y búsqueda
+    // ESTADO: Filtros, búsqueda y modal
     // ============================================
     const [busqueda, setBusqueda] = useState('')
     const [filtros, setFiltros] = useState({
@@ -64,11 +278,12 @@ export default function OrdenesTrabajoPage() {
         fecha_hasta: ''
     })
     const [showFiltros, setShowFiltros] = useState(false)
+    const [showModalNuevaOrden, setShowModalNuevaOrden] = useState(false)
 
     const debouncedBusqueda = useDebounce(busqueda, 500)
 
     // ============================================
-    // HOOKS: Obtener datos
+    // HOOKS: Obtener datos y mutaciones
     // ============================================
     const queryParams = {
         ...(debouncedBusqueda && { buscar: debouncedBusqueda }),
@@ -79,6 +294,21 @@ export default function OrdenesTrabajoPage() {
     }
 
     const { ordenes, isLoading, refetch } = useGetOrdenes(queryParams)
+    const crearOrdenManual = useCrearOrdenManual()
+
+    // ============================================
+    // HANDLERS
+    // ============================================
+    const handleCrearOrden = async (datos) => {
+        try {
+            await crearOrdenManual.mutateAsync(datos)
+            toast.success('Orden creada correctamente')
+            refetch()
+        } catch (error) {
+            toast.error(error?.response?.data?.message || 'Error al crear la orden')
+            throw error
+        }
+    }
 
     // ============================================
     // HELPERS
@@ -110,9 +340,16 @@ export default function OrdenesTrabajoPage() {
     }
 
     const getTipoConfig = (tipo) => {
-        return tipo === 'montaje'
-            ? { color: 'bg-emerald-100 text-emerald-700', icon: Package, label: 'Montaje' }
-            : { color: 'bg-orange-100 text-orange-700', icon: Truck, label: 'Desmontaje' }
+        const config = {
+            montaje: { color: 'bg-emerald-100 text-emerald-700', icon: Package, label: 'Montaje' },
+            desmontaje: { color: 'bg-orange-100 text-orange-700', icon: Truck, label: 'Desmontaje' },
+            mantenimiento: { color: 'bg-blue-100 text-blue-700', icon: Wrench, label: 'Mantenimiento' },
+            traslado: { color: 'bg-purple-100 text-purple-700', icon: ArrowRightLeft, label: 'Traslado' },
+            revision: { color: 'bg-green-100 text-green-700', icon: ClipboardCheck, label: 'Revisión' },
+            inventario: { color: 'bg-amber-100 text-amber-700', icon: Boxes, label: 'Inventario' },
+            otro: { color: 'bg-slate-100 text-slate-700', icon: Package, label: 'Otro' }
+        }
+        return config[tipo] || config.otro
     }
 
     const formatFecha = (fecha) => {
@@ -154,7 +391,6 @@ export default function OrdenesTrabajoPage() {
                                 <ArrowLeft className="w-5 h-5" />
                                 <span>Operaciones</span>
                             </button>
-
                             <div className="flex items-center gap-3">
                                 <div className="p-2 bg-orange-100 rounded-xl">
                                     <Truck className="w-6 h-6 text-orange-600" />
@@ -169,32 +405,21 @@ export default function OrdenesTrabajoPage() {
                                 </div>
                             </div>
                         </div>
-
-                        <div className="flex items-center gap-3">
+                        {canManage && (
                             <Button
-                                variant="secondary"
-                                icon={<Calendar />}
-                                onClick={() => navigate('/operaciones/calendario')}
+                                icon={Plus}
+                                color="orange"
+                                onClick={() => setShowModalNuevaOrden(true)}
                             >
-                                Calendario
+                                Nueva Orden
                             </Button>
-                            {canManage && (
-                                <Button
-                                    variant="primary"
-                                    icon={<Plus />}
-                                    onClick={() => {/* TODO: Modal crear orden */}}
-                                >
-                                    Nueva Orden
-                                </Button>
-                            )}
-                        </div>
+                        )}
                     </div>
                 </div>
             </div>
 
             {/* CONTENIDO */}
             <div className="container mx-auto px-6 py-6">
-
                 {/* BARRA DE BÚSQUEDA Y FILTROS */}
                 <div className="bg-white rounded-xl border border-slate-200 p-4 mb-6">
                     <div className="flex flex-col md:flex-row gap-4">
@@ -209,7 +434,6 @@ export default function OrdenesTrabajoPage() {
                                 className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
                             />
                         </div>
-
                         {/* Botón filtros */}
                         <button
                             onClick={() => setShowFiltros(!showFiltros)}
@@ -251,7 +475,6 @@ export default function OrdenesTrabajoPage() {
                                         <option value="cancelado">Cancelado</option>
                                     </select>
                                 </div>
-
                                 {/* Tipo */}
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700 mb-1">
@@ -267,7 +490,6 @@ export default function OrdenesTrabajoPage() {
                                         <option value="desmontaje">Desmontaje</option>
                                     </select>
                                 </div>
-
                                 {/* Fecha desde */}
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700 mb-1">
@@ -280,7 +502,6 @@ export default function OrdenesTrabajoPage() {
                                         className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
                                     />
                                 </div>
-
                                 {/* Fecha hasta */}
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700 mb-1">
@@ -294,7 +515,6 @@ export default function OrdenesTrabajoPage() {
                                     />
                                 </div>
                             </div>
-
                             {/* Limpiar filtros */}
                             {filtrosActivos && (
                                 <div className="mt-4 flex justify-end">
@@ -336,7 +556,6 @@ export default function OrdenesTrabajoPage() {
                                                 <div className={`p-3 rounded-xl ${tipoConfig.color}`}>
                                                     <TipoIcon className="w-6 h-6" />
                                                 </div>
-
                                                 {/* Info principal */}
                                                 <div>
                                                     <div className="flex items-center gap-2 mb-1">
@@ -358,33 +577,22 @@ export default function OrdenesTrabajoPage() {
                                                         </span>
                                                         <span className="flex items-center gap-1">
                                                             <MapPin className="w-4 h-4" />
-                                                            {orden.ubicacion || 'Sin ubicación'}
+                                                            {orden.ciudad_evento || 'Sin ciudad'}
+                                                            {orden.direccion_evento ? ` - ${orden.direccion_evento}` : ''}
                                                         </span>
-                                                        {orden.equipo_count > 0 && (
+                                                        {orden.total_equipo > 0 && (
                                                             <span className="flex items-center gap-1">
                                                                 <Users className="w-4 h-4" />
-                                                                {orden.equipo_count} personas
+                                                                {orden.total_equipo} personas
                                                             </span>
                                                         )}
                                                     </div>
                                                 </div>
                                             </div>
-
-                                            {/* Estado y acciones */}
-                                            <div className="flex items-center gap-4">
-                                                <span className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border ${estadoConfig.color}`}>
-                                                    <EstadoIcon className="w-4 h-4" />
-                                                    {estadoConfig.label}
-                                                </span>
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation()
-                                                        navigate(`/operaciones/ordenes/${orden.id}`)
-                                                    }}
-                                                    className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
-                                                >
-                                                    <Eye className="w-5 h-5 text-slate-600" />
-                                                </button>
+                                            {/* Badge estado */}
+                                            <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border ${estadoConfig.color}`}>
+                                                <EstadoIcon className="w-4 h-4" />
+                                                <span className="text-sm font-medium">{estadoConfig.label}</span>
                                             </div>
                                         </div>
                                     </div>
@@ -394,29 +602,34 @@ export default function OrdenesTrabajoPage() {
                     </div>
                 ) : (
                     <div className="bg-white rounded-xl border border-slate-200 p-12 text-center">
-                        <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <Truck className="w-8 h-8 text-slate-400" />
-                        </div>
-                        <h3 className="text-lg font-semibold text-slate-900 mb-2">
-                            No hay órdenes
+                        <Truck className="w-12 h-12 text-slate-300 mx-auto mb-4" />
+                        <h3 className="text-lg font-medium text-slate-900 mb-2">
+                            No hay órdenes de trabajo
                         </h3>
-                        <p className="text-slate-600 mb-6">
+                        <p className="text-slate-600 mb-4">
                             {filtrosActivos
                                 ? 'No se encontraron órdenes con los filtros aplicados'
-                                : 'Las órdenes de trabajo aparecerán aquí'
-                            }
+                                : 'Aún no se han creado órdenes de trabajo'}
                         </p>
                         {filtrosActivos && (
-                            <Button
-                                variant="secondary"
+                            <button
                                 onClick={handleLimpiarFiltros}
+                                className="text-orange-600 hover:text-orange-700 font-medium"
                             >
                                 Limpiar filtros
-                            </Button>
+                            </button>
                         )}
                     </div>
                 )}
             </div>
+
+            {/* Modal Nueva Orden */}
+            {showModalNuevaOrden && (
+                <ModalNuevaOrden
+                    onClose={() => setShowModalNuevaOrden(false)}
+                    onSave={handleCrearOrden}
+                />
+            )}
         </div>
     )
 }

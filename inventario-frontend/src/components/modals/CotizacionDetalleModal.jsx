@@ -3,11 +3,13 @@
 // Vista previa de cotización estilo PDF para cliente
 // ============================================
 
-import { Calendar, User, MapPin, Phone, Mail, Truck, FileText, Edit, CheckCircle, XCircle } from 'lucide-react'
+import { useState } from 'react'
+import { Calendar, User, MapPin, Phone, Mail, Truck, FileText, Edit, CheckCircle, XCircle, Ban } from 'lucide-react'
 import Modal from '../common/Modal'
 import Button from '../common/Button'
 import Spinner from '../common/Spinner'
 import { useGetCotizacionCompleta } from '../../hooks/cotizaciones'
+import { useCancelarAlquiler } from '../../hooks/useAlquileres'
 
 const CotizacionDetalleModal = ({
   isOpen,
@@ -16,8 +18,13 @@ const CotizacionDetalleModal = ({
   onEditar,
   onAprobar,
   onRechazar,
+  onCancelarAlquiler,
   isAprobando = false
 }) => {
+  const [showCancelarModal, setShowCancelarModal] = useState(false)
+  const [notasCancelacion, setNotasCancelacion] = useState('')
+
+  const cancelarMutation = useCancelarAlquiler()
 
   // Cargar cotización completa con productos y transporte
   const { cotizacion, isLoading } = useGetCotizacionCompleta(isOpen ? cotizacionId : null)
@@ -66,6 +73,23 @@ const CotizacionDetalleModal = ({
   const handleRechazar = () => {
     if (confirm('¿Está seguro de rechazar esta cotización?')) {
       if (onRechazar && cotizacion) onRechazar(cotizacion)
+    }
+  }
+
+  const handleCancelarAlquiler = async () => {
+    if (!cotizacion?.alquiler_id) return
+
+    try {
+      await cancelarMutation.mutateAsync({
+        id: cotizacion.alquiler_id,
+        notas: notasCancelacion || 'Cancelado por el cliente'
+      })
+      setShowCancelarModal(false)
+      setNotasCancelacion('')
+      if (onCancelarAlquiler) onCancelarAlquiler()
+      onClose()
+    } catch (error) {
+      alert('Error al cancelar el alquiler: ' + error.message)
     }
   }
 
@@ -245,25 +269,65 @@ const CotizacionDetalleModal = ({
               </div>
             </div>
 
-            {/* TOTALES - Simplificado */}
+            {/* TOTALES CON DESGLOSE COMPLETO */}
             <div className="border-t-2 border-slate-200 pt-4">
               <div className="flex justify-end">
-                <div className="w-72">
-                  {descuento > 0 && (
-                    <>
-                      <div className="flex justify-between py-2">
-                        <span className="text-slate-600">Subtotal:</span>
-                        <span className="font-medium">{formatearMoneda(subtotalProductos + subtotalTransporte)}</span>
-                      </div>
-                      <div className="flex justify-between py-2 text-green-600">
-                        <span>Descuento:</span>
-                        <span className="font-medium">-{formatearMoneda(descuento)}</span>
-                      </div>
-                    </>
+                <div className="w-80">
+                  {/* Subtotal Productos */}
+                  <div className="flex justify-between py-1.5 text-sm">
+                    <span className="text-slate-600">Subtotal productos:</span>
+                    <span className="font-medium">{formatearMoneda(subtotalProductos)}</span>
+                  </div>
+
+                  {/* Subtotal Transporte */}
+                  {subtotalTransporte > 0 && (
+                    <div className="flex justify-between py-1.5 text-sm">
+                      <span className="text-slate-600">Subtotal transporte:</span>
+                      <span className="font-medium">{formatearMoneda(subtotalTransporte)}</span>
+                    </div>
                   )}
+
+                  {/* Días Adicionales */}
+                  {cotizacion.cobro_dias_extra > 0 && (
+                    <div className="flex justify-between py-1.5 text-sm text-amber-700">
+                      <span>Días adicionales ({(cotizacion.dias_montaje_extra || 0) + (cotizacion.dias_desmontaje_extra || 0)} días):</span>
+                      <span className="font-medium">+{formatearMoneda(cotizacion.cobro_dias_extra)}</span>
+                    </div>
+                  )}
+
+                  {/* Línea separadora */}
+                  <div className="border-t border-slate-200 my-2"></div>
+
+                  {/* Subtotal */}
+                  <div className="flex justify-between py-1.5 text-sm">
+                    <span className="text-slate-600">Subtotal:</span>
+                    <span className="font-medium">{formatearMoneda(subtotalProductos + subtotalTransporte + (cotizacion.cobro_dias_extra || 0))}</span>
+                  </div>
+
+                  {/* Descuento */}
+                  {descuento > 0 && (
+                    <div className="flex justify-between py-1.5 text-sm text-green-600">
+                      <span>Descuento:</span>
+                      <span className="font-medium">-{formatearMoneda(descuento)}</span>
+                    </div>
+                  )}
+
+                  {/* Base Gravable */}
+                  <div className="flex justify-between py-1.5 text-sm border-t border-slate-200 mt-2 pt-2">
+                    <span className="text-slate-700 font-medium">Base gravable:</span>
+                    <span className="font-medium">{formatearMoneda(cotizacion.base_gravable || (subtotalProductos + subtotalTransporte - descuento))}</span>
+                  </div>
+
+                  {/* IVA */}
+                  <div className="flex justify-between py-1.5 text-sm">
+                    <span className="text-slate-600">IVA ({cotizacion.porcentaje_iva || 19}%):</span>
+                    <span className="font-medium">+{formatearMoneda(cotizacion.valor_iva || 0)}</span>
+                  </div>
+
+                  {/* TOTAL FINAL */}
                   <div className="flex justify-between py-3 border-t-2 border-slate-900 mt-2">
                     <span className="text-xl font-bold text-slate-900">TOTAL:</span>
-                    <span className="text-xl font-bold text-slate-900">{formatearMoneda(total)}</span>
+                    <span className="text-xl font-bold text-blue-700">{formatearMoneda(cotizacion.total || total)}</span>
                   </div>
                 </div>
               </div>
@@ -323,6 +387,77 @@ const CotizacionDetalleModal = ({
               >
                 Rechazar
               </Button>
+            </div>
+          )}
+
+          {/* BOTÓN CANCELAR ALQUILER - Solo para cotizaciones aprobadas */}
+          {cotizacion.estado === 'aprobada' && cotizacion.alquiler_id && (
+            <div className="flex justify-center gap-4 mt-8 pt-6 border-t print:hidden">
+              <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-2 flex items-center gap-2">
+                <CheckCircle className="w-5 h-5 text-green-600" />
+                <span className="text-green-700 font-medium">Cotización Aprobada - Alquiler #{cotizacion.alquiler_id}</span>
+              </div>
+
+              <Button
+                variant="danger"
+                size="lg"
+                icon={<Ban className="w-5 h-5" />}
+                onClick={() => setShowCancelarModal(true)}
+                className="px-6 bg-red-600 hover:bg-red-700"
+              >
+                Cancelar Alquiler
+              </Button>
+            </div>
+          )}
+
+          {/* Modal de confirmación para cancelar alquiler */}
+          {showCancelarModal && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
+              <div className="bg-white rounded-xl w-full max-w-md p-6">
+                <h3 className="text-lg font-semibold text-slate-900 mb-2 flex items-center gap-2">
+                  <Ban className="w-5 h-5 text-red-600" />
+                  Cancelar Alquiler
+                </h3>
+                <p className="text-slate-600 mb-4">
+                  ¿Está seguro de cancelar este alquiler? Esta acción liberará el inventario reservado.
+                </p>
+
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Motivo de cancelación (opcional)
+                  </label>
+                  <textarea
+                    value={notasCancelacion}
+                    onChange={(e) => setNotasCancelacion(e.target.value)}
+                    rows={3}
+                    placeholder="Ej: Cliente canceló por cambio de planes..."
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 resize-none"
+                  />
+                </div>
+
+                <div className="flex gap-3 justify-end">
+                  <Button
+                    variant="secondary"
+                    onClick={() => {
+                      setShowCancelarModal(false)
+                      setNotasCancelacion('')
+                    }}
+                    disabled={cancelarMutation.isPending}
+                  >
+                    Volver
+                  </Button>
+                  <Button
+                    variant="danger"
+                    icon={<Ban className="w-4 h-4" />}
+                    onClick={handleCancelarAlquiler}
+                    loading={cancelarMutation.isPending}
+                    disabled={cancelarMutation.isPending}
+                    className="bg-red-600 hover:bg-red-700"
+                  >
+                    Confirmar Cancelación
+                  </Button>
+                </div>
+              </div>
             </div>
           )}
         </>
