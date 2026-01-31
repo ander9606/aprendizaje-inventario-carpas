@@ -138,10 +138,55 @@ class CotizacionDescuentoModel {
       [cotizacionId]
     );
 
-    // Recalcular totales
-    await CotizacionModel.recalcularTotales(cotizacionId);
-
     return result;
+  }
+
+  // ============================================
+  // AGREGAR MÚLTIPLES DESCUENTOS (para crear/editar cotización)
+  // ============================================
+  static async agregarMultiples(cotizacionId, descuentos, baseCalculo) {
+    if (!descuentos || descuentos.length === 0) return [];
+
+    const results = [];
+    for (const descuento of descuentos) {
+      const valorNum = parseFloat(descuento.valor);
+      const montoCalculado = descuento.tipo === 'porcentaje'
+        ? baseCalculo * (valorNum / 100)
+        : valorNum;
+
+      const query = `
+        INSERT INTO cotizacion_descuentos
+          (cotizacion_id, descuento_id, tipo, valor, monto_calculado, descripcion)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `;
+      const [result] = await pool.query(query, [
+        cotizacionId,
+        descuento.descuento_id || null,
+        descuento.tipo,
+        valorNum,
+        montoCalculado,
+        descuento.descripcion || 'Descuento'
+      ]);
+      results.push(result);
+    }
+
+    return results;
+  }
+
+  // ============================================
+  // REEMPLAZAR DESCUENTOS (eliminar existentes y agregar nuevos)
+  // ============================================
+  static async reemplazarDescuentos(cotizacionId, descuentos, baseCalculo) {
+    // Eliminar descuentos existentes
+    await pool.query(
+      'DELETE FROM cotizacion_descuentos WHERE cotizacion_id = ?',
+      [cotizacionId]
+    );
+
+    // Agregar nuevos descuentos
+    if (descuentos && descuentos.length > 0) {
+      await this.agregarMultiples(cotizacionId, descuentos, baseCalculo);
+    }
   }
 
   // ============================================

@@ -7,6 +7,7 @@ const CotizacionModel = require('../models/CotizacionModel');
 const CotizacionProductoModel = require('../models/CotizacionProductoModel');
 const CotizacionTransporteModel = require('../models/CotizacionTransporteModel');
 const CotizacionProductoRecargoModel = require('../models/CotizacionProductoRecargoModel');
+const CotizacionDescuentoModel = require('../models/CotizacionDescuentoModel');
 const ClienteModel = require('../models/ClienteModel');
 const TarifaTransporteModel = require('../models/TarifaTransporteModel');
 const AlquilerModel = require('../models/AlquilerModel');
@@ -145,7 +146,8 @@ exports.crear = async (req, res, next) => {
       vigencia_dias,
       notas,
       productos,
-      transporte
+      transporte,
+      descuentos
     } = req.body;
 
     // Validaciones
@@ -235,6 +237,23 @@ exports.crear = async (req, res, next) => {
       await CotizacionTransporteModel.agregarMultiples(cotizacionId, transporteConPrecios);
     }
 
+    // Agregar descuentos si vienen (necesitamos el subtotal para calcular montos)
+    if (descuentos && descuentos.length > 0) {
+      // Calcular subtotal bruto para los descuentos porcentuales
+      const subtotalProductos = productos.reduce((total, p) => {
+        const precio = parseFloat(p.precio_base) + parseFloat(p.precio_adicionales || 0);
+        return total + (precio * parseInt(p.cantidad || 1));
+      }, 0);
+      const subtotalTransporte = transporte
+        ? (await enriquecerTransporteConPrecios(transporte)).reduce((total, t) => {
+            return total + (parseFloat(t.precio_unitario) * parseInt(t.cantidad || 1));
+          }, 0)
+        : 0;
+      const baseCalculo = subtotalProductos + subtotalTransporte;
+
+      await CotizacionDescuentoModel.agregarMultiples(cotizacionId, descuentos, baseCalculo);
+    }
+
     // Recalcular totales
     await CotizacionModel.recalcularTotales(cotizacionId);
 
@@ -268,7 +287,8 @@ exports.actualizar = async (req, res, next) => {
       vigencia_dias,
       notas,
       productos,
-      transporte
+      transporte,
+      descuentos
     } = req.body;
 
     const cotizacionExistente = await CotizacionModel.obtenerPorId(id);
@@ -310,6 +330,15 @@ exports.actualizar = async (req, res, next) => {
         const transporteConPrecios = await enriquecerTransporteConPrecios(transporte);
         await CotizacionTransporteModel.agregarMultiples(id, transporteConPrecios);
       }
+    }
+
+    // Si vienen descuentos, reemplazar
+    if (descuentos !== undefined) {
+      // Calcular base para los descuentos
+      const cotizacionActual = await CotizacionModel.obtenerCompleta(id);
+      const baseCalculo = parseFloat(cotizacionActual.resumen?.subtotal || 0);
+
+      await CotizacionDescuentoModel.reemplazarDescuentos(id, descuentos, baseCalculo);
     }
 
     // Recalcular totales

@@ -11,7 +11,7 @@ import ProductoSelector from '../common/ProductoSelector'
 import ProductoConfiguracion from './ProductoConfiguracion'
 import DisponibilidadModal from '../disponibilidad/DisponibilidadModal'
 import RecargoModal from '../modals/RecargoModal'
-import { ProductoSelectorTarjetas } from '../cotizaciones'
+import { ProductoSelectorTarjetas, DescuentosSelectorLocal } from '../cotizaciones'
 import { useCreateCotizacion, useUpdateCotizacion, useGetCotizacionCompleta } from '../../hooks/cotizaciones'
 import { useGetClientesActivos } from '../../hooks/UseClientes'
 import { useGetProductosAlquiler } from '../../hooks/UseProductosAlquiler'
@@ -52,6 +52,7 @@ const CotizacionFormModal = ({
 
   const [productosSeleccionados, setProductosSeleccionados] = useState([])
   const [transporteSeleccionado, setTransporteSeleccionado] = useState([])
+  const [descuentosAplicados, setDescuentosAplicados] = useState([])
   const [errors, setErrors] = useState({})
   const [mostrarSelectorProductos, setMostrarSelectorProductos] = useState(true)
 
@@ -144,6 +145,17 @@ const CotizacionFormModal = ({
           cantidad: t.cantidad || 1
         }))
         setTransporteSeleccionado(transporteFormateado)
+
+        // Mapear descuentos para el formato del formulario
+        const descuentosFormateados = (cotizacionCompleta.descuentos_aplicados || []).map(d => ({
+          id: d.id,
+          descuento_id: d.descuento_id || null,
+          nombre: d.descuento_nombre || d.descripcion || 'Descuento',
+          tipo: d.tipo,
+          valor: parseFloat(d.valor),
+          descripcion: d.descripcion
+        }))
+        setDescuentosAplicados(descuentosFormateados)
       }
     } else if (mode === 'crear') {
       // Si hay un evento preseleccionado, pre-llenar los campos
@@ -178,6 +190,7 @@ const CotizacionFormModal = ({
       }
       setProductosSeleccionados([])
       setTransporteSeleccionado([])
+      setDescuentosAplicados([])
     }
     setErrors({})
   }, [mode, cotizacion, cotizacionCompleta, isOpen, eventoPreseleccionado])
@@ -411,6 +424,16 @@ const CotizacionFormModal = ({
     }, 0)
   }
 
+  // Calcular total de descuentos aplicados
+  const calcularTotalDescuentos = (baseCalculo = 0) => {
+    return descuentosAplicados.reduce((total, d) => {
+      if (d.tipo === 'porcentaje') {
+        return total + (baseCalculo * (parseFloat(d.valor) / 100))
+      }
+      return total + parseFloat(d.valor)
+    }, 0)
+  }
+
   // ============================================
   // CÁLCULO DE DÍAS ADICIONALES
   // Valores desde configuración del sistema
@@ -462,9 +485,10 @@ const CotizacionFormModal = ({
     const subtotalProductos = calcularSubtotalProductos()
     const subtotalTransporte = calcularSubtotalTransporte()
     const { cobroDiasExtra, totalDiasExtra } = calcularDiasAdicionales()
-    const descuento = parseFloat(formData.descuento || 0)
 
     const subtotalBruto = subtotalProductos + subtotalTransporte + cobroDiasExtra
+    // Calcular descuentos sobre el subtotal bruto
+    const descuento = calcularTotalDescuentos(subtotalBruto)
     const baseGravable = Math.max(0, subtotalBruto - descuento)
     const valorIVA = baseGravable * (PORCENTAJE_IVA / 100)
     const totalFinal = baseGravable + valorIVA
@@ -476,6 +500,7 @@ const CotizacionFormModal = ({
       totalDiasExtra,
       subtotalBruto,
       descuento,
+      descuentosDetalle: descuentosAplicados,
       baseGravable,
       porcentajeIVA: PORCENTAJE_IVA,
       valorIVA,
@@ -518,6 +543,10 @@ const CotizacionFormModal = ({
 
     if (!validate()) return
 
+    // Calcular el total de descuento para el campo legacy
+    const subtotalBruto = calcularSubtotalProductos() + calcularSubtotalTransporte() + calcularDiasAdicionales().cobroDiasExtra
+    const totalDescuentoCalculado = calcularTotalDescuentos(subtotalBruto)
+
     const dataToSend = {
       cliente_id: parseInt(formData.cliente_id),
       evento_id: formData.evento_id ? parseInt(formData.evento_id) : null,
@@ -527,9 +556,15 @@ const CotizacionFormModal = ({
       evento_nombre: formData.evento_nombre.trim() || null,
       evento_direccion: formData.evento_direccion.trim() || null,
       evento_ciudad: formData.evento_ciudad.trim() || null,
-      descuento: parseFloat(formData.descuento) || 0,
+      descuento: totalDescuentoCalculado,
       vigencia_dias: parseInt(formData.vigencia_dias) || 15,
       notas: formData.notas.trim() || null,
+      descuentos: descuentosAplicados.map(d => ({
+        descuento_id: d.descuento_id || null,
+        tipo: d.tipo,
+        valor: parseFloat(d.valor),
+        descripcion: d.descripcion || d.nombre || null
+      })),
       productos: productosSeleccionados.map(p => ({
         compuesto_id: parseInt(p.compuesto_id),
         cantidad: parseInt(p.cantidad) || 1,
@@ -1303,22 +1338,23 @@ const CotizacionFormModal = ({
                 </div>
               </div>
 
-              {/* Descuento */}
-              <div className="flex justify-between items-center">
-                <label className="text-slate-600 text-sm">Descuento:</label>
-                <div className="flex items-center gap-2">
-                  <span className="text-red-600 text-sm">-</span>
-                  <input
-                    type="number"
-                    name="descuento"
-                    min="0"
-                    value={formData.descuento}
-                    onChange={handleChange}
-                    disabled={isLoading}
-                    className="w-28 px-3 py-1 border border-slate-300 rounded-lg text-sm text-right"
-                  />
-                </div>
+              {/* Selector de Descuentos */}
+              <div className="border-t border-slate-200 pt-3 mt-2">
+                <DescuentosSelectorLocal
+                  descuentosAplicados={descuentosAplicados}
+                  onDescuentosChange={setDescuentosAplicados}
+                  baseCalculo={totales.subtotalBruto}
+                  disabled={isLoading}
+                />
               </div>
+
+              {/* Mostrar total descuento si hay */}
+              {totales.descuento > 0 && (
+                <div className="flex justify-between items-center text-sm text-red-600">
+                  <span>Total descuentos:</span>
+                  <span className="font-medium">-{formatearMoneda(totales.descuento)}</span>
+                </div>
+              )}
 
               {/* Base Gravable */}
               <div className="flex justify-between items-center text-sm border-t border-slate-300 pt-2">
