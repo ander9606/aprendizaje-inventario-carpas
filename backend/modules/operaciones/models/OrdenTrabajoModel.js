@@ -707,6 +707,13 @@ class OrdenTrabajoModel {
                     elem.cantidad || 1
                 ]);
             }
+
+            // Actualizar estado de orden de montaje a "en_preparacion"
+            // ya que los elementos fueron asignados automáticamente
+            await pool.query(
+                'UPDATE ordenes_trabajo SET estado = ? WHERE id = ?',
+                ['en_preparacion', ordenMontaje.id]
+            );
         }
 
         return {

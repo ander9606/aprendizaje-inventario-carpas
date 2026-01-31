@@ -158,8 +158,8 @@ class SincronizacionAlquilerService {
         throw new AppError('Orden no encontrada', 404);
       }
 
-      if (!['pendiente', 'confirmado'].includes(orden[0].estado)) {
-        throw new AppError('La orden debe estar en estado pendiente o confirmado para asignar elementos', 400);
+      if (!['pendiente', 'confirmado', 'en_preparacion'].includes(orden[0].estado)) {
+        throw new AppError('La orden debe estar en estado pendiente, confirmado o en_preparacion para asignar elementos', 400);
       }
 
       // Limpiar asignaciones previas (por si se está reasignando)
