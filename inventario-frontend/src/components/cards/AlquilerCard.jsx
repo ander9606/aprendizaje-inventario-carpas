@@ -9,8 +9,6 @@ import {
   Package,
   DollarSign,
   Eye,
-  LogOut,
-  LogIn,
   Clock,
   CheckCircle,
   XCircle,
@@ -29,16 +27,15 @@ import Button from '../common/Button'
  * - Total y estado
  * - Acciones según estado
  *
+ * Nota: Las acciones de salida y retorno se gestionan
+ * desde el módulo de Operaciones, no desde aquí.
+ *
  * @param {Object} alquiler - Datos del alquiler
  * @param {Function} onVerDetalle - Callback para ver detalle
- * @param {Function} onMarcarSalida - Callback para marcar salida
- * @param {Function} onMarcarRetorno - Callback para marcar retorno
  */
 const AlquilerCard = ({
   alquiler,
-  onVerDetalle,
-  onMarcarSalida,
-  onMarcarRetorno
+  onVerDetalle
 }) => {
 
   // ============================================
@@ -132,20 +129,6 @@ const AlquilerCard = ({
     e.stopPropagation()
     if (onVerDetalle) {
       onVerDetalle(alquiler.id)
-    }
-  }
-
-  const handleMarcarSalida = (e) => {
-    e.stopPropagation()
-    if (onMarcarSalida) {
-      onMarcarSalida(alquiler)
-    }
-  }
-
-  const handleMarcarRetorno = (e) => {
-    e.stopPropagation()
-    if (onMarcarRetorno) {
-      onMarcarRetorno(alquiler)
     }
   }
 
@@ -258,43 +241,15 @@ const AlquilerCard = ({
 
       {/* FOOTER */}
       <Card.Footer>
-        <div className="flex gap-2 justify-between">
-          {/* Botón ver detalle - siempre visible */}
-          <Button
-            variant="ghost"
-            size="sm"
-            icon={<Eye className="w-4 h-4" />}
-            onClick={handleVerDetalle}
-            className="flex-1"
-          >
-            Ver Detalle
-          </Button>
-
-          {/* Botón de acción según estado */}
-          {alquiler.estado === 'programado' && (
-            <Button
-              variant="primary"
-              size="sm"
-              icon={<LogOut className="w-4 h-4" />}
-              onClick={handleMarcarSalida}
-              className="flex-1"
-            >
-              Marcar Salida
-            </Button>
-          )}
-
-          {alquiler.estado === 'activo' && (
-            <Button
-              variant={retornoVencido ? 'danger' : 'primary'}
-              size="sm"
-              icon={<LogIn className="w-4 h-4" />}
-              onClick={handleMarcarRetorno}
-              className="flex-1"
-            >
-              Marcar Retorno
-            </Button>
-          )}
-        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          icon={<Eye className="w-4 h-4" />}
+          onClick={handleVerDetalle}
+          className="w-full"
+        >
+          Ver Detalle
+        </Button>
       </Card.Footer>
     </Card>
   )

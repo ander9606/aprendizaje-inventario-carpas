@@ -24,9 +24,6 @@ import {
 import AlquilerCard from '../components/cards/AlquilerCard'
 import Button from '../components/common/Button'
 import Spinner from '../components/common/Spinner'
-import AsignacionElementosModal from '../components/modals/AsignacionElementosModal'
-import RetornoElementosModal from '../components/modals/RetornoElementosModal'
-import { toast } from 'sonner'
 
 // ============================================
 // COMPONENTE: StatCard
@@ -81,16 +78,11 @@ export default function AlquileresPage() {
   // ============================================
   const [busqueda, setBusqueda] = useState('')
   const [filtroEstado, setFiltroEstado] = useState('')
-  const [showFiltros, setShowFiltros] = useState(false)
-
-  // Modales
-  const [alquilerParaSalida, setAlquilerParaSalida] = useState(null)
-  const [alquilerParaRetorno, setAlquilerParaRetorno] = useState(null)
 
   // ============================================
   // QUERIES
   // ============================================
-  const { alquileres, isLoading, refetch } = useGetAlquileres()
+  const { alquileres, isLoading } = useGetAlquileres()
   const { estadisticas, isLoading: loadingStats } = useGetEstadisticasAlquileres()
 
   // ============================================
@@ -146,26 +138,6 @@ export default function AlquileresPage() {
 
   const handleVerDetalle = (id) => {
     navigate(`/alquileres/gestion/${id}`)
-  }
-
-  const handleMarcarSalida = (alquiler) => {
-    setAlquilerParaSalida(alquiler)
-  }
-
-  const handleMarcarRetorno = (alquiler) => {
-    setAlquilerParaRetorno(alquiler)
-  }
-
-  const handleSalidaExitosa = () => {
-    setAlquilerParaSalida(null)
-    refetch()
-    toast.success('Salida registrada exitosamente')
-  }
-
-  const handleRetornoExitoso = () => {
-    setAlquilerParaRetorno(null)
-    refetch()
-    toast.success('Retorno registrado exitosamente')
   }
 
   const handleFiltroEstado = (estado) => {
@@ -334,33 +306,12 @@ export default function AlquileresPage() {
                 key={alquiler.id}
                 alquiler={alquiler}
                 onVerDetalle={handleVerDetalle}
-                onMarcarSalida={handleMarcarSalida}
-                onMarcarRetorno={handleMarcarRetorno}
               />
             ))}
           </div>
         </>
       )}
 
-      {/* Modal Asignación de Elementos (Marcar Salida) */}
-      {alquilerParaSalida && (
-        <AsignacionElementosModal
-          isOpen={!!alquilerParaSalida}
-          onClose={() => setAlquilerParaSalida(null)}
-          alquiler={alquilerParaSalida}
-          onSuccess={handleSalidaExitosa}
-        />
-      )}
-
-      {/* Modal Retorno de Elementos */}
-      {alquilerParaRetorno && (
-        <RetornoElementosModal
-          isOpen={!!alquilerParaRetorno}
-          onClose={() => setAlquilerParaRetorno(null)}
-          alquiler={alquilerParaRetorno}
-          onSuccess={handleRetornoExitoso}
-        />
-      )}
     </div>
   )
 }

@@ -143,6 +143,52 @@ const ordenesAPI = {
     obtenerEstadisticas: async () => {
         const response = await api.get('/operaciones/estadisticas')
         return response.data
+    },
+
+    // ============================================
+    // PREPARACIÓN Y EJECUCIÓN
+    // ============================================
+
+    /**
+     * Obtener elementos disponibles para asignar a la orden
+     * @param {number} id - ID de la orden
+     * @returns {Object} - { orden, productos: [{ componentes: [{ disponibles }] }] }
+     */
+    obtenerElementosDisponibles: async (id) => {
+        const response = await api.get(`/operaciones/ordenes/${id}/elementos-disponibles`)
+        return response.data
+    },
+
+    /**
+     * Preparar elementos (asignar series/lotes a la orden)
+     * @param {number} id - ID de la orden
+     * @param {Array} elementos - [{ elemento_id, serie_id, lote_id, cantidad }]
+     */
+    prepararElementos: async (id, elementos) => {
+        const response = await api.post(`/operaciones/ordenes/${id}/preparar-elementos`, { elementos })
+        return response.data
+    },
+
+    /**
+     * Ejecutar salida (para órdenes de montaje)
+     * Cambia estado de alquiler a "activo" y series/lotes a "alquilado"
+     * @param {number} id - ID de la orden de montaje
+     * @param {Object} datos - { notas }
+     */
+    ejecutarSalida: async (id, datos = {}) => {
+        const response = await api.post(`/operaciones/ordenes/${id}/ejecutar-salida`, datos)
+        return response.data
+    },
+
+    /**
+     * Ejecutar retorno (para órdenes de desmontaje)
+     * Registra estado de retorno de cada elemento
+     * @param {number} id - ID de la orden de desmontaje
+     * @param {Array} retornos - [{ alquiler_elemento_id, estado_retorno, costo_dano, notas }]
+     */
+    ejecutarRetorno: async (id, retornos) => {
+        const response = await api.post(`/operaciones/ordenes/${id}/ejecutar-retorno`, { retornos })
+        return response.data
     }
 }
 

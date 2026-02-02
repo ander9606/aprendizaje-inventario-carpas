@@ -4,7 +4,7 @@
 // ============================================
 
 import { useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, Link } from 'react-router-dom'
 import {
   ArrowLeft,
   Package,
@@ -21,7 +21,8 @@ import {
   LogOut,
   LogIn,
   Printer,
-  MoreVertical
+  MoreVertical,
+  ExternalLink
 } from 'lucide-react'
 import {
   useGetAlquilerCompleto,
@@ -30,8 +31,6 @@ import {
 import { AlquilerTimeline } from '../components/alquileres'
 import Button from '../components/common/Button'
 import Spinner from '../components/common/Spinner'
-import AsignacionElementosModal from '../components/modals/AsignacionElementosModal'
-import RetornoElementosModal from '../components/modals/RetornoElementosModal'
 import { toast } from 'sonner'
 
 // ============================================
@@ -45,8 +44,6 @@ export default function AlquilerDetallePage() {
   // ESTADO
   // ============================================
   const [showMenuAcciones, setShowMenuAcciones] = useState(false)
-  const [showModalSalida, setShowModalSalida] = useState(false)
-  const [showModalRetorno, setShowModalRetorno] = useState(false)
   const [showModalCancelar, setShowModalCancelar] = useState(false)
 
   // ============================================
@@ -146,18 +143,6 @@ export default function AlquilerDetallePage() {
     }
   }
 
-  const handleSalidaExitosa = () => {
-    setShowModalSalida(false)
-    refetch()
-    toast.success('Salida registrada exitosamente')
-  }
-
-  const handleRetornoExitoso = () => {
-    setShowModalRetorno(false)
-    refetch()
-    toast.success('Retorno registrado exitosamente')
-  }
-
   // ============================================
   // RENDER: Estados de carga y error
   // ============================================
@@ -238,24 +223,26 @@ export default function AlquilerDetallePage() {
 
             {/* Acciones */}
             <div className="flex items-center gap-2">
-              {alquiler.estado === 'programado' && (
-                <Button
-                  variant="primary"
-                  icon={<LogOut className="w-4 h-4" />}
-                  onClick={() => setShowModalSalida(true)}
-                >
-                  Marcar Salida
-                </Button>
+              {/* Ver Órdenes de Trabajo (gestionadas en Operaciones) */}
+              {alquiler.orden_montaje_id && (
+                <Link to={`/operaciones/ordenes/${alquiler.orden_montaje_id}`}>
+                  <Button
+                    variant="secondary"
+                    icon={<ExternalLink className="w-4 h-4" />}
+                  >
+                    Ver Orden Montaje
+                  </Button>
+                </Link>
               )}
-
-              {alquiler.estado === 'activo' && (
-                <Button
-                  variant={retornoVencido ? 'danger' : 'primary'}
-                  icon={<LogIn className="w-4 h-4" />}
-                  onClick={() => setShowModalRetorno(true)}
-                >
-                  Marcar Retorno
-                </Button>
+              {alquiler.orden_desmontaje_id && (
+                <Link to={`/operaciones/ordenes/${alquiler.orden_desmontaje_id}`}>
+                  <Button
+                    variant="secondary"
+                    icon={<ExternalLink className="w-4 h-4" />}
+                  >
+                    Ver Orden Desmontaje
+                  </Button>
+                </Link>
               )}
 
               {/* Menú de más acciones */}
@@ -512,15 +499,20 @@ export default function AlquilerDetallePage() {
                 <div className="text-center py-8">
                   <Package className="w-12 h-12 text-slate-300 mx-auto mb-3" />
                   <p className="text-slate-500">No hay elementos asignados</p>
-                  {alquiler.estado === 'programado' && (
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      className="mt-4"
-                      onClick={() => setShowModalSalida(true)}
-                    >
-                      Asignar Elementos
-                    </Button>
+                  <p className="text-xs text-slate-400 mt-2">
+                    Los elementos se asignan automáticamente al aprobar la cotización.
+                  </p>
+                  {alquiler.orden_montaje_id && (
+                    <Link to={`/operaciones/ordenes/${alquiler.orden_montaje_id}`}>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        className="mt-4"
+                        icon={<ExternalLink className="w-4 h-4" />}
+                      >
+                        Ver en Operaciones
+                      </Button>
+                    </Link>
                   )}
                 </div>
               )}
@@ -543,26 +535,6 @@ export default function AlquilerDetallePage() {
           </div>
         </div>
       </div>
-
-      {/* Modal Asignación de Elementos (Marcar Salida) */}
-      {showModalSalida && (
-        <AsignacionElementosModal
-          isOpen={showModalSalida}
-          onClose={() => setShowModalSalida(false)}
-          alquiler={alquiler}
-          onSuccess={handleSalidaExitosa}
-        />
-      )}
-
-      {/* Modal Retorno de Elementos */}
-      {showModalRetorno && (
-        <RetornoElementosModal
-          isOpen={showModalRetorno}
-          onClose={() => setShowModalRetorno(false)}
-          alquiler={alquiler}
-          onSuccess={handleRetornoExitoso}
-        />
-      )}
 
       {/* Modal Confirmar Cancelación */}
       {showModalCancelar && (
