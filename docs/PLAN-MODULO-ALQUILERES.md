@@ -6,7 +6,18 @@ El módulo de alquileres permite crear cotizaciones para clientes, seleccionando
 
 ---
 
-## 1. Estado de Implementación (Actualizado Enero 2026)
+## 1. Estado de Implementación (Actualizado Febrero 2026)
+
+### ARQUITECTURA DE MÓDULOS
+
+**IMPORTANTE:** El sistema separa responsabilidades entre dos módulos:
+
+| Módulo | Responsabilidad |
+|--------|-----------------|
+| **Alquileres** | Gestión comercial: cotizaciones, clientes, eventos, precios |
+| **Operaciones** | Gestión operativa: órdenes de trabajo, salida/retorno de elementos |
+
+Las acciones de **ejecutar salida** y **registrar retorno** se gestionan exclusivamente desde el módulo de **Operaciones**, no desde Alquileres. El módulo de Alquileres proporciona una vista de solo lectura con enlaces a las órdenes de trabajo correspondientes.
 
 ### BACKEND - Estado Actual
 
@@ -25,6 +36,7 @@ El módulo de alquileres permite crear cotizaciones para clientes, seleccionando
 | DisponibilidadModel | ✅ Completo | `backend/modules/alquileres/models/DisponibilidadModel.js` |
 | ConfiguracionModel | ✅ Completo | `backend/modules/alquileres/models/ConfiguracionModel.js` |
 | DescuentoModel | ✅ Completo | `backend/modules/alquileres/models/DescuentoModel.js` |
+| SincronizacionAlquilerService | ✅ Completo | `backend/modules/operaciones/services/SincronizacionAlquilerService.js` |
 | Controladores | ✅ Completo | `backend/modules/alquileres/controllers/` |
 | Rutas API | ✅ Completo | `backend/modules/alquileres/routes/` |
 
@@ -63,8 +75,9 @@ El módulo de alquileres permite crear cotizaciones para clientes, seleccionando
 | ConfiguracionAlquileresPage | ✅ Completo | `inventario-frontend/src/pages/ConfiguracionAlquileresPage.jsx` |
 | DescuentosPage | ✅ Completo | `inventario-frontend/src/pages/DescuentosPage.jsx` |
 | CiudadesPage | ✅ Completo | `inventario-frontend/src/pages/CiudadesPage.jsx` |
-| AlquileresPage (Dashboard) | ⚠️ Pendiente | Por implementar - Vista de alquileres activos/programados |
-| AlquilerDetallePage | ⚠️ Pendiente | Por implementar - Detalle de alquiler específico |
+| AlquileresPage (Dashboard) | ✅ Completo | `inventario-frontend/src/pages/AlquileresPage.jsx` |
+| AlquilerDetallePage | ✅ Completo | `inventario-frontend/src/pages/AlquilerDetallePage.jsx` |
+| OrdenDetallePage | ✅ Completo | `inventario-frontend/src/pages/OrdenDetallePage.jsx` (para salida/retorno) |
 
 ### COMPONENTES - Estado Actual
 
@@ -81,10 +94,12 @@ El módulo de alquileres permite crear cotizaciones para clientes, seleccionando
 | CalendarFilters | ✅ Completo | `inventario-frontend/src/components/calendar/` |
 | CalendarLegend | ✅ Completo | `inventario-frontend/src/components/calendar/` |
 | CalendarStats | ✅ Completo | `inventario-frontend/src/components/calendar/` |
-| AlquilerCard | ⚠️ Pendiente | Por implementar |
-| AsignacionElementosModal | ⚠️ Pendiente | Por implementar - Para marcar salida |
-| RetornoElementosModal | ⚠️ Pendiente | Por implementar - Para marcar retorno |
-| AlquilerTimeline | ⚠️ Pendiente | Por implementar - Historial visual |
+| AlquilerCard | ✅ Completo | `inventario-frontend/src/components/cards/AlquilerCard.jsx` |
+| AlquilerTimeline | ✅ Completo | `inventario-frontend/src/components/alquileres/AlquilerTimeline.jsx` |
+| AlquileresLayout | ✅ Completo | `inventario-frontend/src/components/layouts/AlquileresLayout.jsx` |
+| ModalRegistrarRetorno | ✅ Completo | Integrado en `OrdenDetallePage.jsx` (módulo Operaciones) |
+
+**Nota:** Los modales de AsignacionElementos y RetornoElementos NO se implementaron en el módulo Alquileres. Las acciones operativas (salida/retorno) se gestionan desde el módulo de **Operaciones** en `OrdenDetallePage.jsx`.
 
 ### BASE DE DATOS - Migraciones Ejecutadas
 
@@ -173,155 +188,66 @@ El módulo de alquileres permite crear cotizaciones para clientes, seleccionando
 
 ---
 
-## 3. Funcionalidades Pendientes
+## 3. Funcionalidades Completadas (UI de Alquileres)
 
-### 3.1 UI de Alquileres (Prioridad Alta)
+> **IMPORTANTE:** Las acciones operativas (ejecutar salida, registrar retorno) se gestionan desde el módulo de **Operaciones**, no desde el módulo de Alquileres. El módulo de Alquileres es de solo lectura para aspectos operativos.
 
-#### AlquileresPage (Dashboard)
+### 3.1 AlquileresPage (Dashboard) ✅ COMPLETADO
+
+Vista de solo lectura de todos los alquileres con estadísticas y filtros.
+
+**Archivo:** `inventario-frontend/src/pages/AlquileresPage.jsx`
+
+**Características:**
+- Estadísticas por estado (programados, activos, finalizados, cancelados)
+- Filtro por estado (click en tarjetas de estadísticas)
+- Búsqueda por evento o cliente
+- Tarjetas de alquiler con información resumida
+- Navegación a detalle de alquiler
+
+**Nota:** Los botones de "Marcar Salida" y "Marcar Retorno" fueron removidos. Estas acciones se realizan desde el módulo de Operaciones.
+
+### 3.2 AlquilerDetallePage ✅ COMPLETADO
+
+Vista detallada de un alquiler con información completa y enlaces a órdenes de trabajo.
+
+**Archivo:** `inventario-frontend/src/pages/AlquilerDetallePage.jsx`
+
+**Características:**
+- Información general del alquiler
+- Resumen financiero (total, depósito, daños)
+- Productos cotizados
+- Elementos asignados (solo lectura)
+- Timeline del alquiler
+- Enlace a orden de montaje (para ejecutar salida)
+- Enlace a orden de desmontaje (para registrar retorno)
+- Opción de cancelar alquiler
+
+### 3.3 Componentes Completados
+
+| Componente | Archivo | Descripción |
+|------------|---------|-------------|
+| AlquilerCard | `components/cards/AlquilerCard.jsx` | Tarjeta de resumen de alquiler |
+| AlquilerTimeline | `components/alquileres/AlquilerTimeline.jsx` | Historial visual del alquiler |
+| AlquileresLayout | `components/layouts/AlquileresLayout.jsx` | Layout con sidebar colapsable |
+| AlquilersSidebar | `components/alquileres/AlquilersSidebar.jsx` | Navegación del módulo |
+
+### 3.4 Acciones Operativas (En módulo Operaciones)
+
+Las siguientes acciones se realizan desde el módulo de **Operaciones** (`/operaciones/ordenes/:id`):
+
+| Acción | Orden de Trabajo | Estado | Descripción |
+|--------|------------------|--------|-------------|
+| Ejecutar Salida | Montaje | en_preparacion | Cambia alquiler a "activo", marca elementos como despachados |
+| Registrar Retorno | Desmontaje | en_sitio/en_proceso | Registra estado de cada elemento, finaliza alquiler |
+
+**Endpoints en Operaciones:**
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                    DASHBOARD ALQUILERES                         │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  RESUMEN                                                        │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐           │
-│  │Programados│ │  Activos  │ │Finalizados│ │ Cancelados│        │
-│  │    5     │ │    3     │ │   12    │ │    2    │           │
-│  └──────────┘ └──────────┘ └──────────┘ └──────────┘           │
-│                                                                 │
-│  ALQUILERES ACTIVOS                                             │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │ [AlquilerCard] Evento X - Cliente Y                      │   │
-│  │   Fecha salida: 01/01  |  Retorno esperado: 05/01       │   │
-│  │   Elementos: 15 asignados  |  Estado: ACTIVO            │   │
-│  │   [Ver Detalle] [Marcar Retorno]                        │   │
-│  └─────────────────────────────────────────────────────────┘   │
-│                                                                 │
-│  PRÓXIMOS (Programados)                                         │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │ [AlquilerCard] Evento Z - Cliente W                      │   │
-│  │   Fecha salida: 10/01  |  Retorno esperado: 15/01       │   │
-│  │   Elementos: Pendientes de asignar                       │   │
-│  │   [Ver Detalle] [Marcar Salida]                         │   │
-│  └─────────────────────────────────────────────────────────┘   │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-**Archivos a crear:**
-- `inventario-frontend/src/pages/AlquileresPage.jsx`
-- `inventario-frontend/src/components/cards/AlquilerCard.jsx`
-
-#### AlquilerDetallePage
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    DETALLE ALQUILER #123                        │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  INFORMACIÓN GENERAL                                            │
-│  Cliente: Juan Pérez  |  Evento: Boda García                   │
-│  Fecha Salida: 01/01/2024  |  Retorno Esperado: 05/01/2024    │
-│  Estado: ACTIVO                                                 │
-│                                                                 │
-│  PRODUCTOS COTIZADOS                                            │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │ Carpa 6x12  (2 unidades)                                │   │
-│  │ Sillas plásticas (100 unidades)                         │   │
-│  └─────────────────────────────────────────────────────────┘   │
-│                                                                 │
-│  ELEMENTOS ASIGNADOS                                            │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │ Lona 6x12 | Serie: LN-001 | Estado salida: Bueno        │   │
-│  │ Estructura | Serie: EST-015 | Estado salida: Bueno      │   │
-│  │ Sillas | Lote: L-045 | Cantidad: 100 | Estado: Bueno    │   │
-│  └─────────────────────────────────────────────────────────┘   │
-│                                                                 │
-│  ACCIONES                                                       │
-│  [Asignar Más Elementos] [Cambiar Elemento] [Marcar Retorno]   │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
+POST /api/operaciones/ordenes/:id/ejecutar-salida
+POST /api/operaciones/ordenes/:id/ejecutar-retorno
 ```
 
-**Archivos a crear:**
-- `inventario-frontend/src/pages/AlquilerDetallePage.jsx`
-
-### 3.2 Modales de Operación
-
-#### AsignacionElementosModal (Para marcar salida)
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                  ASIGNAR ELEMENTOS - SALIDA                     │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  Para: Carpa 6x12 (necesita 2)                                 │
-│                                                                 │
-│  LONAS 6x12 (requiere series)                                  │
-│  ☑ Serie LN-001 - Ubicación: Bodega A - Estado: Bueno         │
-│  ☑ Serie LN-003 - Ubicación: Bodega A - Estado: Bueno         │
-│  ☐ Serie LN-005 - Ubicación: Bodega B - Estado: Bueno         │
-│                                                                 │
-│  ESTRUCTURAS 6x12 (requiere series)                            │
-│  ☑ Serie EST-015 - Ubicación: Bodega A                         │
-│  ☑ Serie EST-018 - Ubicación: Bodega A                         │
-│                                                                 │
-│  ESTACAS (lotes)                                               │
-│  De lote L-100 (disponibles: 500): [    100    ] unidades     │
-│                                                                 │
-│  ────────────────────────────────────────────────────────────  │
-│                        [Cancelar]  [Confirmar Salida]          │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-**Archivos a crear:**
-- `inventario-frontend/src/components/modals/AsignacionElementosModal.jsx`
-
-#### RetornoElementosModal (Para marcar retorno)
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                  REGISTRAR RETORNO                              │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  ELEMENTOS A RETORNAR                                           │
-│                                                                 │
-│  Lona 6x12 - Serie LN-001                                      │
-│  Estado: [Bueno ▼]  Daño: $[      ]  Notas: [            ]    │
-│                                                                 │
-│  Lona 6x12 - Serie LN-003                                      │
-│  Estado: [Dañado ▼] Daño: $[ 50000 ] Notas: [Rasgadura     ]  │
-│                                                                 │
-│  Estructura - Serie EST-015                                     │
-│  Estado: [Bueno ▼]  Daño: $[      ]  Notas: [            ]    │
-│                                                                 │
-│  Sillas - Lote L-045 (100 unidades)                            │
-│  Estado: [Bueno ▼]  Perdidas: [ 2 ]  Daño: $[ 20000 ]         │
-│                                                                 │
-│  ────────────────────────────────────────────────────────────  │
-│  RESUMEN                                                        │
-│  Total daños: $70,000                                          │
-│  Depósito cobrado: $200,000                                    │
-│  Diferencia a devolver: $130,000                               │
-│  ────────────────────────────────────────────────────────────  │
-│                        [Cancelar]  [Confirmar Retorno]         │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-**Archivos a crear:**
-- `inventario-frontend/src/components/modals/RetornoElementosModal.jsx`
-
-### 3.3 Componentes Adicionales
-
-#### AlquilerTimeline
-Componente visual que muestra el historial del alquiler:
-- Cotización creada
-- Cotización aprobada
-- Alquiler programado
-- Elementos asignados
-- Salida marcada
-- Retorno registrado
-- Finalizado
-
-**Archivo a crear:**
-- `inventario-frontend/src/components/alquileres/AlquilerTimeline.jsx`
+**Componente:** `OrdenDetallePage.jsx` incluye el modal `ModalRegistrarRetorno` para registrar el estado de retorno de cada elemento.
 
 ---
 
@@ -715,21 +641,22 @@ PUT    /api/configuracion/:clave        → Actualizar valor específico
 
 ## 7. Próximos Pasos
 
-### Prioridad Alta
-1. **Crear AlquileresPage** - Dashboard de alquileres activos/programados
-2. **Crear AlquilerDetallePage** - Vista detallada de un alquiler
-3. **Crear AsignacionElementosModal** - Para marcar salida con UI
-4. **Crear RetornoElementosModal** - Para marcar retorno con UI
+### COMPLETADOS ✅
+1. ~~**Crear AlquileresPage** - Dashboard de alquileres activos/programados~~
+2. ~~**Crear AlquilerDetallePage** - Vista detallada de un alquiler~~
+3. ~~**Crear AlquilerCard** - Tarjeta de resumen de alquiler~~
+4. ~~**Crear AlquilerTimeline** - Historial visual del alquiler~~
+5. ~~**Ejecutar Salida (Operaciones)** - Integrado en OrdenDetallePage~~
+6. ~~**Registrar Retorno (Operaciones)** - Modal en OrdenDetallePage~~
 
-### Prioridad Media
-5. **Crear AlquilerCard** - Tarjeta de resumen de alquiler
-6. **Crear AlquilerTimeline** - Historial visual del alquiler
+### Prioridad Media (Pendientes)
 7. **Integrar notificaciones** - Alertas de alquileres próximos a vencer
+8. **Mejorar sincronización** - Actualizar estado de alquiler cuando orden cambia
 
-### Prioridad Baja
-8. **Reportes de alquileres** - Estadísticas y gráficos
-9. **Exportar a PDF** - Cotizaciones y contratos
-10. **Historial de cambios** - Auditoría de modificaciones
+### Prioridad Baja (Pendientes)
+9. **Reportes de alquileres** - Estadísticas y gráficos
+10. **Exportar a PDF** - Cotizaciones y contratos
+11. **Historial de cambios** - Auditoría de modificaciones
 
 ---
 
@@ -742,3 +669,39 @@ PUT    /api/configuracion/:clave        → Actualizar valor específico
 - La asignación automática de elementos ya está implementada en DisponibilidadModel
 - Las órdenes de trabajo se crean automáticamente al aprobar cotización
 - La configuración es dinámica y se carga desde ConfiguracionModel
+
+### Arquitectura de Separación de Módulos
+
+**Flujo de datos entre módulos:**
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    MÓDULO ALQUILERES                            │
+│  (Comercial - Cotizaciones, Clientes, Eventos)                  │
+├─────────────────────────────────────────────────────────────────┤
+│  1. Crear cotización                                            │
+│  2. Aprobar cotización → Crea alquiler + órdenes de trabajo    │
+│  3. Vista de solo lectura de alquileres                         │
+│  4. Enlaces a órdenes de trabajo en Operaciones                 │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                   MÓDULO OPERACIONES                            │
+│  (Operativo - Órdenes de trabajo, Salida, Retorno)             │
+├─────────────────────────────────────────────────────────────────┤
+│  Orden de MONTAJE:                                              │
+│  1. en_preparacion → Ejecutar Salida → en_ruta                 │
+│     - Actualiza alquiler a "activo"                             │
+│     - Copia elementos a alquiler_elementos                      │
+│     - Marca series/lotes como "alquilado"                       │
+│                                                                 │
+│  Orden de DESMONTAJE:                                           │
+│  1. en_sitio/en_proceso → Registrar Retorno → completado       │
+│     - Registra estado de retorno de cada elemento               │
+│     - Actualiza alquiler a "finalizado"                         │
+│     - Restaura series/lotes según condición                     │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Servicio de sincronización:** `SincronizacionAlquilerService.js` maneja la comunicación entre módulos, asegurando consistencia de datos entre órdenes de trabajo y alquileres.

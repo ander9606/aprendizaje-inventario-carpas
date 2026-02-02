@@ -1,12 +1,34 @@
 # Plan de Implementación: UI del Módulo de Alquileres
 
+> **ESTADO: COMPLETADO** (Febrero 2026)
+>
+> Este documento describe la implementación original planificada. La implementación final adoptó una arquitectura diferente donde las acciones operativas (salida/retorno) se gestionan desde el módulo de **Operaciones**, no desde Alquileres.
+
+## Arquitectura Implementada
+
+```
+MÓDULO ALQUILERES (Comercial)        MÓDULO OPERACIONES (Operativo)
+┌────────────────────────┐           ┌────────────────────────────┐
+│ AlquileresPage         │           │ OrdenDetallePage           │
+│ - Dashboard            │           │ - Ejecutar Salida          │
+│ - Filtros y búsqueda   │  Enlaces  │ - Registrar Retorno        │
+│ - Solo lectura         │ ────────► │ - Gestión de equipo        │
+│                        │           │ - Gestión de vehículos     │
+│ AlquilerDetallePage    │           │                            │
+│ - Info del alquiler    │           │ ModalRegistrarRetorno      │
+│ - Timeline             │           │ - Estado por elemento      │
+│ - Links a órdenes      │           │ - Costo de daños           │
+└────────────────────────┘           └────────────────────────────┘
+```
+
 ## Objetivo
 
 Crear la interfaz de usuario para gestionar alquileres activos y programados, permitiendo:
-- Ver dashboard de alquileres
-- Marcar salida (asignar elementos físicos)
-- Marcar retorno (registrar estado de devolución)
-- Ver detalle completo de cada alquiler
+- Ver dashboard de alquileres ✅
+- ~~Marcar salida (asignar elementos físicos)~~ → Movido a Operaciones
+- ~~Marcar retorno (registrar estado de devolución)~~ → Movido a Operaciones
+- Ver detalle completo de cada alquiler ✅
+- Navegar a órdenes de trabajo relacionadas ✅
 
 ---
 
@@ -486,24 +508,24 @@ useCancelarAlquiler()
 
 ---
 
-## 6. Orden de Implementación
+## 6. Estado de Implementación (COMPLETADO)
 
-### Fase 1: Componentes Base
-1. `AlquilerCard.jsx` - Tarjeta de alquiler
-2. `AlquilerTimeline.jsx` - Timeline visual
+### Fase 1: Componentes Base ✅
+1. `AlquilerCard.jsx` - Tarjeta de alquiler ✅
+2. `AlquilerTimeline.jsx` - Timeline visual ✅
 
-### Fase 2: Páginas
-3. `AlquileresPage.jsx` - Dashboard principal
-4. `AlquilerDetallePage.jsx` - Detalle del alquiler
+### Fase 2: Páginas ✅
+3. `AlquileresPage.jsx` - Dashboard principal ✅
+4. `AlquilerDetallePage.jsx` - Detalle del alquiler ✅
 
-### Fase 3: Modales de Operación
-5. `AsignacionElementosModal.jsx` - Marcar salida
-6. `RetornoElementosModal.jsx` - Marcar retorno
+### Fase 3: Modales de Operación (Movido a Operaciones)
+5. ~~`AsignacionElementosModal.jsx`~~ - Reemplazado por "Ejecutar Salida" en OrdenDetallePage
+6. ~~`RetornoElementosModal.jsx`~~ - Reemplazado por "ModalRegistrarRetorno" en OrdenDetallePage
 
-### Fase 4: Integración
-7. Agregar rutas en `AppRoutes.jsx`
-8. Agregar navegación desde `CotizacionesPage.jsx`
-9. Pruebas de integración
+### Fase 4: Integración ✅
+7. Rutas agregadas en `App.jsx` ✅
+8. Layout con sidebar colapsable `AlquileresLayout.jsx` ✅
+9. Enlaces a órdenes de trabajo ✅
 
 ---
 
