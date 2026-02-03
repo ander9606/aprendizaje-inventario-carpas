@@ -2,7 +2,7 @@
 // API: Alertas de Alquileres
 // ============================================
 
-import axiosInstance from './axiosConfig'
+import api from './Axios.config'
 
 const API_URL = '/alertas/alquileres'
 
@@ -12,7 +12,7 @@ const API_URL = '/alertas/alquileres'
  * @param {boolean} params.solo_criticas - Si true, solo retorna críticas
  */
 export const getAlertas = async (params = {}) => {
-  const response = await axiosInstance.get(API_URL, { params })
+  const response = await api.get(API_URL, { params })
   return response.data
 }
 
@@ -20,7 +20,7 @@ export const getAlertas = async (params = {}) => {
  * Obtener solo alertas críticas
  */
 export const getAlertasCriticas = async () => {
-  const response = await axiosInstance.get(`${API_URL}/criticas`)
+  const response = await api.get(`${API_URL}/criticas`)
   return response.data
 }
 
@@ -28,7 +28,7 @@ export const getAlertasCriticas = async () => {
  * Obtener resumen de alertas (conteos)
  */
 export const getResumenAlertas = async () => {
-  const response = await axiosInstance.get(`${API_URL}/resumen`)
+  const response = await api.get(`${API_URL}/resumen`)
   return response.data
 }
 
@@ -39,7 +39,7 @@ export const getResumenAlertas = async () => {
  * @param {number} dias - Días a ignorar (1-30)
  */
 export const ignorarAlerta = async (tipo, referencia_id, dias = 1) => {
-  const response = await axiosInstance.post(`${API_URL}/ignorar`, {
+  const response = await api.post(`${API_URL}/ignorar`, {
     tipo,
     referencia_id,
     dias
@@ -51,7 +51,7 @@ export const ignorarAlerta = async (tipo, referencia_id, dias = 1) => {
  * Limpiar alertas expiradas (solo admin)
  */
 export const limpiarAlertasExpiradas = async () => {
-  const response = await axiosInstance.post(`${API_URL}/limpiar`)
+  const response = await api.post(`${API_URL}/limpiar`)
   return response.data
 }
 
