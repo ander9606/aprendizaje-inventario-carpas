@@ -4,7 +4,9 @@
       "Bash(git fetch:*)",
       "Bash(git merge:*)",
       "Bash(git add:*)",
-      "Bash(git commit -m \"$\\(cat <<''EOF''\nfix: Actualizar puerto de API y cambios en CotizacionesPage\n\n- Cambiar puerto de API de 4001 a 3000 en frontend\n- Actualizar package-lock.json con bcryptjs\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n\\)\")"
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nfix: Actualizar puerto de API y cambios en CotizacionesPage\n\n- Cambiar puerto de API de 4001 a 3000 en frontend\n- Actualizar package-lock.json con bcryptjs\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git stash:*)",
+      "Bash(git pull:*)"
     ]
   }
 }
