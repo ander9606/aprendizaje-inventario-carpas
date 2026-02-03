@@ -108,8 +108,8 @@ class AlquilerModel {
         cp.cantidad,
         cp.precio_base,
         cp.subtotal,
-        ec.nombre AS producto_nombre,
-        ec.codigo AS producto_codigo
+        ec.nombre AS nombre,
+        ec.codigo AS codigo
       FROM cotizacion_productos cp
       INNER JOIN elementos_compuestos ec ON cp.compuesto_id = ec.id
       WHERE cp.cotizacion_id = ?

@@ -448,7 +448,7 @@ export default function AlquilerDetallePage() {
                     <thead>
                       <tr className="border-b border-slate-200">
                         <th className="text-left py-3 px-4 text-sm font-medium text-slate-500">Elemento</th>
-                        <th className="text-left py-3 px-4 text-sm font-medium text-slate-500">Serie/Lote</th>
+                        <th className="text-left py-3 px-4 text-sm font-medium text-slate-500">Serie</th>
                         <th className="text-center py-3 px-4 text-sm font-medium text-slate-500">Cantidad</th>
                         <th className="text-center py-3 px-4 text-sm font-medium text-slate-500">Estado Salida</th>
                         <th className="text-center py-3 px-4 text-sm font-medium text-slate-500">Estado Retorno</th>
@@ -461,7 +461,7 @@ export default function AlquilerDetallePage() {
                             <span className="font-medium text-slate-900">{elemento.elemento_nombre}</span>
                           </td>
                           <td className="py-3 px-4 text-slate-600">
-                            {elemento.serie_codigo || elemento.lote_codigo || '-'}
+                            {elemento.serie_codigo || '-'}
                           </td>
                           <td className="py-3 px-4 text-center text-slate-600">
                             {elemento.cantidad_lote || 1}
