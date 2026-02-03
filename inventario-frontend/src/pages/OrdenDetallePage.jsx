@@ -43,6 +43,8 @@ import {
     useEjecutarSalida,
     useEjecutarRetorno
 } from '../hooks/useOrdenesTrabajo'
+import { useGetEmpleadosCampo } from '../hooks/useEmpleados'
+import { useGetVehiculosDisponibles } from '../hooks/useVehiculos'
 import { useAuth } from '../hooks/auth/useAuth'
 import Button from '../components/common/Button'
 import Spinner from '../components/common/Spinner'
@@ -52,35 +54,46 @@ import { toast } from 'sonner'
 // COMPONENTE: Modal de Asignación de Equipo
 // ============================================
 const ModalAsignarEquipo = ({ orden, onClose, onSave }) => {
-    const [empleadosSeleccionados, setEmpleadosSeleccionados] = useState(
-        orden.equipo?.map(e => e.empleado_id) || []
+    // Inicializar con equipo actual: { empleado_id, rol_en_orden }
+    const [equipoSeleccionado, setEquipoSeleccionado] = useState(
+        orden.equipo?.map(e => ({
+            empleado_id: e.empleado_id || e.id,
+            rol_en_orden: e.rol_en_orden || 'operario'
+        })) || []
     )
-    const [responsableId, setResponsableId] = useState(orden.responsable_id || '')
     const [saving, setSaving] = useState(false)
 
-    // TODO: Obtener lista de empleados desde API
-    const empleadosDisponibles = [
-        { id: 1, nombre: 'Juan Pérez', rol: 'Técnico' },
-        { id: 2, nombre: 'María García', rol: 'Técnico' },
-        { id: 3, nombre: 'Carlos López', rol: 'Supervisor' },
-        { id: 4, nombre: 'Ana Martínez', rol: 'Técnico' }
+    // Obtener empleados disponibles desde API
+    const fechaOrden = orden.fecha_programada?.split('T')[0] || null
+    const { empleados: empleadosDisponibles, isLoading: loadingEmpleados } = useGetEmpleadosCampo(fechaOrden)
+
+    const rolesOrden = [
+        { value: 'supervisor', label: 'Supervisor' },
+        { value: 'operario', label: 'Operario' },
+        { value: 'conductor', label: 'Conductor' },
+        { value: 'ayudante', label: 'Ayudante' }
     ]
 
-    const handleToggleEmpleado = (empleadoId) => {
-        setEmpleadosSeleccionados(prev =>
-            prev.includes(empleadoId)
-                ? prev.filter(id => id !== empleadoId)
-                : [...prev, empleadoId]
+    const isSelected = (empId) => equipoSeleccionado.some(e => e.empleado_id === empId)
+
+    const handleToggleEmpleado = (empId) => {
+        if (isSelected(empId)) {
+            setEquipoSeleccionado(prev => prev.filter(e => e.empleado_id !== empId))
+        } else {
+            setEquipoSeleccionado(prev => [...prev, { empleado_id: empId, rol_en_orden: 'operario' }])
+        }
+    }
+
+    const handleCambiarRol = (empId, rol) => {
+        setEquipoSeleccionado(prev =>
+            prev.map(e => e.empleado_id === empId ? { ...e, rol_en_orden: rol } : e)
         )
     }
 
     const handleGuardar = async () => {
         setSaving(true)
         try {
-            await onSave({
-                empleados: empleadosSeleccionados,
-                responsable_id: responsableId || null
-            })
+            await onSave({ empleados: equipoSeleccionado })
             onClose()
         } catch (error) {
             console.error('Error al asignar equipo:', error)
@@ -94,9 +107,14 @@ const ModalAsignarEquipo = ({ orden, onClose, onSave }) => {
             <div className="bg-white rounded-xl w-full max-w-lg max-h-[90vh] overflow-hidden">
                 <div className="p-6 border-b border-slate-200">
                     <div className="flex items-center justify-between">
-                        <h3 className="text-lg font-semibold text-slate-900">
-                            Asignar Equipo de Trabajo
-                        </h3>
+                        <div>
+                            <h3 className="text-lg font-semibold text-slate-900">
+                                Asignar Equipo de Trabajo
+                            </h3>
+                            <p className="text-sm text-slate-500">
+                                {equipoSeleccionado.length} seleccionado(s)
+                            </p>
+                        </div>
                         <button
                             onClick={onClose}
                             className="p-2 hover:bg-slate-100 rounded-lg"
@@ -106,54 +124,67 @@ const ModalAsignarEquipo = ({ orden, onClose, onSave }) => {
                     </div>
                 </div>
                 <div className="p-6 overflow-y-auto max-h-[60vh]">
-                    {/* Responsable */}
-                    <div className="mb-6">
-                        <label className="block text-sm font-medium text-slate-700 mb-2">
-                            Responsable de la Orden
-                        </label>
-                        <select
-                            value={responsableId}
-                            onChange={(e) => setResponsableId(e.target.value)}
-                            className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
-                        >
-                            <option value="">Seleccionar responsable...</option>
-                            {empleadosDisponibles.map(emp => (
-                                <option key={emp.id} value={emp.id}>
-                                    {emp.nombre} - {emp.rol}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-
-                    {/* Lista de empleados */}
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-2">
-                            Equipo Asignado
-                        </label>
-                        <div className="space-y-2">
-                            {empleadosDisponibles.map(emp => (
-                                <label
-                                    key={emp.id}
-                                    className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${
-                                        empleadosSeleccionados.includes(emp.id)
-                                            ? 'border-orange-500 bg-orange-50'
-                                            : 'border-slate-200 hover:bg-slate-50'
-                                    }`}
-                                >
-                                    <input
-                                        type="checkbox"
-                                        checked={empleadosSeleccionados.includes(emp.id)}
-                                        onChange={() => handleToggleEmpleado(emp.id)}
-                                        className="w-4 h-4 text-orange-500 rounded focus:ring-orange-500"
-                                    />
-                                    <div className="flex-1">
-                                        <p className="font-medium text-slate-900">{emp.nombre}</p>
-                                        <p className="text-sm text-slate-500">{emp.rol}</p>
-                                    </div>
-                                </label>
-                            ))}
+                    {loadingEmpleados ? (
+                        <div className="py-8 text-center">
+                            <Spinner size="sm" text="Cargando empleados..." />
                         </div>
-                    </div>
+                    ) : empleadosDisponibles?.length > 0 ? (
+                        <div className="space-y-2">
+                            {empleadosDisponibles.map(emp => {
+                                const selected = isSelected(emp.id)
+                                const miembro = equipoSeleccionado.find(e => e.empleado_id === emp.id)
+
+                                return (
+                                    <div
+                                        key={emp.id}
+                                        className={`border rounded-lg transition-colors ${
+                                            selected
+                                                ? 'border-orange-500 bg-orange-50'
+                                                : 'border-slate-200 hover:bg-slate-50'
+                                        }`}
+                                    >
+                                        <label className="flex items-center gap-3 p-3 cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={selected}
+                                                onChange={() => handleToggleEmpleado(emp.id)}
+                                                className="w-4 h-4 text-orange-500 rounded focus:ring-orange-500"
+                                            />
+                                            <div className="flex-1">
+                                                <p className="font-medium text-slate-900">
+                                                    {emp.nombre} {emp.apellido || ''}
+                                                </p>
+                                                <p className="text-sm text-slate-500">
+                                                    {emp.rol_empleado || emp.cargo || 'Empleado'}
+                                                    {emp.telefono ? ` - ${emp.telefono}` : ''}
+                                                </p>
+                                            </div>
+                                        </label>
+                                        {selected && (
+                                            <div className="px-3 pb-3 pt-0">
+                                                <select
+                                                    value={miembro?.rol_en_orden || 'operario'}
+                                                    onChange={(e) => handleCambiarRol(emp.id, e.target.value)}
+                                                    className="w-full px-2 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+                                                >
+                                                    {rolesOrden.map(rol => (
+                                                        <option key={rol.value} value={rol.value}>
+                                                            {rol.label}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                        )}
+                                    </div>
+                                )
+                            })}
+                        </div>
+                    ) : (
+                        <div className="py-8 text-center text-slate-500">
+                            <Users className="w-10 h-10 mx-auto mb-2 text-slate-300" />
+                            <p>No hay empleados disponibles</p>
+                        </div>
+                    )}
                 </div>
                 <div className="p-6 border-t border-slate-200 flex gap-3 justify-end">
                     <Button variant="secondary" onClick={onClose}>
@@ -163,7 +194,7 @@ const ModalAsignarEquipo = ({ orden, onClose, onSave }) => {
                         color="orange"
                         icon={Save}
                         onClick={handleGuardar}
-                        disabled={saving}
+                        disabled={saving || equipoSeleccionado.length === 0}
                     >
                         {saving ? 'Guardando...' : 'Guardar'}
                     </Button>
@@ -177,20 +208,17 @@ const ModalAsignarEquipo = ({ orden, onClose, onSave }) => {
 // COMPONENTE: Modal de Asignación de Vehículo
 // ============================================
 const ModalAsignarVehiculo = ({ orden, onClose, onSave }) => {
-    const [vehiculoId, setVehiculoId] = useState(orden.vehiculo_id || '')
+    const [vehiculoId, setVehiculoId] = useState(orden.vehiculo_id?.toString() || '')
     const [saving, setSaving] = useState(false)
 
-    // TODO: Obtener lista de vehículos desde API
-    const vehiculosDisponibles = [
-        { id: 1, placa: 'ABC-123', tipo: 'Camión', capacidad: '3 ton' },
-        { id: 2, placa: 'DEF-456', tipo: 'Furgón', capacidad: '1.5 ton' },
-        { id: 3, placa: 'GHI-789', tipo: 'Camioneta', capacidad: '500 kg' }
-    ]
+    // Obtener vehículos disponibles desde API
+    const fechaOrden = orden.fecha_programada?.split('T')[0] || null
+    const { vehiculos: vehiculosDisponibles, isLoading: loadingVehiculos } = useGetVehiculosDisponibles(fechaOrden)
 
     const handleGuardar = async () => {
         setSaving(true)
         try {
-            await onSave({ vehiculo_id: vehiculoId || null })
+            await onSave({ vehiculo_id: vehiculoId ? parseInt(vehiculoId) : null })
             onClose()
         } catch (error) {
             console.error('Error al asignar vehículo:', error)
@@ -201,11 +229,11 @@ const ModalAsignarVehiculo = ({ orden, onClose, onSave }) => {
 
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl w-full max-w-md">
+            <div className="bg-white rounded-xl w-full max-w-md max-h-[90vh] overflow-hidden">
                 <div className="p-6 border-b border-slate-200">
                     <div className="flex items-center justify-between">
                         <h3 className="text-lg font-semibold text-slate-900">
-                            Asignar Vehículo
+                            Asignar Vehiculo
                         </h3>
                         <button
                             onClick={onClose}
@@ -215,13 +243,17 @@ const ModalAsignarVehiculo = ({ orden, onClose, onSave }) => {
                         </button>
                     </div>
                 </div>
-                <div className="p-6">
-                    <div className="space-y-2">
-                        {vehiculosDisponibles.map(veh => (
+                <div className="p-6 overflow-y-auto max-h-[60vh]">
+                    {loadingVehiculos ? (
+                        <div className="py-8 text-center">
+                            <Spinner size="sm" text="Cargando vehiculos..." />
+                        </div>
+                    ) : vehiculosDisponibles?.length > 0 ? (
+                        <div className="space-y-2">
+                            {/* Opcion para quitar vehiculo */}
                             <label
-                                key={veh.id}
                                 className={`flex items-center gap-3 p-4 border rounded-lg cursor-pointer transition-colors ${
-                                    vehiculoId === veh.id.toString()
+                                    vehiculoId === ''
                                         ? 'border-orange-500 bg-orange-50'
                                         : 'border-slate-200 hover:bg-slate-50'
                                 }`}
@@ -229,21 +261,51 @@ const ModalAsignarVehiculo = ({ orden, onClose, onSave }) => {
                                 <input
                                     type="radio"
                                     name="vehiculo"
-                                    value={veh.id}
-                                    checked={vehiculoId === veh.id.toString()}
-                                    onChange={(e) => setVehiculoId(e.target.value)}
+                                    value=""
+                                    checked={vehiculoId === ''}
+                                    onChange={() => setVehiculoId('')}
                                     className="w-4 h-4 text-orange-500 focus:ring-orange-500"
                                 />
-                                <Car className="w-5 h-5 text-slate-400" />
+                                <XCircle className="w-5 h-5 text-slate-400" />
                                 <div className="flex-1">
-                                    <p className="font-medium text-slate-900">{veh.placa}</p>
-                                    <p className="text-sm text-slate-500">
-                                        {veh.tipo} - {veh.capacidad}
-                                    </p>
+                                    <p className="font-medium text-slate-500">Sin vehiculo</p>
                                 </div>
                             </label>
-                        ))}
-                    </div>
+
+                            {vehiculosDisponibles.map(veh => (
+                                <label
+                                    key={veh.id}
+                                    className={`flex items-center gap-3 p-4 border rounded-lg cursor-pointer transition-colors ${
+                                        vehiculoId === veh.id.toString()
+                                            ? 'border-orange-500 bg-orange-50'
+                                            : 'border-slate-200 hover:bg-slate-50'
+                                    }`}
+                                >
+                                    <input
+                                        type="radio"
+                                        name="vehiculo"
+                                        value={veh.id}
+                                        checked={vehiculoId === veh.id.toString()}
+                                        onChange={(e) => setVehiculoId(e.target.value)}
+                                        className="w-4 h-4 text-orange-500 focus:ring-orange-500"
+                                    />
+                                    <Car className="w-5 h-5 text-slate-400" />
+                                    <div className="flex-1">
+                                        <p className="font-medium text-slate-900">{veh.placa}</p>
+                                        <p className="text-sm text-slate-500">
+                                            {veh.marca} {veh.modelo}
+                                            {veh.capacidad_carga ? ` - ${veh.capacidad_carga}` : ''}
+                                        </p>
+                                    </div>
+                                </label>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="py-8 text-center text-slate-500">
+                            <Car className="w-10 h-10 mx-auto mb-2 text-slate-300" />
+                            <p>No hay vehiculos disponibles</p>
+                        </div>
+                    )}
                 </div>
                 <div className="p-6 border-t border-slate-200 flex gap-3 justify-end">
                     <Button variant="secondary" onClick={onClose}>
