@@ -336,7 +336,7 @@ export default function OperacionesDashboard() {
         return agruparPorEvento(ordenesNoHoy)
     }, [ordenesSemana, hoy])
 
-    const sinResponsable = estadisticas?.alertas?.sinEquipo || 0
+    const sinResponsable = estadisticas?.alertas?.sinResponsable || 0
 
     // ============================================
     // RENDER: Loading

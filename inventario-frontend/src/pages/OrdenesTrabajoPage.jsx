@@ -1,9 +1,9 @@
 // ============================================
 // PÁGINA: ÓRDENES DE TRABAJO
-// Lista de órdenes de montaje y desmontaje
+// Vista agrupada por evento (montaje + desmontaje)
 // ============================================
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
     Truck,
@@ -16,8 +16,9 @@ import {
     XCircle,
     Package,
     MapPin,
-    Users,
+    User,
     ChevronDown,
+    ChevronRight,
     RefreshCw,
     X,
     Save,
@@ -43,6 +44,286 @@ const useDebounce = (value, delay) => {
         return () => clearTimeout(handler)
     }, [value, delay])
     return debouncedValue
+}
+
+// ============================================
+// HELPERS: Estado y tipo
+// ============================================
+const getEstadoConfig = (estado) => {
+    const config = {
+        pendiente: { color: 'bg-yellow-100 text-yellow-700 border-yellow-200', icon: Clock, label: 'Pendiente' },
+        confirmado: { color: 'bg-indigo-100 text-indigo-700 border-indigo-200', icon: CheckCircle, label: 'Confirmado' },
+        en_preparacion: { color: 'bg-purple-100 text-purple-700 border-purple-200', icon: Package, label: 'Preparación' },
+        en_ruta: { color: 'bg-cyan-100 text-cyan-700 border-cyan-200', icon: Truck, label: 'En ruta' },
+        en_sitio: { color: 'bg-amber-100 text-amber-700 border-amber-200', icon: MapPin, label: 'En sitio' },
+        en_proceso: { color: 'bg-blue-100 text-blue-700 border-blue-200', icon: RefreshCw, label: 'En proceso' },
+        completado: { color: 'bg-green-100 text-green-700 border-green-200', icon: CheckCircle, label: 'Completado' },
+        cancelado: { color: 'bg-red-100 text-red-700 border-red-200', icon: XCircle, label: 'Cancelado' }
+    }
+    return config[estado] || config.pendiente
+}
+
+const getTipoConfig = (tipo) => {
+    const config = {
+        montaje: { color: 'bg-emerald-100 text-emerald-700', icon: Package, label: 'Montaje' },
+        desmontaje: { color: 'bg-orange-100 text-orange-700', icon: Truck, label: 'Desmontaje' },
+        mantenimiento: { color: 'bg-blue-100 text-blue-700', icon: Wrench, label: 'Mantenimiento' },
+        traslado: { color: 'bg-purple-100 text-purple-700', icon: ArrowRightLeft, label: 'Traslado' },
+        revision: { color: 'bg-green-100 text-green-700', icon: ClipboardCheck, label: 'Revisión' },
+        inventario: { color: 'bg-amber-100 text-amber-700', icon: Boxes, label: 'Inventario' },
+        otro: { color: 'bg-slate-100 text-slate-700', icon: Package, label: 'Otro' }
+    }
+    return config[tipo] || config.otro
+}
+
+const formatFecha = (fecha) => {
+    if (!fecha) return 'Sin fecha'
+    return new Date(fecha).toLocaleDateString('es-CO', {
+        weekday: 'short',
+        day: 'numeric',
+        month: 'short'
+    })
+}
+
+const formatHora = (fecha) => {
+    if (!fecha) return '--:--'
+    return new Date(fecha).toLocaleTimeString('es-CO', {
+        hour: '2-digit',
+        minute: '2-digit'
+    })
+}
+
+// ============================================
+// HELPER: Agrupar órdenes por alquiler_id
+// ============================================
+const agruparPorEvento = (ordenes) => {
+    if (!ordenes?.length) return { eventos: [], manuales: [] }
+
+    const grupos = {}
+    const manuales = []
+
+    ordenes.forEach(orden => {
+        // Órdenes sin alquiler_id son manuales
+        if (!orden.alquiler_id) {
+            manuales.push(orden)
+            return
+        }
+
+        const key = orden.alquiler_id
+        if (!grupos[key]) {
+            grupos[key] = {
+                alquiler_id: orden.alquiler_id,
+                cliente_nombre: orden.cliente_nombre,
+                evento_nombre: orden.evento_nombre,
+                ciudad_evento: orden.ciudad_evento || orden.evento_ciudad,
+                direccion_evento: orden.direccion_evento,
+                montaje: null,
+                desmontaje: null
+            }
+        }
+        if (orden.tipo === 'montaje') {
+            grupos[key].montaje = orden
+        } else if (orden.tipo === 'desmontaje') {
+            grupos[key].desmontaje = orden
+        }
+    })
+
+    const eventos = Object.values(grupos).sort((a, b) => {
+        const fechaA = a.montaje?.fecha_programada || a.desmontaje?.fecha_programada
+        const fechaB = b.montaje?.fecha_programada || b.desmontaje?.fecha_programada
+        return new Date(fechaA) - new Date(fechaB)
+    })
+
+    return { eventos, manuales }
+}
+
+// ============================================
+// COMPONENTE: Indicador mini de estado de orden
+// ============================================
+const OrdenEstadoMini = ({ orden, tipo }) => {
+    if (!orden) {
+        return (
+            <div className="flex items-center gap-2 text-slate-400">
+                <div className="p-1 bg-slate-100 rounded">
+                    {tipo === 'montaje'
+                        ? <Package className="w-3.5 h-3.5" />
+                        : <Truck className="w-3.5 h-3.5" />
+                    }
+                </div>
+                <span className="text-xs">Sin {tipo}</span>
+            </div>
+        )
+    }
+
+    const config = getEstadoConfig(orden.estado)
+
+    return (
+        <div className="flex items-center gap-2">
+            <div className={`p-1 rounded ${
+                tipo === 'montaje' ? 'bg-emerald-100' : 'bg-orange-100'
+            }`}>
+                {tipo === 'montaje'
+                    ? <Package className="w-3.5 h-3.5 text-emerald-600" />
+                    : <Truck className="w-3.5 h-3.5 text-orange-600" />
+                }
+            </div>
+            <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium text-slate-700 capitalize">
+                        {tipo}
+                    </span>
+                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium border ${config.color}`}>
+                        {config.label}
+                    </span>
+                </div>
+                <p className="text-[11px] text-slate-500">
+                    {formatFecha(orden.fecha_programada)} - {formatHora(orden.fecha_programada)}
+                </p>
+            </div>
+        </div>
+    )
+}
+
+// ============================================
+// COMPONENTE: Tarjeta de Evento
+// ============================================
+const EventoCard = ({ evento, navigate }) => {
+    const montaje = evento.montaje
+    const desmontaje = evento.desmontaje
+    const tieneResponsableMontaje = (montaje?.total_equipo || 0) > 0
+    const tieneResponsableDesmontaje = (desmontaje?.total_equipo || 0) > 0
+
+    const estadosActivos = ['en_preparacion', 'en_ruta', 'en_sitio', 'en_proceso']
+    const hayOrdenActiva = (montaje && estadosActivos.includes(montaje.estado))
+        || (desmontaje && estadosActivos.includes(desmontaje.estado))
+
+    return (
+        <div className="bg-white rounded-xl border border-slate-200 hover:border-slate-300 transition-colors overflow-hidden">
+            {/* Header */}
+            <div className="px-4 py-3 border-b border-slate-100">
+                <div className="flex items-center justify-between">
+                    <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-slate-900 truncate">
+                            {evento.cliente_nombre || 'Cliente'}
+                        </p>
+                        {evento.evento_nombre && (
+                            <p className="text-xs text-slate-500 truncate">
+                                {evento.evento_nombre}
+                            </p>
+                        )}
+                    </div>
+                    {hayOrdenActiva && (
+                        <span className="relative flex h-2 w-2 ml-3">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75" />
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500" />
+                        </span>
+                    )}
+                </div>
+                {(evento.ciudad_evento || evento.direccion_evento) && (
+                    <p className="text-xs text-slate-500 flex items-center gap-1 mt-1">
+                        <MapPin className="w-3 h-3" />
+                        {evento.ciudad_evento}
+                        {evento.direccion_evento ? ` - ${evento.direccion_evento}` : ''}
+                    </p>
+                )}
+            </div>
+
+            {/* Montaje + Desmontaje */}
+            <div className="px-4 py-3 space-y-2">
+                <OrdenEstadoMini orden={montaje} tipo="montaje" />
+                <OrdenEstadoMini orden={desmontaje} tipo="desmontaje" />
+            </div>
+
+            {/* Indicadores + Acción */}
+            <div className="px-4 py-2 border-t border-slate-100 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                    {montaje && (
+                        <div className={`flex items-center gap-1 text-[11px] ${
+                            tieneResponsableMontaje ? 'text-green-600' : 'text-amber-600'
+                        }`}>
+                            <User className="w-3 h-3" />
+                            <span>{tieneResponsableMontaje ? 'Asignado' : 'Sin resp.'}</span>
+                        </div>
+                    )}
+                    {montaje && (
+                        <div className={`flex items-center gap-1 text-[11px] ${
+                            (montaje.total_elementos || 0) > 0 ? 'text-green-600' : 'text-slate-400'
+                        }`}>
+                            <Package className="w-3 h-3" />
+                            <span>{montaje.total_elementos || 0} elem.</span>
+                        </div>
+                    )}
+                </div>
+                <button
+                    onClick={() => {
+                        const ordenId = montaje?.id || desmontaje?.id
+                        if (ordenId) navigate(`/operaciones/ordenes/${ordenId}`)
+                    }}
+                    className="text-xs text-orange-600 hover:text-orange-700 font-medium flex items-center gap-0.5"
+                >
+                    Ver detalle
+                    <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+            </div>
+        </div>
+    )
+}
+
+// ============================================
+// COMPONENTE: Fila de orden manual
+// ============================================
+const OrdenManualRow = ({ orden, navigate }) => {
+    const tipoConfig = getTipoConfig(orden.tipo)
+    const estadoConfig = getEstadoConfig(orden.estado)
+    const TipoIcon = tipoConfig.icon
+    const EstadoIcon = estadoConfig.icon
+
+    return (
+        <div
+            className="px-6 py-4 hover:bg-slate-50 transition-colors cursor-pointer"
+            onClick={() => navigate(`/operaciones/ordenes/${orden.id}`)}
+        >
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                    <div className={`p-3 rounded-xl ${tipoConfig.color}`}>
+                        <TipoIcon className="w-5 h-5" />
+                    </div>
+                    <div>
+                        <div className="flex items-center gap-2 mb-1">
+                            <span className={`px-2 py-0.5 rounded text-xs font-medium ${tipoConfig.color}`}>
+                                {tipoConfig.label}
+                            </span>
+                            <span className="font-semibold text-slate-900">
+                                #{orden.id}
+                            </span>
+                        </div>
+                        <div className="flex items-center gap-4 text-sm text-slate-500">
+                            <span className="flex items-center gap-1">
+                                <Calendar className="w-4 h-4" />
+                                {formatFecha(orden.fecha_programada)} {formatHora(orden.fecha_programada)}
+                            </span>
+                            {(orden.ciudad_evento || orden.direccion_evento) && (
+                                <span className="flex items-center gap-1">
+                                    <MapPin className="w-4 h-4" />
+                                    {orden.ciudad_evento || ''}
+                                    {orden.direccion_evento ? ` - ${orden.direccion_evento}` : ''}
+                                </span>
+                            )}
+                        </div>
+                        {orden.notas && (
+                            <p className="text-xs text-slate-400 mt-1 truncate max-w-md">
+                                {orden.notas}
+                            </p>
+                        )}
+                    </div>
+                </div>
+                <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border ${estadoConfig.color}`}>
+                    <EstadoIcon className="w-4 h-4" />
+                    <span className="text-sm font-medium">{estadoConfig.label}</span>
+                </div>
+            </div>
+        </div>
+    )
 }
 
 // ============================================
@@ -252,14 +533,9 @@ const ModalNuevaOrden = ({ onClose, onSave }) => {
     )
 }
 
-/**
- * OrdenesTrabajoPage
- *
- * Lista de órdenes de trabajo con:
- * - Filtros por estado, tipo, fecha
- * - Búsqueda por cliente o ubicación
- * - Vista de lista con detalles
- */
+// ============================================
+// COMPONENTE PRINCIPAL
+// ============================================
 export default function OrdenesTrabajoPage() {
     const navigate = useNavigate()
     const { hasRole } = useAuth()
@@ -289,11 +565,17 @@ export default function OrdenesTrabajoPage() {
         ...(filtros.estado && { estado: filtros.estado }),
         ...(filtros.tipo && { tipo: filtros.tipo }),
         ...(filtros.fecha_desde && { fecha_desde: filtros.fecha_desde }),
-        ...(filtros.fecha_hasta && { fecha_hasta: filtros.fecha_hasta })
+        ...(filtros.fecha_hasta && { fecha_hasta: filtros.fecha_hasta }),
+        limit: 200
     }
 
     const { ordenes, isLoading, refetch } = useGetOrdenes(queryParams)
     const crearOrdenManual = useCrearOrdenManual()
+
+    // ============================================
+    // DATOS PROCESADOS
+    // ============================================
+    const { eventos, manuales } = useMemo(() => agruparPorEvento(ordenes), [ordenes])
 
     // ============================================
     // HANDLERS
@@ -307,58 +589,6 @@ export default function OrdenesTrabajoPage() {
             toast.error(error?.response?.data?.message || 'Error al crear la orden')
             throw error
         }
-    }
-
-    // ============================================
-    // HELPERS
-    // ============================================
-    const getEstadoConfig = (estado) => {
-        const config = {
-            pendiente: {
-                color: 'bg-yellow-100 text-yellow-700 border-yellow-200',
-                icon: Clock,
-                label: 'Pendiente'
-            },
-            en_proceso: {
-                color: 'bg-blue-100 text-blue-700 border-blue-200',
-                icon: RefreshCw,
-                label: 'En Proceso'
-            },
-            completado: {
-                color: 'bg-green-100 text-green-700 border-green-200',
-                icon: CheckCircle,
-                label: 'Completado'
-            },
-            cancelado: {
-                color: 'bg-red-100 text-red-700 border-red-200',
-                icon: XCircle,
-                label: 'Cancelado'
-            }
-        }
-        return config[estado] || config.pendiente
-    }
-
-    const getTipoConfig = (tipo) => {
-        const config = {
-            montaje: { color: 'bg-emerald-100 text-emerald-700', icon: Package, label: 'Montaje' },
-            desmontaje: { color: 'bg-orange-100 text-orange-700', icon: Truck, label: 'Desmontaje' },
-            mantenimiento: { color: 'bg-blue-100 text-blue-700', icon: Wrench, label: 'Mantenimiento' },
-            traslado: { color: 'bg-purple-100 text-purple-700', icon: ArrowRightLeft, label: 'Traslado' },
-            revision: { color: 'bg-green-100 text-green-700', icon: ClipboardCheck, label: 'Revisión' },
-            inventario: { color: 'bg-amber-100 text-amber-700', icon: Boxes, label: 'Inventario' },
-            otro: { color: 'bg-slate-100 text-slate-700', icon: Package, label: 'Otro' }
-        }
-        return config[tipo] || config.otro
-    }
-
-    const formatFecha = (fecha) => {
-        return new Date(fecha).toLocaleDateString('es-CO', {
-            weekday: 'short',
-            day: 'numeric',
-            month: 'short',
-            hour: '2-digit',
-            minute: '2-digit'
-        })
     }
 
     const handleLimpiarFiltros = () => {
@@ -418,7 +648,6 @@ export default function OrdenesTrabajoPage() {
             {/* BUSCADOR */}
             <div className="bg-white rounded-xl border border-slate-200 p-4 mb-6">
                 <div className="flex flex-col md:flex-row gap-4">
-                    {/* Búsqueda */}
                     <div className="flex-1 flex items-center gap-3">
                         <Search className="w-5 h-5 text-slate-400" />
                         <input
@@ -437,7 +666,6 @@ export default function OrdenesTrabajoPage() {
                             </button>
                         )}
                     </div>
-                    {/* Botón filtros */}
                     <button
                         onClick={() => setShowFiltros(!showFiltros)}
                         className={`flex items-center gap-2 px-4 py-2 border rounded-lg transition-colors ${
@@ -472,7 +700,10 @@ export default function OrdenesTrabajoPage() {
                                 >
                                     <option value="">Todos</option>
                                     <option value="pendiente">Pendiente</option>
-                                    <option value="en_proceso">En Proceso</option>
+                                    <option value="confirmado">Confirmado</option>
+                                    <option value="en_preparacion">En preparación</option>
+                                    <option value="en_ruta">En ruta</option>
+                                    <option value="en_proceso">En proceso</option>
                                     <option value="completado">Completado</option>
                                     <option value="cancelado">Cancelado</option>
                                 </select>
@@ -530,73 +761,58 @@ export default function OrdenesTrabajoPage() {
 
             {/* CONTADOR */}
             <div className="mb-4 text-sm text-slate-500">
-                Mostrando {ordenes?.length || 0} orden{(ordenes?.length || 0) !== 1 ? 'es' : ''}
+                {eventos.length > 0 && (
+                    <span>{eventos.length} evento{eventos.length !== 1 ? 's' : ''}</span>
+                )}
+                {eventos.length > 0 && manuales.length > 0 && <span> · </span>}
+                {manuales.length > 0 && (
+                    <span>{manuales.length} orden{manuales.length !== 1 ? 'es' : ''} manual{manuales.length !== 1 ? 'es' : ''}</span>
+                )}
+                {eventos.length === 0 && manuales.length === 0 && (
+                    <span>0 órdenes</span>
+                )}
             </div>
 
-            {/* LISTA DE ÓRDENES */}
-            {ordenes?.length > 0 ? (
-                <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-                    <div className="divide-y divide-slate-100">
-                        {ordenes.map((orden) => {
-                            const estadoConfig = getEstadoConfig(orden.estado)
-                            const tipoConfig = getTipoConfig(orden.tipo)
-                            const EstadoIcon = estadoConfig.icon
-                            const TipoIcon = tipoConfig.icon
-
-                            return (
-                                <div
-                                    key={orden.id}
-                                    className="px-6 py-4 hover:bg-slate-50 transition-colors cursor-pointer"
-                                    onClick={() => navigate(`/operaciones/ordenes/${orden.id}`)}
-                                >
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-4">
-                                            <div className={`p-3 rounded-xl ${tipoConfig.color}`}>
-                                                <TipoIcon className="w-6 h-6" />
-                                            </div>
-                                            <div>
-                                                <div className="flex items-center gap-2 mb-1">
-                                                    <span className={`px-2 py-0.5 rounded text-xs font-medium ${tipoConfig.color}`}>
-                                                        {tipoConfig.label}
-                                                    </span>
-                                                    <span className="font-semibold text-slate-900">
-                                                        #{orden.id}
-                                                    </span>
-                                                    <span className="text-slate-600">-</span>
-                                                    <span className="text-slate-900">
-                                                        {orden.cliente_nombre || 'Cliente'}
-                                                    </span>
-                                                </div>
-                                                <div className="flex items-center gap-4 text-sm text-slate-500">
-                                                    <span className="flex items-center gap-1">
-                                                        <Calendar className="w-4 h-4" />
-                                                        {formatFecha(orden.fecha_programada)}
-                                                    </span>
-                                                    <span className="flex items-center gap-1">
-                                                        <MapPin className="w-4 h-4" />
-                                                        {orden.ciudad_evento || 'Sin ciudad'}
-                                                        {orden.direccion_evento ? ` - ${orden.direccion_evento}` : ''}
-                                                    </span>
-                                                    {orden.total_equipo > 0 && (
-                                                        <span className="flex items-center gap-1">
-                                                            <Users className="w-4 h-4" />
-                                                            {orden.total_equipo} personas
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border ${estadoConfig.color}`}>
-                                            <EstadoIcon className="w-4 h-4" />
-                                            <span className="text-sm font-medium">{estadoConfig.label}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            )
-                        })}
+            {/* EVENTOS AGRUPADOS */}
+            {eventos.length > 0 && (
+                <div className="mb-8">
+                    <h2 className="text-sm font-semibold text-slate-700 uppercase tracking-wider mb-3">
+                        Eventos
+                    </h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {eventos.map((evento, idx) => (
+                            <EventoCard
+                                key={evento.alquiler_id || idx}
+                                evento={evento}
+                                navigate={navigate}
+                            />
+                        ))}
                     </div>
                 </div>
-            ) : (
+            )}
+
+            {/* ÓRDENES MANUALES */}
+            {manuales.length > 0 && (
+                <div>
+                    <h2 className="text-sm font-semibold text-slate-700 uppercase tracking-wider mb-3">
+                        Órdenes Manuales
+                    </h2>
+                    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                        <div className="divide-y divide-slate-100">
+                            {manuales.map((orden) => (
+                                <OrdenManualRow
+                                    key={orden.id}
+                                    orden={orden}
+                                    navigate={navigate}
+                                />
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ESTADO VACÍO */}
+            {eventos.length === 0 && manuales.length === 0 && (
                 <div className="bg-white rounded-xl border border-slate-200 p-12 text-center">
                     <Truck className="w-12 h-12 text-slate-300 mx-auto mb-4" />
                     <h3 className="text-lg font-medium text-slate-900 mb-2">

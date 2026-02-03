@@ -109,22 +109,12 @@ const ordenesAPI = {
     },
 
     /**
-     * Asignar equipo a orden
+     * Asignar responsable a orden
      * @param {number} id
-     * @param {Object} datos - { empleados: [id1, id2, ...], responsable_id }
+     * @param {Object} datos - { empleados: [{empleado_id, rol_en_orden}] }
      */
     asignarEquipo: async (id, datos) => {
         const response = await api.put(`/operaciones/ordenes/${id}/equipo`, datos)
-        return response.data
-    },
-
-    /**
-     * Asignar vehículo a orden
-     * @param {number} id
-     * @param {Object} datos - { vehiculo_id }
-     */
-    asignarVehiculo: async (id, datos) => {
-        const response = await api.put(`/operaciones/ordenes/${id}/vehiculo`, datos)
         return response.data
     },
 

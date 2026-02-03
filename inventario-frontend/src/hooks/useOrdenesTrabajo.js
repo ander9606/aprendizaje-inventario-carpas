@@ -196,25 +196,6 @@ export const useAsignarEquipo = () => {
 }
 
 // ============================================
-// HOOK: useAsignarVehiculo
-// Asigna vehículo a una orden
-// ============================================
-
-export const useAsignarVehiculo = () => {
-    const queryClient = useQueryClient()
-
-    return useMutation({
-        mutationFn: ({ id, data }) => ordenesAPI.asignarVehiculo(id, data),
-        retry: 0,
-        onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({ queryKey: ['ordenes'] })
-            queryClient.invalidateQueries({ queryKey: ['ordenes', variables.id] })
-            queryClient.invalidateQueries({ queryKey: ['vehiculos'] })
-        }
-    })
-}
-
-// ============================================
 // HOOK: useValidarCambioFecha
 // Valida un cambio de fecha antes de aplicarlo
 // ============================================
