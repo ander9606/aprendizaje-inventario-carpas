@@ -3,7 +3,7 @@
 // Barra lateral de navegación para módulo de alquileres
 // ============================================
 
-import { NavLink, useLocation } from 'react-router-dom'
+import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import {
   FileText,
   Package,
@@ -16,12 +16,14 @@ import {
   ChevronDown,
   ChevronRight,
   Building,
-  BarChart3
+  BarChart3,
+  ArrowLeft
 } from 'lucide-react'
 import { useState } from 'react'
 
 const AlquileresSidebar = () => {
   const location = useLocation()
+  const navigate = useNavigate()
   const [configOpen, setConfigOpen] = useState(
     location.pathname.includes('/alquileres/configuracion') ||
     location.pathname.includes('/alquileres/descuentos')
@@ -94,6 +96,15 @@ const AlquileresSidebar = () => {
   return (
     <aside className="w-64 bg-white border-r border-slate-200 min-h-[calc(100vh-4rem)] flex-shrink-0">
       <div className="p-4">
+        {/* Volver a Módulos */}
+        <button
+          onClick={() => navigate('/')}
+          className="flex items-center gap-2 text-slate-500 hover:text-slate-900 transition-colors text-sm mb-4 px-2 py-1.5 rounded-lg hover:bg-slate-100 w-full"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span>Volver a Módulos</span>
+        </button>
+
         <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">
           Módulo de Alquileres
         </h2>

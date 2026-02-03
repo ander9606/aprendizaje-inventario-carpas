@@ -4,8 +4,7 @@
 // ============================================
 
 import { useState } from 'react'
-import { Plus, Users, ArrowLeft } from 'lucide-react'
-import { useNavigation } from '../hooks/UseNavigation'
+import { Plus, Users } from 'lucide-react'
 import {
   useGetClientes,
   useDeleteCliente
@@ -28,8 +27,6 @@ import EmptyState from '../components/common/EmptyState'
  * - Eliminar cliente
  */
 export default function ClientesPage() {
-
-  const { volverAAlquileres } = useNavigation()
 
   // ============================================
   // HOOKS: Obtener datos
@@ -88,26 +85,18 @@ export default function ClientesPage() {
 
   if (isLoading) {
     return (
-      <Spinner
-        fullScreen
-        size="xl"
-        text="Cargando clientes..."
-      />
+      <div className="flex justify-center py-12">
+        <Spinner size="lg" text="Cargando clientes..." />
+      </div>
     )
   }
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-6">
-        <div className="text-center">
-          <div className="text-6xl mb-4">!</div>
-          <h2 className="text-2xl font-bold text-slate-900 mb-2">
-            Error al cargar clientes
-          </h2>
-          <p className="text-slate-600 mb-6">
-            {error.message || 'Ocurrió un error inesperado'}
-          </p>
-          <Button onClick={() => refetch()}>
+      <div className="p-6">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
+          Error al cargar clientes: {error.message || 'Ocurrió un error inesperado'}
+          <Button variant="ghost" onClick={() => refetch()} className="ml-4">
             Reintentar
           </Button>
         </div>
@@ -120,84 +109,62 @@ export default function ClientesPage() {
   // ============================================
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="p-6">
       {/* HEADER */}
-      <div className="bg-white border-b border-slate-200 sticky top-0 z-10 shadow-sm">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <button
-                onClick={volverAAlquileres}
-                className="
-                  p-2 hover:bg-slate-100 rounded-lg transition-colors
-                  flex items-center gap-2 text-slate-600 hover:text-slate-900
-                "
-              >
-                <ArrowLeft className="w-5 h-5" />
-                <span>Volver a Alquileres</span>
-              </button>
-
-              <div className="flex items-center gap-3">
-                <Users className="w-8 h-8 text-blue-600" />
-                <div>
-                  <h1 className="text-2xl font-bold text-slate-900">
-                    Clientes
-                  </h1>
-                  <p className="text-sm text-slate-600">
-                    Gestiona tus clientes para cotizaciones
-                  </p>
-                </div>
+      <div className="mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-3">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <Users className="w-6 h-6 text-blue-600" />
               </div>
-            </div>
-
-            <Button
-              variant="primary"
-              icon={<Plus />}
-              onClick={handleOpenCrear}
-            >
-              Nuevo Cliente
-            </Button>
+              Clientes
+            </h1>
+            <p className="text-slate-500 mt-1">
+              Gestiona tus clientes para cotizaciones
+            </p>
           </div>
+
+          <Button
+            variant="primary"
+            icon={<Plus />}
+            onClick={handleOpenCrear}
+          >
+            Nuevo Cliente
+          </Button>
         </div>
       </div>
 
-      {/* CONTENIDO */}
-      <div className="container mx-auto px-6 py-8">
-        <div className="mb-6">
-          <h2 className="text-xl font-semibold text-slate-900 mb-1">
-            Todos los Clientes
-          </h2>
-          <p className="text-slate-600">
-            {clientes.length} cliente{clientes.length !== 1 ? 's' : ''} registrado{clientes.length !== 1 ? 's' : ''}
-          </p>
-        </div>
-
-        {/* GRID DE CLIENTES */}
-        {clientes.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {clientes.map((cliente) => (
-              <ClienteCard
-                key={cliente.id}
-                cliente={cliente}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
-              />
-            ))}
-          </div>
-        ) : (
-          <EmptyState
-            type="no-data"
-            title="No hay clientes creados"
-            description="Crea tu primer cliente para comenzar a generar cotizaciones"
-            icon={Users}
-            action={{
-              label: "Crear primer cliente",
-              icon: <Plus />,
-              onClick: handleOpenCrear
-            }}
-          />
-        )}
+      {/* INFO */}
+      <div className="mb-4 text-sm text-slate-500">
+        Mostrando {clientes.length} cliente{clientes.length !== 1 ? 's' : ''}
       </div>
+
+      {/* GRID DE CLIENTES */}
+      {clientes.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {clientes.map((cliente) => (
+            <ClienteCard
+              key={cliente.id}
+              cliente={cliente}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+            />
+          ))}
+        </div>
+      ) : (
+        <EmptyState
+          type="no-data"
+          title="No hay clientes creados"
+          description="Crea tu primer cliente para comenzar a generar cotizaciones"
+          icon={Users}
+          action={{
+            label: "Crear primer cliente",
+            icon: <Plus />,
+            onClick: handleOpenCrear
+          }}
+        />
+      )}
 
       {/* MODALES */}
       <ClienteFormModal

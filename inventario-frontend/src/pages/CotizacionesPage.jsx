@@ -7,7 +7,6 @@
 import { useState } from 'react'
 import {
   Plus,
-  ArrowLeft,
   Users,
   Calendar,
   Filter,
@@ -24,7 +23,6 @@ import {
   Trash2
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import { useNavigation } from '../hooks/UseNavigation'
 import {
   useGetEventos,
   useCreateEvento,
@@ -237,7 +235,6 @@ const EventoCard = ({ evento, onVer, onEditar, onEliminar, onCambiarEstado }) =>
 export default function CotizacionesPage() {
 
   const navigate = useNavigate()
-  const { volverAModulos } = useNavigation()
 
   // ============================================
   // HOOKS DE EVENTOS
@@ -361,43 +358,23 @@ export default function CotizacionesPage() {
   }
 
   // ============================================
-  // NAVEGACIÓN
-  // ============================================
-
-  const handleIrClientes = () => {
-    navigate('/alquileres/clientes')
-  }
-
-  const handleIrCalendario = () => {
-    navigate('/alquileres/calendario')
-  }
-
-  // ============================================
   // RENDER
   // ============================================
 
   if (isLoading) {
     return (
-      <Spinner
-        fullScreen
-        size="xl"
-        text="Cargando eventos..."
-      />
+      <div className="flex justify-center py-12">
+        <Spinner size="lg" text="Cargando eventos..." />
+      </div>
     )
   }
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-6">
-        <div className="text-center">
-          <div className="text-6xl mb-4">!</div>
-          <h2 className="text-2xl font-bold text-slate-900 mb-2">
-            Error al cargar eventos
-          </h2>
-          <p className="text-slate-600 mb-6">
-            {error.message || 'Ocurrio un error inesperado'}
-          </p>
-          <Button onClick={() => refetch()}>
+      <div className="p-6">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
+          Error al cargar eventos: {error.message || 'Ocurrió un error inesperado'}
+          <Button variant="ghost" onClick={() => refetch()} className="ml-4">
             Reintentar
           </Button>
         </div>
@@ -406,138 +383,101 @@ export default function CotizacionesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="p-6">
       {/* HEADER */}
-      <div className="bg-white border-b border-slate-200 sticky top-0 z-10 shadow-sm">
-        <div className="container mx-auto px-6 py-4">
-
-          {/* NAVEGACIÓN SUPERIOR */}
-          <button
-            onClick={volverAModulos}
-            className="flex items-center gap-2 text-slate-600 hover:text-slate-900 mb-3 transition-colors text-sm"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>Volver a Módulos</span>
-          </button>
-
-          <div className="flex items-center justify-between">
-            {/* TÍTULO */}
-            <div className="flex items-center gap-3">
+      <div className="mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-3">
               <div className="p-2 bg-purple-100 rounded-lg">
-                <Calendar className="w-8 h-8 text-purple-600" />
+                <Calendar className="w-6 h-6 text-purple-600" />
               </div>
-              <div>
-                <h1 className="text-2xl font-bold text-slate-900">
-                  Alquileres
-                </h1>
-                <p className="text-sm text-slate-600">
-                  Gestiona eventos y cotizaciones
-                </p>
-              </div>
-            </div>
-
-            {/* ACCIONES */}
-            <div className="flex items-center gap-3">
-              <Button
-                variant="secondary"
-                icon={<Calendar className="w-4 h-4" />}
-                onClick={handleIrCalendario}
-              >
-                Calendario
-              </Button>
-              <Button
-                variant="secondary"
-                icon={<Users className="w-4 h-4" />}
-                onClick={handleIrClientes}
-              >
-                Clientes
-              </Button>
-              <Button
-                variant="primary"
-                icon={<Plus />}
-                onClick={() => setShowModalEvento(true)}
-              >
-                Nuevo Evento
-              </Button>
-            </div>
+              Cotizaciones
+            </h1>
+            <p className="text-slate-500 mt-1">
+              Gestiona eventos y cotizaciones
+            </p>
           </div>
 
+          <div className="flex items-center gap-3">
+            <Button
+              variant="primary"
+              icon={<Plus />}
+              onClick={() => setShowModalEvento(true)}
+            >
+              Nuevo Evento
+            </Button>
+          </div>
         </div>
       </div>
 
-      {/* CONTENIDO */}
-      <div className="container mx-auto px-6 py-8">
+      {/* BARRA DE BÚSQUEDA Y FILTROS */}
+      <div className="bg-white rounded-xl border border-slate-200 p-4 mb-6">
+        <div className="flex flex-col sm:flex-row gap-4">
+          {/* Búsqueda */}
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+            <input
+              type="text"
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+              placeholder="Buscar por evento o cliente..."
+              className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
+            />
+          </div>
 
-        {/* BARRA DE BÚSQUEDA Y FILTROS */}
-        <div className="bg-white rounded-xl border border-slate-200 p-4 mb-6">
-          <div className="flex flex-col sm:flex-row gap-4">
-            {/* Búsqueda */}
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-              <input
-                type="text"
-                value={busqueda}
-                onChange={(e) => setBusqueda(e.target.value)}
-                placeholder="Buscar por evento o cliente..."
-                className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
-              />
-            </div>
-
-            {/* Filtro de estado */}
-            <div className="flex items-center gap-2">
-              <Filter className="w-4 h-4 text-slate-500" />
-              <select
-                value={filtroEstado}
-                onChange={(e) => setFiltroEstado(e.target.value)}
-                className="px-3 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
-              >
-                <option value="">Todos los estados</option>
-                <option value="activo">Activos</option>
-                <option value="completado">Completados</option>
-                <option value="cancelado">Cancelados</option>
-              </select>
-            </div>
+          {/* Filtro de estado */}
+          <div className="flex items-center gap-2">
+            <Filter className="w-4 h-4 text-slate-500" />
+            <select
+              value={filtroEstado}
+              onChange={(e) => setFiltroEstado(e.target.value)}
+              className="px-3 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
+            >
+              <option value="">Todos los estados</option>
+              <option value="activo">Activos</option>
+              <option value="completado">Completados</option>
+              <option value="cancelado">Cancelados</option>
+            </select>
           </div>
         </div>
-
-        {/* INFO */}
-        <div className="mb-6">
-          <p className="text-slate-600">
-            {eventosFiltrados.length} evento{eventosFiltrados.length !== 1 ? 's' : ''}
-            {busqueda || filtroEstado ? ' encontrado' + (eventosFiltrados.length !== 1 ? 's' : '') : ''}
-          </p>
-        </div>
-
-        {/* GRID DE EVENTOS */}
-        {eventosFiltrados.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {eventosFiltrados.map((evento) => (
-              <EventoCard
-                key={evento.id}
-                evento={evento}
-                onVer={handleVerEvento}
-                onEditar={(e) => setEventoEditar(e)}
-                onEliminar={(e) => setEventoEliminar(e)}
-                onCambiarEstado={handleCambiarEstado}
-              />
-            ))}
-          </div>
-        ) : (
-          <EmptyState
-            type="no-data"
-            title="No hay eventos"
-            description={busqueda || filtroEstado
-              ? "No se encontraron eventos con los filtros seleccionados"
-              : "Crea tu primer evento para comenzar a gestionar cotizaciones"}
-            icon={Calendar}
-            action={!busqueda && !filtroEstado ? {
-              label: "Crear evento",
-              icon: <Plus />,
-              onClick: () => setShowModalEvento(true)
-            } : undefined}
-          />
-        )}
       </div>
+
+      {/* INFO */}
+      <div className="mb-4 text-sm text-slate-500">
+        Mostrando {eventosFiltrados.length} evento{eventosFiltrados.length !== 1 ? 's' : ''}
+        {busqueda || filtroEstado ? ' encontrado' + (eventosFiltrados.length !== 1 ? 's' : '') : ''}
+      </div>
+
+      {/* GRID DE EVENTOS */}
+      {eventosFiltrados.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {eventosFiltrados.map((evento) => (
+            <EventoCard
+              key={evento.id}
+              evento={evento}
+              onVer={handleVerEvento}
+              onEditar={(e) => setEventoEditar(e)}
+              onEliminar={(e) => setEventoEliminar(e)}
+              onCambiarEstado={handleCambiarEstado}
+            />
+          ))}
+        </div>
+      ) : (
+        <EmptyState
+          type="no-data"
+          title="No hay eventos"
+          description={busqueda || filtroEstado
+            ? "No se encontraron eventos con los filtros seleccionados"
+            : "Crea tu primer evento para comenzar a gestionar cotizaciones"}
+          icon={Calendar}
+          action={!busqueda && !filtroEstado ? {
+            label: "Crear evento",
+            icon: <Plus />,
+            onClick: () => setShowModalEvento(true)
+          } : undefined}
+        />
+      )}
 
       {/* MODALES */}
 

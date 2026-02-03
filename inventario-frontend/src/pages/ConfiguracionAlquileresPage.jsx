@@ -281,37 +281,41 @@ const ConfiguracionPage = () => {
   return (
     <div className="p-6">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-            <Settings className="w-7 h-7 text-blue-600" />
-            Configuración
-          </h1>
-          <p className="text-slate-500 mt-1">
-            Ajusta los parámetros del sistema de alquileres
-          </p>
-        </div>
-
-        {/* Botones de acción */}
-        {cambios && (
-          <div className="flex items-center gap-3">
-            <Button
-              variant="secondary"
-              icon={<RotateCcw className="w-4 h-4" />}
-              onClick={handleResetear}
-            >
-              Descartar
-            </Button>
-            <Button
-              variant="primary"
-              icon={<Save className="w-4 h-4" />}
-              onClick={handleGuardar}
-              loading={updateMutation.isPending}
-            >
-              Guardar cambios
-            </Button>
+      <div className="mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-3">
+              <div className="p-2 bg-slate-100 rounded-lg">
+                <Settings className="w-6 h-6 text-slate-600" />
+              </div>
+              Configuración
+            </h1>
+            <p className="text-slate-500 mt-1">
+              Ajusta los parámetros del sistema de alquileres
+            </p>
           </div>
-        )}
+
+          {/* Botones de acción */}
+          {cambios && (
+            <div className="flex items-center gap-3">
+              <Button
+                variant="secondary"
+                icon={<RotateCcw className="w-4 h-4" />}
+                onClick={handleResetear}
+              >
+                Descartar
+              </Button>
+              <Button
+                variant="primary"
+                icon={<Save className="w-4 h-4" />}
+                onClick={handleGuardar}
+                loading={updateMutation.isPending}
+              >
+                Guardar cambios
+              </Button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Tabs de categorías */}
