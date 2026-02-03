@@ -47,9 +47,16 @@ const authRoutes = require('./modules/auth/routes/auth');
 const operacionesRoutes = require('./modules/operaciones/routes/operaciones');
 
 const path = require('path');
+const fs = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Crear directorio de uploads si no existe
+const uploadsDir = path.join(__dirname, 'uploads', 'logos');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
 
 // ============================================
 // CONFIGURACIÓN DE SEGURIDAD

@@ -150,17 +150,24 @@ exports.generarPDF = async (req, res, next) => {
       empresa[key] = c.valor;
     });
 
-    // Generar PDF
-    const pdfDoc = CotizacionPDFService.generar(cotizacion, empresa);
-
     // Configurar headers para descarga
     const filename = `cotizacion_${id}.pdf`;
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
 
-    // Pipe el PDF directo a la respuesta
+    // Generar PDF y pipe directo a la respuesta
+    const pdfDoc = CotizacionPDFService.generar(cotizacion, empresa);
+
+    pdfDoc.on('error', (err) => {
+      logger.error('Error generando PDF:', err);
+      if (!res.headersSent) {
+        res.status(500).json({ success: false, message: 'Error generando PDF' });
+      }
+    });
+
     pdfDoc.pipe(res);
   } catch (error) {
+    logger.error('Error en generarPDF:', error);
     next(error);
   }
 };
