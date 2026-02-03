@@ -10,56 +10,49 @@ import {
     Package,
     Calendar,
     MapPin,
-    Users,
     Clock,
     CheckCircle,
     XCircle,
     ArrowLeft,
     Edit3,
     Play,
-    Square,
     AlertTriangle,
     Phone,
     Mail,
     FileText,
     RefreshCw,
-    Car,
     User,
     ChevronDown,
     ChevronUp,
     Save,
     X,
     LogOut,
-    RotateCcw,
-    CircleDot
+    RotateCcw
 } from 'lucide-react'
 import {
     useGetOrden,
     useGetElementosOrden,
     useCambiarEstadoOrden,
     useAsignarEquipo,
-    useAsignarVehiculo,
     useUpdateOrden,
     useEjecutarSalida,
     useEjecutarRetorno
 } from '../hooks/useOrdenesTrabajo'
 import { useGetEmpleadosCampo } from '../hooks/useEmpleados'
-import { useGetVehiculosDisponibles } from '../hooks/useVehiculos'
 import { useAuth } from '../hooks/auth/useAuth'
 import Button from '../components/common/Button'
 import Spinner from '../components/common/Spinner'
 import { toast } from 'sonner'
 
 // ============================================
-// COMPONENTE: Modal de Asignación de Equipo
+// COMPONENTE: Modal de Asignación de Responsable
 // ============================================
-const ModalAsignarEquipo = ({ orden, onClose, onSave }) => {
-    // Inicializar con equipo actual: { empleado_id, rol_en_orden }
-    const [equipoSeleccionado, setEquipoSeleccionado] = useState(
-        orden.equipo?.map(e => ({
-            empleado_id: e.empleado_id || e.id,
-            rol_en_orden: e.rol_en_orden || 'operario'
-        })) || []
+const ModalAsignarResponsable = ({ orden, onClose, onSave }) => {
+    // Inicializar con responsable actual (primer miembro del equipo)
+    const responsableActual = orden.equipo?.find(e => e.rol_en_orden === 'responsable' || e.es_responsable)
+        || orden.equipo?.[0]
+    const [responsableId, setResponsableId] = useState(
+        responsableActual?.empleado_id?.toString() || responsableActual?.id?.toString() || ''
     )
     const [saving, setSaving] = useState(false)
 
@@ -67,36 +60,16 @@ const ModalAsignarEquipo = ({ orden, onClose, onSave }) => {
     const fechaOrden = orden.fecha_programada?.split('T')[0] || null
     const { empleados: empleadosDisponibles, isLoading: loadingEmpleados } = useGetEmpleadosCampo(fechaOrden)
 
-    const rolesOrden = [
-        { value: 'supervisor', label: 'Supervisor' },
-        { value: 'operario', label: 'Operario' },
-        { value: 'conductor', label: 'Conductor' },
-        { value: 'ayudante', label: 'Ayudante' }
-    ]
-
-    const isSelected = (empId) => equipoSeleccionado.some(e => e.empleado_id === empId)
-
-    const handleToggleEmpleado = (empId) => {
-        if (isSelected(empId)) {
-            setEquipoSeleccionado(prev => prev.filter(e => e.empleado_id !== empId))
-        } else {
-            setEquipoSeleccionado(prev => [...prev, { empleado_id: empId, rol_en_orden: 'operario' }])
-        }
-    }
-
-    const handleCambiarRol = (empId, rol) => {
-        setEquipoSeleccionado(prev =>
-            prev.map(e => e.empleado_id === empId ? { ...e, rol_en_orden: rol } : e)
-        )
-    }
-
     const handleGuardar = async () => {
+        if (!responsableId) return
         setSaving(true)
         try {
-            await onSave({ empleados: equipoSeleccionado })
+            await onSave({
+                empleados: [{ empleado_id: parseInt(responsableId), rol_en_orden: 'responsable' }]
+            })
             onClose()
         } catch (error) {
-            console.error('Error al asignar equipo:', error)
+            console.error('Error al asignar responsable:', error)
         } finally {
             setSaving(false)
         }
@@ -104,15 +77,15 @@ const ModalAsignarEquipo = ({ orden, onClose, onSave }) => {
 
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl w-full max-w-lg max-h-[90vh] overflow-hidden">
+            <div className="bg-white rounded-xl w-full max-w-md max-h-[90vh] overflow-hidden">
                 <div className="p-6 border-b border-slate-200">
                     <div className="flex items-center justify-between">
                         <div>
                             <h3 className="text-lg font-semibold text-slate-900">
-                                Asignar Equipo de Trabajo
+                                Asignar Responsable
                             </h3>
                             <p className="text-sm text-slate-500">
-                                {equipoSeleccionado.length} seleccionado(s)
+                                Persona encargada de esta orden
                             </p>
                         </div>
                         <button
@@ -130,58 +103,41 @@ const ModalAsignarEquipo = ({ orden, onClose, onSave }) => {
                         </div>
                     ) : empleadosDisponibles?.length > 0 ? (
                         <div className="space-y-2">
-                            {empleadosDisponibles.map(emp => {
-                                const selected = isSelected(emp.id)
-                                const miembro = equipoSeleccionado.find(e => e.empleado_id === emp.id)
-
-                                return (
-                                    <div
-                                        key={emp.id}
-                                        className={`border rounded-lg transition-colors ${
-                                            selected
-                                                ? 'border-orange-500 bg-orange-50'
-                                                : 'border-slate-200 hover:bg-slate-50'
-                                        }`}
-                                    >
-                                        <label className="flex items-center gap-3 p-3 cursor-pointer">
-                                            <input
-                                                type="checkbox"
-                                                checked={selected}
-                                                onChange={() => handleToggleEmpleado(emp.id)}
-                                                className="w-4 h-4 text-orange-500 rounded focus:ring-orange-500"
-                                            />
-                                            <div className="flex-1">
-                                                <p className="font-medium text-slate-900">
-                                                    {emp.nombre} {emp.apellido || ''}
-                                                </p>
-                                                <p className="text-sm text-slate-500">
-                                                    {emp.rol_empleado || emp.cargo || 'Empleado'}
-                                                    {emp.telefono ? ` - ${emp.telefono}` : ''}
-                                                </p>
-                                            </div>
-                                        </label>
-                                        {selected && (
-                                            <div className="px-3 pb-3 pt-0">
-                                                <select
-                                                    value={miembro?.rol_en_orden || 'operario'}
-                                                    onChange={(e) => handleCambiarRol(emp.id, e.target.value)}
-                                                    className="w-full px-2 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
-                                                >
-                                                    {rolesOrden.map(rol => (
-                                                        <option key={rol.value} value={rol.value}>
-                                                            {rol.label}
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                            </div>
-                                        )}
+                            {empleadosDisponibles.map(emp => (
+                                <label
+                                    key={emp.id}
+                                    className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${
+                                        responsableId === emp.id.toString()
+                                            ? 'border-orange-500 bg-orange-50'
+                                            : 'border-slate-200 hover:bg-slate-50'
+                                    }`}
+                                >
+                                    <input
+                                        type="radio"
+                                        name="responsable"
+                                        value={emp.id}
+                                        checked={responsableId === emp.id.toString()}
+                                        onChange={(e) => setResponsableId(e.target.value)}
+                                        className="w-4 h-4 text-orange-500 focus:ring-orange-500"
+                                    />
+                                    <div className="p-2 bg-slate-100 rounded-full">
+                                        <User className="w-4 h-4 text-slate-600" />
                                     </div>
-                                )
-                            })}
+                                    <div className="flex-1">
+                                        <p className="font-medium text-slate-900">
+                                            {emp.nombre} {emp.apellido || ''}
+                                        </p>
+                                        <p className="text-sm text-slate-500">
+                                            {emp.rol_empleado || emp.cargo || 'Empleado'}
+                                            {emp.telefono ? ` - ${emp.telefono}` : ''}
+                                        </p>
+                                    </div>
+                                </label>
+                            ))}
                         </div>
                     ) : (
                         <div className="py-8 text-center text-slate-500">
-                            <Users className="w-10 h-10 mx-auto mb-2 text-slate-300" />
+                            <User className="w-10 h-10 mx-auto mb-2 text-slate-300" />
                             <p>No hay empleados disponibles</p>
                         </div>
                     )}
@@ -194,128 +150,7 @@ const ModalAsignarEquipo = ({ orden, onClose, onSave }) => {
                         color="orange"
                         icon={Save}
                         onClick={handleGuardar}
-                        disabled={saving || equipoSeleccionado.length === 0}
-                    >
-                        {saving ? 'Guardando...' : 'Guardar'}
-                    </Button>
-                </div>
-            </div>
-        </div>
-    )
-}
-
-// ============================================
-// COMPONENTE: Modal de Asignación de Vehículo
-// ============================================
-const ModalAsignarVehiculo = ({ orden, onClose, onSave }) => {
-    const [vehiculoId, setVehiculoId] = useState(orden.vehiculo_id?.toString() || '')
-    const [saving, setSaving] = useState(false)
-
-    // Obtener vehículos disponibles desde API
-    const fechaOrden = orden.fecha_programada?.split('T')[0] || null
-    const { vehiculos: vehiculosDisponibles, isLoading: loadingVehiculos } = useGetVehiculosDisponibles(fechaOrden)
-
-    const handleGuardar = async () => {
-        setSaving(true)
-        try {
-            await onSave({ vehiculo_id: vehiculoId ? parseInt(vehiculoId) : null })
-            onClose()
-        } catch (error) {
-            console.error('Error al asignar vehículo:', error)
-        } finally {
-            setSaving(false)
-        }
-    }
-
-    return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl w-full max-w-md max-h-[90vh] overflow-hidden">
-                <div className="p-6 border-b border-slate-200">
-                    <div className="flex items-center justify-between">
-                        <h3 className="text-lg font-semibold text-slate-900">
-                            Asignar Vehiculo
-                        </h3>
-                        <button
-                            onClick={onClose}
-                            className="p-2 hover:bg-slate-100 rounded-lg"
-                        >
-                            <X className="w-5 h-5" />
-                        </button>
-                    </div>
-                </div>
-                <div className="p-6 overflow-y-auto max-h-[60vh]">
-                    {loadingVehiculos ? (
-                        <div className="py-8 text-center">
-                            <Spinner size="sm" text="Cargando vehiculos..." />
-                        </div>
-                    ) : vehiculosDisponibles?.length > 0 ? (
-                        <div className="space-y-2">
-                            {/* Opcion para quitar vehiculo */}
-                            <label
-                                className={`flex items-center gap-3 p-4 border rounded-lg cursor-pointer transition-colors ${
-                                    vehiculoId === ''
-                                        ? 'border-orange-500 bg-orange-50'
-                                        : 'border-slate-200 hover:bg-slate-50'
-                                }`}
-                            >
-                                <input
-                                    type="radio"
-                                    name="vehiculo"
-                                    value=""
-                                    checked={vehiculoId === ''}
-                                    onChange={() => setVehiculoId('')}
-                                    className="w-4 h-4 text-orange-500 focus:ring-orange-500"
-                                />
-                                <XCircle className="w-5 h-5 text-slate-400" />
-                                <div className="flex-1">
-                                    <p className="font-medium text-slate-500">Sin vehiculo</p>
-                                </div>
-                            </label>
-
-                            {vehiculosDisponibles.map(veh => (
-                                <label
-                                    key={veh.id}
-                                    className={`flex items-center gap-3 p-4 border rounded-lg cursor-pointer transition-colors ${
-                                        vehiculoId === veh.id.toString()
-                                            ? 'border-orange-500 bg-orange-50'
-                                            : 'border-slate-200 hover:bg-slate-50'
-                                    }`}
-                                >
-                                    <input
-                                        type="radio"
-                                        name="vehiculo"
-                                        value={veh.id}
-                                        checked={vehiculoId === veh.id.toString()}
-                                        onChange={(e) => setVehiculoId(e.target.value)}
-                                        className="w-4 h-4 text-orange-500 focus:ring-orange-500"
-                                    />
-                                    <Car className="w-5 h-5 text-slate-400" />
-                                    <div className="flex-1">
-                                        <p className="font-medium text-slate-900">{veh.placa}</p>
-                                        <p className="text-sm text-slate-500">
-                                            {veh.marca} {veh.modelo}
-                                            {veh.capacidad_carga ? ` - ${veh.capacidad_carga}` : ''}
-                                        </p>
-                                    </div>
-                                </label>
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="py-8 text-center text-slate-500">
-                            <Car className="w-10 h-10 mx-auto mb-2 text-slate-300" />
-                            <p>No hay vehiculos disponibles</p>
-                        </div>
-                    )}
-                </div>
-                <div className="p-6 border-t border-slate-200 flex gap-3 justify-end">
-                    <Button variant="secondary" onClick={onClose}>
-                        Cancelar
-                    </Button>
-                    <Button
-                        color="orange"
-                        icon={Save}
-                        onClick={handleGuardar}
-                        disabled={saving}
+                        disabled={saving || !responsableId}
                     >
                         {saving ? 'Guardando...' : 'Guardar'}
                     </Button>
@@ -669,8 +504,7 @@ export default function OrdenDetallePage() {
     // ============================================
     // ESTADO LOCAL
     // ============================================
-    const [showModalEquipo, setShowModalEquipo] = useState(false)
-    const [showModalVehiculo, setShowModalVehiculo] = useState(false)
+    const [showModalResponsable, setShowModalResponsable] = useState(false)
     const [showModalEditar, setShowModalEditar] = useState(false)
     const [showModalRetorno, setShowModalRetorno] = useState(false)
     const [expandElementos, setExpandElementos] = useState(true)
@@ -687,7 +521,6 @@ export default function OrdenDetallePage() {
     // ============================================
     const cambiarEstado = useCambiarEstadoOrden()
     const asignarEquipo = useAsignarEquipo()
-    const asignarVehiculo = useAsignarVehiculo()
     const actualizarOrden = useUpdateOrden()
     const ejecutarSalida = useEjecutarSalida()
     const ejecutarRetorno = useEjecutarRetorno()
@@ -718,15 +551,9 @@ export default function OrdenDetallePage() {
         }
     }
 
-    const handleAsignarEquipo = async (data) => {
+    const handleAsignarResponsable = async (data) => {
         await asignarEquipo.mutateAsync({ id: orden.id, data })
-        toast.success('Equipo asignado correctamente')
-        refetch()
-    }
-
-    const handleAsignarVehiculo = async (data) => {
-        await asignarVehiculo.mutateAsync({ id: orden.id, data })
-        toast.success('Vehículo asignado correctamente')
+        toast.success('Responsable asignado correctamente')
         refetch()
     }
 
@@ -1234,106 +1061,53 @@ export default function OrdenDetallePage() {
                             </div>
                         )}
 
-                        {/* EQUIPO ASIGNADO */}
+                        {/* RESPONSABLE ASIGNADO */}
                         <div className="bg-white rounded-xl border border-slate-200 p-6">
                             <div className="flex items-center justify-between mb-4">
                                 <h3 className="text-lg font-semibold text-slate-900">
-                                    Equipo de Trabajo
+                                    Responsable
                                 </h3>
                                 {canManage && (
                                     <button
-                                        onClick={() => setShowModalEquipo(true)}
+                                        onClick={() => setShowModalResponsable(true)}
                                         className="text-sm text-orange-600 hover:text-orange-700 font-medium"
                                     >
-                                        {orden.equipo?.length > 0 ? 'Editar' : 'Asignar'}
+                                        {orden.equipo?.length > 0 ? 'Cambiar' : 'Asignar'}
                                     </button>
                                 )}
                             </div>
                             {orden.equipo?.length > 0 ? (
-                                <div className="space-y-3">
-                                    {orden.equipo.map((miembro, index) => (
-                                        <div
-                                            key={index}
-                                            className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg"
-                                        >
-                                            <div className="p-2 bg-white rounded-full">
-                                                <User className="w-4 h-4 text-slate-600" />
-                                            </div>
-                                            <div>
-                                                <p className="font-medium text-slate-900 text-sm">
-                                                    {miembro.nombre}
-                                                </p>
-                                                <p className="text-xs text-slate-500">
-                                                    {miembro.rol}
-                                                </p>
-                                            </div>
-                                            {miembro.es_responsable && (
-                                                <span className="ml-auto px-2 py-0.5 bg-orange-100 text-orange-700 text-xs rounded">
-                                                    Responsable
-                                                </span>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="text-center py-6">
-                                    <Users className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                                    <p className="text-slate-500 text-sm">
-                                        Sin equipo asignado
-                                    </p>
-                                    {canManage && (
-                                        <button
-                                            onClick={() => setShowModalEquipo(true)}
-                                            className="mt-2 text-sm text-orange-600 hover:text-orange-700 font-medium"
-                                        >
-                                            Asignar equipo
-                                        </button>
-                                    )}
-                                </div>
-                            )}
-                        </div>
-
-                        {/* VEHÍCULO ASIGNADO */}
-                        <div className="bg-white rounded-xl border border-slate-200 p-6">
-                            <div className="flex items-center justify-between mb-4">
-                                <h3 className="text-lg font-semibold text-slate-900">
-                                    Vehículo
-                                </h3>
-                                {canManage && (
-                                    <button
-                                        onClick={() => setShowModalVehiculo(true)}
-                                        className="text-sm text-orange-600 hover:text-orange-700 font-medium"
-                                    >
-                                        {orden.vehiculo_placa ? 'Cambiar' : 'Asignar'}
-                                    </button>
-                                )}
-                            </div>
-                            {orden.vehiculo_placa ? (
                                 <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
                                     <div className="p-2 bg-white rounded-full">
-                                        <Car className="w-5 h-5 text-slate-600" />
+                                        <User className="w-5 h-5 text-slate-600" />
                                     </div>
                                     <div>
                                         <p className="font-medium text-slate-900">
-                                            {orden.vehiculo_placa}
+                                            {orden.equipo[0].nombre} {orden.equipo[0].apellido || ''}
                                         </p>
                                         <p className="text-sm text-slate-500">
-                                            {orden.vehiculo_tipo || 'Vehículo'}
+                                            {orden.equipo[0].rol_empleado || orden.equipo[0].cargo || 'Empleado'}
                                         </p>
+                                        {orden.equipo[0].telefono && (
+                                            <p className="text-sm text-slate-500 flex items-center gap-1 mt-1">
+                                                <Phone className="w-3.5 h-3.5" />
+                                                {orden.equipo[0].telefono}
+                                            </p>
+                                        )}
                                     </div>
                                 </div>
                             ) : (
                                 <div className="text-center py-6">
-                                    <Car className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                                    <User className="w-8 h-8 text-slate-300 mx-auto mb-2" />
                                     <p className="text-slate-500 text-sm">
-                                        Sin vehículo asignado
+                                        Sin responsable asignado
                                     </p>
                                     {canManage && (
                                         <button
-                                            onClick={() => setShowModalVehiculo(true)}
+                                            onClick={() => setShowModalResponsable(true)}
                                             className="mt-2 text-sm text-orange-600 hover:text-orange-700 font-medium"
                                         >
-                                            Asignar vehículo
+                                            Asignar responsable
                                         </button>
                                     )}
                                 </div>
@@ -1344,18 +1118,11 @@ export default function OrdenDetallePage() {
             </div>
 
             {/* MODALES */}
-            {showModalEquipo && (
-                <ModalAsignarEquipo
+            {showModalResponsable && (
+                <ModalAsignarResponsable
                     orden={orden}
-                    onClose={() => setShowModalEquipo(false)}
-                    onSave={handleAsignarEquipo}
-                />
-            )}
-            {showModalVehiculo && (
-                <ModalAsignarVehiculo
-                    orden={orden}
-                    onClose={() => setShowModalVehiculo(false)}
-                    onSave={handleAsignarVehiculo}
+                    onClose={() => setShowModalResponsable(false)}
+                    onSave={handleAsignarResponsable}
                 />
             )}
             {showModalEditar && (

@@ -1,8 +1,9 @@
 // ============================================
 // PÁGINA: OPERACIONES DASHBOARD
-// Vista principal del módulo de operaciones
+// Vista principal con tarjetas de evento agrupadas
 // ============================================
 
+import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
     Truck,
@@ -11,88 +12,336 @@ import {
     Clock,
     ArrowRight,
     ClipboardList,
-    Users,
     Bell,
     Package,
     MapPin,
-    LayoutDashboard
+    LayoutDashboard,
+    User,
+    Calendar,
+    ChevronRight
 } from 'lucide-react'
 import { useGetOrdenes, useGetEstadisticasOperaciones } from '../hooks/useOrdenesTrabajo'
 import { useGetAlertasPendientes, useGetResumenAlertas } from '../hooks/useAlertas'
-import { useAuth } from '../hooks/auth/useAuth'
-import Button from '../components/common/Button'
 import Spinner from '../components/common/Spinner'
 
-/**
- * OperacionesDashboard
- *
- * Dashboard principal para el módulo de operaciones:
- * - Estadísticas del día
- * - Órdenes de hoy (montajes y desmontajes)
- * - Alertas pendientes
- */
+// ============================================
+// HELPERS: Fechas
+// ============================================
+const getHoy = () => new Date().toISOString().split('T')[0]
+
+const getInicioSemana = () => {
+    const d = new Date()
+    const day = d.getDay()
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1) // Lunes
+    const lunes = new Date(d.setDate(diff))
+    return lunes.toISOString().split('T')[0]
+}
+
+const getFinSemana = () => {
+    const d = new Date()
+    const day = d.getDay()
+    const diff = d.getDate() - day + (day === 0 ? 0 : 7) // Domingo
+    const domingo = new Date(d.setDate(diff))
+    return domingo.toISOString().split('T')[0]
+}
+
+// ============================================
+// HELPERS: Colores y formato
+// ============================================
+const getEstadoConfig = (estado) => {
+    const config = {
+        pendiente: { color: 'bg-yellow-100 text-yellow-700 border-yellow-200', label: 'Pendiente' },
+        confirmado: { color: 'bg-indigo-100 text-indigo-700 border-indigo-200', label: 'Confirmado' },
+        en_preparacion: { color: 'bg-purple-100 text-purple-700 border-purple-200', label: 'Preparación' },
+        en_ruta: { color: 'bg-cyan-100 text-cyan-700 border-cyan-200', label: 'En ruta' },
+        en_sitio: { color: 'bg-amber-100 text-amber-700 border-amber-200', label: 'En sitio' },
+        en_proceso: { color: 'bg-blue-100 text-blue-700 border-blue-200', label: 'En proceso' },
+        completado: { color: 'bg-green-100 text-green-700 border-green-200', label: 'Completado' },
+        cancelado: { color: 'bg-red-100 text-red-700 border-red-200', label: 'Cancelado' }
+    }
+    return config[estado] || config.pendiente
+}
+
+const getSeveridadColor = (severidad) => {
+    const colores = {
+        baja: 'bg-blue-100 text-blue-700',
+        media: 'bg-yellow-100 text-yellow-700',
+        alta: 'bg-orange-100 text-orange-700',
+        critica: 'bg-red-100 text-red-700'
+    }
+    return colores[severidad] || 'bg-slate-100 text-slate-700'
+}
+
+const formatHora = (fecha) => {
+    if (!fecha) return '--:--'
+    return new Date(fecha).toLocaleTimeString('es-CO', {
+        hour: '2-digit',
+        minute: '2-digit'
+    })
+}
+
+const formatFechaCorta = (fecha) => {
+    if (!fecha) return 'Sin fecha'
+    return new Date(fecha).toLocaleDateString('es-CO', {
+        weekday: 'short',
+        day: 'numeric',
+        month: 'short'
+    })
+}
+
+// ============================================
+// HELPER: Agrupar órdenes por alquiler_id
+// ============================================
+const agruparPorEvento = (ordenes) => {
+    if (!ordenes?.length) return []
+
+    const grupos = {}
+    ordenes.forEach(orden => {
+        const key = orden.alquiler_id || `manual-${orden.id}`
+        if (!grupos[key]) {
+            grupos[key] = {
+                alquiler_id: orden.alquiler_id,
+                cliente_nombre: orden.cliente_nombre,
+                evento_nombre: orden.evento_nombre,
+                ciudad_evento: orden.ciudad_evento || orden.evento_ciudad,
+                direccion_evento: orden.direccion_evento,
+                montaje: null,
+                desmontaje: null
+            }
+        }
+        if (orden.tipo === 'montaje') {
+            grupos[key].montaje = orden
+        } else if (orden.tipo === 'desmontaje') {
+            grupos[key].desmontaje = orden
+        }
+    })
+
+    return Object.values(grupos).sort((a, b) => {
+        const fechaA = a.montaje?.fecha_programada || a.desmontaje?.fecha_programada
+        const fechaB = b.montaje?.fecha_programada || b.desmontaje?.fecha_programada
+        return new Date(fechaA) - new Date(fechaB)
+    })
+}
+
+// ============================================
+// COMPONENTE: Indicador de estado de orden
+// ============================================
+const OrdenEstadoIndicador = ({ orden, tipo }) => {
+    if (!orden) {
+        return (
+            <div className="flex items-center gap-2 text-slate-400">
+                <div className="p-1 bg-slate-100 rounded">
+                    {tipo === 'montaje'
+                        ? <Package className="w-3.5 h-3.5" />
+                        : <Truck className="w-3.5 h-3.5" />
+                    }
+                </div>
+                <span className="text-xs">Sin {tipo}</span>
+            </div>
+        )
+    }
+
+    const config = getEstadoConfig(orden.estado)
+
+    return (
+        <div className="flex items-center gap-2">
+            <div className={`p-1 rounded ${
+                tipo === 'montaje' ? 'bg-emerald-100' : 'bg-orange-100'
+            }`}>
+                {tipo === 'montaje'
+                    ? <Package className={`w-3.5 h-3.5 ${tipo === 'montaje' ? 'text-emerald-600' : 'text-orange-600'}`} />
+                    : <Truck className="w-3.5 h-3.5 text-orange-600" />
+                }
+            </div>
+            <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium text-slate-700 capitalize">
+                        {tipo}
+                    </span>
+                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium border ${config.color}`}>
+                        {config.label}
+                    </span>
+                </div>
+                <p className="text-[11px] text-slate-500">
+                    {formatFechaCorta(orden.fecha_programada)} - {formatHora(orden.fecha_programada)}
+                </p>
+            </div>
+        </div>
+    )
+}
+
+// ============================================
+// COMPONENTE: Tarjeta de Evento (agrupa montaje + desmontaje)
+// ============================================
+const EventoCard = ({ evento, navigate }) => {
+    const montaje = evento.montaje
+    const desmontaje = evento.desmontaje
+    const tieneResponsableMontaje = (montaje?.total_equipo || 0) > 0
+    const tieneResponsableDesmontaje = (desmontaje?.total_equipo || 0) > 0
+
+    // Determinar si hay alguna orden activa (no completada/cancelada)
+    const estadosActivos = ['en_preparacion', 'en_ruta', 'en_sitio', 'en_proceso']
+    const montajeActivo = montaje && estadosActivos.includes(montaje.estado)
+    const desmontajeActivo = desmontaje && estadosActivos.includes(desmontaje.estado)
+
+    return (
+        <div className="bg-white rounded-xl border border-slate-200 hover:border-slate-300 transition-colors overflow-hidden">
+            {/* Header de la tarjeta */}
+            <div className="px-4 py-3 border-b border-slate-100">
+                <div className="flex items-center justify-between">
+                    <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-slate-900 truncate">
+                            {evento.cliente_nombre || 'Cliente'}
+                        </p>
+                        {evento.evento_nombre && (
+                            <p className="text-xs text-slate-500 truncate">
+                                {evento.evento_nombre}
+                            </p>
+                        )}
+                    </div>
+                    <div className="flex items-center gap-2 ml-3">
+                        {(montajeActivo || desmontajeActivo) && (
+                            <span className="flex h-2 w-2">
+                                <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-orange-400 opacity-75" />
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500" />
+                            </span>
+                        )}
+                    </div>
+                </div>
+                {(evento.ciudad_evento || evento.direccion_evento) && (
+                    <p className="text-xs text-slate-500 flex items-center gap-1 mt-1">
+                        <MapPin className="w-3 h-3" />
+                        {evento.ciudad_evento}
+                        {evento.direccion_evento ? ` - ${evento.direccion_evento}` : ''}
+                    </p>
+                )}
+            </div>
+
+            {/* Montaje + Desmontaje */}
+            <div className="px-4 py-3 space-y-2">
+                <OrdenEstadoIndicador orden={montaje} tipo="montaje" />
+                <OrdenEstadoIndicador orden={desmontaje} tipo="desmontaje" />
+            </div>
+
+            {/* Indicadores de preparación */}
+            <div className="px-4 py-2 border-t border-slate-100 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                    {/* Responsable montaje */}
+                    {montaje && (
+                        <div className={`flex items-center gap-1 text-[11px] ${
+                            tieneResponsableMontaje ? 'text-green-600' : 'text-amber-600'
+                        }`}>
+                            <User className="w-3 h-3" />
+                            <span>{tieneResponsableMontaje ? 'Asignado' : 'Sin resp.'}</span>
+                        </div>
+                    )}
+                    {/* Elementos */}
+                    {montaje && (
+                        <div className={`flex items-center gap-1 text-[11px] ${
+                            (montaje.total_elementos || 0) > 0 ? 'text-green-600' : 'text-slate-400'
+                        }`}>
+                            <Package className="w-3 h-3" />
+                            <span>{montaje.total_elementos || 0} elem.</span>
+                        </div>
+                    )}
+                </div>
+                <button
+                    onClick={() => {
+                        const ordenId = montaje?.id || desmontaje?.id
+                        if (ordenId) navigate(`/operaciones/ordenes/${ordenId}`)
+                    }}
+                    className="text-xs text-orange-600 hover:text-orange-700 font-medium flex items-center gap-0.5"
+                >
+                    Ver
+                    <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+            </div>
+        </div>
+    )
+}
+
+// ============================================
+// COMPONENTE: Sección de eventos
+// ============================================
+const SeccionEventos = ({ titulo, subtitulo, eventos, navigate, emptyMessage }) => (
+    <div>
+        <div className="flex items-center justify-between mb-3">
+            <div>
+                <h2 className="text-lg font-semibold text-slate-900">{titulo}</h2>
+                {subtitulo && (
+                    <p className="text-sm text-slate-500">{subtitulo}</p>
+                )}
+            </div>
+        </div>
+        {eventos.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {eventos.map((evento, idx) => (
+                    <EventoCard
+                        key={evento.alquiler_id || idx}
+                        evento={evento}
+                        navigate={navigate}
+                    />
+                ))}
+            </div>
+        ) : (
+            <div className="bg-white rounded-xl border border-slate-200 p-8 text-center">
+                <CheckCircle className="w-10 h-10 text-green-500 mx-auto mb-2" />
+                <p className="text-slate-600 font-medium">{emptyMessage}</p>
+            </div>
+        )}
+    </div>
+)
+
+// ============================================
+// COMPONENTE PRINCIPAL
+// ============================================
 export default function OperacionesDashboard() {
     const navigate = useNavigate()
-    const { hasRole } = useAuth()
 
-    const canManage = hasRole(['admin', 'gerente', 'operaciones'])
-
-    // Fecha de hoy para filtros
-    const hoy = new Date().toISOString().split('T')[0]
+    const hoy = getHoy()
+    const inicioSemana = getInicioSemana()
+    const finSemana = getFinSemana()
 
     // ============================================
     // HOOKS: Obtener datos
     // ============================================
-    const { ordenes: ordenesHoy, isLoading: loadingOrdenes } = useGetOrdenes({
+    const { ordenes: ordenesHoy, isLoading: loadingHoy } = useGetOrdenes({
         fecha_desde: hoy,
         fecha_hasta: hoy,
-        limit: 10
+        limit: 50
+    })
+
+    const { ordenes: ordenesSemana, isLoading: loadingSemana } = useGetOrdenes({
+        fecha_desde: inicioSemana,
+        fecha_hasta: finSemana,
+        limit: 100
     })
 
     const { estadisticas, isLoading: loadingStats } = useGetEstadisticasOperaciones()
-    const { alertas: alertasPendientes, isLoading: loadingAlertas } = useGetAlertasPendientes({ limit: 5 })
+    const { alertas: alertasPendientes } = useGetAlertasPendientes({ limit: 5 })
     const { resumen: resumenAlertas } = useGetResumenAlertas()
 
     // ============================================
-    // HELPERS
+    // DATOS PROCESADOS
     // ============================================
-    const getEstadoColor = (estado) => {
-        const colores = {
-            pendiente: 'bg-yellow-100 text-yellow-700 border-yellow-200',
-            en_proceso: 'bg-blue-100 text-blue-700 border-blue-200',
-            completado: 'bg-green-100 text-green-700 border-green-200',
-            cancelado: 'bg-red-100 text-red-700 border-red-200'
-        }
-        return colores[estado] || 'bg-slate-100 text-slate-700 border-slate-200'
-    }
+    const eventosHoy = useMemo(() => agruparPorEvento(ordenesHoy), [ordenesHoy])
 
-    const getTipoColor = (tipo) => {
-        return tipo === 'montaje'
-            ? 'bg-emerald-100 text-emerald-700'
-            : 'bg-orange-100 text-orange-700'
-    }
-
-    const getSeveridadColor = (severidad) => {
-        const colores = {
-            baja: 'bg-blue-100 text-blue-700',
-            media: 'bg-yellow-100 text-yellow-700',
-            alta: 'bg-orange-100 text-orange-700',
-            critica: 'bg-red-100 text-red-700'
-        }
-        return colores[severidad] || 'bg-slate-100 text-slate-700'
-    }
-
-    const formatFecha = (fecha) => {
-        return new Date(fecha).toLocaleTimeString('es-CO', {
-            hour: '2-digit',
-            minute: '2-digit'
+    // Órdenes de la semana excluyendo las de hoy
+    const eventosRestaSemana = useMemo(() => {
+        if (!ordenesSemana?.length) return []
+        const ordenesNoHoy = ordenesSemana.filter(o => {
+            const fechaOrden = o.fecha_programada?.split('T')[0]
+            return fechaOrden !== hoy
         })
-    }
+        return agruparPorEvento(ordenesNoHoy)
+    }, [ordenesSemana, hoy])
+
+    const sinResponsable = estadisticas?.alertas?.sinEquipo || 0
 
     // ============================================
     // RENDER: Loading
     // ============================================
-    if (loadingOrdenes && loadingStats) {
+    if (loadingHoy && loadingStats) {
         return (
             <div className="flex justify-center py-12">
                 <Spinner size="lg" text="Cargando operaciones..." />
@@ -105,7 +354,7 @@ export default function OperacionesDashboard() {
     // ============================================
     return (
         <div className="p-6">
-            {/* HEADER CONSISTENTE */}
+            {/* HEADER */}
             <div className="mb-6">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <div>
@@ -116,7 +365,12 @@ export default function OperacionesDashboard() {
                             Dashboard de Operaciones
                         </h1>
                         <p className="text-slate-500 mt-1">
-                            Gestión de montajes y desmontajes
+                            {new Date().toLocaleDateString('es-CO', {
+                                weekday: 'long',
+                                day: 'numeric',
+                                month: 'long',
+                                year: 'numeric'
+                            })}
                         </p>
                     </div>
                 </div>
@@ -169,135 +423,81 @@ export default function OperacionesDashboard() {
                     </div>
                 </div>
 
-                {/* Alertas */}
+                {/* Sin Responsable */}
                 <div className="bg-white rounded-xl border border-slate-200 p-4">
                     <div className="flex items-center gap-3">
                         <div className={`p-2 rounded-lg ${
-                            (resumenAlertas?.criticas || 0) > 0
-                                ? 'bg-red-100'
-                                : 'bg-slate-100'
+                            sinResponsable > 0 ? 'bg-amber-100' : 'bg-slate-100'
                         }`}>
-                            <AlertTriangle className={`w-5 h-5 ${
-                                (resumenAlertas?.criticas || 0) > 0
-                                    ? 'text-red-600'
-                                    : 'text-slate-600'
+                            <User className={`w-5 h-5 ${
+                                sinResponsable > 0 ? 'text-amber-600' : 'text-slate-600'
                             }`} />
                         </div>
                         <div>
                             <p className="text-2xl font-bold text-slate-900">
-                                {resumenAlertas?.total || alertasPendientes?.length || 0}
+                                {sinResponsable}
                             </p>
-                            <p className="text-sm text-slate-500">
-                                {(resumenAlertas?.criticas || 0) > 0
-                                    ? `${resumenAlertas.criticas} críticas`
-                                    : 'Alertas'
-                                }
-                            </p>
+                            <p className="text-sm text-slate-500">Sin responsable</p>
                         </div>
                     </div>
                 </div>
             </div>
 
-            {/* CONTENIDO PRINCIPAL - 2 COLUMNAS */}
+            {/* CONTENIDO PRINCIPAL */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-                {/* ÓRDENES DE HOY - 2/3 */}
-                <div className="lg:col-span-2">
-                    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-                        <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
-                            <div>
-                                <h2 className="text-lg font-semibold text-slate-900">
-                                    Órdenes de Hoy
-                                </h2>
-                                <p className="text-sm text-slate-500">
-                                    {new Date().toLocaleDateString('es-CO', {
-                                        weekday: 'long',
-                                        day: 'numeric',
-                                        month: 'long'
-                                    })}
-                                </p>
-                            </div>
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                icon={<ArrowRight />}
-                                onClick={() => navigate('/operaciones/ordenes')}
-                            >
-                                Ver todas
-                            </Button>
-                        </div>
+                {/* EVENTOS - 2/3 */}
+                <div className="lg:col-span-2 space-y-8">
 
-                        {ordenesHoy?.length > 0 ? (
-                            <div className="divide-y divide-slate-100">
-                                {ordenesHoy.map((orden) => (
-                                    <div
-                                        key={orden.id}
-                                        className="px-6 py-4 hover:bg-slate-50 transition-colors cursor-pointer"
-                                        onClick={() => navigate(`/operaciones/ordenes/${orden.id}`)}
-                                    >
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-4">
-                                                <div className={`p-2 rounded-lg ${getTipoColor(orden.tipo)}`}>
-                                                    {orden.tipo === 'montaje'
-                                                        ? <Package className="w-5 h-5" />
-                                                        : <Truck className="w-5 h-5" />
-                                                    }
-                                                </div>
-                                                <div>
-                                                    <p className="font-medium text-slate-900">
-                                                        {orden.tipo === 'montaje' ? 'Montaje' : 'Desmontaje'} - {orden.cliente_nombre || 'Cliente'}
-                                                    </p>
-                                                    <div className="flex items-center gap-3 text-sm text-slate-500">
-                                                        <span className="flex items-center gap-1">
-                                                            <Clock className="w-4 h-4" />
-                                                            {formatFecha(orden.fecha_programada)}
-                                                        </span>
-                                                        <span className="flex items-center gap-1">
-                                                            <MapPin className="w-4 h-4" />
-                                                            {orden.ciudad_evento || 'Sin ciudad'}
-                                                            {orden.direccion_evento ? ` - ${orden.direccion_evento}` : ''}
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div className="flex items-center gap-3">
-                                                {orden.total_equipo > 0 && (
-                                                    <span className="flex items-center gap-1 text-sm text-slate-500">
-                                                        <Users className="w-4 h-4" />
-                                                        {orden.total_equipo}
-                                                    </span>
-                                                )}
-                                                <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getEstadoColor(orden.estado)}`}>
-                                                    {orden.estado?.replace('_', ' ')}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <div className="px-6 py-12 text-center">
-                                <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-3" />
-                                <p className="text-slate-600 font-medium">No hay órdenes programadas para hoy</p>
-                                <p className="text-sm text-slate-500 mt-1">Las nuevas órdenes aparecerán aquí</p>
-                            </div>
-                        )}
+                    {/* HOY */}
+                    <SeccionEventos
+                        titulo="Hoy"
+                        subtitulo={`${eventosHoy.length} evento(s) programado(s)`}
+                        eventos={eventosHoy}
+                        navigate={navigate}
+                        emptyMessage="No hay eventos programados para hoy"
+                    />
+
+                    {/* ESTA SEMANA */}
+                    <SeccionEventos
+                        titulo="Resto de la Semana"
+                        subtitulo={`${eventosRestaSemana.length} evento(s)`}
+                        eventos={eventosRestaSemana}
+                        navigate={navigate}
+                        emptyMessage="No hay más eventos esta semana"
+                    />
+
+                    {/* Link a todas las órdenes */}
+                    <div className="flex justify-center">
+                        <button
+                            onClick={() => navigate('/operaciones/ordenes')}
+                            className="text-sm text-orange-600 hover:text-orange-700 font-medium flex items-center gap-1"
+                        >
+                            Ver todas las órdenes
+                            <ArrowRight className="w-4 h-4" />
+                        </button>
                     </div>
                 </div>
 
-                {/* ALERTAS - 1/3 */}
-                <div>
+                {/* SIDEBAR - 1/3 */}
+                <div className="space-y-6">
+
+                    {/* ALERTAS */}
                     <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-                        <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+                        <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
                             <div className="flex items-center gap-2">
                                 <Bell className="w-5 h-5 text-slate-600" />
-                                <h2 className="text-lg font-semibold text-slate-900">
+                                <h2 className="font-semibold text-slate-900">
                                     Alertas
                                 </h2>
                             </div>
-                            {(alertasPendientes?.length || 0) > 0 && (
-                                <span className="px-2 py-1 bg-red-100 text-red-700 text-xs font-medium rounded-full">
-                                    {alertasPendientes.length}
+                            {(resumenAlertas?.total || 0) > 0 && (
+                                <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
+                                    (resumenAlertas?.criticas || 0) > 0
+                                        ? 'bg-red-100 text-red-700'
+                                        : 'bg-amber-100 text-amber-700'
+                                }`}>
+                                    {resumenAlertas.total}
                                 </span>
                             )}
                         </div>
@@ -307,11 +507,11 @@ export default function OperacionesDashboard() {
                                 {alertasPendientes.slice(0, 5).map((alerta) => (
                                     <div
                                         key={alerta.id}
-                                        className="px-6 py-3 hover:bg-slate-50 transition-colors"
+                                        className="px-5 py-3 hover:bg-slate-50 transition-colors"
                                     >
                                         <div className="flex items-start gap-3">
                                             <div className={`p-1.5 rounded-lg ${getSeveridadColor(alerta.severidad)}`}>
-                                                <AlertTriangle className="w-4 h-4" />
+                                                <AlertTriangle className="w-3.5 h-3.5" />
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <p className="text-sm font-medium text-slate-900 truncate">
@@ -326,14 +526,14 @@ export default function OperacionesDashboard() {
                                 ))}
                             </div>
                         ) : (
-                            <div className="px-6 py-8 text-center">
-                                <CheckCircle className="w-10 h-10 text-green-500 mx-auto mb-2" />
+                            <div className="px-5 py-8 text-center">
+                                <CheckCircle className="w-8 h-8 text-green-500 mx-auto mb-2" />
                                 <p className="text-sm text-slate-500">Sin alertas pendientes</p>
                             </div>
                         )}
 
-                        {(alertasPendientes?.length || 0) > 5 && (
-                            <div className="px-6 py-3 border-t border-slate-100">
+                        {(alertasPendientes?.length || 0) > 0 && (
+                            <div className="px-5 py-3 border-t border-slate-100">
                                 <button
                                     onClick={() => navigate('/operaciones/alertas')}
                                     className="text-sm text-orange-600 hover:text-orange-700 font-medium flex items-center gap-1"
@@ -343,6 +543,36 @@ export default function OperacionesDashboard() {
                                 </button>
                             </div>
                         )}
+                    </div>
+
+                    {/* ACCESOS RÁPIDOS */}
+                    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                        <div className="px-5 py-4 border-b border-slate-200">
+                            <h2 className="font-semibold text-slate-900">Accesos rápidos</h2>
+                        </div>
+                        <div className="p-3 space-y-1">
+                            <button
+                                onClick={() => navigate('/operaciones/ordenes')}
+                                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-50 transition-colors text-left"
+                            >
+                                <ClipboardList className="w-4 h-4 text-slate-500" />
+                                <span className="text-sm text-slate-700">Todas las órdenes</span>
+                            </button>
+                            <button
+                                onClick={() => navigate('/operaciones/calendario')}
+                                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-50 transition-colors text-left"
+                            >
+                                <Calendar className="w-4 h-4 text-slate-500" />
+                                <span className="text-sm text-slate-700">Calendario</span>
+                            </button>
+                            <button
+                                onClick={() => navigate('/operaciones/alertas')}
+                                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-50 transition-colors text-left"
+                            >
+                                <AlertTriangle className="w-4 h-4 text-slate-500" />
+                                <span className="text-sm text-slate-700">Gestionar alertas</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
