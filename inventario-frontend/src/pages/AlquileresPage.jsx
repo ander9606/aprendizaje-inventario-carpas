@@ -21,7 +21,9 @@ import {
   useGetAlquileres,
   useGetEstadisticasAlquileres
 } from '../hooks/useAlquileres'
+import { useAlertasManager } from '../hooks/useAlertas'
 import AlquilerCard from '../components/cards/AlquilerCard'
+import { AlertasPanel } from '../components/alertas'
 import Button from '../components/common/Button'
 import Spinner from '../components/common/Spinner'
 
@@ -84,6 +86,18 @@ export default function AlquileresPage() {
   // ============================================
   const { alquileres, isLoading } = useGetAlquileres()
   const { estadisticas, isLoading: loadingStats } = useGetEstadisticasAlquileres()
+
+  // ============================================
+  // ALERTAS
+  // ============================================
+  const {
+    alertas,
+    resumen: resumenAlertas,
+    isLoading: loadingAlertas,
+    refetch: refetchAlertas,
+    ignorar: ignorarAlerta,
+    isIgnorando
+  } = useAlertasManager()
 
   // ============================================
   // FILTRADO
@@ -165,16 +179,20 @@ export default function AlquileresPage() {
             </p>
           </div>
 
-          {cantidadVencidos > 0 && (
-            <div className="flex items-center gap-2 px-4 py-2 bg-red-50 border border-red-200 rounded-lg">
-              <AlertTriangle className="w-5 h-5 text-red-500" />
-              <span className="text-sm font-medium text-red-700">
-                {cantidadVencidos} alquiler{cantidadVencidos !== 1 ? 'es' : ''} con retorno vencido
-              </span>
-            </div>
-          )}
         </div>
       </div>
+
+      {/* Panel de Alertas */}
+      <AlertasPanel
+        alertas={alertas}
+        resumen={resumenAlertas}
+        isLoading={loadingAlertas}
+        onRefresh={refetchAlertas}
+        onIgnorar={ignorarAlerta}
+        isIgnorando={isIgnorando}
+        colapsable={true}
+        inicialmenteColapsado={false}
+      />
 
       {/* Estadísticas */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">

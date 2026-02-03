@@ -650,7 +650,7 @@ PUT    /api/configuracion/:clave        → Actualizar valor específico
 6. ~~**Registrar Retorno (Operaciones)** - Modal en OrdenDetallePage~~
 
 ### Prioridad Media
-7. **Integrar notificaciones** - Alertas de alquileres próximos a vencer (Pendiente)
+7. ~~**Integrar notificaciones** - Alertas de alquileres próximos a vencer~~ ✅ COMPLETADO
 8. ~~**Mejorar sincronización** - Actualizar estado de alquiler cuando orden cambia~~ ✅ COMPLETADO
 
 ### Prioridad Baja (Pendientes)
@@ -729,3 +729,48 @@ El servicio `SincronizacionAlquilerService.js` ahora incluye sincronización aut
 GET /api/operaciones/alquiler/:id/sincronizacion
 GET /api/operaciones/alquiler/:id/verificar-consistencia
 ```
+
+### Sistema de Alertas (Implementado)
+
+El sistema de alertas detecta situaciones que requieren atención en tiempo real:
+
+**Tipos de alertas:**
+
+| Código | Severidad | Descripción |
+|--------|-----------|-------------|
+| `RETORNO_VENCIDO` | 🔴 Crítico | Alquiler activo con fecha de retorno pasada |
+| `ORDEN_MONTAJE_VENCIDA` | 🔴 Crítico | Orden de montaje programada sin ejecutar |
+| `ORDEN_DESMONTAJE_VENCIDA` | 🔴 Crítico | Orden de desmontaje programada sin completar |
+| `ALQUILER_NO_INICIADO` | 🔴 Crítico | Alquiler programado cuya fecha de salida ya pasó |
+| `RETORNO_PROXIMO` | 🟡 Advertencia | Retorno esperado en los próximos 2 días |
+| `SALIDA_PROXIMA` | 🟡 Advertencia | Montaje programado para mañana |
+| `DESMONTAJE_PROXIMO` | 🟡 Advertencia | Desmontaje programado para mañana |
+
+**Componentes:**
+
+| Archivo | Descripción |
+|---------|-------------|
+| `backend/modules/alquileres/services/AlertasAlquilerService.js` | Servicio de detección de alertas |
+| `backend/modules/alquileres/controllers/alertasController.js` | Controlador de alertas |
+| `backend/modules/alquileres/routes/alertas.js` | Rutas de alertas |
+| `inventario-frontend/src/api/apiAlertas.js` | API cliente |
+| `inventario-frontend/src/hooks/useAlertas.js` | Hooks de React Query |
+| `inventario-frontend/src/components/alertas/AlertasPanel.jsx` | Panel de alertas |
+| `inventario-frontend/src/components/alertas/AlertaItem.jsx` | Componente de alerta individual |
+
+**Endpoints de alertas:**
+```
+GET  /api/alertas/alquileres           → Todas las alertas
+GET  /api/alertas/alquileres/criticas  → Solo alertas críticas
+GET  /api/alertas/alquileres/resumen   → Conteos por severidad
+POST /api/alertas/alquileres/ignorar   → Ignorar alerta por X días
+```
+
+**Integración en UI:**
+- `AlquileresPage.jsx` - Muestra AlertasPanel en la parte superior
+- `OperacionesDashboard.jsx` - Muestra alertas en panel lateral
+
+**Configuración:**
+- Advertencia de retorno próximo: 2 días
+- Auto-refresh de alertas: cada 60 segundos
+- Ignorar alerta: configurable de 1 a 7 días

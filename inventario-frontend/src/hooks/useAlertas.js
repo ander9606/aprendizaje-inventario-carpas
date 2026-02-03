@@ -36,6 +36,38 @@ export const useAlertas = (opciones = {}) => {
   })
 }
 
+// Alias para compatibilidad con imports existentes
+export const useGetAlertas = useAlertas
+
+/**
+ * Hook para obtener alertas pendientes con límite
+ * @param {Object} opciones - Opciones de la query
+ * @param {number} opciones.limit - Cantidad máxima de alertas
+ */
+export const useGetAlertasPendientes = (opciones = {}) => {
+  const { limit, enabled = true, refetchInterval = 60000 } = opciones
+
+  const query = useQuery({
+    queryKey: [ALERTAS_KEY, 'pendientes', { limit }],
+    queryFn: () => getAlertas({ limit }),
+    enabled,
+    refetchInterval,
+    staleTime: 30000,
+    select: (data) => {
+      const alertas = data.data || []
+      return limit ? alertas.slice(0, limit) : alertas
+    }
+  })
+
+  return {
+    alertas: query.data || [],
+    isLoading: query.isLoading,
+    isError: query.isError,
+    error: query.error,
+    refetch: query.refetch
+  }
+}
+
 /**
  * Hook para obtener solo alertas críticas
  */
@@ -69,6 +101,36 @@ export const useResumenAlertas = (opciones = {}) => {
 }
 
 /**
+ * Hook para obtener el resumen de alertas (alias para compatibilidad)
+ */
+export const useGetResumenAlertas = (opciones = {}) => {
+  const query = useResumenAlertas(opciones)
+
+  return {
+    resumen: query.data,
+    isLoading: query.isLoading,
+    isError: query.isError,
+    error: query.error,
+    refetch: query.refetch
+  }
+}
+
+/**
+ * Hook para obtener conteo de alertas
+ */
+export const useAlertasCount = (opciones = {}) => {
+  const query = useResumenAlertas(opciones)
+
+  return {
+    count: query.data?.total || 0,
+    criticas: query.data?.criticas || 0,
+    advertencias: query.data?.advertencias || 0,
+    isLoading: query.isLoading,
+    refetch: query.refetch
+  }
+}
+
+/**
  * Hook para ignorar una alerta
  */
 export const useIgnorarAlerta = () => {
@@ -84,6 +146,9 @@ export const useIgnorarAlerta = () => {
     }
   })
 }
+
+// Alias para compatibilidad (resolver = ignorar)
+export const useResolverAlerta = useIgnorarAlerta
 
 /**
  * Hook combinado que retorna alertas y métodos útiles
@@ -123,8 +188,13 @@ export const useAlertasManager = (opciones = {}) => {
 
 export default {
   useAlertas,
+  useGetAlertas,
+  useGetAlertasPendientes,
   useAlertasCriticas,
   useResumenAlertas,
+  useGetResumenAlertas,
+  useAlertasCount,
   useIgnorarAlerta,
+  useResolverAlerta,
   useAlertasManager
 }
