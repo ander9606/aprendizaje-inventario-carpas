@@ -649,9 +649,9 @@ PUT    /api/configuracion/:clave        → Actualizar valor específico
 5. ~~**Ejecutar Salida (Operaciones)** - Integrado en OrdenDetallePage~~
 6. ~~**Registrar Retorno (Operaciones)** - Modal en OrdenDetallePage~~
 
-### Prioridad Media (Pendientes)
-7. **Integrar notificaciones** - Alertas de alquileres próximos a vencer
-8. **Mejorar sincronización** - Actualizar estado de alquiler cuando orden cambia
+### Prioridad Media
+7. **Integrar notificaciones** - Alertas de alquileres próximos a vencer (Pendiente)
+8. ~~**Mejorar sincronización** - Actualizar estado de alquiler cuando orden cambia~~ ✅ COMPLETADO
 
 ### Prioridad Baja (Pendientes)
 9. **Reportes de alquileres** - Estadísticas y gráficos
@@ -705,3 +705,27 @@ PUT    /api/configuracion/:clave        → Actualizar valor específico
 ```
 
 **Servicio de sincronización:** `SincronizacionAlquilerService.js` maneja la comunicación entre módulos, asegurando consistencia de datos entre órdenes de trabajo y alquileres.
+
+### Sincronización Bidireccional (Implementado)
+
+El servicio `SincronizacionAlquilerService.js` ahora incluye sincronización automática:
+
+**Métodos disponibles:**
+- `sincronizarEstadoAlquiler(ordenId, nuevoEstado)` - Sincroniza automáticamente el alquiler cuando cambia el estado de una orden
+- `obtenerEstadoSincronizacion(alquilerId)` - Obtiene estado de sincronización para debugging/UI
+- `verificarConsistencia(alquilerId)` - Verifica consistencia entre orden y alquiler
+
+**Reglas de sincronización:**
+
+| Tipo Orden  | Nuevo Estado Orden | Acción sobre Alquiler              |
+|-------------|--------------------|------------------------------------|
+| montaje     | en_ruta            | → activo (si estaba programado)    |
+| montaje     | completado         | → activo (si no lo está ya)        |
+| desmontaje  | completado         | → finalizado                       |
+| cualquiera  | cancelado          | → cancelado (si ambas canceladas)  |
+
+**Endpoints de diagnóstico:**
+```
+GET /api/operaciones/alquiler/:id/sincronizacion
+GET /api/operaciones/alquiler/:id/verificar-consistencia
+```
