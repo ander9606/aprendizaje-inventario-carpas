@@ -3,12 +3,15 @@
 // Gestión de parámetros del sistema
 // ============================================
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { Settings, Percent, Calendar, Building, Save, RotateCcw } from 'lucide-react'
+import { Settings, Percent, Calendar, Building, Save, RotateCcw, Upload, Trash2, ImageIcon } from 'lucide-react'
 import Button from '../components/common/Button'
 import Spinner from '../components/common/Spinner'
-import { useGetConfiguraciones, useUpdateConfiguraciones } from '../hooks'
+import { useGetConfiguraciones, useUpdateConfiguraciones, useSubirLogo, useEliminarLogo } from '../hooks'
+
+// URL base del backend (sin /api)
+const BACKEND_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api').replace('/api', '')
 
 const ConfiguracionPage = () => {
   const [searchParams] = useSearchParams()
@@ -21,6 +24,9 @@ const ConfiguracionPage = () => {
   // Hooks
   const { data, isLoading, refetch } = useGetConfiguraciones()
   const updateMutation = useUpdateConfiguraciones()
+  const subirLogoMutation = useSubirLogo()
+  const eliminarLogoMutation = useEliminarLogo()
+  const fileInputRef = useRef(null)
 
   // Categorías disponibles con sus configuraciones
   const categorias = {
@@ -95,8 +101,41 @@ const ConfiguracionPage = () => {
     }
   }
 
+  // Handler para subir logo
+  const handleSubirLogo = async (e) => {
+    const archivo = e.target.files?.[0]
+    if (!archivo) return
+
+    try {
+      await subirLogoMutation.mutateAsync(archivo)
+      refetch()
+    } catch (err) {
+      console.error('Error al subir logo:', err)
+    }
+
+    // Limpiar input para permitir subir el mismo archivo de nuevo
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }
+
+  // Handler para eliminar logo
+  const handleEliminarLogo = async () => {
+    if (!confirm('¿Eliminar el logo de la empresa?')) return
+
+    try {
+      await eliminarLogoMutation.mutateAsync()
+      refetch()
+    } catch (err) {
+      console.error('Error al eliminar logo:', err)
+    }
+  }
+
   // Renderizar input según tipo
   const renderInput = (config) => {
+    // No renderizar empresa_logo como input de texto, se maneja aparte
+    if (config.clave === 'empresa_logo') return null
+
     const valor = valores[config.clave] ?? config.valor
 
     switch (config.tipo) {
@@ -146,8 +185,98 @@ const ConfiguracionPage = () => {
     }
   }
 
-  // Obtener configuraciones de la categoría activa
-  const configuracionesCategoria = data?.agrupadas?.[categoriaActiva] || []
+  // Obtener configuraciones de la categoría activa (filtrar empresa_logo)
+  const configuracionesCategoria = (data?.agrupadas?.[categoriaActiva] || [])
+    .filter(c => c.clave !== 'empresa_logo')
+
+  // Obtener URL del logo actual
+  const logoUrl = valores.empresa_logo
+
+  // Componente de logo
+  const renderLogoUpload = () => {
+    const cargando = subirLogoMutation.isPending || eliminarLogoMutation.isPending
+
+    return (
+      <div className="mb-6 pb-6 border-b border-slate-200">
+        <label className="block text-sm font-medium text-slate-700 mb-3">
+          Logo de la empresa
+        </label>
+        <div className="flex items-start gap-6">
+          {/* Preview del logo */}
+          <div className="w-40 h-40 border-2 border-dashed border-slate-300 rounded-xl flex items-center justify-center bg-slate-50 overflow-hidden flex-shrink-0">
+            {logoUrl ? (
+              <img
+                src={`${BACKEND_URL}${logoUrl}`}
+                alt="Logo empresa"
+                className="w-full h-full object-contain p-2"
+                onError={(e) => {
+                  e.target.style.display = 'none'
+                  e.target.nextSibling.style.display = 'flex'
+                }}
+              />
+            ) : null}
+            <div
+              className={`flex-col items-center justify-center text-slate-400 ${logoUrl ? 'hidden' : 'flex'}`}
+            >
+              <ImageIcon className="w-10 h-10 mb-1" />
+              <span className="text-xs">Sin logo</span>
+            </div>
+          </div>
+
+          {/* Controles */}
+          <div className="flex flex-col gap-3">
+            <p className="text-sm text-slate-500">
+              Sube el logo de tu empresa para que aparezca en cotizaciones y facturas.
+              Formatos: JPG, PNG, WebP o SVG. Tamaño máximo: 2MB.
+            </p>
+
+            <div className="flex items-center gap-2">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/svg+xml"
+                onChange={handleSubirLogo}
+                className="hidden"
+                id="logo-upload"
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={cargando}
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors disabled:opacity-50"
+              >
+                {cargando ? (
+                  <Spinner size="sm" />
+                ) : (
+                  <Upload className="w-4 h-4" />
+                )}
+                {logoUrl ? 'Cambiar logo' : 'Subir logo'}
+              </button>
+
+              {logoUrl && (
+                <button
+                  onClick={handleEliminarLogo}
+                  disabled={cargando}
+                  className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-700 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors disabled:opacity-50"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Eliminar
+                </button>
+              )}
+            </div>
+
+            {subirLogoMutation.isError && (
+              <p className="text-sm text-red-600">
+                Error al subir: {subirLogoMutation.error?.response?.data?.message || 'Intenta de nuevo'}
+              </p>
+            )}
+            {subirLogoMutation.isSuccess && (
+              <p className="text-sm text-green-600">Logo actualizado correctamente</p>
+            )}
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="p-6">
@@ -224,6 +353,9 @@ const ConfiguracionPage = () => {
               {categorias[categoriaActiva]?.descripcion}
             </p>
           </div>
+
+          {/* Logo upload - solo en pestaña empresa */}
+          {categoriaActiva === 'empresa' && renderLogoUpload()}
 
           {/* Formulario de configuraciones */}
           {configuracionesCategoria.length === 0 ? (

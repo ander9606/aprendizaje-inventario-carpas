@@ -73,3 +73,33 @@ export const useUpdateConfiguraciones = () => {
     }
   })
 }
+
+/**
+ * Hook para subir logo de empresa
+ */
+export const useSubirLogo = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: apiConfiguracion.subirLogo,
+    retry: 0,
+    onSuccess: () => {
+      queryClient.invalidateQueries(['configuracion'])
+    }
+  })
+}
+
+/**
+ * Hook para eliminar logo de empresa
+ */
+export const useEliminarLogo = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: apiConfiguracion.eliminarLogo,
+    retry: 0,
+    onSuccess: () => {
+      queryClient.invalidateQueries(['configuracion'])
+    }
+  })
+}
