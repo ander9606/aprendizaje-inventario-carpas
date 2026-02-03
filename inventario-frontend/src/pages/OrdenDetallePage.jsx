@@ -570,7 +570,7 @@ export default function OrdenDetallePage() {
 
         setEjecutandoSalida(true)
         try {
-            await ejecutarSalida.mutateAsync({ id: orden.id, data: {} })
+            await ejecutarSalida.mutateAsync({ ordenId: orden.id, datos: {} })
             toast.success('Salida ejecutada correctamente. Alquiler ahora activo.')
             refetch()
         } catch (error) {
@@ -582,7 +582,7 @@ export default function OrdenDetallePage() {
 
     const handleEjecutarRetorno = async (retornos) => {
         try {
-            await ejecutarRetorno.mutateAsync({ id: orden.id, retornos })
+            await ejecutarRetorno.mutateAsync({ ordenId: orden.id, retornos })
             toast.success('Retorno registrado correctamente. Alquiler finalizado.')
             setShowModalRetorno(false)
             refetch()

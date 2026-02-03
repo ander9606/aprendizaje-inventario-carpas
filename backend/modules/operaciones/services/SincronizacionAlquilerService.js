@@ -708,21 +708,41 @@ class SincronizacionAlquilerService {
       for (const elem of elementosOrden) {
         logger.debug(`[SincronizacionAlquilerService] Procesando: ${elem.elemento_nombre}`);
 
+        // Validar IDs numéricos (pueden ser null/NaN en elementos forzados)
+        const serieId = elem.serie_id && Number.isFinite(Number(elem.serie_id)) ? Number(elem.serie_id) : null;
+        const loteId = elem.lote_id && Number.isFinite(Number(elem.lote_id)) ? Number(elem.lote_id) : null;
+
+        // Si no tiene serie ni lote asignado, saltar (elemento pendiente/forzado)
+        if (!serieId && !loteId) {
+          logger.warn(
+            `[SincronizacionAlquilerService] Elemento "${elem.elemento_nombre}" (ID: ${elem.elemento_id}) ` +
+            `sin serie/lote asignado - saltando despacho de inventario`
+          );
+          // Aún así marcar como procesado en la orden
+          await connection.query(`
+            UPDATE orden_trabajo_elementos
+            SET estado = 'pendiente_asignacion',
+                verificado_salida = FALSE
+            WHERE id = ?
+          `, [elem.id]);
+          continue;
+        }
+
         // -----------------------------------------------------------------
         // Obtener ubicación original (para poder restaurar en retorno)
         // -----------------------------------------------------------------
         let ubicacionOriginalId = null;
 
-        if (elem.serie_id) {
+        if (serieId) {
           const [serieInfo] = await connection.query(
             'SELECT ubicacion_id FROM series WHERE id = ?',
-            [elem.serie_id]
+            [serieId]
           );
           ubicacionOriginalId = serieInfo[0]?.ubicacion_id;
-        } else if (elem.lote_id) {
+        } else if (loteId) {
           const [loteInfo] = await connection.query(
             'SELECT ubicacion_id FROM lotes WHERE id = ?',
-            [elem.lote_id]
+            [loteId]
           );
           ubicacionOriginalId = loteInfo[0]?.ubicacion_id;
         }
@@ -738,8 +758,8 @@ class SincronizacionAlquilerService {
         `, [
           alquilerId,
           elem.elemento_id,
-          elem.serie_id,
-          elem.lote_id,
+          serieId,
+          loteId,
           elem.cantidad,
           ubicacionOriginalId
         ]);
@@ -747,22 +767,22 @@ class SincronizacionAlquilerService {
         // -----------------------------------------------------------------
         // Actualizar inventario: SERIES
         // -----------------------------------------------------------------
-        if (elem.serie_id) {
+        if (serieId) {
           await connection.query(`
             UPDATE series
             SET estado = ?,
                 ubicacion_id = NULL
             WHERE id = ?
-          `, [ESTADOS_SERIE.ALQUILADO, elem.serie_id]);
+          `, [ESTADOS_SERIE.ALQUILADO, serieId]);
 
           // Obtener número de serie para log
           const [serieData] = await connection.query(
             'SELECT numero_serie FROM series WHERE id = ?',
-            [elem.serie_id]
+            [serieId]
           );
 
           resumen.series_actualizadas.push({
-            id: elem.serie_id,
+            id: serieId,
             numero_serie: serieData[0]?.numero_serie,
             estado_anterior: 'bueno/nuevo',
             estado_nuevo: ESTADOS_SERIE.ALQUILADO
@@ -774,21 +794,21 @@ class SincronizacionAlquilerService {
         // -----------------------------------------------------------------
         // Actualizar inventario: LOTES
         // -----------------------------------------------------------------
-        if (elem.lote_id) {
+        if (loteId) {
           await connection.query(`
             UPDATE lotes
             SET cantidad_disponible = cantidad_disponible - ?
             WHERE id = ?
-          `, [elem.cantidad, elem.lote_id]);
+          `, [elem.cantidad, loteId]);
 
           // Obtener info del lote para log
           const [loteData] = await connection.query(
             'SELECT lote_numero, cantidad_disponible FROM lotes WHERE id = ?',
-            [elem.lote_id]
+            [loteId]
           );
 
           resumen.lotes_actualizados.push({
-            id: elem.lote_id,
+            id: loteId,
             lote_numero: loteData[0]?.lote_numero,
             cantidad_reducida: elem.cantidad,
             cantidad_restante: loteData[0]?.cantidad_disponible
