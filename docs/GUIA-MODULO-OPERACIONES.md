@@ -315,61 +315,122 @@ export const useActualizarEntidad = () => {
 - Cambiar cualquier valor en `queryKey` dispara un refetch automatico
 - `invalidateQueries` marca como stale y dispara refetch inmediato
 
-### 3.3 Pagina Tipica
+### 3.3 Pagina Tipica (Patron Consistente)
+
+**IMPORTANTE:** Todas las paginas dentro de un layout con sidebar deben seguir este patron exacto para mantener consistencia visual entre modulos.
 
 ```jsx
 // inventario-frontend/src/pages/[Entidad]Page.jsx
 import { useState } from 'react';
-import { Plus, Search } from 'lucide-react';
+import { Plus, Search, Icono } from 'lucide-react';
+import Button from '../components/common/Button';
 import Spinner from '../components/common/Spinner';
 import EmptyState from '../components/common/EmptyState';
-import { useGetEntidades, useCrearEntidad } from '../hooks/use[Entidad]';
+import { useGetEntidades } from '../hooks/use[Entidad]';
 import EntidadCard from '../components/cards/EntidadCard';
 import EntidadFormModal from '../components/forms/EntidadFormModal';
 
 const EntidadPage = () => {
   const [modalAbierto, setModalAbierto] = useState(false);
   const [busqueda, setBusqueda] = useState('');
-  const { entidades, isLoading } = useGetEntidades();
+  const { entidades, isLoading, error, refetch } = useGetEntidades();
 
   const filtradas = entidades.filter(e =>
     e.nombre.toLowerCase().includes(busqueda.toLowerCase())
   );
 
-  if (isLoading) return <Spinner size="lg" text="Cargando..." />;
+  // === LOADING: Spinner inline (NUNCA fullScreen dentro de sidebar) ===
+  if (isLoading) {
+    return (
+      <div className="flex justify-center py-12">
+        <Spinner size="lg" text="Cargando entidades..." />
+      </div>
+    );
+  }
+
+  // === ERROR: Banner inline ===
+  if (error) {
+    return (
+      <div className="p-6">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
+          Error al cargar entidades: {error.message || 'Ocurrió un error inesperado'}
+          <Button variant="ghost" onClick={() => refetch()} className="ml-4">
+            Reintentar
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Header con titulo y boton crear */}
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-slate-900">Entidades</h1>
-        <button onClick={() => setModalAbierto(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg">
-          <Plus className="w-4 h-4" /> Nueva Entidad
-        </button>
+    <div className="p-6">
+      {/* === HEADER CONSISTENTE === */}
+      <div className="mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-3">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <Icono className="w-6 h-6 text-blue-600" />
+              </div>
+              Titulo de la Pagina
+            </h1>
+            <p className="text-slate-500 mt-1">
+              Descripcion breve de la pagina
+            </p>
+          </div>
+
+          {/* Botones de accion alineados a la derecha */}
+          <div className="flex items-center gap-3">
+            <Button
+              variant="primary"
+              icon={<Plus />}
+              onClick={() => setModalAbierto(true)}
+            >
+              Nueva Entidad
+            </Button>
+          </div>
+        </div>
       </div>
 
-      {/* Barra de busqueda */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-        <input
-          value={busqueda}
-          onChange={(e) => setBusqueda(e.target.value)}
-          placeholder="Buscar..."
-          className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg"
-        />
+      {/* === BUSCADOR (si aplica) === */}
+      <div className="bg-white rounded-xl border border-slate-200 p-4 mb-6">
+        <div className="flex items-center gap-3">
+          <Search className="w-5 h-5 text-slate-400" />
+          <input
+            type="text"
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            placeholder="Buscar..."
+            className="flex-1 border-0 focus:ring-0 text-sm placeholder:text-slate-400 outline-none"
+          />
+        </div>
       </div>
 
-      {/* Grid de tarjetas o estado vacio */}
+      {/* === CONTADOR === */}
+      <div className="mb-4 text-sm text-slate-500">
+        Mostrando {filtradas.length} entidad{filtradas.length !== 1 ? 'es' : ''}
+      </div>
+
+      {/* === GRID RESPONSIVE === */}
       {filtradas.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filtradas.map(e => <EntidadCard key={e.id} entidad={e} />)}
         </div>
       ) : (
-        <EmptyState titulo="Sin resultados" />
+        <EmptyState
+          type="no-data"
+          title="No hay entidades"
+          description="Crea tu primera entidad para comenzar"
+          icon={Icono}
+          action={{
+            label: "Crear entidad",
+            icon: <Plus />,
+            onClick: () => setModalAbierto(true)
+          }}
+        />
       )}
 
-      {/* Modal de formulario */}
+      {/* Modales */}
       {modalAbierto && (
         <EntidadFormModal onClose={() => setModalAbierto(false)} />
       )}
@@ -668,8 +729,233 @@ vite            7.1.7    # Build tool
 - Colores principales: `blue-600` (primario), `slate-*` (neutros)
 - Cards: `bg-white rounded-xl border border-slate-200 p-5`
 - Botones: `px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700`
-- Grid responsive: `grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4`
-- Spacing: `space-y-6` entre secciones, `gap-4` en grids
+- Grid responsive: `grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6`
+- Spacing: `space-y-6` entre secciones, `gap-6` en grids
+
+---
+
+## 7.1 Parametros de UI/UX Consistentes entre Modulos
+
+Esta seccion documenta los patrones visuales exactos que se deben seguir en **todas** las paginas de los modulos con sidebar (Alquileres, Operaciones, etc.) para mantener consistencia visual.
+
+### Layout de Paginas dentro de Sidebar
+
+Las paginas dentro de un layout con sidebar (`AlquileresLayout`, futuro `OperacionesLayout`) **NO deben**:
+- Usar `min-h-screen` ni `bg-slate-50` (el layout ya lo provee)
+- Tener headers sticky (`sticky top-0`) propios
+- Tener botones "Volver a Modulos" individuales (el sidebar lo provee)
+- Usar contenedores `container mx-auto` (el `<main>` del layout ya maneja el ancho)
+
+**SI deben:**
+- Usar `div.p-6` como contenedor raiz
+- Seguir el patron de header consistente (ver abajo)
+- Usar estados de carga/error inline
+
+### Header Consistente
+
+Todas las paginas deben usar este patron exacto para el header:
+
+```jsx
+{/* HEADER - Patron obligatorio */}
+<div className="mb-6">
+  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div>
+      <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-3">
+        <div className="p-2 bg-[COLOR]-100 rounded-lg">
+          <Icono className="w-6 h-6 text-[COLOR]-600" />
+        </div>
+        Titulo de la Pagina
+      </h1>
+      <p className="text-slate-500 mt-1">
+        Descripcion breve
+      </p>
+    </div>
+
+    {/* Botones de accion (opcional) */}
+    <div className="flex items-center gap-3">
+      <Button variant="primary" icon={<Plus />} onClick={handler}>
+        Accion Principal
+      </Button>
+    </div>
+  </div>
+</div>
+```
+
+**Parametros del icono del header:**
+- Contenedor: `p-2 bg-[COLOR]-100 rounded-lg`
+- Icono: `w-6 h-6 text-[COLOR]-600`
+- Gap entre icono y titulo: `gap-3`
+
+**Colores asignados por pagina (modulo Alquileres):**
+
+| Pagina | Color | Icono |
+|--------|-------|-------|
+| Cotizaciones | `purple` | `Calendar` |
+| Gestion de Alquileres | `indigo` | `Package` |
+| Clientes | `blue` | `Users` |
+| Calendario | `blue` | `Calendar` |
+| Transporte | `orange` | `Truck` |
+| Descuentos | `blue` | `Tag` |
+| Reportes | `blue` | `BarChart3` |
+| Configuracion | `slate` | `Settings` |
+
+**Para el modulo de Operaciones, seguir el mismo patron con colores coherentes:**
+
+| Pagina | Color sugerido | Icono |
+|--------|---------------|-------|
+| Dashboard Operaciones | `amber` | `Wrench` o `Cog` |
+| Ordenes de Trabajo | `blue` | `ClipboardList` |
+| Detalle de Orden | `blue` | `ClipboardCheck` |
+| Calendario Operaciones | `blue` | `Calendar` |
+| Alertas | `red` | `AlertTriangle` |
+
+### Estados de Carga
+
+**NUNCA usar `fullScreen` en paginas dentro de sidebar.** El spinner fullscreen rompe el layout del sidebar.
+
+```jsx
+// CORRECTO: Spinner inline
+if (isLoading) {
+  return (
+    <div className="flex justify-center py-12">
+      <Spinner size="lg" text="Cargando datos..." />
+    </div>
+  );
+}
+
+// INCORRECTO: Spinner fullscreen dentro de sidebar
+if (isLoading) {
+  return <Spinner fullScreen size="xl" text="Cargando..." />;
+}
+```
+
+### Estados de Error
+
+```jsx
+// CORRECTO: Banner inline
+if (error) {
+  return (
+    <div className="p-6">
+      <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
+        Error al cargar datos: {error.message || 'Ocurrio un error inesperado'}
+        <Button variant="ghost" onClick={() => refetch()} className="ml-4">
+          Reintentar
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+// INCORRECTO: Pagina completa centrada
+if (error) {
+  return (
+    <div className="min-h-screen flex items-center justify-center p-6">
+      ...
+    </div>
+  );
+}
+```
+
+### Sidebar con "Volver a Modulos"
+
+El sidebar de cada modulo debe incluir un boton "Volver a Modulos" en la parte superior:
+
+```jsx
+{/* Parte superior del sidebar, antes del titulo del modulo */}
+<button
+  onClick={() => navigate('/')}
+  className="flex items-center gap-2 text-slate-500 hover:text-slate-900 transition-colors text-sm mb-4 px-2 py-1.5 rounded-lg hover:bg-slate-100 w-full"
+>
+  <ArrowLeft className="w-4 h-4" />
+  <span>Volver a Módulos</span>
+</button>
+```
+
+Esto elimina la necesidad de botones "Volver" individuales en cada pagina.
+
+### Buscador Consistente
+
+```jsx
+<div className="bg-white rounded-xl border border-slate-200 p-4 mb-6">
+  <div className="flex items-center gap-3">
+    <Search className="w-5 h-5 text-slate-400" />
+    <input
+      type="text"
+      value={busqueda}
+      onChange={(e) => setBusqueda(e.target.value)}
+      placeholder="Buscar..."
+      className="flex-1 border-0 focus:ring-0 text-sm placeholder:text-slate-400 outline-none"
+    />
+    {busqueda && (
+      <button
+        onClick={() => setBusqueda('')}
+        className="text-sm text-blue-600 hover:underline"
+      >
+        Limpiar
+      </button>
+    )}
+  </div>
+</div>
+```
+
+### Contador de Resultados
+
+Siempre mostrar un contador antes del grid/tabla:
+
+```jsx
+<div className="mb-4 text-sm text-slate-500">
+  Mostrando {filtradas.length} orden{filtradas.length !== 1 ? 'es' : ''}
+</div>
+```
+
+### Grid Responsive
+
+```jsx
+{/* 1 columna mobile, 2 tablet, 3 desktop */}
+<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+  {items.map(item => <Card key={item.id} item={item} />)}
+</div>
+```
+
+### Tarjetas de Estadisticas (Stats)
+
+```jsx
+<div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+  <div className="bg-white rounded-xl border border-slate-200 p-4">
+    <div className="flex items-center gap-3">
+      <div className="p-2 bg-[COLOR]-100 rounded-lg">
+        <Icono className="w-5 h-5 text-[COLOR]-600" />
+      </div>
+      <div>
+        <p className="text-2xl font-bold text-slate-900">{valor}</p>
+        <p className="text-sm text-slate-500">Etiqueta</p>
+      </div>
+    </div>
+  </div>
+</div>
+```
+
+### Resumen de Clases CSS Estandar
+
+| Elemento | Clases |
+|----------|--------|
+| Contenedor pagina | `p-6` |
+| Contenedor con spacing | `p-6 space-y-6` |
+| Header wrapper | `mb-6` |
+| Header flex | `flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4` |
+| Titulo h1 | `text-2xl font-bold text-slate-900 flex items-center gap-3` |
+| Icono header bg | `p-2 bg-[COLOR]-100 rounded-lg` |
+| Icono header | `w-6 h-6 text-[COLOR]-600` |
+| Subtitulo | `text-slate-500 mt-1` |
+| Card/Panel | `bg-white rounded-xl border border-slate-200 p-4` |
+| Buscador input | `flex-1 border-0 focus:ring-0 text-sm placeholder:text-slate-400 outline-none` |
+| Contador | `mb-4 text-sm text-slate-500` |
+| Grid 3 cols | `grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6` |
+| Error banner | `bg-red-50 border border-red-200 rounded-lg p-4 text-red-700` |
+| Info banner | `bg-blue-50 border border-blue-200 rounded-lg p-4` |
+| Spinner loading | `flex justify-center py-12` + `Spinner size="lg"` |
+
+---
 
 ### Autenticacion
 - JWT en header: `Authorization: Bearer <token>`
