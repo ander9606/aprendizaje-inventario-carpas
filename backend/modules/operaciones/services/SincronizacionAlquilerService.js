@@ -1313,6 +1313,236 @@ class SincronizacionAlquilerService {
 
     return reporte;
   }
+
+  // ==========================================================================
+  // MÉTODO: sincronizarEstadoAlquiler
+  // ==========================================================================
+  /**
+   * Sincroniza el estado del alquiler cuando cambia el estado de una orden.
+   *
+   * Este método se llama automáticamente cuando una orden cambia de estado
+   * para mantener la consistencia entre órdenes y alquileres.
+   *
+   * REGLAS DE SINCRONIZACIÓN:
+   *
+   * | Tipo Orden  | Nuevo Estado Orden | Acción sobre Alquiler              |
+   * |-------------|--------------------|------------------------------------|
+   * | montaje     | en_ruta            | → activo (si estaba programado)    |
+   * | montaje     | completado         | → activo (si no lo está ya)        |
+   * | desmontaje  | completado         | → finalizado                       |
+   * | cualquiera  | cancelado          | → cancelado (si ambas canceladas)  |
+   *
+   * @param {number} ordenId - ID de la orden que cambió de estado
+   * @param {string} nuevoEstado - Nuevo estado de la orden
+   * @param {string} estadoAnterior - Estado anterior de la orden (opcional)
+   *
+   * @returns {Promise<Object>} Resultado de la sincronización:
+   *   - sincronizado: {boolean} true si se hizo algún cambio
+   *   - alquiler_id: {number} ID del alquiler
+   *   - estado_anterior: {string} Estado anterior del alquiler
+   *   - estado_nuevo: {string} Nuevo estado del alquiler (si cambió)
+   *   - mensaje: {string} Descripción de lo que se hizo
+   *
+   * @example
+   * // Cuando orden de montaje pasa a en_ruta
+   * await SincronizacionAlquilerService.sincronizarEstadoAlquiler(5, 'en_ruta', 'en_preparacion');
+   */
+  static async sincronizarEstadoAlquiler(ordenId, nuevoEstado, estadoAnterior = null) {
+    logger.info(`[SincronizacionAlquilerService] ========== SINCRONIZANDO ESTADO ALQUILER ==========`);
+    logger.info(`[SincronizacionAlquilerService] Orden: ${ordenId}, Nuevo estado: ${nuevoEstado}`);
+
+    // Obtener información de la orden y su alquiler
+    const [ordenRows] = await pool.query(`
+      SELECT
+        ot.id,
+        ot.tipo,
+        ot.estado,
+        ot.alquiler_id,
+        a.estado AS alquiler_estado
+      FROM ordenes_trabajo ot
+      LEFT JOIN alquileres a ON ot.alquiler_id = a.id
+      WHERE ot.id = ?
+    `, [ordenId]);
+
+    if (!ordenRows.length) {
+      logger.warn(`[SincronizacionAlquilerService] Orden ${ordenId} no encontrada`);
+      return { sincronizado: false, mensaje: 'Orden no encontrada' };
+    }
+
+    const orden = ordenRows[0];
+
+    // Si no tiene alquiler asociado, no hay nada que sincronizar
+    if (!orden.alquiler_id) {
+      logger.info(`[SincronizacionAlquilerService] Orden ${ordenId} no tiene alquiler asociado`);
+      return { sincronizado: false, mensaje: 'Orden sin alquiler asociado' };
+    }
+
+    const alquilerId = orden.alquiler_id;
+    const alquilerEstadoActual = orden.alquiler_estado;
+    let nuevoEstadoAlquiler = null;
+    let mensaje = '';
+
+    // ---------------------------------------------------------------------
+    // REGLA 1: Orden MONTAJE pasa a en_ruta → Alquiler debe ser ACTIVO
+    // ---------------------------------------------------------------------
+    if (orden.tipo === TIPOS_ORDEN.MONTAJE) {
+      if ([ESTADOS_ORDEN.EN_RUTA, ESTADOS_ORDEN.EN_SITIO, ESTADOS_ORDEN.EN_PROCESO, ESTADOS_ORDEN.COMPLETADO].includes(nuevoEstado)) {
+        if (alquilerEstadoActual === ESTADOS_ALQUILER.PROGRAMADO) {
+          nuevoEstadoAlquiler = ESTADOS_ALQUILER.ACTIVO;
+          mensaje = 'Alquiler activado por avance de orden de montaje';
+        }
+      }
+    }
+
+    // ---------------------------------------------------------------------
+    // REGLA 2: Orden DESMONTAJE pasa a completado → Alquiler FINALIZADO
+    // ---------------------------------------------------------------------
+    if (orden.tipo === TIPOS_ORDEN.DESMONTAJE) {
+      if (nuevoEstado === ESTADOS_ORDEN.COMPLETADO) {
+        if (alquilerEstadoActual === ESTADOS_ALQUILER.ACTIVO) {
+          nuevoEstadoAlquiler = ESTADOS_ALQUILER.FINALIZADO;
+          mensaje = 'Alquiler finalizado por completar orden de desmontaje';
+        }
+      }
+    }
+
+    // ---------------------------------------------------------------------
+    // REGLA 3: Orden CANCELADA → Verificar si ambas órdenes están canceladas
+    // ---------------------------------------------------------------------
+    if (nuevoEstado === ESTADOS_ORDEN.CANCELADO) {
+      // Obtener la otra orden del mismo alquiler
+      const [otrasOrdenes] = await pool.query(`
+        SELECT id, tipo, estado
+        FROM ordenes_trabajo
+        WHERE alquiler_id = ? AND id != ?
+      `, [alquilerId, ordenId]);
+
+      // Si la otra orden también está cancelada (o no existe), cancelar alquiler
+      const otraOrden = otrasOrdenes[0];
+      const otraCancelada = !otraOrden || otraOrden.estado === ESTADOS_ORDEN.CANCELADO;
+
+      if (otraCancelada && alquilerEstadoActual !== ESTADOS_ALQUILER.CANCELADO) {
+        nuevoEstadoAlquiler = ESTADOS_ALQUILER.CANCELADO;
+        mensaje = 'Alquiler cancelado porque todas las órdenes fueron canceladas';
+      }
+    }
+
+    // ---------------------------------------------------------------------
+    // Aplicar el cambio si es necesario
+    // ---------------------------------------------------------------------
+    if (nuevoEstadoAlquiler) {
+      await pool.query(`
+        UPDATE alquileres
+        SET estado = ?
+        WHERE id = ?
+      `, [nuevoEstadoAlquiler, alquilerId]);
+
+      logger.info(`[SincronizacionAlquilerService] Alquiler ${alquilerId}: ${alquilerEstadoActual} → ${nuevoEstadoAlquiler}`);
+      logger.info(`[SincronizacionAlquilerService] Motivo: ${mensaje}`);
+
+      return {
+        sincronizado: true,
+        alquiler_id: alquilerId,
+        estado_anterior: alquilerEstadoActual,
+        estado_nuevo: nuevoEstadoAlquiler,
+        mensaje
+      };
+    }
+
+    logger.info(`[SincronizacionAlquilerService] No se requiere sincronización`);
+    return {
+      sincronizado: false,
+      alquiler_id: alquilerId,
+      estado_actual: alquilerEstadoActual,
+      mensaje: 'No se requiere cambio de estado'
+    };
+  }
+
+  // ==========================================================================
+  // MÉTODO: obtenerEstadoSincronizacion
+  // ==========================================================================
+  /**
+   * Obtiene un resumen del estado de sincronización entre orden y alquiler.
+   * Útil para debugging y UI.
+   *
+   * @param {number} alquilerId - ID del alquiler
+   * @returns {Promise<Object>} Estado de sincronización
+   */
+  static async obtenerEstadoSincronizacion(alquilerId) {
+    const [resultado] = await pool.query(`
+      SELECT
+        a.id AS alquiler_id,
+        a.estado AS alquiler_estado,
+        a.fecha_salida,
+        a.fecha_retorno_real,
+        GROUP_CONCAT(
+          CONCAT(ot.tipo, ':', ot.estado)
+          ORDER BY ot.tipo
+          SEPARATOR ', '
+        ) AS ordenes_estados,
+        (SELECT COUNT(*) FROM alquiler_elementos WHERE alquiler_id = a.id) AS total_elementos,
+        (SELECT COUNT(*) FROM alquiler_elementos WHERE alquiler_id = a.id AND estado_retorno IS NOT NULL) AS elementos_retornados
+      FROM alquileres a
+      LEFT JOIN ordenes_trabajo ot ON ot.alquiler_id = a.id
+      WHERE a.id = ?
+      GROUP BY a.id
+    `, [alquilerId]);
+
+    if (!resultado.length) {
+      return null;
+    }
+
+    const datos = resultado[0];
+
+    // Parsear los estados de órdenes
+    const ordenesEstados = {};
+    if (datos.ordenes_estados) {
+      datos.ordenes_estados.split(', ').forEach(par => {
+        const [tipo, estado] = par.split(':');
+        ordenesEstados[tipo] = estado;
+      });
+    }
+
+    return {
+      alquiler_id: datos.alquiler_id,
+      alquiler_estado: datos.alquiler_estado,
+      fecha_salida: datos.fecha_salida,
+      fecha_retorno_real: datos.fecha_retorno_real,
+      ordenes: ordenesEstados,
+      elementos: {
+        total: datos.total_elementos,
+        retornados: datos.elementos_retornados,
+        pendientes: datos.total_elementos - datos.elementos_retornados
+      },
+      sincronizado: this._verificarSincronizacion(datos.alquiler_estado, ordenesEstados)
+    };
+  }
+
+  /**
+   * Verifica si el estado del alquiler es consistente con las órdenes.
+   * @private
+   */
+  static _verificarSincronizacion(alquilerEstado, ordenesEstados) {
+    const montaje = ordenesEstados['montaje'];
+    const desmontaje = ordenesEstados['desmontaje'];
+
+    // Alquiler programado: montaje debe estar pendiente/confirmado/en_preparacion
+    if (alquilerEstado === ESTADOS_ALQUILER.PROGRAMADO) {
+      return ['pendiente', 'confirmado', 'en_preparacion'].includes(montaje);
+    }
+
+    // Alquiler activo: montaje debe estar >= en_ruta
+    if (alquilerEstado === ESTADOS_ALQUILER.ACTIVO) {
+      return ['en_ruta', 'en_sitio', 'en_proceso', 'completado'].includes(montaje);
+    }
+
+    // Alquiler finalizado: desmontaje debe estar completado
+    if (alquilerEstado === ESTADOS_ALQUILER.FINALIZADO) {
+      return desmontaje === 'completado';
+    }
+
+    return true;
+  }
 }
 
 module.exports = SincronizacionAlquilerService;
