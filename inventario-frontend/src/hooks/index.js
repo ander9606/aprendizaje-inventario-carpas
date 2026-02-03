@@ -141,7 +141,9 @@ export {
     useGetConfiguracionCompleta,
     useGetConfiguracionPorCategoria,
     useUpdateConfiguracion,
-    useUpdateConfiguraciones
+    useUpdateConfiguraciones,
+    useSubirLogo,
+    useEliminarLogo
 } from './useConfiguracion'
 
 // Eventos

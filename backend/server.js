@@ -46,6 +46,8 @@ const authRoutes = require('./modules/auth/routes/auth');
 // Importar rutas - Operaciones
 const operacionesRoutes = require('./modules/operaciones/routes/operaciones');
 
+const path = require('path');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -82,6 +84,7 @@ const limiter = rateLimit({
 // Middleware
 app.use(cors(corsOptions));
 app.use(express.json());
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use(httpLogger); // Logging de todas las peticiones HTTP
 // Aplicar rate limiting solo en producción para evitar 429 durante desarrollo
 if (process.env.NODE_ENV === 'production') {

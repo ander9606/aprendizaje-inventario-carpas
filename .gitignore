@@ -43,3 +43,9 @@ $RECYCLE.BIN/
 dist/
 build/
 .cache/
+
+# ============================================
+# UPLOADS (archivos subidos por usuarios)
+# ============================================
+backend/uploads/**
+!backend/uploads/logos/.gitkeep
