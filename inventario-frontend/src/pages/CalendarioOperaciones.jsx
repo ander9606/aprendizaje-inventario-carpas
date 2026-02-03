@@ -1,6 +1,6 @@
 // ============================================
 // PÁGINA: CALENDARIO DE OPERACIONES
-// Vista de calendario para montajes y desmontajes
+// Vista de calendario con vistas mes/semana/día
 // ============================================
 
 import { useState, useMemo } from 'react'
@@ -8,68 +8,171 @@ import { useNavigate } from 'react-router-dom'
 import {
     Truck,
     Calendar,
-    ArrowLeft,
     ChevronLeft,
     ChevronRight,
     Package,
     Clock,
     MapPin,
-    Users,
-    ClipboardList
+    Users
 } from 'lucide-react'
 import { useGetCalendario } from '../hooks/useOrdenesTrabajo'
 import { useAuth } from '../hooks/auth/useAuth'
-import Button from '../components/common/Button'
 import Spinner from '../components/common/Spinner'
 
-/**
- * CalendarioOperaciones
- *
- * Calendario mensual que muestra:
- * - Montajes (verde)
- * - Desmontajes (naranja)
- * - Click en día para ver detalles
- */
-export default function CalendarioOperaciones() {
-    const navigate = useNavigate()
-    useAuth()
+// ============================================
+// CONSTANTES
+// ============================================
+const NOMBRES_MESES = [
+    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+]
 
-    // ============================================
-    // ESTADO: Fecha actual y seleccionada
-    // ============================================
-    const [currentDate, setCurrentDate] = useState(new Date())
-    const [selectedDate, setSelectedDate] = useState(null)
+const DIAS_SEMANA = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
+const DIAS_SEMANA_COMPLETO = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 
+const VISTAS = {
+    MES: 'mes',
+    SEMANA: 'semana',
+    DIA: 'dia'
+}
+
+// ============================================
+// HELPERS DE FECHA
+// ============================================
+const formatFechaKey = (date) => {
+    const y = date.getFullYear()
+    const m = String(date.getMonth() + 1).padStart(2, '0')
+    const d = String(date.getDate()).padStart(2, '0')
+    return `${y}-${m}-${d}`
+}
+
+const isToday = (date) => {
+    const today = new Date()
+    return date.getDate() === today.getDate() &&
+           date.getMonth() === today.getMonth() &&
+           date.getFullYear() === today.getFullYear()
+}
+
+const isSameDay = (d1, d2) => {
+    if (!d1 || !d2) return false
+    return d1.getDate() === d2.getDate() &&
+           d1.getMonth() === d2.getMonth() &&
+           d1.getFullYear() === d2.getFullYear()
+}
+
+const getInicioSemana = (date) => {
+    const d = new Date(date)
+    const day = d.getDay()
+    d.setDate(d.getDate() - day)
+    d.setHours(0, 0, 0, 0)
+    return d
+}
+
+const getFinSemana = (date) => {
+    const d = getInicioSemana(date)
+    d.setDate(d.getDate() + 6)
+    return d
+}
+
+const formatHora = (fecha) => {
+    return new Date(fecha).toLocaleTimeString('es-CO', {
+        hour: '2-digit',
+        minute: '2-digit'
+    })
+}
+
+// ============================================
+// COMPONENTE: Tarjeta de Orden (reutilizable)
+// ============================================
+const OrdenCard = ({ orden, compact = false, onClick }) => {
+    const esMontaje = orden.tipo === 'montaje'
+
+    if (compact) {
+        return (
+            <button
+                onClick={onClick}
+                className={`w-full text-left px-2 py-1 rounded text-xs truncate ${
+                    esMontaje
+                        ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
+                        : 'bg-orange-100 text-orange-700 hover:bg-orange-200'
+                } transition-colors`}
+            >
+                {formatHora(orden.fecha_programada)} {orden.cliente_nombre || 'Cliente'}
+            </button>
+        )
+    }
+
+    return (
+        <div
+            onClick={onClick}
+            className="px-4 py-3 hover:bg-slate-50 transition-colors cursor-pointer border-b border-slate-100 last:border-b-0"
+        >
+            <div className="flex items-start gap-3">
+                <div className={`p-2 rounded-lg shrink-0 ${
+                    esMontaje ? 'bg-emerald-100' : 'bg-orange-100'
+                }`}>
+                    {esMontaje
+                        ? <Package className="w-4 h-4 text-emerald-600" />
+                        : <Truck className="w-4 h-4 text-orange-600" />
+                    }
+                </div>
+                <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-0.5">
+                        <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${
+                            esMontaje
+                                ? 'bg-emerald-100 text-emerald-700'
+                                : 'bg-orange-100 text-orange-700'
+                        }`}>
+                            {esMontaje ? 'Montaje' : 'Desmontaje'}
+                        </span>
+                        <span className="text-xs text-slate-500">#{orden.id}</span>
+                    </div>
+                    <p className="font-medium text-slate-900 truncate">
+                        {orden.cliente_nombre || 'Cliente'}
+                    </p>
+                    <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 mt-1">
+                        <span className="flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            {formatHora(orden.fecha_programada)}
+                        </span>
+                        {(orden.ciudad_evento || orden.direccion_evento) && (
+                            <span className="flex items-center gap-1 truncate">
+                                <MapPin className="w-3 h-3" />
+                                {orden.ciudad_evento || ''}
+                                {orden.direccion_evento ? ` - ${orden.direccion_evento}` : ''}
+                            </span>
+                        )}
+                        {orden.total_equipo > 0 && (
+                            <span className="flex items-center gap-1">
+                                <Users className="w-3 h-3" />
+                                {orden.total_equipo}
+                            </span>
+                        )}
+                    </div>
+                </div>
+            </div>
+        </div>
+    )
+}
+
+// ============================================
+// COMPONENTE: Vista Mes
+// ============================================
+const VistaMes = ({ currentDate, selectedDate, setSelectedDate, ordenesPorFecha, navigate }) => {
     const year = currentDate.getFullYear()
     const month = currentDate.getMonth()
 
-    // Calcular rango del mes
-    const fechaDesde = new Date(year, month, 1).toISOString().split('T')[0]
-    const fechaHasta = new Date(year, month + 1, 0).toISOString().split('T')[0]
-
-    // ============================================
-    // HOOKS: Obtener datos del calendario
-    // ============================================
-    const { eventos: calendario, isLoading } = useGetCalendario({
-        desde: fechaDesde,
-        hasta: fechaHasta
-    })
-
-    // ============================================
-    // CÁLCULOS: Días del mes
-    // ============================================
     const diasDelMes = useMemo(() => {
         const primerDia = new Date(year, month, 1)
         const ultimoDia = new Date(year, month + 1, 0)
         const diasEnMes = ultimoDia.getDate()
-        const diaInicio = primerDia.getDay() // 0 = domingo
+        const diaInicio = primerDia.getDay()
 
         const dias = []
 
-        // Días del mes anterior para completar la primera semana
-        const diasMesAnterior = diaInicio
+        // Días del mes anterior
         const ultimoDiaMesAnterior = new Date(year, month, 0).getDate()
-        for (let i = diasMesAnterior - 1; i >= 0; i--) {
+        for (let i = diaInicio - 1; i >= 0; i--) {
             dias.push({
                 day: ultimoDiaMesAnterior - i,
                 isCurrentMonth: false,
@@ -86,8 +189,8 @@ export default function CalendarioOperaciones() {
             })
         }
 
-        // Días del próximo mes para completar la última semana
-        const diasRestantes = 42 - dias.length // 6 semanas * 7 días
+        // Completar última semana
+        const diasRestantes = 42 - dias.length
         for (let i = 1; i <= diasRestantes; i++) {
             dias.push({
                 day: i,
@@ -99,31 +202,305 @@ export default function CalendarioOperaciones() {
         return dias
     }, [year, month])
 
+    return (
+        <div className="p-4">
+            {/* Días de la semana */}
+            <div className="grid grid-cols-7 gap-1 mb-2">
+                {DIAS_SEMANA.map((dia) => (
+                    <div key={dia} className="text-center py-2 text-sm font-medium text-slate-500">
+                        {dia}
+                    </div>
+                ))}
+            </div>
+
+            {/* Días del mes */}
+            <div className="grid grid-cols-7 gap-1">
+                {diasDelMes.map((dia, index) => {
+                    const fechaKey = formatFechaKey(dia.date)
+                    const ordenesDia = ordenesPorFecha[fechaKey] || []
+                    const montajes = ordenesDia.filter(o => o.tipo === 'montaje').length
+                    const desmontajes = ordenesDia.filter(o => o.tipo === 'desmontaje').length
+
+                    return (
+                        <button
+                            key={index}
+                            onClick={() => setSelectedDate(dia.date)}
+                            className={`
+                                relative min-h-[80px] p-2 rounded-lg border transition-all text-left
+                                ${dia.isCurrentMonth
+                                    ? 'bg-white hover:bg-slate-50'
+                                    : 'bg-slate-50 text-slate-400'
+                                }
+                                ${isToday(dia.date)
+                                    ? 'border-blue-500 ring-1 ring-blue-500'
+                                    : 'border-slate-200'
+                                }
+                                ${isSameDay(dia.date, selectedDate)
+                                    ? 'border-orange-500 ring-1 ring-orange-500 bg-orange-50'
+                                    : ''
+                                }
+                            `}
+                        >
+                            <span className={`
+                                text-sm font-medium
+                                ${isToday(dia.date) ? 'text-blue-600' : ''}
+                            `}>
+                                {dia.day}
+                            </span>
+
+                            {ordenesDia.length > 0 && (
+                                <div className="mt-1 space-y-1">
+                                    {montajes > 0 && (
+                                        <div className="flex items-center gap-1 text-xs">
+                                            <div className="w-2 h-2 bg-emerald-500 rounded-full" />
+                                            <span className="text-emerald-700">{montajes}</span>
+                                        </div>
+                                    )}
+                                    {desmontajes > 0 && (
+                                        <div className="flex items-center gap-1 text-xs">
+                                            <div className="w-2 h-2 bg-orange-500 rounded-full" />
+                                            <span className="text-orange-700">{desmontajes}</span>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </button>
+                    )
+                })}
+            </div>
+        </div>
+    )
+}
+
+// ============================================
+// COMPONENTE: Vista Semana
+// ============================================
+const VistaSemana = ({ currentDate, ordenesPorFecha, navigate }) => {
+    const inicioSemana = getInicioSemana(currentDate)
+
+    const diasSemana = useMemo(() => {
+        const dias = []
+        for (let i = 0; i < 7; i++) {
+            const d = new Date(inicioSemana)
+            d.setDate(d.getDate() + i)
+            dias.push(d)
+        }
+        return dias
+    }, [inicioSemana.getTime()])
+
+    // Horas del día (6am a 10pm)
+    const horas = []
+    for (let h = 6; h <= 22; h++) {
+        horas.push(h)
+    }
+
+    return (
+        <div className="overflow-x-auto">
+            <div className="min-w-[700px]">
+                {/* Header con días */}
+                <div className="grid grid-cols-[60px_repeat(7,1fr)] border-b border-slate-200">
+                    <div className="p-2" />
+                    {diasSemana.map((dia, i) => (
+                        <div
+                            key={i}
+                            className={`p-3 text-center border-l border-slate-200 ${
+                                isToday(dia) ? 'bg-blue-50' : ''
+                            }`}
+                        >
+                            <p className="text-xs text-slate-500">{DIAS_SEMANA[dia.getDay()]}</p>
+                            <p className={`text-lg font-bold ${
+                                isToday(dia) ? 'text-blue-600' : 'text-slate-900'
+                            }`}>
+                                {dia.getDate()}
+                            </p>
+                        </div>
+                    ))}
+                </div>
+
+                {/* Grid de horas */}
+                <div className="relative">
+                    {horas.map((hora) => (
+                        <div key={hora} className="grid grid-cols-[60px_repeat(7,1fr)] border-b border-slate-100">
+                            <div className="p-2 text-xs text-slate-400 text-right pr-3 py-3">
+                                {`${hora}:00`}
+                            </div>
+                            {diasSemana.map((dia, i) => {
+                                const fechaKey = formatFechaKey(dia)
+                                const ordenesDia = ordenesPorFecha[fechaKey] || []
+                                const ordenesHora = ordenesDia.filter(o => {
+                                    const h = new Date(o.fecha_programada).getHours()
+                                    return h === hora
+                                })
+
+                                return (
+                                    <div
+                                        key={i}
+                                        className={`border-l border-slate-200 min-h-[48px] p-0.5 ${
+                                            isToday(dia) ? 'bg-blue-50/30' : ''
+                                        }`}
+                                    >
+                                        {ordenesHora.map((orden) => (
+                                            <OrdenCard
+                                                key={orden.id}
+                                                orden={orden}
+                                                compact
+                                                onClick={() => navigate(`/operaciones/ordenes/${orden.id}`)}
+                                            />
+                                        ))}
+                                    </div>
+                                )
+                            })}
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
+    )
+}
+
+// ============================================
+// COMPONENTE: Vista Día
+// ============================================
+const VistaDia = ({ currentDate, ordenesPorFecha, navigate }) => {
+    const fechaKey = formatFechaKey(currentDate)
+    const ordenesDia = ordenesPorFecha[fechaKey] || []
+
+    // Horas del día (6am a 10pm)
+    const horas = []
+    for (let h = 6; h <= 22; h++) {
+        horas.push(h)
+    }
+
+    return (
+        <div>
+            {/* Header del día */}
+            <div className="px-6 py-4 border-b border-slate-200 bg-slate-50">
+                <p className="text-lg font-semibold text-slate-900">
+                    {DIAS_SEMANA_COMPLETO[currentDate.getDay()]}, {currentDate.getDate()} de {NOMBRES_MESES[currentDate.getMonth()]}
+                </p>
+                <p className="text-sm text-slate-500">
+                    {ordenesDia.length} orden{ordenesDia.length !== 1 ? 'es' : ''} programada{ordenesDia.length !== 1 ? 's' : ''}
+                </p>
+            </div>
+
+            {/* Timeline de horas */}
+            <div>
+                {horas.map((hora) => {
+                    const ordenesHora = ordenesDia.filter(o => {
+                        const h = new Date(o.fecha_programada).getHours()
+                        return h === hora
+                    })
+
+                    return (
+                        <div key={hora} className="flex border-b border-slate-100">
+                            <div className="w-20 shrink-0 p-3 text-right text-sm text-slate-400 border-r border-slate-200">
+                                {`${hora}:00`}
+                            </div>
+                            <div className="flex-1 min-h-[56px]">
+                                {ordenesHora.length > 0 ? (
+                                    <div className="divide-y divide-slate-100">
+                                        {ordenesHora.map((orden) => (
+                                            <OrdenCard
+                                                key={orden.id}
+                                                orden={orden}
+                                                onClick={() => navigate(`/operaciones/ordenes/${orden.id}`)}
+                                            />
+                                        ))}
+                                    </div>
+                                ) : null}
+                            </div>
+                        </div>
+                    )
+                })}
+            </div>
+
+            {/* Si no hay órdenes */}
+            {ordenesDia.length === 0 && (
+                <div className="px-6 py-12 text-center">
+                    <Calendar className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                    <p className="text-slate-600 font-medium">No hay órdenes para este día</p>
+                    <p className="text-sm text-slate-500 mt-1">Las órdenes programadas aparecerán aquí</p>
+                </div>
+            )}
+        </div>
+    )
+}
+
+// ============================================
+// COMPONENTE PRINCIPAL
+// ============================================
+export default function CalendarioOperaciones() {
+    const navigate = useNavigate()
+    useAuth()
+
+    // ============================================
+    // ESTADO
+    // ============================================
+    const [vista, setVista] = useState(VISTAS.MES)
+    const [currentDate, setCurrentDate] = useState(new Date())
+    const [selectedDate, setSelectedDate] = useState(null)
+
+    const year = currentDate.getFullYear()
+    const month = currentDate.getMonth()
+
+    // Calcular rango según la vista
+    const rango = useMemo(() => {
+        if (vista === VISTAS.MES) {
+            return {
+                desde: new Date(year, month, 1).toISOString().split('T')[0],
+                hasta: new Date(year, month + 1, 0).toISOString().split('T')[0]
+            }
+        } else if (vista === VISTAS.SEMANA) {
+            const inicio = getInicioSemana(currentDate)
+            const fin = getFinSemana(currentDate)
+            return {
+                desde: formatFechaKey(inicio),
+                hasta: formatFechaKey(fin)
+            }
+        } else {
+            const fecha = formatFechaKey(currentDate)
+            return { desde: fecha, hasta: fecha }
+        }
+    }, [vista, year, month, currentDate.getTime()])
+
+    // ============================================
+    // HOOKS: Obtener datos
+    // ============================================
+    const { eventos: calendario, isLoading } = useGetCalendario({
+        desde: rango.desde,
+        hasta: rango.hasta
+    })
+
     // Agrupar órdenes por fecha
     const ordenesPorFecha = useMemo(() => {
         if (!calendario) return {}
-
         const agrupado = {}
         calendario.forEach(orden => {
             const fecha = orden.fecha_programada?.split('T')[0]
-            if (!agrupado[fecha]) {
-                agrupado[fecha] = []
-            }
+            if (!agrupado[fecha]) agrupado[fecha] = []
             agrupado[fecha].push(orden)
         })
         return agrupado
     }, [calendario])
 
-    // ============================================
-    // HANDLERS
-    // ============================================
-    const mesAnterior = () => {
-        setCurrentDate(new Date(year, month - 1, 1))
-        setSelectedDate(null)
-    }
+    // Órdenes del día seleccionado (para panel lateral en vista mes)
+    const ordenesSeleccionadas = selectedDate
+        ? (ordenesPorFecha[formatFechaKey(selectedDate)] || [])
+        : []
 
-    const mesSiguiente = () => {
-        setCurrentDate(new Date(year, month + 1, 1))
+    // ============================================
+    // NAVEGACIÓN
+    // ============================================
+    const navegar = (direccion) => {
+        const d = new Date(currentDate)
+        if (vista === VISTAS.MES) {
+            d.setMonth(d.getMonth() + direccion)
+        } else if (vista === VISTAS.SEMANA) {
+            d.setDate(d.getDate() + (7 * direccion))
+        } else {
+            d.setDate(d.getDate() + direccion)
+        }
+        setCurrentDate(d)
         setSelectedDate(null)
     }
 
@@ -132,209 +509,150 @@ export default function CalendarioOperaciones() {
         setSelectedDate(null)
     }
 
-    const formatFecha = (date) => {
-        return date.toISOString().split('T')[0]
+    // Título dinámico según vista
+    const getTitulo = () => {
+        if (vista === VISTAS.MES) {
+            return `${NOMBRES_MESES[month]} ${year}`
+        } else if (vista === VISTAS.SEMANA) {
+            const inicio = getInicioSemana(currentDate)
+            const fin = getFinSemana(currentDate)
+            const mInicio = NOMBRES_MESES[inicio.getMonth()].substring(0, 3)
+            const mFin = NOMBRES_MESES[fin.getMonth()].substring(0, 3)
+            if (inicio.getMonth() === fin.getMonth()) {
+                return `${inicio.getDate()} - ${fin.getDate()} ${mFin} ${year}`
+            }
+            return `${inicio.getDate()} ${mInicio} - ${fin.getDate()} ${mFin} ${year}`
+        } else {
+            return `${DIAS_SEMANA_COMPLETO[currentDate.getDay()]}, ${currentDate.getDate()} de ${NOMBRES_MESES[month]}`
+        }
     }
-
-    const isToday = (date) => {
-        const today = new Date()
-        return date.getDate() === today.getDate() &&
-               date.getMonth() === today.getMonth() &&
-               date.getFullYear() === today.getFullYear()
-    }
-
-    const isSelected = (date) => {
-        return selectedDate && formatFecha(date) === formatFecha(selectedDate)
-    }
-
-    const getOrdenesDelDia = (date) => {
-        const fechaStr = formatFecha(date)
-        return ordenesPorFecha[fechaStr] || []
-    }
-
-    const ordenesSeleccionadas = selectedDate ? getOrdenesDelDia(selectedDate) : []
 
     // ============================================
     // RENDER
     // ============================================
-    const nombresMeses = [
-        'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-        'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
-    ]
-
-    const diasSemana = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
-
     return (
-        <div className="min-h-screen bg-slate-50">
-            {/* HEADER */}
-            <div className="bg-white border-b border-slate-200 sticky top-0 z-10 shadow-sm">
-                <div className="container mx-auto px-6 py-4">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                            <button
-                                onClick={() => navigate('/operaciones')}
-                                className="p-2 hover:bg-slate-100 rounded-lg transition-colors flex items-center gap-2 text-slate-600 hover:text-slate-900"
-                            >
-                                <ArrowLeft className="w-5 h-5" />
-                                <span>Operaciones</span>
-                            </button>
-
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 bg-blue-100 rounded-xl">
-                                    <Calendar className="w-6 h-6 text-blue-600" />
-                                </div>
-                                <div>
-                                    <h1 className="text-xl font-bold text-slate-900">
-                                        Calendario de Operaciones
-                                    </h1>
-                                    <p className="text-sm text-slate-600">
-                                        Vista mensual de montajes y desmontajes
-                                    </p>
-                                </div>
+        <div className="p-6">
+            {/* HEADER CONSISTENTE */}
+            <div className="mb-6">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div>
+                        <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-3">
+                            <div className="p-2 bg-blue-100 rounded-lg">
+                                <Calendar className="w-6 h-6 text-blue-600" />
                             </div>
-                        </div>
+                            Calendario de Operaciones
+                        </h1>
+                        <p className="text-slate-500 mt-1">
+                            Programación de montajes y desmontajes
+                        </p>
+                    </div>
 
-                        <div className="flex items-center gap-3">
-                            <Button
-                                variant="secondary"
-                                icon={<ClipboardList />}
-                                onClick={() => navigate('/operaciones/ordenes')}
+                    {/* Selector de vista */}
+                    <div className="flex items-center bg-white border border-slate-200 rounded-lg p-1">
+                        {[
+                            { key: VISTAS.DIA, label: 'Día' },
+                            { key: VISTAS.SEMANA, label: 'Semana' },
+                            { key: VISTAS.MES, label: 'Mes' }
+                        ].map(({ key, label }) => (
+                            <button
+                                key={key}
+                                onClick={() => { setVista(key); setSelectedDate(null) }}
+                                className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                                    vista === key
+                                        ? 'bg-blue-600 text-white shadow-sm'
+                                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                                }`}
                             >
-                                Lista de Órdenes
-                            </Button>
-                        </div>
+                                {label}
+                            </button>
+                        ))}
                     </div>
                 </div>
             </div>
 
-            {/* CONTENIDO */}
-            <div className="container mx-auto px-6 py-6">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-                    {/* CALENDARIO - 2/3 */}
-                    <div className="lg:col-span-2">
-                        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-                            {/* Controles del mes */}
-                            <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
-                                <div className="flex items-center gap-4">
-                                    <button
-                                        onClick={mesAnterior}
-                                        className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
-                                    >
-                                        <ChevronLeft className="w-5 h-5 text-slate-600" />
-                                    </button>
-                                    <h2 className="text-lg font-semibold text-slate-900 min-w-[180px] text-center">
-                                        {nombresMeses[month]} {year}
-                                    </h2>
-                                    <button
-                                        onClick={mesSiguiente}
-                                        className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
-                                    >
-                                        <ChevronRight className="w-5 h-5 text-slate-600" />
-                                    </button>
-                                </div>
+            {/* CONTENIDO PRINCIPAL */}
+            <div className={`grid gap-6 ${vista === VISTAS.MES ? 'grid-cols-1 lg:grid-cols-3' : 'grid-cols-1'}`}>
+                {/* CALENDARIO */}
+                <div className={vista === VISTAS.MES ? 'lg:col-span-2' : ''}>
+                    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                        {/* Controles de navegación */}
+                        <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
                                 <button
-                                    onClick={irAHoy}
-                                    className="px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                    onClick={() => navegar(-1)}
+                                    className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
                                 >
-                                    Hoy
+                                    <ChevronLeft className="w-5 h-5 text-slate-600" />
+                                </button>
+                                <h2 className="text-lg font-semibold text-slate-900 min-w-[200px] text-center">
+                                    {getTitulo()}
+                                </h2>
+                                <button
+                                    onClick={() => navegar(1)}
+                                    className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+                                >
+                                    <ChevronRight className="w-5 h-5 text-slate-600" />
                                 </button>
                             </div>
+                            <button
+                                onClick={irAHoy}
+                                className="px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                            >
+                                Hoy
+                            </button>
+                        </div>
 
-                            {/* Grid del calendario */}
-                            {isLoading ? (
-                                <div className="flex justify-center py-12">
-                                    <Spinner size="lg" text="Cargando calendario..." />
+                        {/* Vista del calendario */}
+                        {isLoading ? (
+                            <div className="flex justify-center py-12">
+                                <Spinner size="lg" text="Cargando calendario..." />
+                            </div>
+                        ) : (
+                            <>
+                                {vista === VISTAS.MES && (
+                                    <VistaMes
+                                        currentDate={currentDate}
+                                        selectedDate={selectedDate}
+                                        setSelectedDate={setSelectedDate}
+                                        ordenesPorFecha={ordenesPorFecha}
+                                        navigate={navigate}
+                                    />
+                                )}
+                                {vista === VISTAS.SEMANA && (
+                                    <VistaSemana
+                                        currentDate={currentDate}
+                                        ordenesPorFecha={ordenesPorFecha}
+                                        navigate={navigate}
+                                    />
+                                )}
+                                {vista === VISTAS.DIA && (
+                                    <VistaDia
+                                        currentDate={currentDate}
+                                        ordenesPorFecha={ordenesPorFecha}
+                                        navigate={navigate}
+                                    />
+                                )}
+                            </>
+                        )}
+
+                        {/* Leyenda (siempre visible) */}
+                        <div className="px-6 py-3 border-t border-slate-200 bg-slate-50">
+                            <div className="flex items-center gap-6 text-sm">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-3 h-3 bg-emerald-500 rounded-full" />
+                                    <span className="text-slate-600">Montajes</span>
                                 </div>
-                            ) : (
-                                <div className="p-4">
-                                    {/* Días de la semana */}
-                                    <div className="grid grid-cols-7 gap-1 mb-2">
-                                        {diasSemana.map((dia) => (
-                                            <div
-                                                key={dia}
-                                                className="text-center py-2 text-sm font-medium text-slate-500"
-                                            >
-                                                {dia}
-                                            </div>
-                                        ))}
-                                    </div>
-
-                                    {/* Días del mes */}
-                                    <div className="grid grid-cols-7 gap-1">
-                                        {diasDelMes.map((dia, index) => {
-                                            const ordenesDia = getOrdenesDelDia(dia.date)
-                                            const montajes = ordenesDia.filter(o => o.tipo === 'montaje').length
-                                            const desmontajes = ordenesDia.filter(o => o.tipo === 'desmontaje').length
-
-                                            return (
-                                                <button
-                                                    key={index}
-                                                    onClick={() => setSelectedDate(dia.date)}
-                                                    className={`
-                                                        relative min-h-[80px] p-2 rounded-lg border transition-all
-                                                        ${dia.isCurrentMonth
-                                                            ? 'bg-white hover:bg-slate-50'
-                                                            : 'bg-slate-50 text-slate-400'
-                                                        }
-                                                        ${isToday(dia.date)
-                                                            ? 'border-blue-500 ring-1 ring-blue-500'
-                                                            : 'border-slate-200'
-                                                        }
-                                                        ${isSelected(dia.date)
-                                                            ? 'border-orange-500 ring-1 ring-orange-500 bg-orange-50'
-                                                            : ''
-                                                        }
-                                                    `}
-                                                >
-                                                    <span className={`
-                                                        text-sm font-medium
-                                                        ${isToday(dia.date) ? 'text-blue-600' : ''}
-                                                    `}>
-                                                        {dia.day}
-                                                    </span>
-
-                                                    {/* Indicadores de órdenes */}
-                                                    {ordenesDia.length > 0 && (
-                                                        <div className="mt-1 space-y-1">
-                                                            {montajes > 0 && (
-                                                                <div className="flex items-center gap-1 text-xs">
-                                                                    <div className="w-2 h-2 bg-emerald-500 rounded-full" />
-                                                                    <span className="text-emerald-700">{montajes}</span>
-                                                                </div>
-                                                            )}
-                                                            {desmontajes > 0 && (
-                                                                <div className="flex items-center gap-1 text-xs">
-                                                                    <div className="w-2 h-2 bg-orange-500 rounded-full" />
-                                                                    <span className="text-orange-700">{desmontajes}</span>
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    )}
-                                                </button>
-                                            )
-                                        })}
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Leyenda */}
-                            <div className="px-6 py-3 border-t border-slate-200 bg-slate-50">
-                                <div className="flex items-center gap-6 text-sm">
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-3 h-3 bg-emerald-500 rounded-full" />
-                                        <span className="text-slate-600">Montajes</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-3 h-3 bg-orange-500 rounded-full" />
-                                        <span className="text-slate-600">Desmontajes</span>
-                                    </div>
+                                <div className="flex items-center gap-2">
+                                    <div className="w-3 h-3 bg-orange-500 rounded-full" />
+                                    <span className="text-slate-600">Desmontajes</span>
                                 </div>
                             </div>
                         </div>
                     </div>
+                </div>
 
-                    {/* PANEL LATERAL - 1/3 */}
+                {/* PANEL LATERAL - Solo en vista mes */}
+                {vista === VISTAS.MES && (
                     <div>
                         <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
                             <div className="px-6 py-4 border-b border-slate-200">
@@ -349,52 +667,21 @@ export default function CalendarioOperaciones() {
                                     }
                                 </h3>
                                 {selectedDate && (
-                                    <p className="text-sm text-slate-600">
-                                        {ordenesSeleccionadas.length} órdenes programadas
+                                    <p className="text-sm text-slate-500">
+                                        {ordenesSeleccionadas.length} orden{ordenesSeleccionadas.length !== 1 ? 'es' : ''} programada{ordenesSeleccionadas.length !== 1 ? 's' : ''}
                                     </p>
                                 )}
                             </div>
 
                             {selectedDate ? (
                                 ordenesSeleccionadas.length > 0 ? (
-                                    <div className="divide-y divide-slate-100 max-h-[500px] overflow-y-auto">
+                                    <div className="max-h-[500px] overflow-y-auto">
                                         {ordenesSeleccionadas.map((orden) => (
-                                            <div
+                                            <OrdenCard
                                                 key={orden.id}
+                                                orden={orden}
                                                 onClick={() => navigate(`/operaciones/ordenes/${orden.id}`)}
-                                                className="px-6 py-4 hover:bg-slate-50 transition-colors cursor-pointer"
-                                            >
-                                                <div className="flex items-start gap-3">
-                                                    <div className={`p-2 rounded-lg ${
-                                                        orden.tipo === 'montaje'
-                                                            ? 'bg-emerald-100'
-                                                            : 'bg-orange-100'
-                                                    }`}>
-                                                        {orden.tipo === 'montaje'
-                                                            ? <Package className={`w-4 h-4 text-emerald-600`} />
-                                                            : <Truck className={`w-4 h-4 text-orange-600`} />
-                                                        }
-                                                    </div>
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className="font-medium text-slate-900 truncate">
-                                                            {orden.cliente_nombre || 'Cliente'}
-                                                        </p>
-                                                        <div className="flex items-center gap-2 text-xs text-slate-500 mt-1">
-                                                            <Clock className="w-3 h-3" />
-                                                            {new Date(orden.fecha_programada).toLocaleTimeString('es-CO', {
-                                                                hour: '2-digit',
-                                                                minute: '2-digit'
-                                                            })}
-                                                        </div>
-                                                        {(orden.ciudad_evento || orden.direccion_evento) && (
-                                                            <div className="flex items-center gap-2 text-xs text-slate-500 mt-1">
-                                                                <MapPin className="w-3 h-3" />
-                                                                <span className="truncate">{orden.ciudad_evento || 'Sin ciudad'}{orden.direccion_evento ? ` - ${orden.direccion_evento}` : ''}</span>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </div>
+                                            />
                                         ))}
                                     </div>
                                 ) : (
@@ -411,7 +698,7 @@ export default function CalendarioOperaciones() {
                             )}
                         </div>
                     </div>
-                </div>
+                )}
             </div>
         </div>
     )
