@@ -706,11 +706,63 @@ export default function OrdenDetallePage() {
     const TipoIcon = tipoConfig.icon
 
     // ============================================
+    // HELPERS: Progreso del flujo
+    // ============================================
+    const tieneResponsable = orden.equipo?.length > 0
+
+    const getPasosFlujo = () => {
+        if (orden.tipo === 'montaje') {
+            return [
+                { key: 'pendiente', label: 'Pendiente', short: 'Pend.' },
+                { key: 'confirmado', label: 'Confirmado', short: 'Conf.' },
+                { key: 'en_preparacion', label: 'Preparación', short: 'Prep.' },
+                { key: 'en_ruta', label: 'En Ruta', short: 'Ruta' },
+                { key: 'en_sitio', label: 'En Sitio', short: 'Sitio' },
+                { key: 'en_proceso', label: 'En Proceso', short: 'Proc.' },
+                { key: 'completado', label: 'Completado', short: 'Listo' }
+            ]
+        }
+        return [
+            { key: 'pendiente', label: 'Pendiente', short: 'Pend.' },
+            { key: 'confirmado', label: 'Confirmado', short: 'Conf.' },
+            { key: 'en_preparacion', label: 'Preparación', short: 'Prep.' },
+            { key: 'en_ruta', label: 'En Ruta', short: 'Ruta' },
+            { key: 'en_sitio', label: 'En Sitio', short: 'Sitio' },
+            { key: 'completado', label: 'Completado', short: 'Listo' }
+        ]
+    }
+
+    const pasos = getPasosFlujo()
+    const pasoActualIndex = pasos.findIndex(p => p.key === orden.estado)
+    const esCancelado = orden.estado === 'cancelado'
+    const esCompletado = orden.estado === 'completado'
+
+    const getDescripcionEstado = () => {
+        const desc = {
+            pendiente: 'Esta orden está pendiente de confirmación. Asigna un responsable y confirma para iniciar.',
+            confirmado: 'Orden confirmada. Inicia la preparación de los elementos necesarios.',
+            en_preparacion: orden.tipo === 'montaje'
+                ? 'Preparando elementos para despacho. Cuando todo esté listo, ejecuta la salida.'
+                : 'Preparando para el desmontaje. Cuando esté listo, envía al equipo en ruta.',
+            en_ruta: 'El equipo está en camino al sitio del evento.',
+            en_sitio: orden.tipo === 'montaje'
+                ? 'El equipo llegó al sitio. Inicia el trabajo de montaje.'
+                : 'El equipo llegó al sitio. Realiza el desmontaje y registra el retorno.',
+            en_proceso: orden.tipo === 'montaje'
+                ? 'Montaje en curso. Marca como completado cuando termine.'
+                : 'Desmontaje en curso. Registra el retorno de los elementos.',
+            completado: 'Esta orden ha sido completada exitosamente.',
+            cancelado: 'Esta orden fue cancelada.'
+        }
+        return desc[orden.estado] || ''
+    }
+
+    // ============================================
     // RENDER PRINCIPAL
     // ============================================
     return (
         <div className="p-6">
-            {/* HEADER CONSISTENTE */}
+            {/* HEADER */}
             <div className="mb-6">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <div className="flex items-center gap-4">
@@ -735,6 +787,7 @@ export default function OrdenDetallePage() {
                                 </div>
                                 <p className="text-slate-500 mt-0.5">
                                     {orden.cliente_nombre || 'Cliente'}
+                                    {orden.evento_nombre ? ` — ${orden.evento_nombre}` : ''}
                                 </p>
                             </div>
                         </div>
@@ -744,7 +797,7 @@ export default function OrdenDetallePage() {
                             <EstadoIcon className="w-5 h-5" />
                             <span className="font-medium">{estadoConfig.label}</span>
                         </div>
-                        {canManage && (
+                        {canManage && !esCompletado && !esCancelado && (
                             <Button
                                 icon={Edit3}
                                 variant="secondary"
@@ -756,6 +809,56 @@ export default function OrdenDetallePage() {
                     </div>
                 </div>
             </div>
+
+            {/* BARRA DE PROGRESO */}
+            {!esCancelado && (
+                <div className="bg-white rounded-xl border border-slate-200 p-4 mb-6">
+                    <div className="flex items-center justify-between">
+                        {pasos.map((paso, idx) => {
+                            const esActual = paso.key === orden.estado
+                            const esCompletadoPaso = idx < pasoActualIndex || esCompletado
+                            return (
+                                <div key={paso.key} className="flex items-center flex-1">
+                                    <div className="flex flex-col items-center flex-1">
+                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
+                                            esActual
+                                                ? 'bg-orange-500 text-white ring-4 ring-orange-100'
+                                                : esCompletadoPaso
+                                                ? 'bg-green-500 text-white'
+                                                : 'bg-slate-200 text-slate-500'
+                                        }`}>
+                                            {esCompletadoPaso && !esActual ? (
+                                                <CheckCircle className="w-4 h-4" />
+                                            ) : (
+                                                idx + 1
+                                            )}
+                                        </div>
+                                        <span className={`text-[10px] mt-1 text-center leading-tight ${
+                                            esActual ? 'font-bold text-orange-600' : esCompletadoPaso ? 'text-green-600' : 'text-slate-400'
+                                        }`}>
+                                            <span className="hidden sm:inline">{paso.label}</span>
+                                            <span className="sm:hidden">{paso.short}</span>
+                                        </span>
+                                    </div>
+                                    {idx < pasos.length - 1 && (
+                                        <div className={`h-0.5 flex-1 -mt-4 mx-1 ${
+                                            idx < pasoActualIndex ? 'bg-green-400' : 'bg-slate-200'
+                                        }`} />
+                                    )}
+                                </div>
+                            )
+                        })}
+                    </div>
+                </div>
+            )}
+
+            {/* ESTADO CANCELADO */}
+            {esCancelado && (
+                <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6 flex items-center gap-3">
+                    <XCircle className="w-5 h-5 text-red-500 shrink-0" />
+                    <p className="text-red-700 font-medium">Esta orden fue cancelada</p>
+                </div>
+            )}
 
             {/* CONTENIDO */}
             <div>
@@ -800,15 +903,17 @@ export default function OrdenDetallePage() {
                                         </span>
                                     </div>
                                 </div>
-                                <div className="flex items-start gap-3">
-                                    <FileText className="w-5 h-5 text-slate-400 mt-0.5" />
-                                    <div>
-                                        <p className="text-sm text-slate-500">Alquiler</p>
-                                        <p className="font-medium text-slate-900">
-                                            #{orden.alquiler_id}
-                                        </p>
+                                {orden.alquiler_id && (
+                                    <div className="flex items-start gap-3">
+                                        <FileText className="w-5 h-5 text-slate-400 mt-0.5" />
+                                        <div>
+                                            <p className="text-sm text-slate-500">Alquiler</p>
+                                            <p className="font-medium text-slate-900">
+                                                #{orden.alquiler_id}
+                                            </p>
+                                        </div>
                                     </div>
-                                </div>
+                                )}
                             </div>
                             {orden.notas && (
                                 <div className="mt-4 pt-4 border-t border-slate-100">
@@ -819,35 +924,37 @@ export default function OrdenDetallePage() {
                         </div>
 
                         {/* INFO DEL CLIENTE */}
-                        <div className="bg-white rounded-xl border border-slate-200 p-6">
-                            <h2 className="text-lg font-semibold text-slate-900 mb-4">
-                                Información del Cliente
-                            </h2>
-                            <div className="flex items-center gap-4">
-                                <div className="p-3 bg-slate-100 rounded-full">
-                                    <User className="w-6 h-6 text-slate-600" />
-                                </div>
-                                <div className="flex-1">
-                                    <p className="font-semibold text-slate-900">
-                                        {orden.cliente_nombre || 'Sin cliente'}
-                                    </p>
-                                    <div className="flex items-center gap-4 mt-1 text-sm text-slate-600">
-                                        {orden.cliente_telefono && (
-                                            <span className="flex items-center gap-1">
-                                                <Phone className="w-4 h-4" />
-                                                {orden.cliente_telefono}
-                                            </span>
-                                        )}
-                                        {orden.cliente_email && (
-                                            <span className="flex items-center gap-1">
-                                                <Mail className="w-4 h-4" />
-                                                {orden.cliente_email}
-                                            </span>
-                                        )}
+                        {orden.cliente_nombre && (
+                            <div className="bg-white rounded-xl border border-slate-200 p-6">
+                                <h2 className="text-lg font-semibold text-slate-900 mb-4">
+                                    Cliente
+                                </h2>
+                                <div className="flex items-center gap-4">
+                                    <div className="p-3 bg-slate-100 rounded-full">
+                                        <User className="w-6 h-6 text-slate-600" />
+                                    </div>
+                                    <div className="flex-1">
+                                        <p className="font-semibold text-slate-900">
+                                            {orden.cliente_nombre}
+                                        </p>
+                                        <div className="flex items-center gap-4 mt-1 text-sm text-slate-600">
+                                            {orden.cliente_telefono && (
+                                                <span className="flex items-center gap-1">
+                                                    <Phone className="w-4 h-4" />
+                                                    {orden.cliente_telefono}
+                                                </span>
+                                            )}
+                                            {orden.cliente_email && (
+                                                <span className="flex items-center gap-1">
+                                                    <Mail className="w-4 h-4" />
+                                                    {orden.cliente_email}
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
+                        )}
 
                         {/* ELEMENTOS DE LA ORDEN */}
                         <div className="bg-white rounded-xl border border-slate-200">
@@ -907,10 +1014,12 @@ export default function OrdenDetallePage() {
                                                             </td>
                                                             <td className="px-4 py-3 text-center">
                                                                 <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${
-                                                                    elem.estado === 'completado'
+                                                                    elem.estado === 'completado' || elem.estado === 'retornado'
                                                                         ? 'bg-green-100 text-green-700'
-                                                                        : elem.estado === 'con_problema'
+                                                                        : elem.estado === 'con_problema' || elem.estado === 'incidencia'
                                                                         ? 'bg-red-100 text-red-700'
+                                                                        : elem.estado === 'preparado' || elem.estado === 'cargado' || elem.estado === 'instalado'
+                                                                        ? 'bg-blue-100 text-blue-700'
                                                                         : 'bg-yellow-100 text-yellow-700'
                                                                 }`}>
                                                                     {elem.estado || 'pendiente'}
@@ -934,21 +1043,46 @@ export default function OrdenDetallePage() {
                     {/* COLUMNA LATERAL */}
                     <div className="space-y-6">
 
-                        {/* ACCIONES DE ESTADO */}
-                        {canManage && orden.estado !== 'completado' && orden.estado !== 'cancelado' && (
-                            <div className="bg-white rounded-xl border border-slate-200 p-6">
-                                <h3 className="text-lg font-semibold text-slate-900 mb-4">
-                                    Acciones
-                                </h3>
-                                <div className="space-y-3">
-                                    {/* Flujo: pendiente -> confirmado -> en_preparacion -> en_ruta -> en_sitio -> en_proceso -> completado */}
+                        {/* SIGUIENTE PASO + ACCIONES */}
+                        {canManage && !esCompletado && !esCancelado && (
+                            <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                                {/* Descripción del estado actual */}
+                                <div className="px-6 py-4 bg-slate-50 border-b border-slate-200">
+                                    <p className="text-sm text-slate-600">
+                                        {getDescripcionEstado()}
+                                    </p>
+                                </div>
+
+                                <div className="p-6 space-y-3">
+                                    {/* Advertencia sin responsable */}
+                                    {!tieneResponsable && ['pendiente', 'confirmado'].includes(orden.estado) && (
+                                        <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                                            <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
+                                            <div>
+                                                <p className="text-sm text-amber-700 font-medium">Sin responsable</p>
+                                                <button
+                                                    onClick={() => setShowModalResponsable(true)}
+                                                    className="text-xs text-amber-600 hover:text-amber-700 underline"
+                                                >
+                                                    Asignar ahora
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* === ACCIÓN PRINCIPAL por estado === */}
 
                                     {orden.estado === 'pendiente' && (
                                         <Button
                                             color="blue"
                                             icon={CheckCircle}
                                             className="w-full"
-                                            onClick={() => handleCambiarEstado('confirmado')}
+                                            onClick={() => {
+                                                if (!tieneResponsable) {
+                                                    if (!confirm('No hay responsable asignado. ¿Deseas confirmar la orden de todas formas?')) return
+                                                }
+                                                handleCambiarEstado('confirmado')
+                                            }}
                                             disabled={cambiarEstado.isPending}
                                         >
                                             Confirmar Orden
@@ -979,9 +1113,12 @@ export default function OrdenDetallePage() {
                                                 {ejecutandoSalida ? 'Ejecutando...' : 'Ejecutar Salida'}
                                             </Button>
                                             {!elementos?.length && (
-                                                <p className="text-xs text-amber-600 text-center">
-                                                    No hay elementos asignados
-                                                </p>
+                                                <div className="flex items-center gap-2 p-2 bg-amber-50 border border-amber-200 rounded-lg">
+                                                    <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
+                                                    <p className="text-xs text-amber-700">
+                                                        Asigna elementos antes de ejecutar la salida
+                                                    </p>
+                                                </div>
                                             )}
                                         </>
                                     )}
@@ -1010,7 +1147,7 @@ export default function OrdenDetallePage() {
                                         </Button>
                                     )}
 
-                                    {orden.estado === 'en_sitio' && (
+                                    {orden.estado === 'en_sitio' && orden.tipo === 'montaje' && (
                                         <Button
                                             color="blue"
                                             icon={Play}
@@ -1018,24 +1155,11 @@ export default function OrdenDetallePage() {
                                             onClick={() => handleCambiarEstado('en_proceso')}
                                             disabled={cambiarEstado.isPending}
                                         >
-                                            Iniciar Trabajo
+                                            Iniciar Montaje
                                         </Button>
                                     )}
 
-                                    {orden.estado === 'en_proceso' && orden.tipo === 'montaje' && (
-                                        <Button
-                                            color="green"
-                                            icon={CheckCircle}
-                                            className="w-full"
-                                            onClick={() => handleCambiarEstado('completado')}
-                                            disabled={cambiarEstado.isPending}
-                                        >
-                                            Marcar Completado
-                                        </Button>
-                                    )}
-
-                                    {/* Para desmontaje en_sitio o en_proceso: Registrar Retorno */}
-                                    {orden.tipo === 'desmontaje' && ['en_sitio', 'en_proceso'].includes(orden.estado) && (
+                                    {orden.estado === 'en_sitio' && orden.tipo === 'desmontaje' && (
                                         <Button
                                             color="orange"
                                             icon={RotateCcw}
@@ -1046,18 +1170,60 @@ export default function OrdenDetallePage() {
                                         </Button>
                                     )}
 
-                                    {/* Botón cancelar siempre disponible excepto en completado/cancelado */}
-                                    <Button
-                                        color="red"
-                                        icon={XCircle}
-                                        variant="outline"
-                                        className="w-full"
-                                        onClick={() => handleCambiarEstado('cancelado')}
-                                        disabled={cambiarEstado.isPending}
-                                    >
-                                        Cancelar Orden
-                                    </Button>
+                                    {orden.estado === 'en_proceso' && orden.tipo === 'montaje' && (
+                                        <Button
+                                            color="green"
+                                            icon={CheckCircle}
+                                            className="w-full"
+                                            onClick={() => {
+                                                if (!confirm('¿Marcar esta orden como completada?')) return
+                                                handleCambiarEstado('completado')
+                                            }}
+                                            disabled={cambiarEstado.isPending}
+                                        >
+                                            Marcar Completado
+                                        </Button>
+                                    )}
+
+                                    {orden.estado === 'en_proceso' && orden.tipo === 'desmontaje' && (
+                                        <Button
+                                            color="orange"
+                                            icon={RotateCcw}
+                                            className="w-full"
+                                            onClick={() => setShowModalRetorno(true)}
+                                        >
+                                            Registrar Retorno
+                                        </Button>
+                                    )}
+
+                                    {/* Separador antes de cancelar */}
+                                    <div className="border-t border-slate-200 pt-3">
+                                        <Button
+                                            color="red"
+                                            icon={XCircle}
+                                            variant="outline"
+                                            className="w-full"
+                                            onClick={() => {
+                                                if (!confirm('¿Estás seguro de cancelar esta orden? Esta acción no se puede deshacer.')) return
+                                                handleCambiarEstado('cancelado')
+                                            }}
+                                            disabled={cambiarEstado.isPending}
+                                        >
+                                            Cancelar Orden
+                                        </Button>
+                                    </div>
                                 </div>
+                            </div>
+                        )}
+
+                        {/* ESTADO COMPLETADO */}
+                        {esCompletado && (
+                            <div className="bg-green-50 border border-green-200 rounded-xl p-6 text-center">
+                                <CheckCircle className="w-10 h-10 text-green-500 mx-auto mb-2" />
+                                <p className="font-semibold text-green-800">Orden Completada</p>
+                                <p className="text-sm text-green-600 mt-1">
+                                    Esta orden fue completada exitosamente
+                                </p>
                             </div>
                         )}
 
@@ -1067,16 +1233,16 @@ export default function OrdenDetallePage() {
                                 <h3 className="text-lg font-semibold text-slate-900">
                                     Responsable
                                 </h3>
-                                {canManage && (
+                                {canManage && !esCompletado && !esCancelado && (
                                     <button
                                         onClick={() => setShowModalResponsable(true)}
                                         className="text-sm text-orange-600 hover:text-orange-700 font-medium"
                                     >
-                                        {orden.equipo?.length > 0 ? 'Cambiar' : 'Asignar'}
+                                        {tieneResponsable ? 'Cambiar' : 'Asignar'}
                                     </button>
                                 )}
                             </div>
-                            {orden.equipo?.length > 0 ? (
+                            {tieneResponsable ? (
                                 <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
                                     <div className="p-2 bg-white rounded-full">
                                         <User className="w-5 h-5 text-slate-600" />
@@ -1102,7 +1268,7 @@ export default function OrdenDetallePage() {
                                     <p className="text-slate-500 text-sm">
                                         Sin responsable asignado
                                     </p>
-                                    {canManage && (
+                                    {canManage && !esCompletado && !esCancelado && (
                                         <button
                                             onClick={() => setShowModalResponsable(true)}
                                             className="mt-2 text-sm text-orange-600 hover:text-orange-700 font-medium"
