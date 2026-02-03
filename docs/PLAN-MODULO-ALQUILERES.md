@@ -654,8 +654,8 @@ PUT    /api/configuracion/:clave        → Actualizar valor específico
 8. ~~**Mejorar sincronización** - Actualizar estado de alquiler cuando orden cambia~~ ✅ COMPLETADO
 
 ### Prioridad Baja (Pendientes)
-9. **Reportes de alquileres** - Estadísticas y gráficos
-10. **Exportar a PDF** - Cotizaciones y contratos
+9. ~~**Reportes de alquileres** - Estadísticas y gráficos~~ ✅ COMPLETADO (filtro por período: mensual/semestral/anual)
+10. ~~**Exportar a PDF** - Cotizaciones y contratos~~ ✅ COMPLETADO (PDFKit, logo empresa, diseño compacto 1 hoja)
 11. **Historial de cambios** - Auditoría de modificaciones
 
 ---
