@@ -151,21 +151,17 @@ export const useIgnorarAlerta = () => {
 export const useResolverAlerta = useIgnorarAlerta
 
 /**
- * Hook para marcar alerta como leída (usa ignorar por 1 día)
- * Nota: Las alertas del sistema son calculadas en tiempo real,
- * "marcar como leída" equivale a ignorarla temporalmente
+ * Hook para ignorar alerta temporalmente (1 día)
+ * Equivale a "marcar como leída"
  */
 export const useMarcarAlertaLeida = () => {
   const queryClient = useQueryClient()
 
   const mutation = useMutation({
-    mutationFn: async (alertaId) => {
-      // Por ahora solo invalidamos el cache
-      // TODO: Si se necesita persistir el estado "leída", agregar endpoint específico
-      return { success: true, id: alertaId }
-    },
+    mutationFn: ({ tipo, referencia_id }) => ignorarAlerta(tipo, referencia_id, 1),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [ALERTAS_KEY] })
+      queryClient.invalidateQueries({ queryKey: [ALERTAS_CRITICAS_KEY] })
       queryClient.invalidateQueries({ queryKey: [ALERTAS_RESUMEN_KEY] })
     }
   })
@@ -177,19 +173,17 @@ export const useMarcarAlertaLeida = () => {
 }
 
 /**
- * Hook para marcar alerta como resuelta (ignora por 30 días)
+ * Hook para ignorar alerta por más tiempo (7 días)
+ * Equivale a "marcar como resuelta"
  */
 export const useMarcarAlertaResuelta = () => {
   const queryClient = useQueryClient()
 
   const mutation = useMutation({
-    mutationFn: async (alertaId) => {
-      // Por ahora solo invalidamos el cache
-      // Para resolver permanentemente, usar ignorarAlerta con tipo y referencia_id
-      return { success: true, id: alertaId }
-    },
+    mutationFn: ({ tipo, referencia_id, dias = 7 }) => ignorarAlerta(tipo, referencia_id, dias),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [ALERTAS_KEY] })
+      queryClient.invalidateQueries({ queryKey: [ALERTAS_CRITICAS_KEY] })
       queryClient.invalidateQueries({ queryKey: [ALERTAS_RESUMEN_KEY] })
     }
   })
