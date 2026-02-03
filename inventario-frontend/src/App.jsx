@@ -42,6 +42,7 @@ import EmpleadosPage from './pages/EmpleadosPage'
 // Importar páginas - Operaciones
 import OperacionesDashboard from './pages/OperacionesDashboard'
 import OrdenesTrabajoPage from './pages/OrdenesTrabajoPage'
+import OrdenDetallePage from './pages/OrdenDetallePage'
 import CalendarioOperaciones from './pages/CalendarioOperaciones'
 import AlertasPage from './pages/AlertasPage'
 
@@ -167,6 +168,7 @@ function App() {
 
                 <Route path="/operaciones" element={<OperacionesDashboard />} />
                 <Route path="/operaciones/ordenes" element={<OrdenesTrabajoPage />} />
+                <Route path="/operaciones/ordenes/:id" element={<OrdenDetallePage />} />
                 <Route path="/operaciones/calendario" element={<CalendarioOperaciones />} />
                 <Route path="/operaciones/alertas" element={<AlertasPage />} />
 
