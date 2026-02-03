@@ -33,6 +33,7 @@ const disponibilidadRoutes = require('./modules/alquileres/routes/disponibilidad
 const descuentosRoutes = require('./modules/alquileres/routes/descuentos');
 const configuracionAlquileresRoutes = require('./modules/alquileres/routes/configuracion');
 const eventosRoutes = require('./modules/alquileres/routes/eventos');
+const alertasAlquileresRoutes = require('./modules/alquileres/routes/alertas');
 
 // Importar rutas - Configuración (Datos maestros)
 const ciudadesRoutes = require('./modules/configuracion/routes/ciudades');
@@ -45,15 +46,24 @@ const authRoutes = require('./modules/auth/routes/auth');
 // Importar rutas - Operaciones
 const operacionesRoutes = require('./modules/operaciones/routes/operaciones');
 
+const path = require('path');
+const fs = require('fs');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Crear directorio de uploads si no existe
+const uploadsDir = path.join(__dirname, 'uploads', 'logos');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
 
 // ============================================
 // CONFIGURACIÓN DE SEGURIDAD
 // ============================================
 
 // CORS - Configurado para frontend específico (acepta varios orígenes en dev)
-const allowedOrigins = [process.env.FRONTEND_URL || 'http://localhost:5173', 'http://localhost:5174'];
+const allowedOrigins = [process.env.FRONTEND_URL || 'http://localhost:5173', 'http://localhost:5174', 'http://localhost:4173'];
 const corsOptions = {
     origin: (origin, callback) => {
         // allow requests with no origin like curl or server-to-server
@@ -81,6 +91,7 @@ const limiter = rateLimit({
 // Middleware
 app.use(cors(corsOptions));
 app.use(express.json());
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use(httpLogger); // Logging de todas las peticiones HTTP
 // Aplicar rate limiting solo en producción para evitar 429 durante desarrollo
 if (process.env.NODE_ENV === 'production') {
@@ -116,7 +127,8 @@ app.get('/', (req, res) => {
                 '/api/disponibilidad',
                 '/api/descuentos',
                 '/api/configuracion-alquileres',
-                '/api/eventos'
+                '/api/eventos',
+                '/api/alertas/alquileres'
             ],
             configuracion: [
                 '/api/ciudades',
@@ -162,6 +174,7 @@ app.use('/api/disponibilidad', disponibilidadRoutes);
 app.use('/api/descuentos', descuentosRoutes);
 app.use('/api/configuracion-alquileres', configuracionAlquileresRoutes);
 app.use('/api/eventos', eventosRoutes);
+app.use('/api/alertas/alquileres', alertasAlquileresRoutes);
 
 // Registrar rutas - Configuración (Datos maestros)
 app.use('/api/ciudades', ciudadesRoutes);

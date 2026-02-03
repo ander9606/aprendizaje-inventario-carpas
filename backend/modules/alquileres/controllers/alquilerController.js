@@ -595,3 +595,62 @@ exports.obtenerEstadisticas = async (req, res, next) => {
     next(error);
   }
 };
+
+// ============================================
+// REPORTES COMPLETOS
+// ============================================
+exports.obtenerReportes = async (req, res, next) => {
+  try {
+    const { fechaInicio, fechaFin } = req.query;
+
+    const [estadisticas, ingresosPorMes, topClientes, productosMasAlquilados, alquileresPorCiudad] = await Promise.all([
+      AlquilerModel.obtenerEstadisticas(fechaInicio, fechaFin),
+      AlquilerModel.obtenerIngresosPorMes(fechaInicio, fechaFin),
+      AlquilerModel.obtenerTopClientes(10, fechaInicio, fechaFin),
+      AlquilerModel.obtenerProductosMasAlquilados(10, fechaInicio, fechaFin),
+      AlquilerModel.obtenerAlquileresPorCiudad(fechaInicio, fechaFin),
+    ]);
+
+    // Estadísticas de cotizaciones (filtradas por fecha)
+    const CotizacionModel = require('../models/CotizacionModel');
+    const cotizaciones = await CotizacionModel.obtenerTodas();
+    let cotizacionesFiltradas = cotizaciones;
+    if (fechaInicio && fechaFin) {
+      const inicio = new Date(fechaInicio);
+      const fin = new Date(fechaFin);
+      fin.setDate(fin.getDate() + 1);
+      cotizacionesFiltradas = cotizaciones.filter(c => {
+        const fecha = new Date(c.created_at);
+        return fecha >= inicio && fecha < fin;
+      });
+    }
+    const totalCotizaciones = cotizacionesFiltradas.length;
+    const aprobadas = cotizacionesFiltradas.filter(c => c.estado === 'aprobada').length;
+    const pendientes = cotizacionesFiltradas.filter(c => c.estado === 'pendiente').length;
+    const rechazadas = cotizacionesFiltradas.filter(c => c.estado === 'rechazada').length;
+    const vencidas = cotizacionesFiltradas.filter(c => c.estado === 'vencida').length;
+    const tasaConversion = totalCotizaciones > 0 ? Math.round((aprobadas / totalCotizaciones) * 100) : 0;
+
+    res.json({
+      success: true,
+      data: {
+        estadisticas,
+        ingresosPorMes,
+        topClientes,
+        productosMasAlquilados,
+        alquileresPorCiudad,
+        cotizaciones: {
+          total: totalCotizaciones,
+          aprobadas,
+          pendientes,
+          rechazadas,
+          vencidas,
+          tasaConversion
+        },
+        filtro: { fechaInicio: fechaInicio || null, fechaFin: fechaFin || null }
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};

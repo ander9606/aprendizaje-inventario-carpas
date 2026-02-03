@@ -28,7 +28,10 @@ import {
     ChevronDown,
     ChevronUp,
     Save,
-    X
+    X,
+    LogOut,
+    RotateCcw,
+    CircleDot
 } from 'lucide-react'
 import {
     useGetOrden,
@@ -36,8 +39,12 @@ import {
     useCambiarEstadoOrden,
     useAsignarEquipo,
     useAsignarVehiculo,
-    useUpdateOrden
+    useUpdateOrden,
+    useEjecutarSalida,
+    useEjecutarRetorno
 } from '../hooks/useOrdenesTrabajo'
+import { useGetEmpleadosCampo } from '../hooks/useEmpleados'
+import { useGetVehiculosDisponibles } from '../hooks/useVehiculos'
 import { useAuth } from '../hooks/auth/useAuth'
 import Button from '../components/common/Button'
 import Spinner from '../components/common/Spinner'
@@ -47,35 +54,46 @@ import { toast } from 'sonner'
 // COMPONENTE: Modal de Asignación de Equipo
 // ============================================
 const ModalAsignarEquipo = ({ orden, onClose, onSave }) => {
-    const [empleadosSeleccionados, setEmpleadosSeleccionados] = useState(
-        orden.equipo?.map(e => e.empleado_id) || []
+    // Inicializar con equipo actual: { empleado_id, rol_en_orden }
+    const [equipoSeleccionado, setEquipoSeleccionado] = useState(
+        orden.equipo?.map(e => ({
+            empleado_id: e.empleado_id || e.id,
+            rol_en_orden: e.rol_en_orden || 'operario'
+        })) || []
     )
-    const [responsableId, setResponsableId] = useState(orden.responsable_id || '')
     const [saving, setSaving] = useState(false)
 
-    // TODO: Obtener lista de empleados desde API
-    const empleadosDisponibles = [
-        { id: 1, nombre: 'Juan Pérez', rol: 'Técnico' },
-        { id: 2, nombre: 'María García', rol: 'Técnico' },
-        { id: 3, nombre: 'Carlos López', rol: 'Supervisor' },
-        { id: 4, nombre: 'Ana Martínez', rol: 'Técnico' }
+    // Obtener empleados disponibles desde API
+    const fechaOrden = orden.fecha_programada?.split('T')[0] || null
+    const { empleados: empleadosDisponibles, isLoading: loadingEmpleados } = useGetEmpleadosCampo(fechaOrden)
+
+    const rolesOrden = [
+        { value: 'supervisor', label: 'Supervisor' },
+        { value: 'operario', label: 'Operario' },
+        { value: 'conductor', label: 'Conductor' },
+        { value: 'ayudante', label: 'Ayudante' }
     ]
 
-    const handleToggleEmpleado = (empleadoId) => {
-        setEmpleadosSeleccionados(prev =>
-            prev.includes(empleadoId)
-                ? prev.filter(id => id !== empleadoId)
-                : [...prev, empleadoId]
+    const isSelected = (empId) => equipoSeleccionado.some(e => e.empleado_id === empId)
+
+    const handleToggleEmpleado = (empId) => {
+        if (isSelected(empId)) {
+            setEquipoSeleccionado(prev => prev.filter(e => e.empleado_id !== empId))
+        } else {
+            setEquipoSeleccionado(prev => [...prev, { empleado_id: empId, rol_en_orden: 'operario' }])
+        }
+    }
+
+    const handleCambiarRol = (empId, rol) => {
+        setEquipoSeleccionado(prev =>
+            prev.map(e => e.empleado_id === empId ? { ...e, rol_en_orden: rol } : e)
         )
     }
 
     const handleGuardar = async () => {
         setSaving(true)
         try {
-            await onSave({
-                empleados: empleadosSeleccionados,
-                responsable_id: responsableId || null
-            })
+            await onSave({ empleados: equipoSeleccionado })
             onClose()
         } catch (error) {
             console.error('Error al asignar equipo:', error)
@@ -89,9 +107,14 @@ const ModalAsignarEquipo = ({ orden, onClose, onSave }) => {
             <div className="bg-white rounded-xl w-full max-w-lg max-h-[90vh] overflow-hidden">
                 <div className="p-6 border-b border-slate-200">
                     <div className="flex items-center justify-between">
-                        <h3 className="text-lg font-semibold text-slate-900">
-                            Asignar Equipo de Trabajo
-                        </h3>
+                        <div>
+                            <h3 className="text-lg font-semibold text-slate-900">
+                                Asignar Equipo de Trabajo
+                            </h3>
+                            <p className="text-sm text-slate-500">
+                                {equipoSeleccionado.length} seleccionado(s)
+                            </p>
+                        </div>
                         <button
                             onClick={onClose}
                             className="p-2 hover:bg-slate-100 rounded-lg"
@@ -101,54 +124,67 @@ const ModalAsignarEquipo = ({ orden, onClose, onSave }) => {
                     </div>
                 </div>
                 <div className="p-6 overflow-y-auto max-h-[60vh]">
-                    {/* Responsable */}
-                    <div className="mb-6">
-                        <label className="block text-sm font-medium text-slate-700 mb-2">
-                            Responsable de la Orden
-                        </label>
-                        <select
-                            value={responsableId}
-                            onChange={(e) => setResponsableId(e.target.value)}
-                            className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
-                        >
-                            <option value="">Seleccionar responsable...</option>
-                            {empleadosDisponibles.map(emp => (
-                                <option key={emp.id} value={emp.id}>
-                                    {emp.nombre} - {emp.rol}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-
-                    {/* Lista de empleados */}
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-2">
-                            Equipo Asignado
-                        </label>
-                        <div className="space-y-2">
-                            {empleadosDisponibles.map(emp => (
-                                <label
-                                    key={emp.id}
-                                    className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${
-                                        empleadosSeleccionados.includes(emp.id)
-                                            ? 'border-orange-500 bg-orange-50'
-                                            : 'border-slate-200 hover:bg-slate-50'
-                                    }`}
-                                >
-                                    <input
-                                        type="checkbox"
-                                        checked={empleadosSeleccionados.includes(emp.id)}
-                                        onChange={() => handleToggleEmpleado(emp.id)}
-                                        className="w-4 h-4 text-orange-500 rounded focus:ring-orange-500"
-                                    />
-                                    <div className="flex-1">
-                                        <p className="font-medium text-slate-900">{emp.nombre}</p>
-                                        <p className="text-sm text-slate-500">{emp.rol}</p>
-                                    </div>
-                                </label>
-                            ))}
+                    {loadingEmpleados ? (
+                        <div className="py-8 text-center">
+                            <Spinner size="sm" text="Cargando empleados..." />
                         </div>
-                    </div>
+                    ) : empleadosDisponibles?.length > 0 ? (
+                        <div className="space-y-2">
+                            {empleadosDisponibles.map(emp => {
+                                const selected = isSelected(emp.id)
+                                const miembro = equipoSeleccionado.find(e => e.empleado_id === emp.id)
+
+                                return (
+                                    <div
+                                        key={emp.id}
+                                        className={`border rounded-lg transition-colors ${
+                                            selected
+                                                ? 'border-orange-500 bg-orange-50'
+                                                : 'border-slate-200 hover:bg-slate-50'
+                                        }`}
+                                    >
+                                        <label className="flex items-center gap-3 p-3 cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={selected}
+                                                onChange={() => handleToggleEmpleado(emp.id)}
+                                                className="w-4 h-4 text-orange-500 rounded focus:ring-orange-500"
+                                            />
+                                            <div className="flex-1">
+                                                <p className="font-medium text-slate-900">
+                                                    {emp.nombre} {emp.apellido || ''}
+                                                </p>
+                                                <p className="text-sm text-slate-500">
+                                                    {emp.rol_empleado || emp.cargo || 'Empleado'}
+                                                    {emp.telefono ? ` - ${emp.telefono}` : ''}
+                                                </p>
+                                            </div>
+                                        </label>
+                                        {selected && (
+                                            <div className="px-3 pb-3 pt-0">
+                                                <select
+                                                    value={miembro?.rol_en_orden || 'operario'}
+                                                    onChange={(e) => handleCambiarRol(emp.id, e.target.value)}
+                                                    className="w-full px-2 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+                                                >
+                                                    {rolesOrden.map(rol => (
+                                                        <option key={rol.value} value={rol.value}>
+                                                            {rol.label}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                        )}
+                                    </div>
+                                )
+                            })}
+                        </div>
+                    ) : (
+                        <div className="py-8 text-center text-slate-500">
+                            <Users className="w-10 h-10 mx-auto mb-2 text-slate-300" />
+                            <p>No hay empleados disponibles</p>
+                        </div>
+                    )}
                 </div>
                 <div className="p-6 border-t border-slate-200 flex gap-3 justify-end">
                     <Button variant="secondary" onClick={onClose}>
@@ -158,7 +194,7 @@ const ModalAsignarEquipo = ({ orden, onClose, onSave }) => {
                         color="orange"
                         icon={Save}
                         onClick={handleGuardar}
-                        disabled={saving}
+                        disabled={saving || equipoSeleccionado.length === 0}
                     >
                         {saving ? 'Guardando...' : 'Guardar'}
                     </Button>
@@ -172,20 +208,17 @@ const ModalAsignarEquipo = ({ orden, onClose, onSave }) => {
 // COMPONENTE: Modal de Asignación de Vehículo
 // ============================================
 const ModalAsignarVehiculo = ({ orden, onClose, onSave }) => {
-    const [vehiculoId, setVehiculoId] = useState(orden.vehiculo_id || '')
+    const [vehiculoId, setVehiculoId] = useState(orden.vehiculo_id?.toString() || '')
     const [saving, setSaving] = useState(false)
 
-    // TODO: Obtener lista de vehículos desde API
-    const vehiculosDisponibles = [
-        { id: 1, placa: 'ABC-123', tipo: 'Camión', capacidad: '3 ton' },
-        { id: 2, placa: 'DEF-456', tipo: 'Furgón', capacidad: '1.5 ton' },
-        { id: 3, placa: 'GHI-789', tipo: 'Camioneta', capacidad: '500 kg' }
-    ]
+    // Obtener vehículos disponibles desde API
+    const fechaOrden = orden.fecha_programada?.split('T')[0] || null
+    const { vehiculos: vehiculosDisponibles, isLoading: loadingVehiculos } = useGetVehiculosDisponibles(fechaOrden)
 
     const handleGuardar = async () => {
         setSaving(true)
         try {
-            await onSave({ vehiculo_id: vehiculoId || null })
+            await onSave({ vehiculo_id: vehiculoId ? parseInt(vehiculoId) : null })
             onClose()
         } catch (error) {
             console.error('Error al asignar vehículo:', error)
@@ -196,11 +229,11 @@ const ModalAsignarVehiculo = ({ orden, onClose, onSave }) => {
 
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl w-full max-w-md">
+            <div className="bg-white rounded-xl w-full max-w-md max-h-[90vh] overflow-hidden">
                 <div className="p-6 border-b border-slate-200">
                     <div className="flex items-center justify-between">
                         <h3 className="text-lg font-semibold text-slate-900">
-                            Asignar Vehículo
+                            Asignar Vehiculo
                         </h3>
                         <button
                             onClick={onClose}
@@ -210,13 +243,17 @@ const ModalAsignarVehiculo = ({ orden, onClose, onSave }) => {
                         </button>
                     </div>
                 </div>
-                <div className="p-6">
-                    <div className="space-y-2">
-                        {vehiculosDisponibles.map(veh => (
+                <div className="p-6 overflow-y-auto max-h-[60vh]">
+                    {loadingVehiculos ? (
+                        <div className="py-8 text-center">
+                            <Spinner size="sm" text="Cargando vehiculos..." />
+                        </div>
+                    ) : vehiculosDisponibles?.length > 0 ? (
+                        <div className="space-y-2">
+                            {/* Opcion para quitar vehiculo */}
                             <label
-                                key={veh.id}
                                 className={`flex items-center gap-3 p-4 border rounded-lg cursor-pointer transition-colors ${
-                                    vehiculoId === veh.id.toString()
+                                    vehiculoId === ''
                                         ? 'border-orange-500 bg-orange-50'
                                         : 'border-slate-200 hover:bg-slate-50'
                                 }`}
@@ -224,21 +261,51 @@ const ModalAsignarVehiculo = ({ orden, onClose, onSave }) => {
                                 <input
                                     type="radio"
                                     name="vehiculo"
-                                    value={veh.id}
-                                    checked={vehiculoId === veh.id.toString()}
-                                    onChange={(e) => setVehiculoId(e.target.value)}
+                                    value=""
+                                    checked={vehiculoId === ''}
+                                    onChange={() => setVehiculoId('')}
                                     className="w-4 h-4 text-orange-500 focus:ring-orange-500"
                                 />
-                                <Car className="w-5 h-5 text-slate-400" />
+                                <XCircle className="w-5 h-5 text-slate-400" />
                                 <div className="flex-1">
-                                    <p className="font-medium text-slate-900">{veh.placa}</p>
-                                    <p className="text-sm text-slate-500">
-                                        {veh.tipo} - {veh.capacidad}
-                                    </p>
+                                    <p className="font-medium text-slate-500">Sin vehiculo</p>
                                 </div>
                             </label>
-                        ))}
-                    </div>
+
+                            {vehiculosDisponibles.map(veh => (
+                                <label
+                                    key={veh.id}
+                                    className={`flex items-center gap-3 p-4 border rounded-lg cursor-pointer transition-colors ${
+                                        vehiculoId === veh.id.toString()
+                                            ? 'border-orange-500 bg-orange-50'
+                                            : 'border-slate-200 hover:bg-slate-50'
+                                    }`}
+                                >
+                                    <input
+                                        type="radio"
+                                        name="vehiculo"
+                                        value={veh.id}
+                                        checked={vehiculoId === veh.id.toString()}
+                                        onChange={(e) => setVehiculoId(e.target.value)}
+                                        className="w-4 h-4 text-orange-500 focus:ring-orange-500"
+                                    />
+                                    <Car className="w-5 h-5 text-slate-400" />
+                                    <div className="flex-1">
+                                        <p className="font-medium text-slate-900">{veh.placa}</p>
+                                        <p className="text-sm text-slate-500">
+                                            {veh.marca} {veh.modelo}
+                                            {veh.capacidad_carga ? ` - ${veh.capacidad_carga}` : ''}
+                                        </p>
+                                    </div>
+                                </label>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="py-8 text-center text-slate-500">
+                            <Car className="w-10 h-10 mx-auto mb-2 text-slate-300" />
+                            <p>No hay vehiculos disponibles</p>
+                        </div>
+                    )}
                 </div>
                 <div className="p-6 border-t border-slate-200 flex gap-3 justify-end">
                     <Button variant="secondary" onClick={onClose}>
@@ -389,6 +456,207 @@ const ModalEditarOrden = ({ orden, onClose, onSave }) => {
 }
 
 // ============================================
+// COMPONENTE: Modal de Registrar Retorno
+// ============================================
+const ModalRegistrarRetorno = ({ orden, elementos, onClose, onSave }) => {
+    const [retornos, setRetornos] = useState(
+        elementos?.map(elem => ({
+            alquiler_elemento_id: elem.id,
+            elemento_nombre: elem.elemento_nombre || elem.nombre,
+            serie_numero: elem.serie_numero,
+            cantidad: elem.cantidad || 1,
+            estado_retorno: 'bueno',
+            costo_dano: 0,
+            notas: ''
+        })) || []
+    )
+    const [saving, setSaving] = useState(false)
+
+    const handleEstadoChange = (index, estado) => {
+        setRetornos(prev => {
+            const updated = [...prev]
+            updated[index] = {
+                ...updated[index],
+                estado_retorno: estado,
+                costo_dano: estado === 'bueno' ? 0 : updated[index].costo_dano
+            }
+            return updated
+        })
+    }
+
+    const handleCostoDanoChange = (index, costo) => {
+        setRetornos(prev => {
+            const updated = [...prev]
+            updated[index] = { ...updated[index], costo_dano: parseFloat(costo) || 0 }
+            return updated
+        })
+    }
+
+    const handleNotasChange = (index, notas) => {
+        setRetornos(prev => {
+            const updated = [...prev]
+            updated[index] = { ...updated[index], notas }
+            return updated
+        })
+    }
+
+    const handleGuardar = async () => {
+        setSaving(true)
+        try {
+            await onSave(retornos.map(r => ({
+                alquiler_elemento_id: r.alquiler_elemento_id,
+                estado_retorno: r.estado_retorno,
+                costo_dano: r.costo_dano,
+                notas: r.notas
+            })))
+        } catch (error) {
+            console.error('Error al registrar retorno:', error)
+        } finally {
+            setSaving(false)
+        }
+    }
+
+    const totalDanos = retornos.reduce((sum, r) => sum + (r.costo_dano || 0), 0)
+
+    return (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
+                <div className="p-6 border-b border-slate-200">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h3 className="text-lg font-semibold text-slate-900">
+                                Registrar Retorno
+                            </h3>
+                            <p className="text-sm text-slate-500">
+                                Orden #{orden.id} - {orden.cliente_nombre}
+                            </p>
+                        </div>
+                        <button
+                            onClick={onClose}
+                            className="p-2 hover:bg-slate-100 rounded-lg"
+                        >
+                            <X className="w-5 h-5" />
+                        </button>
+                    </div>
+                </div>
+                <div className="p-6 overflow-y-auto max-h-[60vh]">
+                    <div className="space-y-4">
+                        {retornos.map((retorno, index) => (
+                            <div
+                                key={retorno.alquiler_elemento_id}
+                                className="border border-slate-200 rounded-lg p-4"
+                            >
+                                <div className="flex items-start justify-between mb-3">
+                                    <div>
+                                        <p className="font-medium text-slate-900">
+                                            {retorno.elemento_nombre}
+                                        </p>
+                                        {retorno.serie_numero && (
+                                            <p className="text-sm text-slate-500">
+                                                Serie: {retorno.serie_numero}
+                                            </p>
+                                        )}
+                                        <p className="text-sm text-slate-500">
+                                            Cantidad: {retorno.cantidad}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Estado de retorno */}
+                                <div className="mb-3">
+                                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                                        Estado del Elemento
+                                    </label>
+                                    <div className="flex gap-2">
+                                        {[
+                                            { value: 'bueno', label: 'Bueno', color: 'green' },
+                                            { value: 'dañado', label: 'Dañado', color: 'yellow' },
+                                            { value: 'perdido', label: 'Perdido', color: 'red' }
+                                        ].map(opcion => (
+                                            <button
+                                                key={opcion.value}
+                                                onClick={() => handleEstadoChange(index, opcion.value)}
+                                                className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium border transition-colors ${
+                                                    retorno.estado_retorno === opcion.value
+                                                        ? opcion.color === 'green'
+                                                            ? 'bg-green-100 border-green-500 text-green-700'
+                                                            : opcion.color === 'yellow'
+                                                            ? 'bg-yellow-100 border-yellow-500 text-yellow-700'
+                                                            : 'bg-red-100 border-red-500 text-red-700'
+                                                        : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                                                }`}
+                                            >
+                                                {opcion.label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Costo de daño (solo si está dañado o perdido) */}
+                                {retorno.estado_retorno !== 'bueno' && (
+                                    <div className="mb-3">
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">
+                                            Costo del Daño ($)
+                                        </label>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            step="0.01"
+                                            value={retorno.costo_dano}
+                                            onChange={(e) => handleCostoDanoChange(index, e.target.value)}
+                                            className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+                                            placeholder="0.00"
+                                        />
+                                    </div>
+                                )}
+
+                                {/* Notas */}
+                                {retorno.estado_retorno !== 'bueno' && (
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">
+                                            Notas
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={retorno.notas}
+                                            onChange={(e) => handleNotasChange(index, e.target.value)}
+                                            className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+                                            placeholder="Descripción del daño..."
+                                        />
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Resumen */}
+                    {totalDanos > 0 && (
+                        <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                            <p className="text-sm font-medium text-red-700">
+                                Total Daños: ${totalDanos.toLocaleString('es-CO')}
+                            </p>
+                        </div>
+                    )}
+                </div>
+                <div className="p-6 border-t border-slate-200 flex gap-3 justify-end">
+                    <Button variant="secondary" onClick={onClose}>
+                        Cancelar
+                    </Button>
+                    <Button
+                        color="orange"
+                        icon={Save}
+                        onClick={handleGuardar}
+                        disabled={saving}
+                    >
+                        {saving ? 'Guardando...' : 'Confirmar Retorno'}
+                    </Button>
+                </div>
+            </div>
+        </div>
+    )
+}
+
+// ============================================
 // COMPONENTE PRINCIPAL: OrdenDetallePage
 // ============================================
 export default function OrdenDetallePage() {
@@ -404,7 +672,9 @@ export default function OrdenDetallePage() {
     const [showModalEquipo, setShowModalEquipo] = useState(false)
     const [showModalVehiculo, setShowModalVehiculo] = useState(false)
     const [showModalEditar, setShowModalEditar] = useState(false)
+    const [showModalRetorno, setShowModalRetorno] = useState(false)
     const [expandElementos, setExpandElementos] = useState(true)
+    const [ejecutandoSalida, setEjecutandoSalida] = useState(false)
 
     // ============================================
     // HOOKS: Obtener datos
@@ -419,6 +689,8 @@ export default function OrdenDetallePage() {
     const asignarEquipo = useAsignarEquipo()
     const asignarVehiculo = useAsignarVehiculo()
     const actualizarOrden = useUpdateOrden()
+    const ejecutarSalida = useEjecutarSalida()
+    const ejecutarRetorno = useEjecutarRetorno()
 
     // ============================================
     // HANDLERS
@@ -462,6 +734,35 @@ export default function OrdenDetallePage() {
         await actualizarOrden.mutateAsync({ id: orden.id, data })
         toast.success('Orden actualizada correctamente')
         refetch()
+    }
+
+    const handleEjecutarSalida = async () => {
+        if (!confirm('¿Confirmar ejecución de salida? Esta acción cambiará el estado del alquiler a "activo" y marcará los elementos como despachados.')) {
+            return
+        }
+
+        setEjecutandoSalida(true)
+        try {
+            await ejecutarSalida.mutateAsync({ id: orden.id, data: {} })
+            toast.success('Salida ejecutada correctamente. Alquiler ahora activo.')
+            refetch()
+        } catch (error) {
+            toast.error(error?.response?.data?.message || 'Error al ejecutar salida')
+        } finally {
+            setEjecutandoSalida(false)
+        }
+    }
+
+    const handleEjecutarRetorno = async (retornos) => {
+        try {
+            await ejecutarRetorno.mutateAsync({ id: orden.id, retornos })
+            toast.success('Retorno registrado correctamente. Alquiler finalizado.')
+            setShowModalRetorno(false)
+            refetch()
+        } catch (error) {
+            toast.error(error?.response?.data?.message || 'Error al registrar retorno')
+            throw error
+        }
     }
 
     // ============================================
@@ -842,7 +1143,26 @@ export default function OrdenDetallePage() {
                                         </Button>
                                     )}
 
-                                    {orden.estado === 'en_preparacion' && (
+                                    {orden.estado === 'en_preparacion' && orden.tipo === 'montaje' && (
+                                        <>
+                                            <Button
+                                                color="green"
+                                                icon={LogOut}
+                                                className="w-full"
+                                                onClick={handleEjecutarSalida}
+                                                disabled={ejecutandoSalida || !elementos?.length}
+                                            >
+                                                {ejecutandoSalida ? 'Ejecutando...' : 'Ejecutar Salida'}
+                                            </Button>
+                                            {!elementos?.length && (
+                                                <p className="text-xs text-amber-600 text-center">
+                                                    No hay elementos asignados
+                                                </p>
+                                            )}
+                                        </>
+                                    )}
+
+                                    {orden.estado === 'en_preparacion' && orden.tipo === 'desmontaje' && (
                                         <Button
                                             color="blue"
                                             icon={Truck}
@@ -878,7 +1198,7 @@ export default function OrdenDetallePage() {
                                         </Button>
                                     )}
 
-                                    {orden.estado === 'en_proceso' && (
+                                    {orden.estado === 'en_proceso' && orden.tipo === 'montaje' && (
                                         <Button
                                             color="green"
                                             icon={CheckCircle}
@@ -887,6 +1207,18 @@ export default function OrdenDetallePage() {
                                             disabled={cambiarEstado.isPending}
                                         >
                                             Marcar Completado
+                                        </Button>
+                                    )}
+
+                                    {/* Para desmontaje en_sitio o en_proceso: Registrar Retorno */}
+                                    {orden.tipo === 'desmontaje' && ['en_sitio', 'en_proceso'].includes(orden.estado) && (
+                                        <Button
+                                            color="orange"
+                                            icon={RotateCcw}
+                                            className="w-full"
+                                            onClick={() => setShowModalRetorno(true)}
+                                        >
+                                            Registrar Retorno
                                         </Button>
                                     )}
 
@@ -1034,6 +1366,14 @@ export default function OrdenDetallePage() {
                     orden={orden}
                     onClose={() => setShowModalEditar(false)}
                     onSave={handleActualizarOrden}
+                />
+            )}
+            {showModalRetorno && (
+                <ModalRegistrarRetorno
+                    orden={orden}
+                    elementos={elementos}
+                    onClose={() => setShowModalRetorno(false)}
+                    onSave={handleEjecutarRetorno}
                 />
             )}
         </div>

@@ -27,4 +27,10 @@ router.put('/:clave', configuracionController.actualizarValor);
 // PUT /api/configuracion - Actualizar múltiples valores
 router.put('/', configuracionController.actualizarValores);
 
+// POST /api/configuracion/logo - Subir logo de empresa
+router.post('/logo', configuracionController.uploadLogo, configuracionController.subirLogo);
+
+// DELETE /api/configuracion/logo - Eliminar logo de empresa
+router.delete('/logo', configuracionController.eliminarLogo);
+
 module.exports = router;

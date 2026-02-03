@@ -30,6 +30,10 @@ import CotizacionesPage from './pages/CotizacionesPage'
 import CalendarioPage from './pages/CalendarioPage'
 import DescuentosPage from './pages/DescuentosPage'
 import ConfiguracionAlquileresPage from './pages/ConfiguracionAlquileresPage'
+import AlquileresPage from './pages/AlquileresPage'
+import AlquilerDetallePage from './pages/AlquilerDetallePage'
+import AlquileresLayout from './components/layouts/AlquileresLayout'
+import ReportesAlquileresPage from './pages/ReportesAlquileresPage'
 
 // Importar páginas - Configuración
 import ConfiguracionPage from './pages/ConfiguracionPage'
@@ -39,6 +43,7 @@ import EmpleadosPage from './pages/EmpleadosPage'
 // Importar páginas - Operaciones
 import OperacionesDashboard from './pages/OperacionesDashboard'
 import OrdenesTrabajoPage from './pages/OrdenesTrabajoPage'
+import OrdenDetallePage from './pages/OrdenDetallePage'
 import CalendarioOperaciones from './pages/CalendarioOperaciones'
 import AlertasPage from './pages/AlertasPage'
 
@@ -133,18 +138,23 @@ function App() {
                 <Route path="/productos/alquiler" element={<ElementosCompuestosPage />} />
 
                 {/* ============================================
-                    ALQUILERES
+                    ALQUILERES (con sidebar)
                     ============================================ */}
 
-                <Route path="/alquileres" element={<CotizacionesPage />} />
-                <Route path="/alquileres/cotizaciones" element={<CotizacionesPage />} />
-                <Route path="/alquileres/clientes" element={<ClientesPage />} />
-                <Route path="/alquileres/calendario" element={<CalendarioPage />} />
-                <Route path="/alquileres/descuentos" element={<DescuentosPage />} />
-                <Route path="/alquileres/configuracion" element={<ConfiguracionAlquileresPage />} />
-                <Route path="/alquileres/configuracion/impuestos" element={<ConfiguracionAlquileresPage />} />
-                <Route path="/alquileres/configuracion/dias-extra" element={<ConfiguracionAlquileresPage />} />
-                <Route path="/alquileres/configuracion/empresa" element={<ConfiguracionAlquileresPage />} />
+                <Route path="/alquileres" element={<AlquileresLayout />}>
+                  <Route index element={<CotizacionesPage />} />
+                  <Route path="cotizaciones" element={<CotizacionesPage />} />
+                  <Route path="clientes" element={<ClientesPage />} />
+                  <Route path="calendario" element={<CalendarioPage />} />
+                  <Route path="descuentos" element={<DescuentosPage />} />
+                  <Route path="gestion" element={<AlquileresPage />} />
+                  <Route path="gestion/:id" element={<AlquilerDetallePage />} />
+                  <Route path="reportes" element={<ReportesAlquileresPage />} />
+                  <Route path="configuracion" element={<ConfiguracionAlquileresPage />} />
+                  <Route path="configuracion/impuestos" element={<ConfiguracionAlquileresPage />} />
+                  <Route path="configuracion/dias-extra" element={<ConfiguracionAlquileresPage />} />
+                  <Route path="configuracion/empresa" element={<ConfiguracionAlquileresPage />} />
+                </Route>
 
                 {/* ============================================
                     CONFIGURACIÓN
@@ -160,6 +170,7 @@ function App() {
 
                 <Route path="/operaciones" element={<OperacionesDashboard />} />
                 <Route path="/operaciones/ordenes" element={<OrdenesTrabajoPage />} />
+                <Route path="/operaciones/ordenes/:id" element={<OrdenDetallePage />} />
                 <Route path="/operaciones/calendario" element={<CalendarioOperaciones />} />
                 <Route path="/operaciones/alertas" element={<AlertasPage />} />
 

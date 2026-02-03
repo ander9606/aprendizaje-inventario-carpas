@@ -3,6 +3,7 @@ const OrdenTrabajoModel = require('../models/OrdenTrabajoModel');
 const OrdenElementoModel = require('../models/OrdenElementoModel');
 const AlertaModel = require('../models/AlertaModel');
 const ValidadorFechasService = require('../services/ValidadorFechasService');
+const SincronizacionAlquilerService = require('../services/SincronizacionAlquilerService');
 const AuthModel = require('../../auth/models/AuthModel');
 const AppError = require('../../../utils/AppError');
 const logger = require('../../../utils/logger');
@@ -230,15 +231,33 @@ const cambiarEstadoOrden = async (req, res, next) => {
             throw new AppError('Orden no encontrada', 404);
         }
 
+        const estadoAnterior = ordenAnterior.estado;
         const orden = await OrdenTrabajoModel.cambiarEstado(parseInt(id), estado);
+
+        // ========================================
+        // SINCRONIZACIÓN BIDIRECCIONAL
+        // Actualizar estado del alquiler si corresponde
+        // ========================================
+        let sincronizacion = null;
+        if (ordenAnterior.alquiler_id) {
+            sincronizacion = await SincronizacionAlquilerService.sincronizarEstadoAlquiler(
+                parseInt(id),
+                estado,
+                estadoAnterior
+            );
+
+            if (sincronizacion.sincronizado) {
+                logger.info('operaciones', `Sincronización: Alquiler ${sincronizacion.alquiler_id} → ${sincronizacion.estado_nuevo}`);
+            }
+        }
 
         await AuthModel.registrarAuditoria({
             empleado_id: req.usuario.id,
             accion: 'CAMBIAR_ESTADO_ORDEN',
             tabla_afectada: 'ordenes_trabajo',
             registro_id: parseInt(id),
-            datos_anteriores: { estado: ordenAnterior.estado },
-            datos_nuevos: { estado },
+            datos_anteriores: { estado: estadoAnterior },
+            datos_nuevos: { estado, sincronizacion: sincronizacion?.sincronizado ? sincronizacion : null },
             ip_address: req.ip,
             user_agent: req.get('User-Agent')
         });
@@ -248,7 +267,8 @@ const cambiarEstadoOrden = async (req, res, next) => {
         res.json({
             success: true,
             message: 'Estado actualizado correctamente',
-            data: orden
+            data: orden,
+            sincronizacion: sincronizacion
         });
     } catch (error) {
         next(error);
@@ -715,6 +735,154 @@ const crearOrdenManual = async (req, res, next) => {
     }
 };
 
+// ============================================
+// PREPARACIÓN Y EJECUCIÓN DE ÓRDENES
+// ============================================
+
+/**
+ * GET /api/operaciones/ordenes/:id/elementos-disponibles
+ * Obtener elementos disponibles para asignar a la orden
+ */
+const getElementosDisponibles = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const resultado = await SincronizacionAlquilerService.obtenerElementosDisponibles(parseInt(id));
+
+        res.json({
+            success: true,
+            data: resultado
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * POST /api/operaciones/ordenes/:id/preparar-elementos
+ * Asignar elementos (series/lotes) a la orden
+ */
+const prepararElementos = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const { elementos } = req.body;
+
+        if (!elementos || !Array.isArray(elementos) || elementos.length === 0) {
+            throw new AppError('Debe proporcionar al menos un elemento', 400);
+        }
+
+        const resultado = await SincronizacionAlquilerService.asignarElementosAOrden(
+            parseInt(id),
+            elementos
+        );
+
+        logger.info('operaciones', `Elementos preparados para orden ${id} por ${req.usuario.email}`);
+
+        res.json({
+            success: true,
+            message: resultado.mensaje,
+            data: resultado
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * POST /api/operaciones/ordenes/:id/ejecutar-salida
+ * Ejecutar salida de elementos (montaje inicia)
+ */
+const ejecutarSalida = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const datos = req.body;
+
+        const resultado = await SincronizacionAlquilerService.ejecutarSalida(
+            parseInt(id),
+            datos
+        );
+
+        logger.info('operaciones', `Salida ejecutada - Orden ${id} por ${req.usuario.email}`);
+
+        res.json({
+            success: true,
+            message: resultado.mensaje,
+            data: resultado
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * POST /api/operaciones/ordenes/:id/ejecutar-retorno
+ * Registrar retorno de elementos (desmontaje finaliza)
+ */
+const ejecutarRetorno = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const { retornos } = req.body;
+
+        if (!retornos || !Array.isArray(retornos) || retornos.length === 0) {
+            throw new AppError('Debe proporcionar el estado de retorno de los elementos', 400);
+        }
+
+        const resultado = await SincronizacionAlquilerService.ejecutarRetorno(
+            parseInt(id),
+            retornos
+        );
+
+        logger.info('operaciones', `Retorno ejecutado - Orden ${id} por ${req.usuario.email}`);
+
+        res.json({
+            success: true,
+            message: resultado.mensaje,
+            data: resultado
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * GET /api/operaciones/alquiler/:id/sincronizacion
+ * Obtener estado de sincronización de un alquiler
+ */
+const getEstadoSincronizacion = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const estado = await SincronizacionAlquilerService.obtenerEstadoSincronizacion(parseInt(id));
+
+        if (!estado) {
+            throw new AppError('Alquiler no encontrado', 404);
+        }
+
+        res.json({
+            success: true,
+            data: estado
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * GET /api/operaciones/alquiler/:id/verificar-consistencia
+ * Verificar consistencia entre orden y alquiler
+ */
+const verificarConsistencia = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const reporte = await SincronizacionAlquilerService.verificarConsistencia(parseInt(id));
+
+        res.json({
+            success: true,
+            data: reporte
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 module.exports = {
     // Órdenes
     getOrdenes,
@@ -743,5 +911,15 @@ module.exports = {
     resolverAlerta,
 
     // Validación
-    validarCambioFecha
+    validarCambioFecha,
+
+    // Preparación y Ejecución
+    getElementosDisponibles,
+    prepararElementos,
+    ejecutarSalida,
+    ejecutarRetorno,
+
+    // Sincronización
+    getEstadoSincronizacion,
+    verificarConsistencia
 };

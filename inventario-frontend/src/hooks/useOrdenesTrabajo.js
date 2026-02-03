@@ -302,3 +302,88 @@ export const useSubirFotoElemento = () => {
         }
     })
 }
+
+// ============================================
+// HOOKS: PREPARACIÓN Y EJECUCIÓN
+// ============================================
+
+/**
+ * Hook: useGetElementosDisponibles
+ * Obtiene elementos disponibles para asignar a una orden
+ */
+export const useGetElementosDisponibles = (ordenId) => {
+    const { data, isLoading, error, refetch } = useQuery({
+        queryKey: ['ordenes', ordenId, 'elementos-disponibles'],
+        queryFn: () => ordenesAPI.obtenerElementosDisponibles(ordenId),
+        enabled: !!ordenId
+    })
+
+    return {
+        orden: data?.data?.orden || null,
+        productos: data?.data?.productos || [],
+        isLoading,
+        error,
+        refetch
+    }
+}
+
+/**
+ * Hook: usePrepararElementos
+ * Asigna elementos (series/lotes) a una orden
+ */
+export const usePrepararElementos = () => {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: ({ ordenId, elementos }) =>
+            ordenesAPI.prepararElementos(ordenId, elementos),
+        retry: 0,
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({ queryKey: ['ordenes', variables.ordenId] })
+            queryClient.invalidateQueries({ queryKey: ['ordenes', variables.ordenId, 'elementos'] })
+            queryClient.invalidateQueries({ queryKey: ['ordenes', variables.ordenId, 'elementos-disponibles'] })
+        }
+    })
+}
+
+/**
+ * Hook: useEjecutarSalida
+ * Ejecuta la salida de una orden de montaje
+ * Cambia estado del alquiler a "activo"
+ */
+export const useEjecutarSalida = () => {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: ({ ordenId, datos }) =>
+            ordenesAPI.ejecutarSalida(ordenId, datos),
+        retry: 0,
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({ queryKey: ['ordenes'] })
+            queryClient.invalidateQueries({ queryKey: ['ordenes', variables.ordenId] })
+            queryClient.invalidateQueries({ queryKey: ['alquileres'] })
+            queryClient.invalidateQueries({ queryKey: ['alquiler'] })
+        }
+    })
+}
+
+/**
+ * Hook: useEjecutarRetorno
+ * Ejecuta el retorno de una orden de desmontaje
+ * Registra estado de retorno y cambia alquiler a "finalizado"
+ */
+export const useEjecutarRetorno = () => {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: ({ ordenId, retornos }) =>
+            ordenesAPI.ejecutarRetorno(ordenId, retornos),
+        retry: 0,
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({ queryKey: ['ordenes'] })
+            queryClient.invalidateQueries({ queryKey: ['ordenes', variables.ordenId] })
+            queryClient.invalidateQueries({ queryKey: ['alquileres'] })
+            queryClient.invalidateQueries({ queryKey: ['alquiler'] })
+        }
+    })
+}

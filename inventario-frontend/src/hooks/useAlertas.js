@@ -1,176 +1,246 @@
 // ============================================
-// CUSTOM HOOK: useAlertas
-// Maneja operaciones con alertas del sistema
+// HOOK: useAlertas
+// Gestión de alertas de alquileres
 // ============================================
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import operacionesAPI from '../api/apiOperaciones'
+import {
+  getAlertas,
+  getAlertasCriticas,
+  getResumenAlertas,
+  ignorarAlerta
+} from '../api/apiAlertas'
 
-const { alertas: alertasAPI } = operacionesAPI
+// Query keys
+const ALERTAS_KEY = 'alertas-alquileres'
+const ALERTAS_CRITICAS_KEY = 'alertas-criticas'
+const ALERTAS_RESUMEN_KEY = 'alertas-resumen'
 
-// ============================================
-// HOOK: useGetAlertas
-// Obtiene alertas con paginación y filtros
-// ============================================
+/**
+ * Hook para obtener todas las alertas
+ * @param {Object} opciones - Opciones de la query
+ * @param {boolean} opciones.solo_criticas - Si true, solo retorna críticas
+ * @param {boolean} opciones.enabled - Si false, no hace la petición
+ * @param {number} opciones.refetchInterval - Intervalo de refresco en ms (default: 60000)
+ */
+export const useAlertas = (opciones = {}) => {
+  const { solo_criticas = false, enabled = true, refetchInterval = 60000 } = opciones
 
-export const useGetAlertas = (params = {}) => {
-    const { data, isLoading, error, refetch } = useQuery({
-        queryKey: ['alertas', params],
-        queryFn: () => alertasAPI.obtenerTodas(params)
-    })
+  return useQuery({
+    queryKey: [ALERTAS_KEY, { solo_criticas }],
+    queryFn: () => getAlertas({ solo_criticas }),
+    enabled,
+    refetchInterval, // Refrescar cada minuto por defecto
+    staleTime: 30000, // Considerar stale después de 30 segundos
+    select: (data) => data.data || []
+  })
+}
 
-    return {
-        alertas: data?.data || [],
-        pagination: data?.pagination || null,
-        isLoading,
-        error,
-        refetch
+// Alias para compatibilidad con imports existentes
+export const useGetAlertas = useAlertas
+
+/**
+ * Hook para obtener alertas pendientes con límite
+ * @param {Object} opciones - Opciones de la query
+ * @param {number} opciones.limit - Cantidad máxima de alertas
+ */
+export const useGetAlertasPendientes = (opciones = {}) => {
+  const { limit, enabled = true, refetchInterval = 60000 } = opciones
+
+  const query = useQuery({
+    queryKey: [ALERTAS_KEY, 'pendientes', { limit }],
+    queryFn: () => getAlertas({ limit }),
+    enabled,
+    refetchInterval,
+    staleTime: 30000,
+    select: (data) => {
+      const alertas = data.data || []
+      return limit ? alertas.slice(0, limit) : alertas
     }
+  })
+
+  return {
+    alertas: query.data || [],
+    isLoading: query.isLoading,
+    isError: query.isError,
+    error: query.error,
+    refetch: query.refetch
+  }
 }
 
-// ============================================
-// HOOK: useGetAlertasPendientes
-// Obtiene alertas pendientes (no resueltas)
-// ============================================
+/**
+ * Hook para obtener solo alertas críticas
+ */
+export const useAlertasCriticas = (opciones = {}) => {
+  const { enabled = true, refetchInterval = 60000 } = opciones
 
-export const useGetAlertasPendientes = (params = {}) => {
-    const { data, isLoading, error, refetch } = useQuery({
-        queryKey: ['alertas', 'pendientes', params],
-        queryFn: () => alertasAPI.obtenerPendientes(params),
-        refetchInterval: 60000 // Refrescar cada minuto
-    })
+  return useQuery({
+    queryKey: [ALERTAS_CRITICAS_KEY],
+    queryFn: getAlertasCriticas,
+    enabled,
+    refetchInterval,
+    staleTime: 30000,
+    select: (data) => data.data || []
+  })
+}
 
-    return {
-        alertas: data?.data || [],
-        total: data?.total || 0,
-        isLoading,
-        error,
-        refetch
+/**
+ * Hook para obtener el resumen de alertas (conteos)
+ */
+export const useResumenAlertas = (opciones = {}) => {
+  const { enabled = true, refetchInterval = 60000 } = opciones
+
+  return useQuery({
+    queryKey: [ALERTAS_RESUMEN_KEY],
+    queryFn: getResumenAlertas,
+    enabled,
+    refetchInterval,
+    staleTime: 30000,
+    select: (data) => data.data || { total: 0, criticas: 0, advertencias: 0, por_tipo: {} }
+  })
+}
+
+/**
+ * Hook para obtener el resumen de alertas (alias para compatibilidad)
+ */
+export const useGetResumenAlertas = (opciones = {}) => {
+  const query = useResumenAlertas(opciones)
+
+  return {
+    resumen: query.data,
+    isLoading: query.isLoading,
+    isError: query.isError,
+    error: query.error,
+    refetch: query.refetch
+  }
+}
+
+/**
+ * Hook para obtener conteo de alertas
+ */
+export const useAlertasCount = (opciones = {}) => {
+  const query = useResumenAlertas(opciones)
+
+  return {
+    count: query.data?.total || 0,
+    criticas: query.data?.criticas || 0,
+    advertencias: query.data?.advertencias || 0,
+    isLoading: query.isLoading,
+    refetch: query.refetch
+  }
+}
+
+/**
+ * Hook para ignorar una alerta
+ */
+export const useIgnorarAlerta = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ tipo, referencia_id, dias }) => ignorarAlerta(tipo, referencia_id, dias),
+    onSuccess: () => {
+      // Invalidar todas las queries de alertas
+      queryClient.invalidateQueries({ queryKey: [ALERTAS_KEY] })
+      queryClient.invalidateQueries({ queryKey: [ALERTAS_CRITICAS_KEY] })
+      queryClient.invalidateQueries({ queryKey: [ALERTAS_RESUMEN_KEY] })
     }
+  })
 }
 
-// ============================================
-// HOOK: useGetResumenAlertas
-// Obtiene resumen de alertas (conteos)
-// ============================================
+// Alias para compatibilidad (resolver = ignorar)
+export const useResolverAlerta = useIgnorarAlerta
 
-export const useGetResumenAlertas = () => {
-    const { data, isLoading, error, refetch } = useQuery({
-        queryKey: ['alertas', 'resumen'],
-        queryFn: alertasAPI.obtenerResumen,
-        refetchInterval: 60000 // Refrescar cada minuto
-    })
-
-    return {
-        resumen: data?.data || null,
-        isLoading,
-        error,
-        refetch
-    }
-}
-
-// ============================================
-// HOOK: useResolverAlerta
-// Resuelve una alerta
-// ============================================
-
-export const useResolverAlerta = () => {
-    const queryClient = useQueryClient()
-
-    return useMutation({
-        mutationFn: ({ id, data }) => alertasAPI.resolver(id, data),
-        retry: 0,
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['alertas'] })
-        }
-    })
-}
-
-// ============================================
-// HOOK: useMarcarAlertaLeida
-// Marca una alerta como leída
-// ============================================
-
+/**
+ * Hook para ignorar alerta temporalmente (1 día)
+ * Equivale a "marcar como leída"
+ */
 export const useMarcarAlertaLeida = () => {
-    const queryClient = useQueryClient()
+  const queryClient = useQueryClient()
 
-    const mutation = useMutation({
-        mutationFn: (id) => alertasAPI.marcarLeida(id),
-        retry: 0,
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['alertas'] })
-        }
-    })
-
-    return {
-        marcarLeida: mutation.mutateAsync,
-        isLoading: mutation.isPending,
-        error: mutation.error
+  const mutation = useMutation({
+    mutationFn: ({ tipo, referencia_id }) => ignorarAlerta(tipo, referencia_id, 1),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [ALERTAS_KEY] })
+      queryClient.invalidateQueries({ queryKey: [ALERTAS_CRITICAS_KEY] })
+      queryClient.invalidateQueries({ queryKey: [ALERTAS_RESUMEN_KEY] })
     }
+  })
+
+  return {
+    marcarLeida: mutation.mutateAsync,
+    isLoading: mutation.isPending
+  }
 }
 
-// ============================================
-// HOOK: useMarcarAlertaResuelta
-// Marca una alerta como resuelta
-// ============================================
-
+/**
+ * Hook para ignorar alerta por más tiempo (7 días)
+ * Equivale a "marcar como resuelta"
+ */
 export const useMarcarAlertaResuelta = () => {
-    const queryClient = useQueryClient()
+  const queryClient = useQueryClient()
 
-    const mutation = useMutation({
-        mutationFn: (id) => alertasAPI.resolver(id, {}),
-        retry: 0,
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['alertas'] })
-        }
-    })
-
-    return {
-        marcarResuelta: mutation.mutateAsync,
-        isLoading: mutation.isPending,
-        error: mutation.error
+  const mutation = useMutation({
+    mutationFn: ({ tipo, referencia_id, dias = 7 }) => ignorarAlerta(tipo, referencia_id, dias),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [ALERTAS_KEY] })
+      queryClient.invalidateQueries({ queryKey: [ALERTAS_CRITICAS_KEY] })
+      queryClient.invalidateQueries({ queryKey: [ALERTAS_RESUMEN_KEY] })
     }
+  })
+
+  return {
+    marcarResuelta: mutation.mutateAsync,
+    isLoading: mutation.isPending
+  }
 }
 
-// ============================================
-// HOOK: useAlertasCount
-// Hook simple para obtener el conteo de alertas pendientes
-// Útil para badges en navegación
-// ============================================
+/**
+ * Hook combinado que retorna alertas y métodos útiles
+ */
+export const useAlertasManager = (opciones = {}) => {
+  const alertasQuery = useAlertas(opciones)
+  const resumenQuery = useResumenAlertas(opciones)
+  const ignorarMutation = useIgnorarAlerta()
 
-export const useAlertasCount = () => {
-    const { data, isLoading } = useQuery({
-        queryKey: ['alertas', 'pendientes', 'count'],
-        queryFn: async () => {
-            const response = await alertasAPI.obtenerPendientes({})
-            return response.total || response.data?.length || 0
-        },
-        refetchInterval: 60000, // Refrescar cada minuto
-        staleTime: 30000 // Considerar datos frescos por 30 segundos
-    })
+  // Separar alertas por severidad
+  const alertas = alertasQuery.data || []
+  const criticas = alertas.filter(a => a.severidad === 'critico')
+  const advertencias = alertas.filter(a => a.severidad === 'advertencia')
 
-    return {
-        count: data || 0,
-        isLoading
-    }
+  return {
+    // Datos
+    alertas,
+    criticas,
+    advertencias,
+    resumen: resumenQuery.data,
+
+    // Estados
+    isLoading: alertasQuery.isLoading || resumenQuery.isLoading,
+    isError: alertasQuery.isError || resumenQuery.isError,
+    error: alertasQuery.error || resumenQuery.error,
+
+    // Métodos
+    refetch: () => {
+      alertasQuery.refetch()
+      resumenQuery.refetch()
+    },
+    ignorar: ignorarMutation.mutate,
+    ignorarAsync: ignorarMutation.mutateAsync,
+    isIgnorando: ignorarMutation.isPending
+  }
 }
 
-// ============================================
-// HOOK: useAlertasCriticas
-// Obtiene solo alertas críticas pendientes
-// ============================================
-
-export const useAlertasCriticas = () => {
-    const { data, isLoading, error, refetch } = useQuery({
-        queryKey: ['alertas', 'pendientes', { severidad: 'critica' }],
-        queryFn: () => alertasAPI.obtenerPendientes({ severidad: 'critica' }),
-        refetchInterval: 30000 // Refrescar cada 30 segundos para críticas
-    })
-
-    return {
-        alertas: data?.data || [],
-        isLoading,
-        error,
-        refetch
-    }
+export default {
+  useAlertas,
+  useGetAlertas,
+  useGetAlertasPendientes,
+  useAlertasCriticas,
+  useResumenAlertas,
+  useGetResumenAlertas,
+  useAlertasCount,
+  useIgnorarAlerta,
+  useResolverAlerta,
+  useMarcarAlertaLeida,
+  useMarcarAlertaResuelta,
+  useAlertasManager
 }
