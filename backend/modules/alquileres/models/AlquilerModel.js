@@ -324,7 +324,13 @@ class AlquilerModel {
   // ============================================
   // OBTENER ESTADÍSTICAS
   // ============================================
-  static async obtenerEstadisticas() {
+  static async obtenerEstadisticas(fechaInicio, fechaFin) {
+    let where = '';
+    const params = [];
+    if (fechaInicio && fechaFin) {
+      where = 'WHERE created_at >= ? AND created_at < DATE_ADD(?, INTERVAL 1 DAY)';
+      params.push(fechaInicio, fechaFin);
+    }
     const query = `
       SELECT
         COUNT(*) AS total,
@@ -332,17 +338,24 @@ class AlquilerModel {
         SUM(CASE WHEN estado = 'activo' THEN 1 ELSE 0 END) AS activos,
         SUM(CASE WHEN estado = 'finalizado' THEN 1 ELSE 0 END) AS finalizados,
         SUM(CASE WHEN estado = 'cancelado' THEN 1 ELSE 0 END) AS cancelados,
-        COALESCE(SUM(CASE WHEN estado = 'finalizado' THEN total ELSE 0 END), 0) AS ingresos_totales
+        COALESCE(SUM(CASE WHEN estado != 'cancelado' THEN total ELSE 0 END), 0) AS ingresos_totales
       FROM alquileres
+      ${where}
     `;
-    const [rows] = await pool.query(query);
+    const [rows] = await pool.query(query, params);
     return rows[0];
   }
 
   // ============================================
-  // REPORTES: Ingresos por mes (últimos 12 meses)
+  // REPORTES: Ingresos por mes
   // ============================================
-  static async obtenerIngresosPorMes() {
+  static async obtenerIngresosPorMes(fechaInicio, fechaFin) {
+    let dateFilter = 'a.created_at >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)';
+    const params = [];
+    if (fechaInicio && fechaFin) {
+      dateFilter = 'a.created_at >= ? AND a.created_at < DATE_ADD(?, INTERVAL 1 DAY)';
+      params.push(fechaInicio, fechaFin);
+    }
     const query = `
       SELECT
         DATE_FORMAT(a.created_at, '%Y-%m') AS mes,
@@ -350,18 +363,25 @@ class AlquilerModel {
         COALESCE(SUM(a.total), 0) AS ingresos
       FROM alquileres a
       WHERE a.estado != 'cancelado'
-        AND a.created_at >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
+        AND ${dateFilter}
       GROUP BY mes
       ORDER BY mes
     `;
-    const [rows] = await pool.query(query);
+    const [rows] = await pool.query(query, params);
     return rows;
   }
 
   // ============================================
   // REPORTES: Top clientes por ingresos
   // ============================================
-  static async obtenerTopClientes(limite = 10) {
+  static async obtenerTopClientes(limite = 10, fechaInicio, fechaFin) {
+    let dateFilter = '';
+    const params = [];
+    if (fechaInicio && fechaFin) {
+      dateFilter = 'AND a.created_at >= ? AND a.created_at < DATE_ADD(?, INTERVAL 1 DAY)';
+      params.push(fechaInicio, fechaFin);
+    }
+    params.push(limite);
     const query = `
       SELECT
         cl.id AS cliente_id,
@@ -372,18 +392,26 @@ class AlquilerModel {
       INNER JOIN cotizaciones cot ON a.cotizacion_id = cot.id
       INNER JOIN clientes cl ON cot.cliente_id = cl.id
       WHERE a.estado != 'cancelado'
+      ${dateFilter}
       GROUP BY cl.id, cl.nombre
       ORDER BY ingresos DESC
       LIMIT ?
     `;
-    const [rows] = await pool.query(query, [limite]);
+    const [rows] = await pool.query(query, params);
     return rows;
   }
 
   // ============================================
   // REPORTES: Productos más alquilados
   // ============================================
-  static async obtenerProductosMasAlquilados(limite = 10) {
+  static async obtenerProductosMasAlquilados(limite = 10, fechaInicio, fechaFin) {
+    let dateFilter = '';
+    const params = [];
+    if (fechaInicio && fechaFin) {
+      dateFilter = 'AND a.created_at >= ? AND a.created_at < DATE_ADD(?, INTERVAL 1 DAY)';
+      params.push(fechaInicio, fechaFin);
+    }
+    params.push(limite);
     const query = `
       SELECT
         ec.id AS producto_id,
@@ -394,18 +422,25 @@ class AlquilerModel {
       INNER JOIN cotizacion_productos cp ON cp.cotizacion_id = a.cotizacion_id
       INNER JOIN elementos_compuestos ec ON cp.compuesto_id = ec.id
       WHERE a.estado != 'cancelado'
+      ${dateFilter}
       GROUP BY ec.id, ec.nombre
       ORDER BY veces_alquilado DESC
       LIMIT ?
     `;
-    const [rows] = await pool.query(query, [limite]);
+    const [rows] = await pool.query(query, params);
     return rows;
   }
 
   // ============================================
   // REPORTES: Ciudades con más eventos
   // ============================================
-  static async obtenerAlquileresPorCiudad() {
+  static async obtenerAlquileresPorCiudad(fechaInicio, fechaFin) {
+    let dateFilter = '';
+    const params = [];
+    if (fechaInicio && fechaFin) {
+      dateFilter = 'AND a.created_at >= ? AND a.created_at < DATE_ADD(?, INTERVAL 1 DAY)';
+      params.push(fechaInicio, fechaFin);
+    }
     const query = `
       SELECT
         COALESCE(cot.evento_ciudad, 'Sin ciudad') AS ciudad,
@@ -414,11 +449,12 @@ class AlquilerModel {
       FROM alquileres a
       INNER JOIN cotizaciones cot ON a.cotizacion_id = cot.id
       WHERE a.estado != 'cancelado'
+      ${dateFilter}
       GROUP BY ciudad
       ORDER BY cantidad DESC
       LIMIT 10
     `;
-    const [rows] = await pool.query(query);
+    const [rows] = await pool.query(query, params);
     return rows;
   }
 }

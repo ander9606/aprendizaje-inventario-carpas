@@ -78,9 +78,12 @@ const apiAlquileres = {
     return response.data
   },
 
-  // Reportes completos
-  obtenerReportes: async () => {
-    const response = await api.get('/alquileres/reportes')
+  // Reportes completos (con filtro de fechas opcional)
+  obtenerReportes: async ({ fechaInicio, fechaFin } = {}) => {
+    const params = {}
+    if (fechaInicio) params.fechaInicio = fechaInicio
+    if (fechaFin) params.fechaFin = fechaFin
+    const response = await api.get('/alquileres/reportes', { params })
     return response.data
   }
 }

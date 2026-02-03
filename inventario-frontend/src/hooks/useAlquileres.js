@@ -133,12 +133,13 @@ export const useGetEstadisticasAlquileres = () => {
 }
 
 /**
- * Hook para obtener reportes completos
+ * Hook para obtener reportes completos con filtro de fechas
  */
-export const useGetReportesAlquileres = () => {
+export const useGetReportesAlquileres = (filtros = {}) => {
+  const { fechaInicio, fechaFin } = filtros
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['alquileres', 'reportes'],
-    queryFn: apiAlquileres.obtenerReportes
+    queryKey: ['alquileres', 'reportes', fechaInicio, fechaFin],
+    queryFn: () => apiAlquileres.obtenerReportes({ fechaInicio, fechaFin })
   })
 
   return {
