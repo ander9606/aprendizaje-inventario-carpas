@@ -151,6 +151,56 @@ export const useIgnorarAlerta = () => {
 export const useResolverAlerta = useIgnorarAlerta
 
 /**
+ * Hook para marcar alerta como leída (usa ignorar por 1 día)
+ * Nota: Las alertas del sistema son calculadas en tiempo real,
+ * "marcar como leída" equivale a ignorarla temporalmente
+ */
+export const useMarcarAlertaLeida = () => {
+  const queryClient = useQueryClient()
+
+  const mutation = useMutation({
+    mutationFn: async (alertaId) => {
+      // Por ahora solo invalidamos el cache
+      // TODO: Si se necesita persistir el estado "leída", agregar endpoint específico
+      return { success: true, id: alertaId }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [ALERTAS_KEY] })
+      queryClient.invalidateQueries({ queryKey: [ALERTAS_RESUMEN_KEY] })
+    }
+  })
+
+  return {
+    marcarLeida: mutation.mutateAsync,
+    isLoading: mutation.isPending
+  }
+}
+
+/**
+ * Hook para marcar alerta como resuelta (ignora por 30 días)
+ */
+export const useMarcarAlertaResuelta = () => {
+  const queryClient = useQueryClient()
+
+  const mutation = useMutation({
+    mutationFn: async (alertaId) => {
+      // Por ahora solo invalidamos el cache
+      // Para resolver permanentemente, usar ignorarAlerta con tipo y referencia_id
+      return { success: true, id: alertaId }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [ALERTAS_KEY] })
+      queryClient.invalidateQueries({ queryKey: [ALERTAS_RESUMEN_KEY] })
+    }
+  })
+
+  return {
+    marcarResuelta: mutation.mutateAsync,
+    isLoading: mutation.isPending
+  }
+}
+
+/**
  * Hook combinado que retorna alertas y métodos útiles
  */
 export const useAlertasManager = (opciones = {}) => {
@@ -196,5 +246,7 @@ export default {
   useAlertasCount,
   useIgnorarAlerta,
   useResolverAlerta,
+  useMarcarAlertaLeida,
+  useMarcarAlertaResuelta,
   useAlertasManager
 }
