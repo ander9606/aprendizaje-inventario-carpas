@@ -338,7 +338,8 @@ class AlquilerModel {
         SUM(CASE WHEN estado = 'activo' THEN 1 ELSE 0 END) AS activos,
         SUM(CASE WHEN estado = 'finalizado' THEN 1 ELSE 0 END) AS finalizados,
         SUM(CASE WHEN estado = 'cancelado' THEN 1 ELSE 0 END) AS cancelados,
-        COALESCE(SUM(CASE WHEN estado != 'cancelado' THEN total ELSE 0 END), 0) AS ingresos_totales
+        COALESCE(SUM(CASE WHEN estado = 'finalizado' THEN total ELSE 0 END), 0) AS ingresos_realizados,
+        COALESCE(SUM(CASE WHEN estado IN ('programado', 'activo') THEN total ELSE 0 END), 0) AS ingresos_esperados
       FROM alquileres
       ${where}
     `;

@@ -4,7 +4,7 @@
 // ============================================
 
 import { useState, useMemo } from 'react'
-import { BarChart3, TrendingUp, Users, Package, MapPin, FileText, DollarSign, Activity, Calendar, ChevronLeft, ChevronRight } from 'lucide-react'
+import { BarChart3, TrendingUp, Users, Package, MapPin, FileText, DollarSign, Activity, Calendar, ChevronLeft, ChevronRight, Clock } from 'lucide-react'
 import Spinner from '../components/common/Spinner'
 import { useGetReportesAlquileres } from '../hooks/useAlquileres'
 import {
@@ -262,7 +262,7 @@ const ReportesAlquileresPage = () => {
       ) : (
         <>
           {/* KPIs principales */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             <KPICard
               icon={<Package className="w-5 h-5" />}
               label="Total Alquileres"
@@ -271,9 +271,17 @@ const ReportesAlquileresPage = () => {
             />
             <KPICard
               icon={<DollarSign className="w-5 h-5" />}
-              label="Ingresos Totales"
-              value={formatMoneyFull(estadisticas?.ingresos_totales)}
+              label="Ingresos Realizados"
+              value={formatMoneyFull(estadisticas?.ingresos_realizados)}
               color="green"
+              subtitle="Finalizados"
+            />
+            <KPICard
+              icon={<Clock className="w-5 h-5" />}
+              label="Ingresos Esperados"
+              value={formatMoneyFull(estadisticas?.ingresos_esperados)}
+              color="amber"
+              subtitle="Programados + Activos"
             />
             <KPICard
               icon={<FileText className="w-5 h-5" />}
@@ -285,7 +293,7 @@ const ReportesAlquileresPage = () => {
               icon={<TrendingUp className="w-5 h-5" />}
               label="Tasa Conversión"
               value={`${cotizaciones?.tasaConversion || 0}%`}
-              color="amber"
+              color="blue"
             />
           </div>
 
@@ -495,7 +503,7 @@ const ReportesAlquileresPage = () => {
 // ============================================
 // Componente KPI Card
 // ============================================
-const KPICard = ({ icon, label, value, color }) => {
+const KPICard = ({ icon, label, value, color, subtitle }) => {
   const colorClasses = {
     blue: 'bg-blue-50 text-blue-600 border-blue-100',
     green: 'bg-green-50 text-green-600 border-green-100',
@@ -519,6 +527,7 @@ const KPICard = ({ icon, label, value, color }) => {
         <div>
           <p className="text-xs font-medium opacity-75">{label}</p>
           <p className="text-xl font-bold">{value}</p>
+          {subtitle && <p className="text-[10px] opacity-60">{subtitle}</p>}
         </div>
       </div>
     </div>
