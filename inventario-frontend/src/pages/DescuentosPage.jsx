@@ -94,23 +94,27 @@ const DescuentosPage = () => {
   return (
     <div className="p-6">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-            <Tag className="w-7 h-7 text-blue-600" />
-            Descuentos
-          </h1>
-          <p className="text-slate-500 mt-1">
-            Administra los descuentos predefinidos para cotizaciones
-          </p>
+      <div className="mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-3">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <Tag className="w-6 h-6 text-blue-600" />
+              </div>
+              Descuentos
+            </h1>
+            <p className="text-slate-500 mt-1">
+              Administra los descuentos predefinidos para cotizaciones
+            </p>
+          </div>
+          <Button
+            variant="primary"
+            icon={<Plus className="w-5 h-5" />}
+            onClick={handleNuevo}
+          >
+            Nuevo Descuento
+          </Button>
         </div>
-        <Button
-          variant="primary"
-          icon={<Plus className="w-5 h-5" />}
-          onClick={handleNuevo}
-        >
-          Nuevo Descuento
-        </Button>
       </div>
 
       {/* Lista de descuentos */}

@@ -4,9 +4,8 @@
 // ============================================
 
 import { useState, useRef, useCallback } from 'react'
-import { ArrowLeft, Calendar, RefreshCw } from 'lucide-react'
+import { Calendar, RefreshCw } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import { useNavigation } from '../hooks/UseNavigation'
 import { useGetCotizaciones } from '../hooks/cotizaciones'
 import { useCalendarEvents, useCalendarConfig } from '../hooks/calendar'
 import {
@@ -22,7 +21,6 @@ import Spinner from '../components/common/Spinner'
 
 export default function CalendarioPage() {
   const navigate = useNavigate()
-  const { volverAModulos } = useNavigation()
   const calendarRef = useRef(null)
 
   // ============================================
@@ -105,26 +103,18 @@ export default function CalendarioPage() {
 
   if (isLoading) {
     return (
-      <Spinner
-        fullScreen
-        size="xl"
-        text="Cargando calendario..."
-      />
+      <div className="flex justify-center py-12">
+        <Spinner size="lg" text="Cargando calendario..." />
+      </div>
     )
   }
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-6">
-        <div className="text-center">
-          <div className="text-6xl mb-4">!</div>
-          <h2 className="text-2xl font-bold text-slate-900 mb-2">
-            Error al cargar el calendario
-          </h2>
-          <p className="text-slate-600 mb-6">
-            {error.message || 'Ocurrio un error inesperado'}
-          </p>
-          <Button onClick={handleRefresh}>
+      <div className="p-6">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
+          Error al cargar el calendario: {error.message || 'Ocurrió un error inesperado'}
+          <Button variant="ghost" onClick={handleRefresh} className="ml-4">
             Reintentar
           </Button>
         </div>
@@ -133,124 +123,100 @@ export default function CalendarioPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="p-6 space-y-6">
       {/* HEADER */}
-      <div className="bg-white border-b border-slate-200 sticky top-0 z-10 shadow-sm">
-        <div className="container mx-auto px-6 py-4">
-          {/* Navegacion superior */}
-          <button
-            onClick={volverAModulos}
-            className="flex items-center gap-2 text-slate-600 hover:text-slate-900 mb-3 transition-colors text-sm"
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-3">
+            <div className="p-2 bg-blue-100 rounded-lg">
+              <Calendar className="w-6 h-6 text-blue-600" />
+            </div>
+            Calendario
+          </h1>
+          <p className="text-slate-500 mt-1">
+            Vista de eventos y cotizaciones
+          </p>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <Button
+            variant="secondary"
+            icon={<RefreshCw className="w-4 h-4" />}
+            onClick={handleRefresh}
           >
-            <ArrowLeft className="w-4 h-4" />
-            <span>Volver a Modulos</span>
-          </button>
-
-          <div className="flex items-center justify-between">
-            {/* Titulo */}
-            <div className="flex items-center gap-3">
-              <Calendar className="w-8 h-8 text-blue-600" />
-              <div>
-                <h1 className="text-2xl font-bold text-slate-900">
-                  Calendario
-                </h1>
-                <p className="text-sm text-slate-600">
-                  Vista de eventos y cotizaciones
-                </p>
-              </div>
-            </div>
-
-            {/* Acciones */}
-            <div className="flex items-center gap-3">
-              <Button
-                variant="secondary"
-                icon={<RefreshCw className="w-4 h-4" />}
-                onClick={handleRefresh}
-              >
-                Actualizar
-              </Button>
-              <Button
-                variant="primary"
-                onClick={handleIrCotizaciones}
-              >
-                Ver Cotizaciones
-              </Button>
-            </div>
-          </div>
+            Actualizar
+          </Button>
         </div>
       </div>
 
-      {/* CONTENIDO */}
-      <div className="container mx-auto px-6 py-6 space-y-6">
-        {/* Estadisticas */}
-        <CalendarStats stats={stats} />
+      {/* Estadisticas */}
+      <CalendarStats stats={stats} />
 
-        {/* Filtros */}
-        <CalendarFilters
-          filters={filters}
-          onFilterChange={handleFilterChange}
-        />
+      {/* Filtros */}
+      <CalendarFilters
+        filters={filters}
+        onFilterChange={handleFilterChange}
+      />
 
-        {/* Calendario y Leyenda */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Calendario */}
-          <div className="lg:col-span-3">
-            <div className="bg-white rounded-lg border border-slate-200 p-4">
-              <CalendarWrapper
-                calendarRef={calendarRef}
-                events={events}
-                options={calendarOptions}
-                handlers={{
-                  eventClick: handleEventClick
-                }}
-              />
+      {/* Calendario y Leyenda */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        {/* Calendario */}
+        <div className="lg:col-span-3">
+          <div className="bg-white rounded-lg border border-slate-200 p-4">
+            <CalendarWrapper
+              calendarRef={calendarRef}
+              events={events}
+              options={calendarOptions}
+              handlers={{
+                eventClick: handleEventClick
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Panel lateral */}
+        <div className="space-y-4">
+          {/* Leyenda */}
+          <CalendarLegend
+            showTipos={true}
+            showEstados={false}
+            orientation="vertical"
+          />
+
+          {/* Acciones rapidas */}
+          <div className="bg-white rounded-lg border border-slate-200 p-4">
+            <h3 className="text-sm font-semibold text-slate-700 mb-3">
+              Acciones Rapidas
+            </h3>
+            <div className="space-y-2">
+              <button
+                onClick={goToToday}
+                className="w-full px-4 py-2 text-left text-sm text-slate-600 hover:bg-slate-50 rounded-lg transition-colors"
+              >
+                Ir a Hoy
+              </button>
+              <button
+                onClick={handleIrCotizaciones}
+                className="w-full px-4 py-2 text-left text-sm text-slate-600 hover:bg-slate-50 rounded-lg transition-colors"
+              >
+                Nueva Cotizacion
+              </button>
             </div>
           </div>
 
-          {/* Sidebar */}
-          <div className="space-y-4">
-            {/* Leyenda */}
-            <CalendarLegend
-              showTipos={true}
-              showEstados={false}
-              orientation="vertical"
-            />
-
-            {/* Acciones rapidas */}
-            <div className="bg-white rounded-lg border border-slate-200 p-4">
-              <h3 className="text-sm font-semibold text-slate-700 mb-3">
-                Acciones Rapidas
-              </h3>
-              <div className="space-y-2">
-                <button
-                  onClick={goToToday}
-                  className="w-full px-4 py-2 text-left text-sm text-slate-600 hover:bg-slate-50 rounded-lg transition-colors"
-                >
-                  Ir a Hoy
-                </button>
-                <button
-                  onClick={handleIrCotizaciones}
-                  className="w-full px-4 py-2 text-left text-sm text-slate-600 hover:bg-slate-50 rounded-lg transition-colors"
-                >
-                  Nueva Cotizacion
-                </button>
+          {/* Resumen del mes */}
+          <div className="bg-white rounded-lg border border-slate-200 p-4">
+            <h3 className="text-sm font-semibold text-slate-700 mb-3">
+              Resumen
+            </h3>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-slate-500">Cotizaciones:</span>
+                <span className="font-medium">{cotizaciones?.length || 0}</span>
               </div>
-            </div>
-
-            {/* Resumen del mes */}
-            <div className="bg-white rounded-lg border border-slate-200 p-4">
-              <h3 className="text-sm font-semibold text-slate-700 mb-3">
-                Resumen
-              </h3>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Cotizaciones:</span>
-                  <span className="font-medium">{cotizaciones?.length || 0}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Eventos visibles:</span>
-                  <span className="font-medium">{events.length}</span>
-                </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Eventos visibles:</span>
+                <span className="font-medium">{events.length}</span>
               </div>
             </div>
           </div>
