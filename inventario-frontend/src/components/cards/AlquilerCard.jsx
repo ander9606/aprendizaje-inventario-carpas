@@ -203,16 +203,16 @@ const AlquilerCard = ({
             </span>
           </div>
 
-          {/* Elementos asignados */}
-          <div className="flex items-center gap-2 text-sm">
-            <Package className="w-4 h-4 text-slate-400 flex-shrink-0" />
-            {alquiler.total_elementos > 0 ? (
-              <span className="text-slate-600">
-                {alquiler.total_elementos} elemento{alquiler.total_elementos !== 1 ? 's' : ''} asignado{alquiler.total_elementos !== 1 ? 's' : ''}
+          {/* Productos alquilados */}
+          <div className="flex items-start gap-2 text-sm">
+            <Package className="w-4 h-4 text-slate-400 flex-shrink-0 mt-0.5" />
+            {alquiler.productos_resumen ? (
+              <span className="text-slate-600 line-clamp-2">
+                {alquiler.productos_resumen}
               </span>
             ) : (
               <span className="text-amber-600">
-                Pendiente de asignar elementos
+                Sin productos
               </span>
             )}
           </div>

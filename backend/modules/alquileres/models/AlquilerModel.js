@@ -28,7 +28,13 @@ class AlquilerModel {
         cl.nombre AS cliente_nombre,
         cl.telefono AS cliente_telefono,
         (SELECT COUNT(*) FROM cotizacion_productos WHERE cotizacion_id = cot.id) AS total_productos,
-        (SELECT COUNT(*) FROM alquiler_elementos WHERE alquiler_id = a.id) AS total_elementos
+        (SELECT COUNT(*) FROM alquiler_elementos WHERE alquiler_id = a.id) AS total_elementos,
+        (
+          SELECT GROUP_CONCAT(CONCAT(ec.nombre, ' x', cp.cantidad) SEPARATOR ', ')
+          FROM cotizacion_productos cp
+          INNER JOIN elementos_compuestos ec ON cp.compuesto_id = ec.id
+          WHERE cp.cotizacion_id = cot.id
+        ) AS productos_resumen
       FROM alquileres a
       INNER JOIN cotizaciones cot ON a.cotizacion_id = cot.id
       INNER JOIN clientes cl ON cot.cliente_id = cl.id
@@ -49,12 +55,20 @@ class AlquilerModel {
         a.fecha_salida,
         a.fecha_retorno_esperado,
         a.total,
+        a.deposito_cobrado,
+        a.costo_danos,
         a.estado,
         cot.evento_nombre,
         cot.evento_ciudad,
         cl.nombre AS cliente_nombre,
         cl.telefono AS cliente_telefono,
-        (SELECT COUNT(*) FROM cotizacion_productos WHERE cotizacion_id = cot.id) AS total_productos
+        (SELECT COUNT(*) FROM cotizacion_productos WHERE cotizacion_id = cot.id) AS total_productos,
+        (
+          SELECT GROUP_CONCAT(CONCAT(ec.nombre, ' x', cp.cantidad) SEPARATOR ', ')
+          FROM cotizacion_productos cp
+          INNER JOIN elementos_compuestos ec ON cp.compuesto_id = ec.id
+          WHERE cp.cotizacion_id = cot.id
+        ) AS productos_resumen
       FROM alquileres a
       INNER JOIN cotizaciones cot ON a.cotizacion_id = cot.id
       INNER JOIN clientes cl ON cot.cliente_id = cl.id
