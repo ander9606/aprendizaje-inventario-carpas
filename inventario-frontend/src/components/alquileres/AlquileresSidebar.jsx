@@ -15,7 +15,8 @@ import {
   Calendar,
   ChevronDown,
   ChevronRight,
-  Building
+  Building,
+  BarChart3
 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -51,6 +52,11 @@ const AlquileresSidebar = () => {
       to: '/alquileres/calendario',
       icon: Calendar,
       label: 'Calendario'
+    },
+    {
+      to: '/alquileres/reportes',
+      icon: BarChart3,
+      label: 'Reportes'
     }
   ]
 

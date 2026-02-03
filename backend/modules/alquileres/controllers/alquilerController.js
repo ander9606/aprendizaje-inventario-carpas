@@ -595,3 +595,49 @@ exports.obtenerEstadisticas = async (req, res, next) => {
     next(error);
   }
 };
+
+// ============================================
+// REPORTES COMPLETOS
+// ============================================
+exports.obtenerReportes = async (req, res, next) => {
+  try {
+    const [estadisticas, ingresosPorMes, topClientes, productosMasAlquilados, alquileresPorCiudad] = await Promise.all([
+      AlquilerModel.obtenerEstadisticas(),
+      AlquilerModel.obtenerIngresosPorMes(),
+      AlquilerModel.obtenerTopClientes(10),
+      AlquilerModel.obtenerProductosMasAlquilados(10),
+      AlquilerModel.obtenerAlquileresPorCiudad(),
+    ]);
+
+    // Estadísticas de cotizaciones
+    const CotizacionModel = require('../models/CotizacionModel');
+    const cotizaciones = await CotizacionModel.obtenerTodas();
+    const totalCotizaciones = cotizaciones.length;
+    const aprobadas = cotizaciones.filter(c => c.estado === 'aprobada').length;
+    const pendientes = cotizaciones.filter(c => c.estado === 'pendiente').length;
+    const rechazadas = cotizaciones.filter(c => c.estado === 'rechazada').length;
+    const vencidas = cotizaciones.filter(c => c.estado === 'vencida').length;
+    const tasaConversion = totalCotizaciones > 0 ? Math.round((aprobadas / totalCotizaciones) * 100) : 0;
+
+    res.json({
+      success: true,
+      data: {
+        estadisticas,
+        ingresosPorMes,
+        topClientes,
+        productosMasAlquilados,
+        alquileresPorCiudad,
+        cotizaciones: {
+          total: totalCotizaciones,
+          aprobadas,
+          pendientes,
+          rechazadas,
+          vencidas,
+          tasaConversion
+        }
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};

@@ -33,6 +33,7 @@ import ConfiguracionAlquileresPage from './pages/ConfiguracionAlquileresPage'
 import AlquileresPage from './pages/AlquileresPage'
 import AlquilerDetallePage from './pages/AlquilerDetallePage'
 import AlquileresLayout from './components/layouts/AlquileresLayout'
+import ReportesAlquileresPage from './pages/ReportesAlquileresPage'
 
 // Importar páginas - Configuración
 import ConfiguracionPage from './pages/ConfiguracionPage'
@@ -148,6 +149,7 @@ function App() {
                   <Route path="descuentos" element={<DescuentosPage />} />
                   <Route path="gestion" element={<AlquileresPage />} />
                   <Route path="gestion/:id" element={<AlquilerDetallePage />} />
+                  <Route path="reportes" element={<ReportesAlquileresPage />} />
                   <Route path="configuracion" element={<ConfiguracionAlquileresPage />} />
                   <Route path="configuracion/impuestos" element={<ConfiguracionAlquileresPage />} />
                   <Route path="configuracion/dias-extra" element={<ConfiguracionAlquileresPage />} />

@@ -338,6 +338,89 @@ class AlquilerModel {
     const [rows] = await pool.query(query);
     return rows[0];
   }
+
+  // ============================================
+  // REPORTES: Ingresos por mes (últimos 12 meses)
+  // ============================================
+  static async obtenerIngresosPorMes() {
+    const query = `
+      SELECT
+        DATE_FORMAT(a.created_at, '%Y-%m') AS mes,
+        COUNT(*) AS cantidad,
+        COALESCE(SUM(a.total), 0) AS ingresos
+      FROM alquileres a
+      WHERE a.estado != 'cancelado'
+        AND a.created_at >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
+      GROUP BY mes
+      ORDER BY mes
+    `;
+    const [rows] = await pool.query(query);
+    return rows;
+  }
+
+  // ============================================
+  // REPORTES: Top clientes por ingresos
+  // ============================================
+  static async obtenerTopClientes(limite = 10) {
+    const query = `
+      SELECT
+        cl.id AS cliente_id,
+        cl.nombre AS cliente_nombre,
+        COUNT(a.id) AS total_alquileres,
+        COALESCE(SUM(a.total), 0) AS ingresos
+      FROM alquileres a
+      INNER JOIN cotizaciones cot ON a.cotizacion_id = cot.id
+      INNER JOIN clientes cl ON cot.cliente_id = cl.id
+      WHERE a.estado != 'cancelado'
+      GROUP BY cl.id, cl.nombre
+      ORDER BY ingresos DESC
+      LIMIT ?
+    `;
+    const [rows] = await pool.query(query, [limite]);
+    return rows;
+  }
+
+  // ============================================
+  // REPORTES: Productos más alquilados
+  // ============================================
+  static async obtenerProductosMasAlquilados(limite = 10) {
+    const query = `
+      SELECT
+        ec.id AS producto_id,
+        ec.nombre AS producto_nombre,
+        SUM(cp.cantidad) AS veces_alquilado,
+        COALESCE(SUM(cp.subtotal), 0) AS ingresos
+      FROM alquileres a
+      INNER JOIN cotizacion_productos cp ON cp.cotizacion_id = a.cotizacion_id
+      INNER JOIN elementos_compuestos ec ON cp.compuesto_id = ec.id
+      WHERE a.estado != 'cancelado'
+      GROUP BY ec.id, ec.nombre
+      ORDER BY veces_alquilado DESC
+      LIMIT ?
+    `;
+    const [rows] = await pool.query(query, [limite]);
+    return rows;
+  }
+
+  // ============================================
+  // REPORTES: Ciudades con más eventos
+  // ============================================
+  static async obtenerAlquileresPorCiudad() {
+    const query = `
+      SELECT
+        COALESCE(cot.evento_ciudad, 'Sin ciudad') AS ciudad,
+        COUNT(a.id) AS cantidad,
+        COALESCE(SUM(a.total), 0) AS ingresos
+      FROM alquileres a
+      INNER JOIN cotizaciones cot ON a.cotizacion_id = cot.id
+      WHERE a.estado != 'cancelado'
+      GROUP BY ciudad
+      ORDER BY cantidad DESC
+      LIMIT 10
+    `;
+    const [rows] = await pool.query(query);
+    return rows;
+  }
 }
 
 module.exports = AlquilerModel;

@@ -25,6 +25,9 @@ router.get('/fechas', alquilerController.obtenerPorRangoFechas);
 // GET /api/alquileres/estadisticas - Obtener estadísticas
 router.get('/estadisticas', alquilerController.obtenerEstadisticas);
 
+// GET /api/alquileres/reportes - Reportes completos con gráficos
+router.get('/reportes', alquilerController.obtenerReportes);
+
 // GET /api/alquileres/:id - Obtener por ID
 router.get('/:id', validateId(), alquilerController.obtenerPorId);
 

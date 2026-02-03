@@ -76,6 +76,12 @@ const apiAlquileres = {
   asignarElementos: async (id, elementos) => {
     const response = await api.post(`/alquileres/${id}/elementos`, { elementos })
     return response.data
+  },
+
+  // Reportes completos
+  obtenerReportes: async () => {
+    const response = await api.get('/alquileres/reportes')
+    return response.data
   }
 }
 

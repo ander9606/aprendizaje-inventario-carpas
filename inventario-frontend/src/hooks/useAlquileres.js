@@ -132,6 +132,23 @@ export const useGetEstadisticasAlquileres = () => {
   }
 }
 
+/**
+ * Hook para obtener reportes completos
+ */
+export const useGetReportesAlquileres = () => {
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ['alquileres', 'reportes'],
+    queryFn: apiAlquileres.obtenerReportes
+  })
+
+  return {
+    reportes: data?.data || null,
+    isLoading,
+    error,
+    refetch
+  }
+}
+
 // ============================================
 // MUTATIONS
 // ============================================
