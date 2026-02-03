@@ -86,6 +86,20 @@ router.get(
     ordenTrabajoController.getOrdenesPorAlquiler
 );
 
+// Estado de sincronización de un alquiler
+router.get(
+    '/alquiler/:id/sincronizacion',
+    verificarRol(['admin', 'gerente', 'operaciones']),
+    ordenTrabajoController.getEstadoSincronizacion
+);
+
+// Verificar consistencia entre orden y alquiler
+router.get(
+    '/alquiler/:id/verificar-consistencia',
+    verificarRol(['admin', 'gerente']),
+    ordenTrabajoController.verificarConsistencia
+);
+
 // Rutas de modificación
 router.put(
     '/ordenes/:id',
