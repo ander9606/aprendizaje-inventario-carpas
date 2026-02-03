@@ -17,6 +17,8 @@ const OrdenTrabajoModel = require('../../operaciones/models/OrdenTrabajoModel');
 const EventoModel = require('../models/EventoModel');
 const AppError = require('../../../utils/AppError');
 const logger = require('../../../utils/logger');
+const CotizacionPDFService = require('../services/CotizacionPDFService');
+const ConfiguracionModel = require('../models/ConfiguracionModel');
 
 // ============================================
 // HELPER: Enriquecer transporte con precios
@@ -123,6 +125,41 @@ exports.obtenerCompleta = async (req, res, next) => {
       success: true,
       data: cotizacion
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ============================================
+// GENERAR PDF
+// ============================================
+exports.generarPDF = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const cotizacion = await CotizacionModel.obtenerCompleta(id);
+
+    if (!cotizacion) {
+      throw new AppError('Cotización no encontrada', 404);
+    }
+
+    // Obtener datos de empresa
+    const empresaConfig = await ConfiguracionModel.obtenerPorCategoria('empresa');
+    const empresa = {};
+    empresaConfig.forEach(c => {
+      const key = c.clave.replace('empresa_', '');
+      empresa[key] = c.valor;
+    });
+
+    // Generar PDF
+    const pdfDoc = CotizacionPDFService.generar(cotizacion, empresa);
+
+    // Configurar headers para descarga
+    const filename = `cotizacion_${id}.pdf`;
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+
+    // Pipe el PDF directo a la respuesta
+    pdfDoc.pipe(res);
   } catch (error) {
     next(error);
   }

@@ -58,6 +58,22 @@ export const apiCotizaciones = {
     return response.data;
   },
 
+  descargarPDF: async (id) => {
+    const response = await api.get(`/cotizaciones/${id}/pdf`, {
+      responseType: 'blob'
+    });
+    // Crear link de descarga
+    const blob = new Blob([response.data], { type: 'application/pdf' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `cotizacion_${id}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  },
+
   duplicar: async (id) => {
     const response = await api.post(`/cotizaciones/${id}/duplicar`);
     return response.data;

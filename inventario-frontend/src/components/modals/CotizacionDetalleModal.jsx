@@ -4,12 +4,13 @@
 // ============================================
 
 import { useState } from 'react'
-import { Calendar, User, MapPin, Phone, Mail, Truck, FileText, Edit, CheckCircle, XCircle, Ban } from 'lucide-react'
+import { Calendar, User, MapPin, Phone, Mail, Truck, FileText, Edit, CheckCircle, XCircle, Ban, Download } from 'lucide-react'
 import Modal from '../common/Modal'
 import Button from '../common/Button'
 import Spinner from '../common/Spinner'
 import { useGetCotizacionCompleta } from '../../hooks/cotizaciones'
 import { useCancelarAlquiler } from '../../hooks/useAlquileres'
+import { apiCotizaciones } from '../../api/apiCotizaciones'
 
 const CotizacionDetalleModal = ({
   isOpen,
@@ -23,6 +24,7 @@ const CotizacionDetalleModal = ({
 }) => {
   const [showCancelarModal, setShowCancelarModal] = useState(false)
   const [notasCancelacion, setNotasCancelacion] = useState('')
+  const [descargandoPDF, setDescargandoPDF] = useState(false)
 
   const cancelarMutation = useCancelarAlquiler()
 
@@ -90,6 +92,18 @@ const CotizacionDetalleModal = ({
       onClose()
     } catch (error) {
       alert('Error al cancelar el alquiler: ' + error.message)
+    }
+  }
+
+  const handleDescargarPDF = async () => {
+    if (!cotizacionId) return
+    setDescargandoPDF(true)
+    try {
+      await apiCotizaciones.descargarPDF(cotizacionId)
+    } catch (error) {
+      alert('Error al descargar el PDF: ' + (error.response?.data?.message || error.message))
+    } finally {
+      setDescargandoPDF(false)
     }
   }
 
@@ -351,9 +365,22 @@ const CotizacionDetalleModal = ({
             </div>
           </div>
 
+          {/* BOTÓN PDF - Siempre visible */}
+          <div className="flex justify-center mt-6 print:hidden">
+            <Button
+              variant="secondary"
+              icon={<Download className="w-4 h-4" />}
+              onClick={handleDescargarPDF}
+              loading={descargandoPDF}
+              disabled={descargandoPDF}
+            >
+              Descargar PDF
+            </Button>
+          </div>
+
           {/* BOTONES DE ACCIÓN - Solo para cotizaciones pendientes */}
           {cotizacion.estado === 'pendiente' && (
-            <div className="flex justify-center gap-4 mt-8 pt-6 border-t print:hidden">
+            <div className="flex justify-center gap-4 mt-4 pt-6 border-t print:hidden">
               <Button
                 variant="success"
                 size="lg"
