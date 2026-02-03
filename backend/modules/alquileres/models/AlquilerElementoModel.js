@@ -27,8 +27,8 @@ class AlquilerElementoModel {
         ae.fecha_asignacion,
         ae.fecha_retorno,
         e.nombre AS elemento_nombre,
-        s.numero_serie,
-        l.lote_numero,
+        s.numero_serie AS serie_codigo,
+        l.lote_numero AS lote_codigo,
         u.nombre AS ubicacion_original_nombre
       FROM alquiler_elementos ae
       INNER JOIN elementos e ON ae.elemento_id = e.id
@@ -51,8 +51,8 @@ class AlquilerElementoModel {
         ae.*,
         e.nombre AS elemento_nombre,
         e.requiere_series,
-        s.numero_serie,
-        l.lote_numero,
+        s.numero_serie AS serie_codigo,
+        l.lote_numero AS lote_codigo,
         la.lote_numero AS lote_alquilado_numero
       FROM alquiler_elementos ae
       INNER JOIN elementos e ON ae.elemento_id = e.id
@@ -229,8 +229,8 @@ class AlquilerElementoModel {
       SELECT
         ae.*,
         e.nombre AS elemento_nombre,
-        s.numero_serie,
-        l.lote_numero
+        s.numero_serie AS serie_codigo,
+        l.lote_numero AS lote_codigo
       FROM alquiler_elementos ae
       INNER JOIN elementos e ON ae.elemento_id = e.id
       LEFT JOIN series s ON ae.serie_id = s.id
