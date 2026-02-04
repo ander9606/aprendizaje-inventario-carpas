@@ -27,11 +27,15 @@ import {
     Save,
     X,
     LogOut,
-    RotateCcw
+    RotateCcw,
+    Box,
+    Hash
 } from 'lucide-react'
 import {
     useGetOrden,
     useGetElementosOrden,
+    useGetElementosDisponibles,
+    usePrepararElementos,
     useCambiarEstadoOrden,
     useAsignarEquipo,
     useUpdateOrden,
@@ -492,6 +496,281 @@ const ModalRegistrarRetorno = ({ orden, elementos, onClose, onSave }) => {
 }
 
 // ============================================
+// COMPONENTE: Modal de Asignación de Inventario
+// Permite al operador asignar series/lotes reales
+// a elementos que no tienen inventario asignado
+// ============================================
+const ModalAsignarInventario = ({ ordenId, elementosPendientes, onClose, onSave }) => {
+    const { disponibles, isLoading } = useGetElementosDisponibles(ordenId)
+    const [seleccion, setSeleccion] = useState({}) // { elemento_id: { serie_id?, lote_id?, cantidad? } }
+    const [saving, setSaving] = useState(false)
+
+    // Mapear disponibles por elemento_id para acceso rápido
+    const disponiblesPorElemento = {}
+    if (disponibles?.productos) {
+        for (const producto of disponibles.productos) {
+            for (const comp of (producto.componentes || [])) {
+                disponiblesPorElemento[comp.elemento_id] = comp
+            }
+        }
+    }
+
+    const handleSeleccionarSerie = (elementoId, serieId) => {
+        setSeleccion(prev => ({
+            ...prev,
+            [elementoId]: serieId
+                ? { serie_id: serieId, lote_id: null, cantidad: 1 }
+                : undefined
+        }))
+    }
+
+    const handleSeleccionarLote = (elementoId, loteId, cantidadMax) => {
+        setSeleccion(prev => {
+            const actual = prev[elementoId]
+            if (actual?.lote_id === loteId) {
+                // Deseleccionar
+                return { ...prev, [elementoId]: undefined }
+            }
+            return {
+                ...prev,
+                [elementoId]: { serie_id: null, lote_id: loteId, cantidad: Math.min(cantidadMax, elementosPendientes.find(e => e.elemento_id === elementoId)?.cantidad || 1) }
+            }
+        })
+    }
+
+    const handleCantidadLote = (elementoId, cantidad) => {
+        setSeleccion(prev => ({
+            ...prev,
+            [elementoId]: { ...prev[elementoId], cantidad: Math.max(1, cantidad) }
+        }))
+    }
+
+    const todosAsignados = elementosPendientes.every(ep => seleccion[ep.elemento_id])
+
+    const handleGuardar = async () => {
+        const elementos = Object.entries(seleccion)
+            .filter(([, val]) => val)
+            .map(([elementoId, val]) => ({
+                elemento_id: parseInt(elementoId),
+                serie_id: val.serie_id || null,
+                lote_id: val.lote_id || null,
+                cantidad: val.cantidad || 1
+            }))
+
+        if (!elementos.length) {
+            toast.error('Selecciona al menos un elemento del inventario')
+            return
+        }
+
+        setSaving(true)
+        try {
+            await onSave(elementos)
+        } catch (error) {
+            toast.error(error?.response?.data?.message || 'Error al asignar inventario')
+        } finally {
+            setSaving(false)
+        }
+    }
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col mx-4">
+                {/* Header */}
+                <div className="p-6 border-b border-slate-200">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-amber-100 rounded-lg">
+                                <Box className="w-5 h-5 text-amber-600" />
+                            </div>
+                            <div>
+                                <h2 className="text-lg font-bold text-slate-900">Asignar Inventario</h2>
+                                <p className="text-sm text-slate-500">
+                                    {elementosPendientes.length} elemento(s) sin inventario asignado
+                                </p>
+                            </div>
+                        </div>
+                        <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-lg">
+                            <X className="w-5 h-5 text-slate-400" />
+                        </button>
+                    </div>
+                </div>
+
+                {/* Body */}
+                <div className="flex-1 overflow-y-auto p-6">
+                    {isLoading ? (
+                        <div className="py-8 text-center">
+                            <Spinner size="md" text="Buscando inventario disponible..." />
+                        </div>
+                    ) : (
+                        <div className="space-y-6">
+                            {elementosPendientes.map((elem) => {
+                                const info = disponiblesPorElemento[elem.elemento_id]
+                                const disponiblesItems = info?.disponibles || []
+                                const series = disponiblesItems.filter(d => d.tipo === 'serie')
+                                const lotes = disponiblesItems.filter(d => d.tipo === 'lote')
+                                const selActual = seleccion[elem.elemento_id]
+
+                                return (
+                                    <div key={elem.id} className="border border-slate-200 rounded-lg overflow-hidden">
+                                        {/* Elemento header */}
+                                        <div className={`px-4 py-3 flex items-center justify-between ${
+                                            selActual ? 'bg-green-50 border-b border-green-200' : 'bg-slate-50 border-b border-slate-200'
+                                        }`}>
+                                            <div className="flex items-center gap-2">
+                                                <Package className="w-4 h-4 text-slate-500" />
+                                                <span className="font-medium text-slate-900">
+                                                    {elem.elemento_nombre || elem.nombre}
+                                                </span>
+                                                <span className="text-xs text-slate-500">
+                                                    (cant: {elem.cantidad || 1})
+                                                </span>
+                                            </div>
+                                            {selActual && (
+                                                <CheckCircle className="w-4 h-4 text-green-500" />
+                                            )}
+                                        </div>
+
+                                        {/* Opciones disponibles */}
+                                        <div className="p-3">
+                                            {disponiblesItems.length === 0 ? (
+                                                <p className="text-sm text-red-600 flex items-center gap-2 py-2">
+                                                    <AlertTriangle className="w-4 h-4" />
+                                                    No hay inventario disponible para este elemento
+                                                </p>
+                                            ) : (
+                                                <div className="space-y-2">
+                                                    {/* Series disponibles */}
+                                                    {series.length > 0 && (
+                                                        <div>
+                                                            <p className="text-xs font-medium text-slate-500 uppercase mb-1.5">
+                                                                Series disponibles
+                                                            </p>
+                                                            <div className="space-y-1">
+                                                                {series.map(serie => (
+                                                                    <label
+                                                                        key={serie.id}
+                                                                        className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
+                                                                            selActual?.serie_id === serie.id
+                                                                                ? 'bg-green-50 border border-green-200'
+                                                                                : 'hover:bg-slate-50 border border-transparent'
+                                                                        }`}
+                                                                    >
+                                                                        <input
+                                                                            type="radio"
+                                                                            name={`elem-${elem.elemento_id}`}
+                                                                            checked={selActual?.serie_id === serie.id}
+                                                                            onChange={() => handleSeleccionarSerie(elem.elemento_id, serie.id)}
+                                                                            className="text-green-600"
+                                                                        />
+                                                                        <Hash className="w-3.5 h-3.5 text-slate-400" />
+                                                                        <span className="text-sm font-medium text-slate-800">
+                                                                            {serie.identificador}
+                                                                        </span>
+                                                                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                                                                            serie.estado === 'nuevo' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'
+                                                                        }`}>
+                                                                            {serie.estado}
+                                                                        </span>
+                                                                        {serie.ubicacion && (
+                                                                            <span className="text-xs text-slate-400 ml-auto">
+                                                                                {serie.ubicacion}
+                                                                            </span>
+                                                                        )}
+                                                                    </label>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Lotes disponibles */}
+                                                    {lotes.length > 0 && (
+                                                        <div>
+                                                            <p className="text-xs font-medium text-slate-500 uppercase mb-1.5">
+                                                                Lotes disponibles
+                                                            </p>
+                                                            <div className="space-y-1">
+                                                                {lotes.map(lote => (
+                                                                    <label
+                                                                        key={lote.id}
+                                                                        className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
+                                                                            selActual?.lote_id === lote.id
+                                                                                ? 'bg-green-50 border border-green-200'
+                                                                                : 'hover:bg-slate-50 border border-transparent'
+                                                                        }`}
+                                                                    >
+                                                                        <input
+                                                                            type="radio"
+                                                                            name={`elem-${elem.elemento_id}`}
+                                                                            checked={selActual?.lote_id === lote.id}
+                                                                            onChange={() => handleSeleccionarLote(elem.elemento_id, lote.id, lote.cantidad)}
+                                                                            className="text-green-600"
+                                                                        />
+                                                                        <Box className="w-3.5 h-3.5 text-slate-400" />
+                                                                        <span className="text-sm font-medium text-slate-800">
+                                                                            {lote.identificador}
+                                                                        </span>
+                                                                        <span className="text-xs text-slate-500">
+                                                                            Disp: {lote.cantidad}
+                                                                        </span>
+                                                                        {selActual?.lote_id === lote.id && (
+                                                                            <div className="flex items-center gap-1 ml-auto">
+                                                                                <span className="text-xs text-slate-500">Cant:</span>
+                                                                                <input
+                                                                                    type="number"
+                                                                                    min={1}
+                                                                                    max={lote.cantidad}
+                                                                                    value={selActual.cantidad}
+                                                                                    onChange={(e) => handleCantidadLote(elem.elemento_id, parseInt(e.target.value) || 1)}
+                                                                                    className="w-16 px-2 py-0.5 border border-slate-300 rounded text-sm text-center"
+                                                                                    onClick={(e) => e.stopPropagation()}
+                                                                                />
+                                                                            </div>
+                                                                        )}
+                                                                        {lote.ubicacion && !selActual?.lote_id === lote.id && (
+                                                                            <span className="text-xs text-slate-400 ml-auto">
+                                                                                {lote.ubicacion}
+                                                                            </span>
+                                                                        )}
+                                                                    </label>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )
+                            })}
+                        </div>
+                    )}
+                </div>
+
+                {/* Footer */}
+                <div className="p-6 border-t border-slate-200 flex items-center justify-between">
+                    <p className="text-sm text-slate-500">
+                        {Object.values(seleccion).filter(Boolean).length} de {elementosPendientes.length} asignados
+                    </p>
+                    <div className="flex gap-3">
+                        <Button variant="secondary" onClick={onClose}>
+                            Cancelar
+                        </Button>
+                        <Button
+                            color="green"
+                            icon={CheckCircle}
+                            onClick={handleGuardar}
+                            disabled={saving || !todosAsignados}
+                        >
+                            {saving ? 'Asignando...' : 'Confirmar Asignación'}
+                        </Button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    )
+}
+
+// ============================================
 // COMPONENTE PRINCIPAL: OrdenDetallePage
 // ============================================
 export default function OrdenDetallePage() {
@@ -507,6 +786,7 @@ export default function OrdenDetallePage() {
     const [showModalResponsable, setShowModalResponsable] = useState(false)
     const [showModalEditar, setShowModalEditar] = useState(false)
     const [showModalRetorno, setShowModalRetorno] = useState(false)
+    const [showModalInventario, setShowModalInventario] = useState(false)
     const [expandElementos, setExpandElementos] = useState(true)
     const [ejecutandoSalida, setEjecutandoSalida] = useState(false)
 
@@ -522,6 +802,7 @@ export default function OrdenDetallePage() {
     const cambiarEstado = useCambiarEstadoOrden()
     const asignarEquipo = useAsignarEquipo()
     const actualizarOrden = useUpdateOrden()
+    const prepararElementos = usePrepararElementos()
     const ejecutarSalida = useEjecutarSalida()
     const ejecutarRetorno = useEjecutarRetorno()
 
@@ -560,6 +841,13 @@ export default function OrdenDetallePage() {
     const handleActualizarOrden = async (data) => {
         await actualizarOrden.mutateAsync({ id: orden.id, data })
         toast.success('Orden actualizada correctamente')
+        refetch()
+    }
+
+    const handleAsignarInventario = async (elementosSeleccionados) => {
+        await prepararElementos.mutateAsync({ ordenId: orden.id, elementos: elementosSeleccionados })
+        toast.success('Inventario asignado correctamente')
+        setShowModalInventario(false)
         refetch()
     }
 
@@ -736,6 +1024,12 @@ export default function OrdenDetallePage() {
     const pasoActualIndex = pasos.findIndex(p => p.key === orden.estado)
     const esCancelado = orden.estado === 'cancelado'
     const esCompletado = orden.estado === 'completado'
+
+    // Detectar elementos sin inventario asignado
+    const elementosPendientesInv = (elementos || []).filter(
+        e => !e.serie_id && !e.lote_id
+    )
+    const hayElementosSinInventario = elementosPendientesInv.length > 0
 
     const getDescripcionEstado = () => {
         const desc = {
@@ -997,36 +1291,50 @@ export default function OrdenDetallePage() {
                                                     </tr>
                                                 </thead>
                                                 <tbody className="divide-y divide-slate-100">
-                                                    {elementos.map((elem) => (
-                                                        <tr key={elem.id} className="hover:bg-slate-50">
-                                                            <td className="px-4 py-3">
-                                                                <p className="font-medium text-slate-900">
-                                                                    {elem.elemento_nombre || elem.nombre}
-                                                                </p>
-                                                                {elem.serie_numero && (
-                                                                    <p className="text-sm text-slate-500">
-                                                                        Serie: {elem.serie_numero}
+                                                    {elementos.map((elem) => {
+                                                        const sinInventario = !elem.serie_id && !elem.lote_id
+                                                        return (
+                                                            <tr key={elem.id} className={sinInventario ? 'bg-amber-50/50' : 'hover:bg-slate-50'}>
+                                                                <td className="px-4 py-3">
+                                                                    <p className="font-medium text-slate-900">
+                                                                        {elem.elemento_nombre || elem.nombre}
                                                                     </p>
-                                                                )}
-                                                            </td>
-                                                            <td className="px-4 py-3 text-center">
-                                                                {elem.cantidad || 1}
-                                                            </td>
-                                                            <td className="px-4 py-3 text-center">
-                                                                <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${
-                                                                    elem.estado === 'completado' || elem.estado === 'retornado'
-                                                                        ? 'bg-green-100 text-green-700'
-                                                                        : elem.estado === 'con_problema' || elem.estado === 'incidencia'
-                                                                        ? 'bg-red-100 text-red-700'
-                                                                        : elem.estado === 'preparado' || elem.estado === 'cargado' || elem.estado === 'instalado'
-                                                                        ? 'bg-blue-100 text-blue-700'
-                                                                        : 'bg-yellow-100 text-yellow-700'
-                                                                }`}>
-                                                                    {elem.estado || 'pendiente'}
-                                                                </span>
-                                                            </td>
-                                                        </tr>
-                                                    ))}
+                                                                    {elem.numero_serie && (
+                                                                        <p className="text-sm text-slate-500">
+                                                                            Serie: {elem.numero_serie}
+                                                                        </p>
+                                                                    )}
+                                                                    {elem.lote_numero && (
+                                                                        <p className="text-sm text-slate-500">
+                                                                            Lote: {elem.lote_numero}
+                                                                        </p>
+                                                                    )}
+                                                                    {sinInventario && !esCompletado && !esCancelado && (
+                                                                        <p className="text-xs text-amber-600 font-medium mt-0.5 flex items-center gap-1">
+                                                                            <AlertTriangle className="w-3 h-3" />
+                                                                            Sin inventario asignado
+                                                                        </p>
+                                                                    )}
+                                                                </td>
+                                                                <td className="px-4 py-3 text-center">
+                                                                    {elem.cantidad || 1}
+                                                                </td>
+                                                                <td className="px-4 py-3 text-center">
+                                                                    <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${
+                                                                        elem.estado === 'completado' || elem.estado === 'retornado'
+                                                                            ? 'bg-green-100 text-green-700'
+                                                                            : elem.estado === 'con_problema' || elem.estado === 'incidencia'
+                                                                            ? 'bg-red-100 text-red-700'
+                                                                            : elem.estado === 'preparado' || elem.estado === 'cargado' || elem.estado === 'instalado'
+                                                                            ? 'bg-blue-100 text-blue-700'
+                                                                            : 'bg-yellow-100 text-yellow-700'
+                                                                    }`}>
+                                                                        {elem.estado || 'pendiente'}
+                                                                    </span>
+                                                                </td>
+                                                            </tr>
+                                                        )
+                                                    })}
                                                 </tbody>
                                             </table>
                                         </div>
@@ -1034,6 +1342,28 @@ export default function OrdenDetallePage() {
                                         <p className="text-slate-500 text-center py-4">
                                             No hay elementos asignados a esta orden
                                         </p>
+                                    )}
+
+                                    {/* Botón asignar inventario si hay elementos pendientes */}
+                                    {hayElementosSinInventario && canManage && !esCompletado && !esCancelado && (
+                                        <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                                            <div className="flex items-center justify-between gap-3">
+                                                <div className="flex items-center gap-2">
+                                                    <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
+                                                    <p className="text-sm text-amber-700">
+                                                        <span className="font-medium">{elementosPendientesInv.length} elemento(s)</span> sin inventario del almacen
+                                                    </p>
+                                                </div>
+                                                <Button
+                                                    color="orange"
+                                                    icon={Box}
+                                                    size="sm"
+                                                    onClick={() => setShowModalInventario(true)}
+                                                >
+                                                    Asignar Inventario
+                                                </Button>
+                                            </div>
+                                        </div>
                                     )}
                                 </div>
                             )}
@@ -1103,16 +1433,40 @@ export default function OrdenDetallePage() {
 
                                     {orden.estado === 'en_preparacion' && orden.tipo === 'montaje' && (
                                         <>
-                                            <Button
-                                                color="green"
-                                                icon={LogOut}
-                                                className="w-full"
-                                                onClick={handleEjecutarSalida}
-                                                disabled={ejecutandoSalida || !elementos?.length}
-                                            >
-                                                {ejecutandoSalida ? 'Ejecutando...' : 'Ejecutar Salida'}
-                                            </Button>
-                                            {!elementos?.length && (
+                                            {hayElementosSinInventario ? (
+                                                <div className="space-y-2">
+                                                    <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                                                        <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
+                                                        <div>
+                                                            <p className="text-sm text-amber-700 font-medium">
+                                                                No se puede despachar
+                                                            </p>
+                                                            <p className="text-xs text-amber-600 mt-0.5">
+                                                                {elementosPendientesInv.length} elemento(s) sin inventario asignado del almacen
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    <Button
+                                                        color="orange"
+                                                        icon={Box}
+                                                        className="w-full"
+                                                        onClick={() => setShowModalInventario(true)}
+                                                    >
+                                                        Asignar Inventario
+                                                    </Button>
+                                                </div>
+                                            ) : (
+                                                <Button
+                                                    color="green"
+                                                    icon={LogOut}
+                                                    className="w-full"
+                                                    onClick={handleEjecutarSalida}
+                                                    disabled={ejecutandoSalida || !elementos?.length}
+                                                >
+                                                    {ejecutandoSalida ? 'Ejecutando...' : 'Ejecutar Salida'}
+                                                </Button>
+                                            )}
+                                            {!elementos?.length && !hayElementosSinInventario && (
                                                 <div className="flex items-center gap-2 p-2 bg-amber-50 border border-amber-200 rounded-lg">
                                                     <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
                                                     <p className="text-xs text-amber-700">
@@ -1304,6 +1658,14 @@ export default function OrdenDetallePage() {
                     elementos={elementos}
                     onClose={() => setShowModalRetorno(false)}
                     onSave={handleEjecutarRetorno}
+                />
+            )}
+            {showModalInventario && (
+                <ModalAsignarInventario
+                    ordenId={orden.id}
+                    elementosPendientes={elementosPendientesInv}
+                    onClose={() => setShowModalInventario(false)}
+                    onSave={handleAsignarInventario}
                 />
             )}
         </div>
