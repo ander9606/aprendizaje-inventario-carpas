@@ -29,12 +29,14 @@ import {
     LogOut,
     RotateCcw,
     Box,
-    Hash
+    Hash,
+    Bell
 } from 'lucide-react'
 import {
     useGetOrden,
     useGetElementosOrden,
     useGetElementosDisponibles,
+    useGetAlertasOrden,
     usePrepararElementos,
     useCrearAlertaOperaciones,
     useCambiarEstadoOrden,
@@ -502,7 +504,7 @@ const ModalRegistrarRetorno = ({ orden, elementos, onClose, onSave }) => {
 // a elementos que no tienen inventario asignado
 // ============================================
 const ModalAsignarInventario = ({ ordenId, elementosPendientes, onClose, onSave }) => {
-    const { disponibles, isLoading } = useGetElementosDisponibles(ordenId)
+    const { productos, isLoading } = useGetElementosDisponibles(ordenId)
     const crearAlerta = useCrearAlertaOperaciones()
     const [seleccion, setSeleccion] = useState({}) // { elemento_id: { serie_id?, lote_id?, cantidad? } }
     const [saving, setSaving] = useState(false)
@@ -510,8 +512,8 @@ const ModalAsignarInventario = ({ ordenId, elementosPendientes, onClose, onSave 
 
     // Mapear disponibles por elemento_id para acceso rápido
     const disponiblesPorElemento = {}
-    if (disponibles?.productos) {
-        for (const producto of disponibles.productos) {
+    if (productos?.length > 0) {
+        for (const producto of productos) {
             for (const comp of (producto.componentes || [])) {
                 disponiblesPorElemento[comp.elemento_id] = comp
             }
@@ -857,6 +859,7 @@ export default function OrdenDetallePage() {
     // ============================================
     const { orden, isLoading, error, refetch } = useGetOrden(id)
     const { elementos, isLoading: loadingElementos } = useGetElementosOrden(id)
+    const { alertas: alertasOrden } = useGetAlertasOrden(id)
 
     // ============================================
     // HOOKS: Mutaciones
@@ -1093,6 +1096,15 @@ export default function OrdenDetallePage() {
     )
     const hayElementosSinInventario = elementosPendientesInv.length > 0
 
+    // Detectar alertas de stock disponible (notificación de que el inventario volvió)
+    const alertaStockDisponible = (alertasOrden || []).find(
+        a => a.tipo === 'stock_disponible' && a.estado === 'pendiente'
+    )
+    // Detectar alertas de insuficiencia pendientes
+    const alertaInsuficiencia = (alertasOrden || []).find(
+        a => a.tipo === 'conflicto_disponibilidad' && a.estado === 'pendiente'
+    )
+
     const getDescripcionEstado = () => {
         const desc = {
             pendiente: 'Esta orden está pendiente de confirmación. Asigna un responsable y confirma para iniciar.',
@@ -1165,6 +1177,52 @@ export default function OrdenDetallePage() {
                     </div>
                 </div>
             </div>
+
+            {/* NOTIFICACIÓN: Stock disponible */}
+            {alertaStockDisponible && !esCompletado && !esCancelado && (
+                <div className="mb-4 bg-green-50 border border-green-200 rounded-xl p-4 flex items-start gap-3">
+                    <div className="p-2 bg-green-100 rounded-lg shrink-0">
+                        <Bell className="w-5 h-5 text-green-600" />
+                    </div>
+                    <div className="flex-1">
+                        <h4 className="font-semibold text-green-800">
+                            {alertaStockDisponible.titulo}
+                        </h4>
+                        <p className="text-sm text-green-700 mt-0.5">
+                            {alertaStockDisponible.mensaje}
+                        </p>
+                        {hayElementosSinInventario && (
+                            <button
+                                onClick={() => setShowModalInventario(true)}
+                                className="mt-2 px-3 py-1.5 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors inline-flex items-center gap-1.5"
+                            >
+                                <Box className="w-4 h-4" />
+                                Asignar Inventario Ahora
+                            </button>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {/* ALERTA: Insuficiencia de inventario pendiente */}
+            {alertaInsuficiencia && !alertaStockDisponible && !esCompletado && !esCancelado && (
+                <div className="mb-4 bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
+                    <div className="p-2 bg-amber-100 rounded-lg shrink-0">
+                        <AlertTriangle className="w-5 h-5 text-amber-600" />
+                    </div>
+                    <div className="flex-1">
+                        <h4 className="font-semibold text-amber-800">
+                            Insuficiencia de inventario reportada
+                        </h4>
+                        <p className="text-sm text-amber-700 mt-0.5">
+                            {alertaInsuficiencia.mensaje}
+                        </p>
+                        <p className="text-xs text-amber-500 mt-1">
+                            Se notificará automáticamente cuando el inventario esté disponible.
+                        </p>
+                    </div>
+                </div>
+            )}
 
             {/* BARRA DE PROGRESO */}
             {!esCancelado && (

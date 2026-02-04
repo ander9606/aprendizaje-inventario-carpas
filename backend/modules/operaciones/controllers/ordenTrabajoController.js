@@ -865,6 +865,18 @@ const ejecutarRetorno = async (req, res, next) => {
 
         logger.info('operaciones', `Retorno ejecutado - Orden ${id} por ${req.usuario.email}`);
 
+        // Verificar si el retorno de inventario resuelve alertas de disponibilidad pendientes
+        // Se ejecuta en background para no retrasar la respuesta al operador
+        SincronizacionAlquilerService.verificarAlertasDisponibilidad()
+            .then(verificacion => {
+                if (verificacion.resueltas > 0) {
+                    logger.info('operaciones', `Post-retorno: ${verificacion.resueltas} alerta(s) de disponibilidad resueltas`);
+                }
+            })
+            .catch(err => {
+                logger.error('operaciones', `Error en verificación post-retorno: ${err.message}`);
+            });
+
         res.json({
             success: true,
             message: resultado.mensaje,
@@ -915,6 +927,24 @@ const verificarConsistencia = async (req, res, next) => {
     }
 };
 
+/**
+ * GET /api/operaciones/ordenes/:id/alertas
+ * Obtener alertas asociadas a una orden de trabajo
+ */
+const getAlertasPorOrden = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const alertas = await AlertaModel.obtenerPorOrden(parseInt(id));
+
+        res.json({
+            success: true,
+            data: alertas
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 module.exports = {
     // Órdenes
     getOrdenes,
@@ -940,6 +970,7 @@ module.exports = {
     getAlertas,
     getAlertasPendientes,
     getResumenAlertas,
+    getAlertasPorOrden,
     resolverAlerta,
     crearAlerta,
 

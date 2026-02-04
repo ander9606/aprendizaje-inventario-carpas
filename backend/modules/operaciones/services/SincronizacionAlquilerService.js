@@ -79,6 +79,8 @@
 const { pool } = require('../../../config/database');
 const AppError = require('../../../utils/AppError');
 const logger = require('../../../utils/logger');
+const AlertaModel = require('../models/AlertaModel');
+const DisponibilidadModel = require('../../alquileres/models/DisponibilidadModel');
 
 // ============================================================================
 // CONSTANTES: Estados válidos para máquinas de estado
@@ -1536,6 +1538,97 @@ class SincronizacionAlquilerService {
       },
       sincronizado: this._verificarSincronizacion(datos.alquiler_estado, ordenesEstados)
     };
+  }
+
+  // ==========================================================================
+  // MÉTODO: verificarAlertasDisponibilidad
+  // ==========================================================================
+  /**
+   * Verifica si órdenes con alertas de disponibilidad pendientes ahora tienen
+   * stock suficiente. Si el stock está completo, auto-resuelve la alerta de
+   * conflicto y crea una nueva alerta de tipo "stock_disponible" para notificar
+   * al equipo de operaciones.
+   *
+   * Se ejecuta automáticamente después de un retorno exitoso, ya que al
+   * devolver elementos al inventario puede liberarse stock para otras órdenes.
+   *
+   * @returns {Promise<Object>} Resumen de alertas procesadas
+   */
+  static async verificarAlertasDisponibilidad() {
+    logger.info('[SincronizacionAlquilerService] Verificando alertas de disponibilidad pendientes...');
+
+    try {
+      const alertasPendientes = await AlertaModel.obtenerAlertasDisponibilidadPendientes();
+
+      if (alertasPendientes.length === 0) {
+        logger.info('[SincronizacionAlquilerService] No hay alertas de disponibilidad pendientes');
+        return { verificadas: 0, resueltas: 0 };
+      }
+
+      logger.info(`[SincronizacionAlquilerService] ${alertasPendientes.length} alerta(s) pendientes a verificar`);
+
+      let resueltas = 0;
+
+      for (const alerta of alertasPendientes) {
+        try {
+          const { cotizacion_id, fecha_salida, fecha_retorno_esperado } = alerta;
+
+          if (!cotizacion_id || !fecha_salida || !fecha_retorno_esperado) {
+            logger.warn(`[SincronizacionAlquilerService] Alerta ${alerta.id}: datos incompletos, omitiendo`);
+            continue;
+          }
+
+          // Verificar disponibilidad actual para la cotización en el rango de fechas
+          const disponibilidad = await DisponibilidadModel.verificarDisponibilidadCotizacion(
+            cotizacion_id,
+            fecha_salida,
+            fecha_retorno_esperado
+          );
+
+          if (!disponibilidad.hay_problemas) {
+            // Stock ahora está completo - resolver alerta y notificar
+            logger.info(
+              `[SincronizacionAlquilerService] Alerta ${alerta.id}: stock disponible para orden ${alerta.orden_id}. Resolviendo...`
+            );
+
+            // Auto-resolver la alerta de conflicto
+            await AlertaModel.resolver(alerta.id, {
+              notas_resolucion: 'Resuelta automáticamente: el inventario requerido volvió a estar disponible tras retorno de elementos.',
+              estado: 'resuelta'
+            });
+
+            // Crear alerta de notificación: stock disponible
+            await AlertaModel.crearAlertaStockDisponible(
+              alerta.orden_id,
+              alerta.evento_nombre,
+              alerta.cliente_nombre
+            );
+
+            resueltas++;
+          } else {
+            logger.debug(
+              `[SincronizacionAlquilerService] Alerta ${alerta.id}: aún faltan ${disponibilidad.resumen.elementos_insuficientes} elemento(s)`
+            );
+          }
+        } catch (err) {
+          // No fallar toda la verificación por una alerta individual
+          logger.error(`[SincronizacionAlquilerService] Error verificando alerta ${alerta.id}: ${err.message}`);
+        }
+      }
+
+      logger.info(
+        `[SincronizacionAlquilerService] Verificación completada: ${alertasPendientes.length} revisadas, ${resueltas} resueltas`
+      );
+
+      return {
+        verificadas: alertasPendientes.length,
+        resueltas
+      };
+    } catch (error) {
+      // No propagamos el error para no afectar el flujo principal de retorno
+      logger.error(`[SincronizacionAlquilerService] Error en verificarAlertasDisponibilidad: ${error.message}`);
+      return { verificadas: 0, resueltas: 0, error: error.message };
+    }
   }
 
   /**

@@ -179,6 +179,16 @@ const ordenesAPI = {
     ejecutarRetorno: async (id, retornos) => {
         const response = await api.post(`/operaciones/ordenes/${id}/ejecutar-retorno`, { retornos })
         return response.data
+    },
+
+    /**
+     * Obtener alertas de una orden específica
+     * @param {number} id - ID de la orden
+     * @returns {Array} - Alertas asociadas a la orden
+     */
+    obtenerAlertasPorOrden: async (id) => {
+        const response = await api.get(`/operaciones/ordenes/${id}/alertas`)
+        return response.data
     }
 }
 

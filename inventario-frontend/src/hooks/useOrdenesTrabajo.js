@@ -365,8 +365,30 @@ export const useEjecutarRetorno = () => {
             queryClient.invalidateQueries({ queryKey: ['ordenes', variables.ordenId] })
             queryClient.invalidateQueries({ queryKey: ['alquileres'] })
             queryClient.invalidateQueries({ queryKey: ['alquiler'] })
+            // El retorno puede resolver alertas de disponibilidad → refrescar alertas
+            queryClient.invalidateQueries({ queryKey: ['alertas'] })
+            queryClient.invalidateQueries({ queryKey: ['alertas-operaciones'] })
         }
     })
+}
+
+/**
+ * Hook: useGetAlertasOrden
+ * Obtiene alertas asociadas a una orden de trabajo
+ */
+export const useGetAlertasOrden = (ordenId) => {
+    const { data, isLoading, error, refetch } = useQuery({
+        queryKey: ['ordenes', ordenId, 'alertas'],
+        queryFn: () => ordenesAPI.obtenerAlertasPorOrden(ordenId),
+        enabled: !!ordenId
+    })
+
+    return {
+        alertas: data?.data || [],
+        isLoading,
+        error,
+        refetch
+    }
 }
 
 /**
@@ -379,9 +401,13 @@ export const useCrearAlertaOperaciones = () => {
     return useMutation({
         mutationFn: (datos) => alertasOperacionesAPI.crear(datos),
         retry: 0,
-        onSuccess: () => {
+        onSuccess: (_, variables) => {
             queryClient.invalidateQueries({ queryKey: ['alertas-operaciones'] })
             queryClient.invalidateQueries({ queryKey: ['alertas'] })
+            // Invalidar alertas de la orden si se especificó orden_id
+            if (variables?.orden_id) {
+                queryClient.invalidateQueries({ queryKey: ['ordenes', variables.orden_id, 'alertas'] })
+            }
         }
     })
 }

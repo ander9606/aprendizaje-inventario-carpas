@@ -176,7 +176,7 @@ class AlertaModel {
         } = datos;
 
         const tiposValidos = ['conflicto_fecha', 'conflicto_disponibilidad', 'conflicto_equipo',
-                             'conflicto_vehiculo', 'cambio_fecha', 'incidencia', 'otro'];
+                             'conflicto_vehiculo', 'cambio_fecha', 'incidencia', 'stock_disponible', 'otro'];
         if (!tiposValidos.includes(tipo)) {
             throw new AppError(`Tipo de alerta inválido. Valores permitidos: ${tiposValidos.join(', ')}`, 400);
         }
@@ -347,6 +347,55 @@ class AlertaModel {
             severidad: 'media',
             titulo: 'Solicitud de cambio de fecha',
             mensaje: `Se solicita cambiar la fecha de ${fechaAnterior} a ${fechaNueva}. Motivo: ${motivo}`
+        });
+    }
+
+    /**
+     * Obtener alertas pendientes de disponibilidad (para verificar tras retorno de inventario)
+     * @returns {Promise<Array>}
+     */
+    static async obtenerAlertasDisponibilidadPendientes() {
+        const [rows] = await pool.query(`
+            SELECT
+                ao.id,
+                ao.orden_id,
+                ao.titulo,
+                ao.mensaje,
+                ot.alquiler_id,
+                a.cotizacion_id,
+                a.fecha_salida,
+                a.fecha_retorno_esperado,
+                cot.evento_nombre,
+                c.nombre AS cliente_nombre
+            FROM alertas_operaciones ao
+            INNER JOIN ordenes_trabajo ot ON ao.orden_id = ot.id
+            INNER JOIN alquileres a ON ot.alquiler_id = a.id
+            INNER JOIN cotizaciones cot ON a.cotizacion_id = cot.id
+            INNER JOIN clientes c ON cot.cliente_id = c.id
+            WHERE ao.tipo = 'conflicto_disponibilidad'
+              AND ao.estado = 'pendiente'
+              AND ot.estado NOT IN ('completado', 'cancelado')
+              AND a.estado IN ('programado', 'activo')
+            ORDER BY ao.created_at ASC
+        `);
+
+        return rows;
+    }
+
+    /**
+     * Crear alerta de stock disponible (cuando inventario vuelve a estar completo)
+     * @param {number} ordenId
+     * @param {string} eventoNombre
+     * @param {string} clienteNombre
+     * @returns {Promise<Object>}
+     */
+    static async crearAlertaStockDisponible(ordenId, eventoNombre, clienteNombre) {
+        return this.crear({
+            orden_id: ordenId,
+            tipo: 'stock_disponible',
+            severidad: 'media',
+            titulo: `Stock disponible - ${eventoNombre || 'Orden #' + ordenId}`,
+            mensaje: `El inventario requerido para la orden #${ordenId} (${clienteNombre || 'Cliente'} - ${eventoNombre || ''}) ya está disponible. Se puede proceder con la asignación de inventario y el montaje.`
         });
     }
 
