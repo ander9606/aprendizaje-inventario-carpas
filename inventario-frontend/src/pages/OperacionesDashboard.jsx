@@ -542,26 +542,45 @@ export default function OperacionesDashboard() {
 
                         {alertasPendientes?.length > 0 ? (
                             <div className="divide-y divide-slate-100">
-                                {alertasPendientes.slice(0, 5).map((alerta) => (
-                                    <div
-                                        key={alerta.id}
-                                        className="px-5 py-3 hover:bg-slate-50 transition-colors"
-                                    >
-                                        <div className="flex items-start gap-3">
-                                            <div className={`p-1.5 rounded-lg ${getSeveridadColor(alerta.severidad)}`}>
-                                                <AlertTriangle className="w-3.5 h-3.5" />
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <p className="text-sm font-medium text-slate-900 truncate">
-                                                    {alerta.titulo || alerta.tipo}
-                                                </p>
-                                                <p className="text-xs text-slate-500 truncate">
-                                                    {alerta.mensaje || alerta.descripcion}
-                                                </p>
+                                {alertasPendientes.slice(0, 5).map((alerta) => {
+                                    const esStockDisponible = alerta.tipo === 'stock_disponible'
+                                    return (
+                                        <div
+                                            key={alerta.id}
+                                            onClick={() => {
+                                                if (alerta.orden_id) {
+                                                    navigate(`/operaciones/ordenes/${alerta.orden_id}`)
+                                                }
+                                            }}
+                                            className={`px-5 py-3 transition-colors ${
+                                                alerta.orden_id ? 'cursor-pointer hover:bg-slate-50' : ''
+                                            }`}
+                                        >
+                                            <div className="flex items-start gap-3">
+                                                <div className={`p-1.5 rounded-lg ${
+                                                    esStockDisponible
+                                                        ? 'bg-green-100 text-green-700'
+                                                        : getSeveridadColor(alerta.severidad)
+                                                }`}>
+                                                    {esStockDisponible
+                                                        ? <CheckCircle className="w-3.5 h-3.5" />
+                                                        : <AlertTriangle className="w-3.5 h-3.5" />
+                                                    }
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className={`text-sm font-medium truncate ${
+                                                        esStockDisponible ? 'text-green-800' : 'text-slate-900'
+                                                    }`}>
+                                                        {alerta.titulo || alerta.tipo}
+                                                    </p>
+                                                    <p className="text-xs text-slate-500 truncate">
+                                                        {alerta.mensaje || alerta.descripcion}
+                                                    </p>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                ))}
+                                    )
+                                })}
                             </div>
                         ) : (
                             <div className="px-5 py-8 text-center">

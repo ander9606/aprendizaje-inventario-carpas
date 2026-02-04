@@ -33,7 +33,13 @@ const TIPOS_ALERTA_CONFIG = {
     ALQUILER_NO_INICIADO: { label: 'Sin iniciar', color: 'red' },
     RETORNO_PROXIMO: { label: 'Retorno pronto', color: 'yellow' },
     SALIDA_PROXIMA: { label: 'Salida pronto', color: 'yellow' },
-    DESMONTAJE_PROXIMO: { label: 'Desmontaje pronto', color: 'yellow' }
+    DESMONTAJE_PROXIMO: { label: 'Desmontaje pronto', color: 'yellow' },
+    conflicto_disponibilidad: { label: 'Insuficiencia inventario', color: 'red' },
+    conflicto_fecha: { label: 'Conflicto de fecha', color: 'red' },
+    conflicto_equipo: { label: 'Conflicto de equipo', color: 'yellow' },
+    cambio_fecha: { label: 'Cambio de fecha', color: 'yellow' },
+    incidencia: { label: 'Incidencia', color: 'red' },
+    stock_disponible: { label: 'Stock disponible', color: 'green' }
 }
 
 /**
@@ -77,17 +83,41 @@ export default function AlertasPage() {
     // ============================================
     const getSeveridadConfig = (severidad) => {
         const config = {
+            critica: {
+                color: 'bg-red-100 text-red-700 border-red-200',
+                icon: 'bg-red-100',
+                iconColor: 'text-red-600',
+                label: 'Critica'
+            },
             critico: {
                 color: 'bg-red-100 text-red-700 border-red-200',
                 icon: 'bg-red-100',
                 iconColor: 'text-red-600',
-                label: 'Critico'
+                label: 'Critica'
+            },
+            alta: {
+                color: 'bg-orange-100 text-orange-700 border-orange-200',
+                icon: 'bg-orange-100',
+                iconColor: 'text-orange-600',
+                label: 'Alta'
+            },
+            media: {
+                color: 'bg-yellow-100 text-yellow-700 border-yellow-200',
+                icon: 'bg-yellow-100',
+                iconColor: 'text-yellow-600',
+                label: 'Media'
             },
             advertencia: {
                 color: 'bg-yellow-100 text-yellow-700 border-yellow-200',
                 icon: 'bg-yellow-100',
                 iconColor: 'text-yellow-600',
                 label: 'Advertencia'
+            },
+            baja: {
+                color: 'bg-blue-100 text-blue-700 border-blue-200',
+                icon: 'bg-blue-100',
+                iconColor: 'text-blue-600',
+                label: 'Baja'
             },
             info: {
                 color: 'bg-blue-100 text-blue-700 border-blue-200',
@@ -96,7 +126,13 @@ export default function AlertasPage() {
                 label: 'Info'
             }
         }
-        return config[severidad] || config.advertencia
+        return config[severidad] || config.media
+    }
+
+    const getAlertIcon = (alerta) => {
+        if (alerta.tipo === 'stock_disponible') return { Icon: CheckCircle, color: 'bg-green-100', iconColor: 'text-green-600' }
+        if (alerta.severidad === 'critica' || alerta.severidad === 'critico') return { Icon: AlertTriangle, color: null, iconColor: null }
+        return { Icon: Clock, color: null, iconColor: null }
     }
 
     const formatFecha = (fecha) => {
@@ -169,10 +205,11 @@ export default function AlertasPage() {
             </div>
 
             {/* RESUMEN POR SEVERIDAD */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                 {[
-                    { key: 'critico', label: 'Críticas', color: 'red', icon: AlertTriangle, count: resumen?.criticas || 0 },
-                    { key: 'advertencia', label: 'Advertencias', color: 'yellow', icon: Clock, count: resumen?.advertencias || 0 },
+                    { key: 'critica', label: 'Críticas', color: 'red', icon: AlertTriangle, count: resumen?.criticas || 0 },
+                    { key: 'alta', label: 'Altas', color: 'orange', icon: AlertTriangle, count: resumen?.altas || 0 },
+                    { key: 'media', label: 'Medias', color: 'yellow', icon: Clock, count: resumen?.medias || (resumen?.advertencias || 0) },
                     { key: '', label: 'Total', color: 'slate', icon: Bell, count: resumen?.total || 0 }
                 ].map(({ key, label, color, icon: Icon, count }) => (
                     <button
@@ -244,8 +281,10 @@ export default function AlertasPage() {
                                 className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
                             >
                                 <option value="">Todas</option>
-                                <option value="critico">Críticas</option>
-                                <option value="advertencia">Advertencias</option>
+                                <option value="critica">Críticas</option>
+                                <option value="alta">Altas</option>
+                                <option value="media">Medias</option>
+                                <option value="baja">Bajas</option>
                             </select>
                         </div>
                         <div>
@@ -281,28 +320,42 @@ export default function AlertasPage() {
                         {alertasFiltradas.map((alerta, index) => {
                             const severidadConfig = getSeveridadConfig(alerta.severidad)
                             const tipoConfig = TIPOS_ALERTA_CONFIG[alerta.tipo] || {}
+                            const alertIcon = getAlertIcon(alerta)
+                            const esStockDisponible = alerta.tipo === 'stock_disponible'
 
                             return (
                                 <div
-                                    key={`${alerta.tipo}-${alerta.referencia_id}-${index}`}
-                                    className="px-6 py-4 hover:bg-slate-50 transition-colors"
+                                    key={`${alerta.tipo}-${alerta.referencia_id || alerta.id}-${index}`}
+                                    className={`px-6 py-4 transition-colors ${
+                                        alerta.orden_id
+                                            ? 'cursor-pointer hover:bg-slate-50'
+                                            : 'hover:bg-slate-50'
+                                    } ${esStockDisponible ? 'bg-green-50/40' : ''}`}
+                                    onClick={() => {
+                                        if (alerta.orden_id) navigate(`/operaciones/ordenes/${alerta.orden_id}`)
+                                    }}
                                 >
                                     <div className="flex items-start gap-4">
                                         {/* Icono */}
-                                        <div className={`p-2 rounded-lg ${severidadConfig.icon} mt-0.5`}>
-                                            {alerta.severidad === 'critico'
-                                                ? <AlertTriangle className={`w-5 h-5 ${severidadConfig.iconColor}`} />
-                                                : <Clock className={`w-5 h-5 ${severidadConfig.iconColor}`} />
-                                            }
+                                        <div className={`p-2 rounded-lg ${alertIcon.color || severidadConfig.icon} mt-0.5`}>
+                                            <alertIcon.Icon className={`w-5 h-5 ${alertIcon.iconColor || severidadConfig.iconColor}`} />
                                         </div>
 
                                         {/* Contenido */}
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-2 mb-1 flex-wrap">
-                                                <span className={`px-2 py-0.5 rounded text-xs font-medium border ${severidadConfig.color}`}>
-                                                    {severidadConfig.label}
+                                                <span className={`px-2 py-0.5 rounded text-xs font-medium border ${
+                                                    esStockDisponible
+                                                        ? 'bg-green-100 text-green-700 border-green-200'
+                                                        : severidadConfig.color
+                                                }`}>
+                                                    {esStockDisponible ? 'Notificación' : severidadConfig.label}
                                                 </span>
-                                                <span className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-xs font-medium">
+                                                <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                                                    esStockDisponible
+                                                        ? 'bg-green-50 text-green-700'
+                                                        : 'bg-slate-100 text-slate-600'
+                                                }`}>
                                                     {tipoConfig.label || alerta.tipo.replace(/_/g, ' ')}
                                                 </span>
                                                 <span className="text-xs text-slate-400 flex items-center gap-1">
@@ -311,12 +364,19 @@ export default function AlertasPage() {
                                                 </span>
                                             </div>
 
-                                            <p className="font-medium text-slate-900">
+                                            <p className={`font-medium ${esStockDisponible ? 'text-green-800' : 'text-slate-900'}`}>
                                                 {alerta.titulo}
                                             </p>
                                             <p className="text-sm text-slate-600 mt-0.5">
                                                 {alerta.mensaje}
                                             </p>
+
+                                            {/* Link a la orden si existe */}
+                                            {alerta.orden_id && (
+                                                <p className="text-xs text-orange-600 font-medium mt-1">
+                                                    Orden #{alerta.orden_id} - Click para ver detalle
+                                                </p>
+                                            )}
 
                                             {/* Info adicional */}
                                             {alerta.datos && (
