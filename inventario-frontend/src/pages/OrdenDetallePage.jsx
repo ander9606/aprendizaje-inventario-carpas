@@ -36,6 +36,7 @@ import {
     useGetElementosOrden,
     useGetElementosDisponibles,
     usePrepararElementos,
+    useCrearAlertaOperaciones,
     useCambiarEstadoOrden,
     useAsignarEquipo,
     useUpdateOrden,
@@ -502,8 +503,10 @@ const ModalRegistrarRetorno = ({ orden, elementos, onClose, onSave }) => {
 // ============================================
 const ModalAsignarInventario = ({ ordenId, elementosPendientes, onClose, onSave }) => {
     const { disponibles, isLoading } = useGetElementosDisponibles(ordenId)
+    const crearAlerta = useCrearAlertaOperaciones()
     const [seleccion, setSeleccion] = useState({}) // { elemento_id: { serie_id?, lote_id?, cantidad? } }
     const [saving, setSaving] = useState(false)
+    const [alertaEnviada, setAlertaEnviada] = useState(false)
 
     // Mapear disponibles por elemento_id para acceso rápido
     const disponiblesPorElemento = {}
@@ -546,6 +549,29 @@ const ModalAsignarInventario = ({ ordenId, elementosPendientes, onClose, onSave 
     }
 
     const todosAsignados = elementosPendientes.every(ep => seleccion[ep.elemento_id])
+
+    // Elementos que NO tienen inventario disponible en absoluto
+    const elementosSinStock = elementosPendientes.filter(ep => {
+        const info = disponiblesPorElemento[ep.elemento_id]
+        return !info || (info.disponibles || []).length === 0
+    })
+
+    const handleReportarInsuficiencia = async () => {
+        const nombres = elementosSinStock.map(e => e.elemento_nombre || e.nombre).join(', ')
+        try {
+            await crearAlerta.mutateAsync({
+                orden_id: ordenId,
+                tipo: 'conflicto_disponibilidad',
+                severidad: elementosSinStock.length > 2 ? 'critica' : 'alta',
+                titulo: `Insuficiencia de inventario - ${elementosSinStock.length} elemento(s)`,
+                mensaje: `La orden #${ordenId} requiere elementos que no están disponibles en el inventario: ${nombres}. Se necesita gestionar la adquisición o reasignación de estos elementos.`
+            })
+            setAlertaEnviada(true)
+            toast.success('Alerta de insuficiencia creada. El equipo de gestión será notificado.')
+        } catch (error) {
+            toast.error('Error al crear la alerta')
+        }
+    }
 
     const handleGuardar = async () => {
         const elementos = Object.entries(seleccion)
@@ -633,10 +659,15 @@ const ModalAsignarInventario = ({ ordenId, elementosPendientes, onClose, onSave 
                                         {/* Opciones disponibles */}
                                         <div className="p-3">
                                             {disponiblesItems.length === 0 ? (
-                                                <p className="text-sm text-red-600 flex items-center gap-2 py-2">
-                                                    <AlertTriangle className="w-4 h-4" />
-                                                    No hay inventario disponible para este elemento
-                                                </p>
+                                                <div className="py-2 space-y-2">
+                                                    <p className="text-sm text-red-600 flex items-center gap-2">
+                                                        <AlertTriangle className="w-4 h-4" />
+                                                        No hay inventario disponible para este elemento
+                                                    </p>
+                                                    <p className="text-xs text-slate-500">
+                                                        No existen series ni lotes disponibles en el almacen. Reporta esta insuficiencia para que se gestione.
+                                                    </p>
+                                                </div>
                                             ) : (
                                                 <div className="space-y-2">
                                                     {/* Series disponibles */}
@@ -745,6 +776,37 @@ const ModalAsignarInventario = ({ ordenId, elementosPendientes, onClose, onSave 
                         </div>
                     )}
                 </div>
+
+                {/* Alerta de insuficiencia */}
+                {!isLoading && elementosSinStock.length > 0 && (
+                    <div className="px-6 py-3 bg-red-50 border-t border-red-200">
+                        <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-2">
+                                <AlertTriangle className="w-4 h-4 text-red-500 shrink-0" />
+                                <p className="text-sm text-red-700">
+                                    <span className="font-medium">{elementosSinStock.length} elemento(s)</span> sin stock en inventario
+                                </p>
+                            </div>
+                            {alertaEnviada ? (
+                                <span className="text-xs text-green-600 font-medium flex items-center gap-1">
+                                    <CheckCircle className="w-3.5 h-3.5" />
+                                    Alerta enviada
+                                </span>
+                            ) : (
+                                <Button
+                                    color="red"
+                                    variant="outline"
+                                    size="sm"
+                                    icon={AlertTriangle}
+                                    onClick={handleReportarInsuficiencia}
+                                    disabled={crearAlerta.isPending}
+                                >
+                                    {crearAlerta.isPending ? 'Enviando...' : 'Reportar Insuficiencia'}
+                                </Button>
+                            )}
+                        </div>
+                    </div>
+                )}
 
                 {/* Footer */}
                 <div className="p-6 border-t border-slate-200 flex items-center justify-between">

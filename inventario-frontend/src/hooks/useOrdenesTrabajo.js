@@ -6,7 +6,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import operacionesAPI from '../api/apiOperaciones'
 
-const { ordenes: ordenesAPI, elementos: elementosAPI, validacion: validacionAPI } = operacionesAPI
+const { ordenes: ordenesAPI, elementos: elementosAPI, validacion: validacionAPI, alertas: alertasOperacionesAPI } = operacionesAPI
 
 // ============================================
 // HOOK: useGetOrdenes
@@ -365,6 +365,23 @@ export const useEjecutarRetorno = () => {
             queryClient.invalidateQueries({ queryKey: ['ordenes', variables.ordenId] })
             queryClient.invalidateQueries({ queryKey: ['alquileres'] })
             queryClient.invalidateQueries({ queryKey: ['alquiler'] })
+        }
+    })
+}
+
+/**
+ * Hook: useCrearAlertaOperaciones
+ * Crea una alerta de operaciones (ej: insuficiencia de inventario)
+ */
+export const useCrearAlertaOperaciones = () => {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: (datos) => alertasOperacionesAPI.crear(datos),
+        retry: 0,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['alertas-operaciones'] })
+            queryClient.invalidateQueries({ queryKey: ['alertas'] })
         }
     })
 }

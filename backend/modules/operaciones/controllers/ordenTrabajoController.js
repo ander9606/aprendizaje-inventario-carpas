@@ -623,6 +623,38 @@ const resolverAlerta = async (req, res, next) => {
     }
 };
 
+/**
+ * POST /api/operaciones/alertas
+ * Crear alerta manual (ej: insuficiencia de inventario)
+ */
+const crearAlerta = async (req, res, next) => {
+    try {
+        const { orden_id, tipo, severidad, titulo, mensaje } = req.body;
+
+        if (!tipo || !titulo || !mensaje) {
+            throw new AppError('Se requiere tipo, titulo y mensaje', 400);
+        }
+
+        const alerta = await AlertaModel.crear({
+            orden_id: orden_id || null,
+            tipo,
+            severidad: severidad || 'alta',
+            titulo,
+            mensaje
+        });
+
+        logger.info('operaciones', `Alerta creada: "${titulo}" por ${req.usuario.email}`);
+
+        res.status(201).json({
+            success: true,
+            message: 'Alerta creada correctamente',
+            data: alerta
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 // ============================================
 // VALIDACIÓN
 // ============================================
@@ -909,6 +941,7 @@ module.exports = {
     getAlertasPendientes,
     getResumenAlertas,
     resolverAlerta,
+    crearAlerta,
 
     // Validación
     validarCambioFecha,

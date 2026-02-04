@@ -213,6 +213,12 @@ router.get(
     ordenTrabajoController.getAlertas
 );
 
+router.post(
+    '/alertas',
+    verificarRol(['admin', 'gerente', 'operaciones']),
+    ordenTrabajoController.crearAlerta
+);
+
 router.put(
     '/alertas/:id/resolver',
     verificarRol(['admin', 'gerente']),

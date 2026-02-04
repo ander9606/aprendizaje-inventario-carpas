@@ -293,6 +293,15 @@ const alertasAPI = {
     resolver: async (id, datos = {}) => {
         const response = await api.put(`/operaciones/alertas/${id}/resolver`, datos)
         return response.data
+    },
+
+    /**
+     * Crear alerta manual (ej: insuficiencia de inventario)
+     * @param {Object} datos - { orden_id, tipo, severidad, titulo, mensaje }
+     */
+    crear: async (datos) => {
+        const response = await api.post('/operaciones/alertas', datos)
+        return response.data
     }
 }
 
