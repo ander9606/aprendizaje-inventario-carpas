@@ -705,28 +705,28 @@ class SincronizacionAlquilerService {
         lotes_actualizados: []
       };
 
+      // Validar que TODOS los elementos tengan serie o lote asignado
+      const elementosSinAsignar = elementosOrden.filter(elem => {
+        const serieValida = elem.serie_id && Number.isFinite(Number(elem.serie_id));
+        const loteValido = elem.lote_id && Number.isFinite(Number(elem.lote_id));
+        return !serieValida && !loteValido;
+      });
+
+      if (elementosSinAsignar.length > 0) {
+        const nombres = elementosSinAsignar.map(e => e.elemento_nombre).join(', ');
+        throw new AppError(
+          `No se puede ejecutar la salida. ${elementosSinAsignar.length} elemento(s) no tienen ` +
+          `serie o lote asignado del inventario: ${nombres}. ` +
+          `Debe asignar elementos reales del inventario antes de despachar.`,
+          400
+        );
+      }
+
       for (const elem of elementosOrden) {
         logger.debug(`[SincronizacionAlquilerService] Procesando: ${elem.elemento_nombre}`);
 
-        // Validar IDs numéricos (pueden ser null/NaN en elementos forzados)
-        const serieId = elem.serie_id && Number.isFinite(Number(elem.serie_id)) ? Number(elem.serie_id) : null;
-        const loteId = elem.lote_id && Number.isFinite(Number(elem.lote_id)) ? Number(elem.lote_id) : null;
-
-        // Si no tiene serie ni lote asignado, saltar (elemento pendiente/forzado)
-        if (!serieId && !loteId) {
-          logger.warn(
-            `[SincronizacionAlquilerService] Elemento "${elem.elemento_nombre}" (ID: ${elem.elemento_id}) ` +
-            `sin serie/lote asignado - saltando despacho de inventario`
-          );
-          // Aún así marcar como procesado en la orden
-          await connection.query(`
-            UPDATE orden_trabajo_elementos
-            SET estado = 'pendiente_asignacion',
-                verificado_salida = FALSE
-            WHERE id = ?
-          `, [elem.id]);
-          continue;
-        }
+        const serieId = Number(elem.serie_id) || null;
+        const loteId = Number(elem.lote_id) || null;
 
         // -----------------------------------------------------------------
         // Obtener ubicación original (para poder restaurar en retorno)
