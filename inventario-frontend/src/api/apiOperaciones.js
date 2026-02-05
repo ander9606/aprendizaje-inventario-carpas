@@ -60,6 +60,16 @@ const ordenesAPI = {
     },
 
     /**
+     * Obtener orden completa con productos, transporte y elementos asignados
+     * @param {number} id
+     * @returns {Object} - { orden, productos, transporte, alquiler_elementos, resumen_cotizacion, resumen_elementos }
+     */
+    obtenerOrdenCompleta: async (id) => {
+        const response = await api.get(`/operaciones/ordenes/${id}/completa`)
+        return response.data
+    },
+
+    /**
      * Crear orden manual (mantenimiento, traslado, revisión, etc.)
      * @param {Object} datos - { tipo, fecha_programada, direccion_destino, ciudad_destino, notas, prioridad, elementos }
      */

@@ -3,3 +3,4 @@
 // ============================================
 
 export { default as OperacionesSidebar } from './OperacionesSidebar'
+export { default as ModalOrdenCargue } from './ModalOrdenCargue'

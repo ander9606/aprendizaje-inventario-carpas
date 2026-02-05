@@ -69,6 +69,30 @@ export const useGetOrdenesPorAlquiler = (alquilerId) => {
 }
 
 // ============================================
+// HOOK: useGetOrdenCompleta
+// Obtiene una orden con productos, transporte y elementos
+// ============================================
+
+export const useGetOrdenCompleta = (id, options = {}) => {
+    const { data, isLoading, error, refetch } = useQuery({
+        queryKey: ['ordenes', id, 'completa'],
+        queryFn: () => ordenesAPI.obtenerOrdenCompleta(id),
+        enabled: !!id && (options.enabled !== false)
+    })
+
+    return {
+        ordenCompleta: data?.data || null,
+        productos: data?.data?.productos || [],
+        alquilerElementos: data?.data?.alquiler_elementos || [],
+        resumenCotizacion: data?.data?.resumen_cotizacion || null,
+        resumenElementos: data?.data?.resumen_elementos || null,
+        isLoading,
+        error,
+        refetch
+    }
+}
+
+// ============================================
 // HOOK: useGetCalendario
 // Obtiene vista de calendario
 // ============================================
