@@ -36,6 +36,7 @@ import {
     useGetOrden,
     useGetElementosOrden,
     useGetElementosDisponibles,
+    useGetOrdenCompleta,
     useGetAlertasOrden,
     usePrepararElementos,
     useCrearAlertaOperaciones,
@@ -49,6 +50,7 @@ import { useGetEmpleadosCampo } from '../hooks/useEmpleados'
 import { useAuth } from '../hooks/auth/useAuth'
 import Button from '../components/common/Button'
 import Spinner from '../components/common/Spinner'
+import { ModalRetornoElementos } from '../components/operaciones'
 import { toast } from 'sonner'
 
 // ============================================
@@ -290,207 +292,6 @@ const ModalEditarOrden = ({ orden, onClose, onSave }) => {
                         disabled={saving}
                     >
                         {saving ? 'Guardando...' : 'Guardar Cambios'}
-                    </Button>
-                </div>
-            </div>
-        </div>
-    )
-}
-
-// ============================================
-// COMPONENTE: Modal de Registrar Retorno
-// ============================================
-const ModalRegistrarRetorno = ({ orden, elementos, onClose, onSave }) => {
-    const [retornos, setRetornos] = useState(
-        elementos?.map(elem => ({
-            alquiler_elemento_id: elem.id,
-            elemento_nombre: elem.elemento_nombre || elem.nombre,
-            serie_numero: elem.serie_numero,
-            cantidad: elem.cantidad || 1,
-            estado_retorno: 'bueno',
-            costo_dano: 0,
-            notas: ''
-        })) || []
-    )
-    const [saving, setSaving] = useState(false)
-
-    const handleEstadoChange = (index, estado) => {
-        setRetornos(prev => {
-            const updated = [...prev]
-            updated[index] = {
-                ...updated[index],
-                estado_retorno: estado,
-                costo_dano: estado === 'bueno' ? 0 : updated[index].costo_dano
-            }
-            return updated
-        })
-    }
-
-    const handleCostoDanoChange = (index, costo) => {
-        setRetornos(prev => {
-            const updated = [...prev]
-            updated[index] = { ...updated[index], costo_dano: parseFloat(costo) || 0 }
-            return updated
-        })
-    }
-
-    const handleNotasChange = (index, notas) => {
-        setRetornos(prev => {
-            const updated = [...prev]
-            updated[index] = { ...updated[index], notas }
-            return updated
-        })
-    }
-
-    const handleGuardar = async () => {
-        setSaving(true)
-        try {
-            await onSave(retornos.map(r => ({
-                alquiler_elemento_id: r.alquiler_elemento_id,
-                estado_retorno: r.estado_retorno,
-                costo_dano: r.costo_dano,
-                notas: r.notas
-            })))
-        } catch (error) {
-            console.error('Error al registrar retorno:', error)
-        } finally {
-            setSaving(false)
-        }
-    }
-
-    const totalDanos = retornos.reduce((sum, r) => sum + (r.costo_dano || 0), 0)
-
-    return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
-                <div className="p-6 border-b border-slate-200">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <h3 className="text-lg font-semibold text-slate-900">
-                                Registrar Retorno
-                            </h3>
-                            <p className="text-sm text-slate-500">
-                                Orden #{orden.id} - {orden.cliente_nombre}
-                            </p>
-                        </div>
-                        <button
-                            onClick={onClose}
-                            className="p-2 hover:bg-slate-100 rounded-lg"
-                        >
-                            <X className="w-5 h-5" />
-                        </button>
-                    </div>
-                </div>
-                <div className="p-6 overflow-y-auto max-h-[60vh]">
-                    <div className="space-y-4">
-                        {retornos.map((retorno, index) => (
-                            <div
-                                key={retorno.alquiler_elemento_id}
-                                className="border border-slate-200 rounded-lg p-4"
-                            >
-                                <div className="flex items-start justify-between mb-3">
-                                    <div>
-                                        <p className="font-medium text-slate-900">
-                                            {retorno.elemento_nombre}
-                                        </p>
-                                        {retorno.serie_numero && (
-                                            <p className="text-sm text-slate-500">
-                                                Serie: {retorno.serie_numero}
-                                            </p>
-                                        )}
-                                        <p className="text-sm text-slate-500">
-                                            Cantidad: {retorno.cantidad}
-                                        </p>
-                                    </div>
-                                </div>
-
-                                {/* Estado de retorno */}
-                                <div className="mb-3">
-                                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                                        Estado del Elemento
-                                    </label>
-                                    <div className="flex gap-2">
-                                        {[
-                                            { value: 'bueno', label: 'Bueno', color: 'green' },
-                                            { value: 'dañado', label: 'Dañado', color: 'yellow' },
-                                            { value: 'perdido', label: 'Perdido', color: 'red' }
-                                        ].map(opcion => (
-                                            <button
-                                                key={opcion.value}
-                                                onClick={() => handleEstadoChange(index, opcion.value)}
-                                                className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium border transition-colors ${
-                                                    retorno.estado_retorno === opcion.value
-                                                        ? opcion.color === 'green'
-                                                            ? 'bg-green-100 border-green-500 text-green-700'
-                                                            : opcion.color === 'yellow'
-                                                            ? 'bg-yellow-100 border-yellow-500 text-yellow-700'
-                                                            : 'bg-red-100 border-red-500 text-red-700'
-                                                        : 'border-slate-200 text-slate-600 hover:bg-slate-50'
-                                                }`}
-                                            >
-                                                {opcion.label}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                {/* Costo de daño (solo si está dañado o perdido) */}
-                                {retorno.estado_retorno !== 'bueno' && (
-                                    <div className="mb-3">
-                                        <label className="block text-sm font-medium text-slate-700 mb-1">
-                                            Costo del Daño ($)
-                                        </label>
-                                        <input
-                                            type="number"
-                                            min="0"
-                                            step="0.01"
-                                            value={retorno.costo_dano}
-                                            onChange={(e) => handleCostoDanoChange(index, e.target.value)}
-                                            className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
-                                            placeholder="0.00"
-                                        />
-                                    </div>
-                                )}
-
-                                {/* Notas */}
-                                {retorno.estado_retorno !== 'bueno' && (
-                                    <div>
-                                        <label className="block text-sm font-medium text-slate-700 mb-1">
-                                            Notas
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={retorno.notas}
-                                            onChange={(e) => handleNotasChange(index, e.target.value)}
-                                            className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
-                                            placeholder="Descripción del daño..."
-                                        />
-                                    </div>
-                                )}
-                            </div>
-                        ))}
-                    </div>
-
-                    {/* Resumen */}
-                    {totalDanos > 0 && (
-                        <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-                            <p className="text-sm font-medium text-red-700">
-                                Total Daños: ${totalDanos.toLocaleString('es-CO')}
-                            </p>
-                        </div>
-                    )}
-                </div>
-                <div className="p-6 border-t border-slate-200 flex gap-3 justify-end">
-                    <Button variant="secondary" onClick={onClose}>
-                        Cancelar
-                    </Button>
-                    <Button
-                        color="orange"
-                        icon={Save}
-                        onClick={handleGuardar}
-                        disabled={saving}
-                    >
-                        {saving ? 'Guardando...' : 'Confirmar Retorno'}
                     </Button>
                 </div>
             </div>
@@ -860,6 +661,11 @@ export default function OrdenDetallePage() {
     const { orden, isLoading, error, refetch } = useGetOrden(id)
     const { elementos, isLoading: loadingElementos } = useGetElementosOrden(id)
     const { alertas: alertasOrden } = useGetAlertasOrden(id)
+
+    // Obtener orden completa para modal de retorno (productos y depósito)
+    const { productos, alquilerElementos, resumenCotizacion } = useGetOrdenCompleta(id, {
+        enabled: showModalRetorno // Solo cargar cuando se abre el modal
+    })
 
     // ============================================
     // HOOKS: Mutaciones
@@ -1773,10 +1579,13 @@ export default function OrdenDetallePage() {
                 />
             )}
             {showModalRetorno && (
-                <ModalRegistrarRetorno
-                    orden={orden}
-                    elementos={elementos}
+                <ModalRetornoElementos
+                    isOpen={showModalRetorno}
                     onClose={() => setShowModalRetorno(false)}
+                    orden={orden}
+                    elementos={alquilerElementos?.length > 0 ? alquilerElementos : elementos}
+                    productos={productos}
+                    deposito={resumenCotizacion?.total_deposito || 0}
                     onSave={handleEjecutarRetorno}
                 />
             )}
