@@ -760,8 +760,8 @@ class OrdenTrabajoModel {
             WHERE DATE(fecha_programada) = CURDATE()
         `);
 
-        // Próximas órdenes sin equipo asignado
-        const [sinEquipo] = await pool.query(`
+        // Próximas órdenes sin responsable asignado
+        const [sinResponsable] = await pool.query(`
             SELECT COUNT(*) as total
             FROM ordenes_trabajo ot
             WHERE ot.estado IN ('pendiente', 'confirmado')
@@ -771,21 +771,11 @@ class OrdenTrabajoModel {
               )
         `);
 
-        // Próximas órdenes sin vehículo asignado
-        const [sinVehiculo] = await pool.query(`
-            SELECT COUNT(*) as total
-            FROM ordenes_trabajo
-            WHERE estado IN ('pendiente', 'confirmado')
-              AND fecha_programada >= CURDATE()
-              AND vehiculo_id IS NULL
-        `);
-
         return {
             ...stats[0],
             hoy: hoy[0],
             alertas: {
-                sinEquipo: sinEquipo[0].total,
-                sinVehiculo: sinVehiculo[0].total
+                sinResponsable: sinResponsable[0].total
             }
         };
     }

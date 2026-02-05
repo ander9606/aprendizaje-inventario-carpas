@@ -10,20 +10,17 @@ import {
     Package,
     Calendar,
     MapPin,
-    Users,
     Clock,
     CheckCircle,
     XCircle,
     ArrowLeft,
     Edit3,
     Play,
-    Square,
     AlertTriangle,
     Phone,
     Mail,
     FileText,
     RefreshCw,
-    Car,
     User,
     ChevronDown,
     ChevronUp,
@@ -31,35 +28,38 @@ import {
     X,
     LogOut,
     RotateCcw,
-    CircleDot
+    Box,
+    Hash,
+    Bell
 } from 'lucide-react'
 import {
     useGetOrden,
     useGetElementosOrden,
+    useGetElementosDisponibles,
+    useGetAlertasOrden,
+    usePrepararElementos,
+    useCrearAlertaOperaciones,
     useCambiarEstadoOrden,
     useAsignarEquipo,
-    useAsignarVehiculo,
     useUpdateOrden,
     useEjecutarSalida,
     useEjecutarRetorno
 } from '../hooks/useOrdenesTrabajo'
 import { useGetEmpleadosCampo } from '../hooks/useEmpleados'
-import { useGetVehiculosDisponibles } from '../hooks/useVehiculos'
 import { useAuth } from '../hooks/auth/useAuth'
 import Button from '../components/common/Button'
 import Spinner from '../components/common/Spinner'
 import { toast } from 'sonner'
 
 // ============================================
-// COMPONENTE: Modal de Asignación de Equipo
+// COMPONENTE: Modal de Asignación de Responsable
 // ============================================
-const ModalAsignarEquipo = ({ orden, onClose, onSave }) => {
-    // Inicializar con equipo actual: { empleado_id, rol_en_orden }
-    const [equipoSeleccionado, setEquipoSeleccionado] = useState(
-        orden.equipo?.map(e => ({
-            empleado_id: e.empleado_id || e.id,
-            rol_en_orden: e.rol_en_orden || 'operario'
-        })) || []
+const ModalAsignarResponsable = ({ orden, onClose, onSave }) => {
+    // Inicializar con responsable actual (primer miembro del equipo)
+    const responsableActual = orden.equipo?.find(e => e.rol_en_orden === 'responsable' || e.es_responsable)
+        || orden.equipo?.[0]
+    const [responsableId, setResponsableId] = useState(
+        responsableActual?.empleado_id?.toString() || responsableActual?.id?.toString() || ''
     )
     const [saving, setSaving] = useState(false)
 
@@ -67,36 +67,16 @@ const ModalAsignarEquipo = ({ orden, onClose, onSave }) => {
     const fechaOrden = orden.fecha_programada?.split('T')[0] || null
     const { empleados: empleadosDisponibles, isLoading: loadingEmpleados } = useGetEmpleadosCampo(fechaOrden)
 
-    const rolesOrden = [
-        { value: 'supervisor', label: 'Supervisor' },
-        { value: 'operario', label: 'Operario' },
-        { value: 'conductor', label: 'Conductor' },
-        { value: 'ayudante', label: 'Ayudante' }
-    ]
-
-    const isSelected = (empId) => equipoSeleccionado.some(e => e.empleado_id === empId)
-
-    const handleToggleEmpleado = (empId) => {
-        if (isSelected(empId)) {
-            setEquipoSeleccionado(prev => prev.filter(e => e.empleado_id !== empId))
-        } else {
-            setEquipoSeleccionado(prev => [...prev, { empleado_id: empId, rol_en_orden: 'operario' }])
-        }
-    }
-
-    const handleCambiarRol = (empId, rol) => {
-        setEquipoSeleccionado(prev =>
-            prev.map(e => e.empleado_id === empId ? { ...e, rol_en_orden: rol } : e)
-        )
-    }
-
     const handleGuardar = async () => {
+        if (!responsableId) return
         setSaving(true)
         try {
-            await onSave({ empleados: equipoSeleccionado })
+            await onSave({
+                empleados: [{ empleado_id: parseInt(responsableId), rol_en_orden: 'responsable' }]
+            })
             onClose()
         } catch (error) {
-            console.error('Error al asignar equipo:', error)
+            console.error('Error al asignar responsable:', error)
         } finally {
             setSaving(false)
         }
@@ -104,15 +84,15 @@ const ModalAsignarEquipo = ({ orden, onClose, onSave }) => {
 
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl w-full max-w-lg max-h-[90vh] overflow-hidden">
+            <div className="bg-white rounded-xl w-full max-w-md max-h-[90vh] overflow-hidden">
                 <div className="p-6 border-b border-slate-200">
                     <div className="flex items-center justify-between">
                         <div>
                             <h3 className="text-lg font-semibold text-slate-900">
-                                Asignar Equipo de Trabajo
+                                Asignar Responsable
                             </h3>
                             <p className="text-sm text-slate-500">
-                                {equipoSeleccionado.length} seleccionado(s)
+                                Persona encargada de esta orden
                             </p>
                         </div>
                         <button
@@ -130,58 +110,41 @@ const ModalAsignarEquipo = ({ orden, onClose, onSave }) => {
                         </div>
                     ) : empleadosDisponibles?.length > 0 ? (
                         <div className="space-y-2">
-                            {empleadosDisponibles.map(emp => {
-                                const selected = isSelected(emp.id)
-                                const miembro = equipoSeleccionado.find(e => e.empleado_id === emp.id)
-
-                                return (
-                                    <div
-                                        key={emp.id}
-                                        className={`border rounded-lg transition-colors ${
-                                            selected
-                                                ? 'border-orange-500 bg-orange-50'
-                                                : 'border-slate-200 hover:bg-slate-50'
-                                        }`}
-                                    >
-                                        <label className="flex items-center gap-3 p-3 cursor-pointer">
-                                            <input
-                                                type="checkbox"
-                                                checked={selected}
-                                                onChange={() => handleToggleEmpleado(emp.id)}
-                                                className="w-4 h-4 text-orange-500 rounded focus:ring-orange-500"
-                                            />
-                                            <div className="flex-1">
-                                                <p className="font-medium text-slate-900">
-                                                    {emp.nombre} {emp.apellido || ''}
-                                                </p>
-                                                <p className="text-sm text-slate-500">
-                                                    {emp.rol_empleado || emp.cargo || 'Empleado'}
-                                                    {emp.telefono ? ` - ${emp.telefono}` : ''}
-                                                </p>
-                                            </div>
-                                        </label>
-                                        {selected && (
-                                            <div className="px-3 pb-3 pt-0">
-                                                <select
-                                                    value={miembro?.rol_en_orden || 'operario'}
-                                                    onChange={(e) => handleCambiarRol(emp.id, e.target.value)}
-                                                    className="w-full px-2 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
-                                                >
-                                                    {rolesOrden.map(rol => (
-                                                        <option key={rol.value} value={rol.value}>
-                                                            {rol.label}
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                            </div>
-                                        )}
+                            {empleadosDisponibles.map(emp => (
+                                <label
+                                    key={emp.id}
+                                    className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${
+                                        responsableId === emp.id.toString()
+                                            ? 'border-orange-500 bg-orange-50'
+                                            : 'border-slate-200 hover:bg-slate-50'
+                                    }`}
+                                >
+                                    <input
+                                        type="radio"
+                                        name="responsable"
+                                        value={emp.id}
+                                        checked={responsableId === emp.id.toString()}
+                                        onChange={(e) => setResponsableId(e.target.value)}
+                                        className="w-4 h-4 text-orange-500 focus:ring-orange-500"
+                                    />
+                                    <div className="p-2 bg-slate-100 rounded-full">
+                                        <User className="w-4 h-4 text-slate-600" />
                                     </div>
-                                )
-                            })}
+                                    <div className="flex-1">
+                                        <p className="font-medium text-slate-900">
+                                            {emp.nombre} {emp.apellido || ''}
+                                        </p>
+                                        <p className="text-sm text-slate-500">
+                                            {emp.rol_empleado || emp.cargo || 'Empleado'}
+                                            {emp.telefono ? ` - ${emp.telefono}` : ''}
+                                        </p>
+                                    </div>
+                                </label>
+                            ))}
                         </div>
                     ) : (
                         <div className="py-8 text-center text-slate-500">
-                            <Users className="w-10 h-10 mx-auto mb-2 text-slate-300" />
+                            <User className="w-10 h-10 mx-auto mb-2 text-slate-300" />
                             <p>No hay empleados disponibles</p>
                         </div>
                     )}
@@ -194,128 +157,7 @@ const ModalAsignarEquipo = ({ orden, onClose, onSave }) => {
                         color="orange"
                         icon={Save}
                         onClick={handleGuardar}
-                        disabled={saving || equipoSeleccionado.length === 0}
-                    >
-                        {saving ? 'Guardando...' : 'Guardar'}
-                    </Button>
-                </div>
-            </div>
-        </div>
-    )
-}
-
-// ============================================
-// COMPONENTE: Modal de Asignación de Vehículo
-// ============================================
-const ModalAsignarVehiculo = ({ orden, onClose, onSave }) => {
-    const [vehiculoId, setVehiculoId] = useState(orden.vehiculo_id?.toString() || '')
-    const [saving, setSaving] = useState(false)
-
-    // Obtener vehículos disponibles desde API
-    const fechaOrden = orden.fecha_programada?.split('T')[0] || null
-    const { vehiculos: vehiculosDisponibles, isLoading: loadingVehiculos } = useGetVehiculosDisponibles(fechaOrden)
-
-    const handleGuardar = async () => {
-        setSaving(true)
-        try {
-            await onSave({ vehiculo_id: vehiculoId ? parseInt(vehiculoId) : null })
-            onClose()
-        } catch (error) {
-            console.error('Error al asignar vehículo:', error)
-        } finally {
-            setSaving(false)
-        }
-    }
-
-    return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl w-full max-w-md max-h-[90vh] overflow-hidden">
-                <div className="p-6 border-b border-slate-200">
-                    <div className="flex items-center justify-between">
-                        <h3 className="text-lg font-semibold text-slate-900">
-                            Asignar Vehiculo
-                        </h3>
-                        <button
-                            onClick={onClose}
-                            className="p-2 hover:bg-slate-100 rounded-lg"
-                        >
-                            <X className="w-5 h-5" />
-                        </button>
-                    </div>
-                </div>
-                <div className="p-6 overflow-y-auto max-h-[60vh]">
-                    {loadingVehiculos ? (
-                        <div className="py-8 text-center">
-                            <Spinner size="sm" text="Cargando vehiculos..." />
-                        </div>
-                    ) : vehiculosDisponibles?.length > 0 ? (
-                        <div className="space-y-2">
-                            {/* Opcion para quitar vehiculo */}
-                            <label
-                                className={`flex items-center gap-3 p-4 border rounded-lg cursor-pointer transition-colors ${
-                                    vehiculoId === ''
-                                        ? 'border-orange-500 bg-orange-50'
-                                        : 'border-slate-200 hover:bg-slate-50'
-                                }`}
-                            >
-                                <input
-                                    type="radio"
-                                    name="vehiculo"
-                                    value=""
-                                    checked={vehiculoId === ''}
-                                    onChange={() => setVehiculoId('')}
-                                    className="w-4 h-4 text-orange-500 focus:ring-orange-500"
-                                />
-                                <XCircle className="w-5 h-5 text-slate-400" />
-                                <div className="flex-1">
-                                    <p className="font-medium text-slate-500">Sin vehiculo</p>
-                                </div>
-                            </label>
-
-                            {vehiculosDisponibles.map(veh => (
-                                <label
-                                    key={veh.id}
-                                    className={`flex items-center gap-3 p-4 border rounded-lg cursor-pointer transition-colors ${
-                                        vehiculoId === veh.id.toString()
-                                            ? 'border-orange-500 bg-orange-50'
-                                            : 'border-slate-200 hover:bg-slate-50'
-                                    }`}
-                                >
-                                    <input
-                                        type="radio"
-                                        name="vehiculo"
-                                        value={veh.id}
-                                        checked={vehiculoId === veh.id.toString()}
-                                        onChange={(e) => setVehiculoId(e.target.value)}
-                                        className="w-4 h-4 text-orange-500 focus:ring-orange-500"
-                                    />
-                                    <Car className="w-5 h-5 text-slate-400" />
-                                    <div className="flex-1">
-                                        <p className="font-medium text-slate-900">{veh.placa}</p>
-                                        <p className="text-sm text-slate-500">
-                                            {veh.marca} {veh.modelo}
-                                            {veh.capacidad_carga ? ` - ${veh.capacidad_carga}` : ''}
-                                        </p>
-                                    </div>
-                                </label>
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="py-8 text-center text-slate-500">
-                            <Car className="w-10 h-10 mx-auto mb-2 text-slate-300" />
-                            <p>No hay vehiculos disponibles</p>
-                        </div>
-                    )}
-                </div>
-                <div className="p-6 border-t border-slate-200 flex gap-3 justify-end">
-                    <Button variant="secondary" onClick={onClose}>
-                        Cancelar
-                    </Button>
-                    <Button
-                        color="orange"
-                        icon={Save}
-                        onClick={handleGuardar}
-                        disabled={saving}
+                        disabled={saving || !responsableId}
                     >
                         {saving ? 'Guardando...' : 'Guardar'}
                     </Button>
@@ -657,6 +499,342 @@ const ModalRegistrarRetorno = ({ orden, elementos, onClose, onSave }) => {
 }
 
 // ============================================
+// COMPONENTE: Modal de Asignación de Inventario
+// Permite al operador asignar series/lotes reales
+// a elementos que no tienen inventario asignado
+// ============================================
+const ModalAsignarInventario = ({ ordenId, elementosPendientes, onClose, onSave }) => {
+    const { productos, isLoading } = useGetElementosDisponibles(ordenId)
+    const crearAlerta = useCrearAlertaOperaciones()
+    const [seleccion, setSeleccion] = useState({}) // { elemento_id: { serie_id?, lote_id?, cantidad? } }
+    const [saving, setSaving] = useState(false)
+    const [alertaEnviada, setAlertaEnviada] = useState(false)
+
+    // Mapear disponibles por elemento_id para acceso rápido
+    const disponiblesPorElemento = {}
+    if (productos?.length > 0) {
+        for (const producto of productos) {
+            for (const comp of (producto.componentes || [])) {
+                disponiblesPorElemento[comp.elemento_id] = comp
+            }
+        }
+    }
+
+    const handleSeleccionarSerie = (elementoId, serieId) => {
+        setSeleccion(prev => ({
+            ...prev,
+            [elementoId]: serieId
+                ? { serie_id: serieId, lote_id: null, cantidad: 1 }
+                : undefined
+        }))
+    }
+
+    const handleSeleccionarLote = (elementoId, loteId, cantidadMax) => {
+        setSeleccion(prev => {
+            const actual = prev[elementoId]
+            if (actual?.lote_id === loteId) {
+                // Deseleccionar
+                return { ...prev, [elementoId]: undefined }
+            }
+            return {
+                ...prev,
+                [elementoId]: { serie_id: null, lote_id: loteId, cantidad: Math.min(cantidadMax, elementosPendientes.find(e => e.elemento_id === elementoId)?.cantidad || 1) }
+            }
+        })
+    }
+
+    const handleCantidadLote = (elementoId, cantidad) => {
+        setSeleccion(prev => ({
+            ...prev,
+            [elementoId]: { ...prev[elementoId], cantidad: Math.max(1, cantidad) }
+        }))
+    }
+
+    const todosAsignados = elementosPendientes.every(ep => seleccion[ep.elemento_id])
+
+    // Elementos que NO tienen inventario disponible en absoluto
+    const elementosSinStock = elementosPendientes.filter(ep => {
+        const info = disponiblesPorElemento[ep.elemento_id]
+        return !info || (info.disponibles || []).length === 0
+    })
+
+    const handleReportarInsuficiencia = async () => {
+        const nombres = elementosSinStock.map(e => e.elemento_nombre || e.nombre).join(', ')
+        try {
+            await crearAlerta.mutateAsync({
+                orden_id: ordenId,
+                tipo: 'conflicto_disponibilidad',
+                severidad: elementosSinStock.length > 2 ? 'critica' : 'alta',
+                titulo: `Insuficiencia de inventario - ${elementosSinStock.length} elemento(s)`,
+                mensaje: `La orden #${ordenId} requiere elementos que no están disponibles en el inventario: ${nombres}. Se necesita gestionar la adquisición o reasignación de estos elementos.`
+            })
+            setAlertaEnviada(true)
+            toast.success('Alerta de insuficiencia creada. El equipo de gestión será notificado.')
+        } catch (error) {
+            toast.error('Error al crear la alerta')
+        }
+    }
+
+    const handleGuardar = async () => {
+        const elementos = Object.entries(seleccion)
+            .filter(([, val]) => val)
+            .map(([elementoId, val]) => ({
+                elemento_id: parseInt(elementoId),
+                serie_id: val.serie_id || null,
+                lote_id: val.lote_id || null,
+                cantidad: val.cantidad || 1
+            }))
+
+        if (!elementos.length) {
+            toast.error('Selecciona al menos un elemento del inventario')
+            return
+        }
+
+        setSaving(true)
+        try {
+            await onSave(elementos)
+        } catch (error) {
+            toast.error(error?.response?.data?.message || 'Error al asignar inventario')
+        } finally {
+            setSaving(false)
+        }
+    }
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col mx-4">
+                {/* Header */}
+                <div className="p-6 border-b border-slate-200">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-amber-100 rounded-lg">
+                                <Box className="w-5 h-5 text-amber-600" />
+                            </div>
+                            <div>
+                                <h2 className="text-lg font-bold text-slate-900">Asignar Inventario</h2>
+                                <p className="text-sm text-slate-500">
+                                    {elementosPendientes.length} elemento(s) sin inventario asignado
+                                </p>
+                            </div>
+                        </div>
+                        <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-lg">
+                            <X className="w-5 h-5 text-slate-400" />
+                        </button>
+                    </div>
+                </div>
+
+                {/* Body */}
+                <div className="flex-1 overflow-y-auto p-6">
+                    {isLoading ? (
+                        <div className="py-8 text-center">
+                            <Spinner size="md" text="Buscando inventario disponible..." />
+                        </div>
+                    ) : (
+                        <div className="space-y-6">
+                            {elementosPendientes.map((elem) => {
+                                const info = disponiblesPorElemento[elem.elemento_id]
+                                const disponiblesItems = info?.disponibles || []
+                                const series = disponiblesItems.filter(d => d.tipo === 'serie')
+                                const lotes = disponiblesItems.filter(d => d.tipo === 'lote')
+                                const selActual = seleccion[elem.elemento_id]
+
+                                return (
+                                    <div key={elem.id} className="border border-slate-200 rounded-lg overflow-hidden">
+                                        {/* Elemento header */}
+                                        <div className={`px-4 py-3 flex items-center justify-between ${
+                                            selActual ? 'bg-green-50 border-b border-green-200' : 'bg-slate-50 border-b border-slate-200'
+                                        }`}>
+                                            <div className="flex items-center gap-2">
+                                                <Package className="w-4 h-4 text-slate-500" />
+                                                <span className="font-medium text-slate-900">
+                                                    {elem.elemento_nombre || elem.nombre}
+                                                </span>
+                                                <span className="text-xs text-slate-500">
+                                                    (cant: {elem.cantidad || 1})
+                                                </span>
+                                            </div>
+                                            {selActual && (
+                                                <CheckCircle className="w-4 h-4 text-green-500" />
+                                            )}
+                                        </div>
+
+                                        {/* Opciones disponibles */}
+                                        <div className="p-3">
+                                            {disponiblesItems.length === 0 ? (
+                                                <div className="py-2 space-y-2">
+                                                    <p className="text-sm text-red-600 flex items-center gap-2">
+                                                        <AlertTriangle className="w-4 h-4" />
+                                                        No hay inventario disponible para este elemento
+                                                    </p>
+                                                    <p className="text-xs text-slate-500">
+                                                        No existen series ni lotes disponibles en el almacen. Reporta esta insuficiencia para que se gestione.
+                                                    </p>
+                                                </div>
+                                            ) : (
+                                                <div className="space-y-2">
+                                                    {/* Series disponibles */}
+                                                    {series.length > 0 && (
+                                                        <div>
+                                                            <p className="text-xs font-medium text-slate-500 uppercase mb-1.5">
+                                                                Series disponibles
+                                                            </p>
+                                                            <div className="space-y-1">
+                                                                {series.map(serie => (
+                                                                    <label
+                                                                        key={serie.id}
+                                                                        className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
+                                                                            selActual?.serie_id === serie.id
+                                                                                ? 'bg-green-50 border border-green-200'
+                                                                                : 'hover:bg-slate-50 border border-transparent'
+                                                                        }`}
+                                                                    >
+                                                                        <input
+                                                                            type="radio"
+                                                                            name={`elem-${elem.elemento_id}`}
+                                                                            checked={selActual?.serie_id === serie.id}
+                                                                            onChange={() => handleSeleccionarSerie(elem.elemento_id, serie.id)}
+                                                                            className="text-green-600"
+                                                                        />
+                                                                        <Hash className="w-3.5 h-3.5 text-slate-400" />
+                                                                        <span className="text-sm font-medium text-slate-800">
+                                                                            {serie.identificador}
+                                                                        </span>
+                                                                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                                                                            serie.estado === 'nuevo' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'
+                                                                        }`}>
+                                                                            {serie.estado}
+                                                                        </span>
+                                                                        {serie.ubicacion && (
+                                                                            <span className="text-xs text-slate-400 ml-auto">
+                                                                                {serie.ubicacion}
+                                                                            </span>
+                                                                        )}
+                                                                    </label>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Lotes disponibles */}
+                                                    {lotes.length > 0 && (
+                                                        <div>
+                                                            <p className="text-xs font-medium text-slate-500 uppercase mb-1.5">
+                                                                Lotes disponibles
+                                                            </p>
+                                                            <div className="space-y-1">
+                                                                {lotes.map(lote => (
+                                                                    <label
+                                                                        key={lote.id}
+                                                                        className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
+                                                                            selActual?.lote_id === lote.id
+                                                                                ? 'bg-green-50 border border-green-200'
+                                                                                : 'hover:bg-slate-50 border border-transparent'
+                                                                        }`}
+                                                                    >
+                                                                        <input
+                                                                            type="radio"
+                                                                            name={`elem-${elem.elemento_id}`}
+                                                                            checked={selActual?.lote_id === lote.id}
+                                                                            onChange={() => handleSeleccionarLote(elem.elemento_id, lote.id, lote.cantidad)}
+                                                                            className="text-green-600"
+                                                                        />
+                                                                        <Box className="w-3.5 h-3.5 text-slate-400" />
+                                                                        <span className="text-sm font-medium text-slate-800">
+                                                                            {lote.identificador}
+                                                                        </span>
+                                                                        <span className="text-xs text-slate-500">
+                                                                            Disp: {lote.cantidad}
+                                                                        </span>
+                                                                        {selActual?.lote_id === lote.id && (
+                                                                            <div className="flex items-center gap-1 ml-auto">
+                                                                                <span className="text-xs text-slate-500">Cant:</span>
+                                                                                <input
+                                                                                    type="number"
+                                                                                    min={1}
+                                                                                    max={lote.cantidad}
+                                                                                    value={selActual.cantidad}
+                                                                                    onChange={(e) => handleCantidadLote(elem.elemento_id, parseInt(e.target.value) || 1)}
+                                                                                    className="w-16 px-2 py-0.5 border border-slate-300 rounded text-sm text-center"
+                                                                                    onClick={(e) => e.stopPropagation()}
+                                                                                />
+                                                                            </div>
+                                                                        )}
+                                                                        {lote.ubicacion && !selActual?.lote_id === lote.id && (
+                                                                            <span className="text-xs text-slate-400 ml-auto">
+                                                                                {lote.ubicacion}
+                                                                            </span>
+                                                                        )}
+                                                                    </label>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )
+                            })}
+                        </div>
+                    )}
+                </div>
+
+                {/* Alerta de insuficiencia */}
+                {!isLoading && elementosSinStock.length > 0 && (
+                    <div className="px-6 py-3 bg-red-50 border-t border-red-200">
+                        <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-2">
+                                <AlertTriangle className="w-4 h-4 text-red-500 shrink-0" />
+                                <p className="text-sm text-red-700">
+                                    <span className="font-medium">{elementosSinStock.length} elemento(s)</span> sin stock en inventario
+                                </p>
+                            </div>
+                            {alertaEnviada ? (
+                                <span className="text-xs text-green-600 font-medium flex items-center gap-1">
+                                    <CheckCircle className="w-3.5 h-3.5" />
+                                    Alerta enviada
+                                </span>
+                            ) : (
+                                <Button
+                                    color="red"
+                                    variant="outline"
+                                    size="sm"
+                                    icon={AlertTriangle}
+                                    onClick={handleReportarInsuficiencia}
+                                    disabled={crearAlerta.isPending}
+                                >
+                                    {crearAlerta.isPending ? 'Enviando...' : 'Reportar Insuficiencia'}
+                                </Button>
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {/* Footer */}
+                <div className="p-6 border-t border-slate-200 flex items-center justify-between">
+                    <p className="text-sm text-slate-500">
+                        {Object.values(seleccion).filter(Boolean).length} de {elementosPendientes.length} asignados
+                    </p>
+                    <div className="flex gap-3">
+                        <Button variant="secondary" onClick={onClose}>
+                            Cancelar
+                        </Button>
+                        <Button
+                            color="green"
+                            icon={CheckCircle}
+                            onClick={handleGuardar}
+                            disabled={saving || !todosAsignados}
+                        >
+                            {saving ? 'Asignando...' : 'Confirmar Asignación'}
+                        </Button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    )
+}
+
+// ============================================
 // COMPONENTE PRINCIPAL: OrdenDetallePage
 // ============================================
 export default function OrdenDetallePage() {
@@ -669,10 +847,10 @@ export default function OrdenDetallePage() {
     // ============================================
     // ESTADO LOCAL
     // ============================================
-    const [showModalEquipo, setShowModalEquipo] = useState(false)
-    const [showModalVehiculo, setShowModalVehiculo] = useState(false)
+    const [showModalResponsable, setShowModalResponsable] = useState(false)
     const [showModalEditar, setShowModalEditar] = useState(false)
     const [showModalRetorno, setShowModalRetorno] = useState(false)
+    const [showModalInventario, setShowModalInventario] = useState(false)
     const [expandElementos, setExpandElementos] = useState(true)
     const [ejecutandoSalida, setEjecutandoSalida] = useState(false)
 
@@ -681,14 +859,15 @@ export default function OrdenDetallePage() {
     // ============================================
     const { orden, isLoading, error, refetch } = useGetOrden(id)
     const { elementos, isLoading: loadingElementos } = useGetElementosOrden(id)
+    const { alertas: alertasOrden } = useGetAlertasOrden(id)
 
     // ============================================
     // HOOKS: Mutaciones
     // ============================================
     const cambiarEstado = useCambiarEstadoOrden()
     const asignarEquipo = useAsignarEquipo()
-    const asignarVehiculo = useAsignarVehiculo()
     const actualizarOrden = useUpdateOrden()
+    const prepararElementos = usePrepararElementos()
     const ejecutarSalida = useEjecutarSalida()
     const ejecutarRetorno = useEjecutarRetorno()
 
@@ -718,21 +897,22 @@ export default function OrdenDetallePage() {
         }
     }
 
-    const handleAsignarEquipo = async (data) => {
+    const handleAsignarResponsable = async (data) => {
         await asignarEquipo.mutateAsync({ id: orden.id, data })
-        toast.success('Equipo asignado correctamente')
-        refetch()
-    }
-
-    const handleAsignarVehiculo = async (data) => {
-        await asignarVehiculo.mutateAsync({ id: orden.id, data })
-        toast.success('Vehículo asignado correctamente')
+        toast.success('Responsable asignado correctamente')
         refetch()
     }
 
     const handleActualizarOrden = async (data) => {
         await actualizarOrden.mutateAsync({ id: orden.id, data })
         toast.success('Orden actualizada correctamente')
+        refetch()
+    }
+
+    const handleAsignarInventario = async (elementosSeleccionados) => {
+        await prepararElementos.mutateAsync({ ordenId: orden.id, elementos: elementosSeleccionados })
+        toast.success('Inventario asignado correctamente')
+        setShowModalInventario(false)
         refetch()
     }
 
@@ -743,7 +923,7 @@ export default function OrdenDetallePage() {
 
         setEjecutandoSalida(true)
         try {
-            await ejecutarSalida.mutateAsync({ id: orden.id, data: {} })
+            await ejecutarSalida.mutateAsync({ ordenId: orden.id, datos: {} })
             toast.success('Salida ejecutada correctamente. Alquiler ahora activo.')
             refetch()
         } catch (error) {
@@ -755,7 +935,7 @@ export default function OrdenDetallePage() {
 
     const handleEjecutarRetorno = async (retornos) => {
         try {
-            await ejecutarRetorno.mutateAsync({ id: orden.id, retornos })
+            await ejecutarRetorno.mutateAsync({ ordenId: orden.id, retornos })
             toast.success('Retorno registrado correctamente. Alquiler finalizado.')
             setShowModalRetorno(false)
             refetch()
@@ -847,7 +1027,7 @@ export default function OrdenDetallePage() {
     // ============================================
     if (isLoading) {
         return (
-            <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+            <div className="flex justify-center py-12">
                 <Spinner size="lg" text="Cargando orden..." />
             </div>
         )
@@ -855,8 +1035,8 @@ export default function OrdenDetallePage() {
 
     if (error || !orden) {
         return (
-            <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-                <div className="text-center">
+            <div className="p-6">
+                <div className="bg-white rounded-xl border border-slate-200 p-12 text-center">
                     <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
                     <h2 className="text-xl font-semibold text-slate-900 mb-2">
                         Error al cargar la orden
@@ -879,62 +1059,223 @@ export default function OrdenDetallePage() {
     const TipoIcon = tipoConfig.icon
 
     // ============================================
+    // HELPERS: Progreso del flujo
+    // ============================================
+    const tieneResponsable = orden.equipo?.length > 0
+
+    const getPasosFlujo = () => {
+        if (orden.tipo === 'montaje') {
+            return [
+                { key: 'pendiente', label: 'Pendiente', short: 'Pend.' },
+                { key: 'confirmado', label: 'Confirmado', short: 'Conf.' },
+                { key: 'en_preparacion', label: 'Preparación', short: 'Prep.' },
+                { key: 'en_ruta', label: 'En Ruta', short: 'Ruta' },
+                { key: 'en_sitio', label: 'En Sitio', short: 'Sitio' },
+                { key: 'en_proceso', label: 'En Proceso', short: 'Proc.' },
+                { key: 'completado', label: 'Completado', short: 'Listo' }
+            ]
+        }
+        return [
+            { key: 'pendiente', label: 'Pendiente', short: 'Pend.' },
+            { key: 'confirmado', label: 'Confirmado', short: 'Conf.' },
+            { key: 'en_preparacion', label: 'Preparación', short: 'Prep.' },
+            { key: 'en_ruta', label: 'En Ruta', short: 'Ruta' },
+            { key: 'en_sitio', label: 'En Sitio', short: 'Sitio' },
+            { key: 'completado', label: 'Completado', short: 'Listo' }
+        ]
+    }
+
+    const pasos = getPasosFlujo()
+    const pasoActualIndex = pasos.findIndex(p => p.key === orden.estado)
+    const esCancelado = orden.estado === 'cancelado'
+    const esCompletado = orden.estado === 'completado'
+
+    // Detectar elementos sin inventario asignado
+    const elementosPendientesInv = (elementos || []).filter(
+        e => !e.serie_id && !e.lote_id
+    )
+    const hayElementosSinInventario = elementosPendientesInv.length > 0
+
+    // Detectar alertas de stock disponible (notificación de que el inventario volvió)
+    const alertaStockDisponible = (alertasOrden || []).find(
+        a => a.tipo === 'stock_disponible' && a.estado === 'pendiente'
+    )
+    // Detectar alertas de insuficiencia pendientes
+    const alertaInsuficiencia = (alertasOrden || []).find(
+        a => a.tipo === 'conflicto_disponibilidad' && a.estado === 'pendiente'
+    )
+
+    const getDescripcionEstado = () => {
+        const desc = {
+            pendiente: 'Esta orden está pendiente de confirmación. Asigna un responsable y confirma para iniciar.',
+            confirmado: 'Orden confirmada. Inicia la preparación de los elementos necesarios.',
+            en_preparacion: orden.tipo === 'montaje'
+                ? 'Preparando elementos para despacho. Cuando todo esté listo, ejecuta la salida.'
+                : 'Preparando para el desmontaje. Cuando esté listo, envía al equipo en ruta.',
+            en_ruta: 'El equipo está en camino al sitio del evento.',
+            en_sitio: orden.tipo === 'montaje'
+                ? 'El equipo llegó al sitio. Inicia el trabajo de montaje.'
+                : 'El equipo llegó al sitio. Realiza el desmontaje y registra el retorno.',
+            en_proceso: orden.tipo === 'montaje'
+                ? 'Montaje en curso. Marca como completado cuando termine.'
+                : 'Desmontaje en curso. Registra el retorno de los elementos.',
+            completado: 'Esta orden ha sido completada exitosamente.',
+            cancelado: 'Esta orden fue cancelada.'
+        }
+        return desc[orden.estado] || ''
+    }
+
+    // ============================================
     // RENDER PRINCIPAL
     // ============================================
     return (
-        <div className="min-h-screen bg-slate-50">
+        <div className="p-6">
             {/* HEADER */}
-            <div className="bg-white border-b border-slate-200 sticky top-0 z-10 shadow-sm">
-                <div className="container mx-auto px-6 py-4">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                            <button
-                                onClick={() => navigate('/operaciones/ordenes')}
-                                className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
-                            >
-                                <ArrowLeft className="w-5 h-5" />
-                            </button>
-                            <div className="flex items-center gap-3">
-                                <div className={`p-2 rounded-xl ${tipoConfig.color}`}>
-                                    <TipoIcon className="w-6 h-6" />
-                                </div>
-                                <div>
-                                    <div className="flex items-center gap-2">
-                                        <span className={`px-2 py-0.5 rounded text-xs font-medium ${tipoConfig.color}`}>
-                                            {tipoConfig.label}
-                                        </span>
-                                        <h1 className="text-xl font-bold text-slate-900">
-                                            Orden #{orden.id}
-                                        </h1>
-                                    </div>
-                                    <p className="text-sm text-slate-600">
-                                        {orden.cliente_nombre || 'Cliente'}
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
+            <div className="mb-6">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div className="flex items-center gap-4">
+                        <button
+                            onClick={() => navigate('/operaciones/ordenes')}
+                            className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+                        >
+                            <ArrowLeft className="w-5 h-5 text-slate-600" />
+                        </button>
                         <div className="flex items-center gap-3">
-                            {/* Badge de estado */}
-                            <div className={`flex items-center gap-2 px-4 py-2 rounded-lg border ${estadoConfig.color}`}>
-                                <EstadoIcon className="w-5 h-5" />
-                                <span className="font-medium">{estadoConfig.label}</span>
+                            <div className={`p-2 rounded-xl ${tipoConfig.color}`}>
+                                <TipoIcon className="w-6 h-6" />
                             </div>
-                            {canManage && (
-                                <Button
-                                    icon={Edit3}
-                                    variant="secondary"
-                                    onClick={() => setShowModalEditar(true)}
-                                >
-                                    Editar
-                                </Button>
-                            )}
+                            <div>
+                                <div className="flex items-center gap-2">
+                                    <span className={`px-2 py-0.5 rounded text-xs font-medium ${tipoConfig.color}`}>
+                                        {tipoConfig.label}
+                                    </span>
+                                    <h1 className="text-2xl font-bold text-slate-900">
+                                        Orden #{orden.id}
+                                    </h1>
+                                </div>
+                                <p className="text-slate-500 mt-0.5">
+                                    {orden.cliente_nombre || 'Cliente'}
+                                    {orden.evento_nombre ? ` — ${orden.evento_nombre}` : ''}
+                                </p>
+                            </div>
                         </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <div className={`flex items-center gap-2 px-4 py-2 rounded-lg border ${estadoConfig.color}`}>
+                            <EstadoIcon className="w-5 h-5" />
+                            <span className="font-medium">{estadoConfig.label}</span>
+                        </div>
+                        {canManage && !esCompletado && !esCancelado && (
+                            <Button
+                                icon={Edit3}
+                                variant="secondary"
+                                onClick={() => setShowModalEditar(true)}
+                            >
+                                Editar
+                            </Button>
+                        )}
                     </div>
                 </div>
             </div>
 
+            {/* NOTIFICACIÓN: Stock disponible */}
+            {alertaStockDisponible && !esCompletado && !esCancelado && (
+                <div className="mb-4 bg-green-50 border border-green-200 rounded-xl p-4 flex items-start gap-3">
+                    <div className="p-2 bg-green-100 rounded-lg shrink-0">
+                        <Bell className="w-5 h-5 text-green-600" />
+                    </div>
+                    <div className="flex-1">
+                        <h4 className="font-semibold text-green-800">
+                            {alertaStockDisponible.titulo}
+                        </h4>
+                        <p className="text-sm text-green-700 mt-0.5">
+                            {alertaStockDisponible.mensaje}
+                        </p>
+                        {hayElementosSinInventario && (
+                            <button
+                                onClick={() => setShowModalInventario(true)}
+                                className="mt-2 px-3 py-1.5 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors inline-flex items-center gap-1.5"
+                            >
+                                <Box className="w-4 h-4" />
+                                Asignar Inventario Ahora
+                            </button>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {/* ALERTA: Insuficiencia de inventario pendiente */}
+            {alertaInsuficiencia && !alertaStockDisponible && !esCompletado && !esCancelado && (
+                <div className="mb-4 bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
+                    <div className="p-2 bg-amber-100 rounded-lg shrink-0">
+                        <AlertTriangle className="w-5 h-5 text-amber-600" />
+                    </div>
+                    <div className="flex-1">
+                        <h4 className="font-semibold text-amber-800">
+                            Insuficiencia de inventario reportada
+                        </h4>
+                        <p className="text-sm text-amber-700 mt-0.5">
+                            {alertaInsuficiencia.mensaje}
+                        </p>
+                        <p className="text-xs text-amber-500 mt-1">
+                            Se notificará automáticamente cuando el inventario esté disponible.
+                        </p>
+                    </div>
+                </div>
+            )}
+
+            {/* BARRA DE PROGRESO */}
+            {!esCancelado && (
+                <div className="bg-white rounded-xl border border-slate-200 p-4 mb-6">
+                    <div className="flex items-center justify-between">
+                        {pasos.map((paso, idx) => {
+                            const esActual = paso.key === orden.estado
+                            const esCompletadoPaso = idx < pasoActualIndex || esCompletado
+                            return (
+                                <div key={paso.key} className="flex items-center flex-1">
+                                    <div className="flex flex-col items-center flex-1">
+                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
+                                            esActual
+                                                ? 'bg-orange-500 text-white ring-4 ring-orange-100'
+                                                : esCompletadoPaso
+                                                ? 'bg-green-500 text-white'
+                                                : 'bg-slate-200 text-slate-500'
+                                        }`}>
+                                            {esCompletadoPaso && !esActual ? (
+                                                <CheckCircle className="w-4 h-4" />
+                                            ) : (
+                                                idx + 1
+                                            )}
+                                        </div>
+                                        <span className={`text-[10px] mt-1 text-center leading-tight ${
+                                            esActual ? 'font-bold text-orange-600' : esCompletadoPaso ? 'text-green-600' : 'text-slate-400'
+                                        }`}>
+                                            <span className="hidden sm:inline">{paso.label}</span>
+                                            <span className="sm:hidden">{paso.short}</span>
+                                        </span>
+                                    </div>
+                                    {idx < pasos.length - 1 && (
+                                        <div className={`h-0.5 flex-1 -mt-4 mx-1 ${
+                                            idx < pasoActualIndex ? 'bg-green-400' : 'bg-slate-200'
+                                        }`} />
+                                    )}
+                                </div>
+                            )
+                        })}
+                    </div>
+                </div>
+            )}
+
+            {/* ESTADO CANCELADO */}
+            {esCancelado && (
+                <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6 flex items-center gap-3">
+                    <XCircle className="w-5 h-5 text-red-500 shrink-0" />
+                    <p className="text-red-700 font-medium">Esta orden fue cancelada</p>
+                </div>
+            )}
+
             {/* CONTENIDO */}
-            <div className="container mx-auto px-6 py-6">
+            <div>
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
                     {/* COLUMNA PRINCIPAL */}
@@ -976,15 +1317,17 @@ export default function OrdenDetallePage() {
                                         </span>
                                     </div>
                                 </div>
-                                <div className="flex items-start gap-3">
-                                    <FileText className="w-5 h-5 text-slate-400 mt-0.5" />
-                                    <div>
-                                        <p className="text-sm text-slate-500">Alquiler</p>
-                                        <p className="font-medium text-slate-900">
-                                            #{orden.alquiler_id}
-                                        </p>
+                                {orden.alquiler_id && (
+                                    <div className="flex items-start gap-3">
+                                        <FileText className="w-5 h-5 text-slate-400 mt-0.5" />
+                                        <div>
+                                            <p className="text-sm text-slate-500">Alquiler</p>
+                                            <p className="font-medium text-slate-900">
+                                                #{orden.alquiler_id}
+                                            </p>
+                                        </div>
                                     </div>
-                                </div>
+                                )}
                             </div>
                             {orden.notas && (
                                 <div className="mt-4 pt-4 border-t border-slate-100">
@@ -995,35 +1338,37 @@ export default function OrdenDetallePage() {
                         </div>
 
                         {/* INFO DEL CLIENTE */}
-                        <div className="bg-white rounded-xl border border-slate-200 p-6">
-                            <h2 className="text-lg font-semibold text-slate-900 mb-4">
-                                Información del Cliente
-                            </h2>
-                            <div className="flex items-center gap-4">
-                                <div className="p-3 bg-slate-100 rounded-full">
-                                    <User className="w-6 h-6 text-slate-600" />
-                                </div>
-                                <div className="flex-1">
-                                    <p className="font-semibold text-slate-900">
-                                        {orden.cliente_nombre || 'Sin cliente'}
-                                    </p>
-                                    <div className="flex items-center gap-4 mt-1 text-sm text-slate-600">
-                                        {orden.cliente_telefono && (
-                                            <span className="flex items-center gap-1">
-                                                <Phone className="w-4 h-4" />
-                                                {orden.cliente_telefono}
-                                            </span>
-                                        )}
-                                        {orden.cliente_email && (
-                                            <span className="flex items-center gap-1">
-                                                <Mail className="w-4 h-4" />
-                                                {orden.cliente_email}
-                                            </span>
-                                        )}
+                        {orden.cliente_nombre && (
+                            <div className="bg-white rounded-xl border border-slate-200 p-6">
+                                <h2 className="text-lg font-semibold text-slate-900 mb-4">
+                                    Cliente
+                                </h2>
+                                <div className="flex items-center gap-4">
+                                    <div className="p-3 bg-slate-100 rounded-full">
+                                        <User className="w-6 h-6 text-slate-600" />
+                                    </div>
+                                    <div className="flex-1">
+                                        <p className="font-semibold text-slate-900">
+                                            {orden.cliente_nombre}
+                                        </p>
+                                        <div className="flex items-center gap-4 mt-1 text-sm text-slate-600">
+                                            {orden.cliente_telefono && (
+                                                <span className="flex items-center gap-1">
+                                                    <Phone className="w-4 h-4" />
+                                                    {orden.cliente_telefono}
+                                                </span>
+                                            )}
+                                            {orden.cliente_email && (
+                                                <span className="flex items-center gap-1">
+                                                    <Mail className="w-4 h-4" />
+                                                    {orden.cliente_email}
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
+                        )}
 
                         {/* ELEMENTOS DE LA ORDEN */}
                         <div className="bg-white rounded-xl border border-slate-200">
@@ -1066,34 +1411,50 @@ export default function OrdenDetallePage() {
                                                     </tr>
                                                 </thead>
                                                 <tbody className="divide-y divide-slate-100">
-                                                    {elementos.map((elem) => (
-                                                        <tr key={elem.id} className="hover:bg-slate-50">
-                                                            <td className="px-4 py-3">
-                                                                <p className="font-medium text-slate-900">
-                                                                    {elem.elemento_nombre || elem.nombre}
-                                                                </p>
-                                                                {elem.serie_numero && (
-                                                                    <p className="text-sm text-slate-500">
-                                                                        Serie: {elem.serie_numero}
+                                                    {elementos.map((elem) => {
+                                                        const sinInventario = !elem.serie_id && !elem.lote_id
+                                                        return (
+                                                            <tr key={elem.id} className={sinInventario ? 'bg-amber-50/50' : 'hover:bg-slate-50'}>
+                                                                <td className="px-4 py-3">
+                                                                    <p className="font-medium text-slate-900">
+                                                                        {elem.elemento_nombre || elem.nombre}
                                                                     </p>
-                                                                )}
-                                                            </td>
-                                                            <td className="px-4 py-3 text-center">
-                                                                {elem.cantidad || 1}
-                                                            </td>
-                                                            <td className="px-4 py-3 text-center">
-                                                                <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${
-                                                                    elem.estado === 'completado'
-                                                                        ? 'bg-green-100 text-green-700'
-                                                                        : elem.estado === 'con_problema'
-                                                                        ? 'bg-red-100 text-red-700'
-                                                                        : 'bg-yellow-100 text-yellow-700'
-                                                                }`}>
-                                                                    {elem.estado || 'pendiente'}
-                                                                </span>
-                                                            </td>
-                                                        </tr>
-                                                    ))}
+                                                                    {elem.numero_serie && (
+                                                                        <p className="text-sm text-slate-500">
+                                                                            Serie: {elem.numero_serie}
+                                                                        </p>
+                                                                    )}
+                                                                    {elem.lote_numero && (
+                                                                        <p className="text-sm text-slate-500">
+                                                                            Lote: {elem.lote_numero}
+                                                                        </p>
+                                                                    )}
+                                                                    {sinInventario && !esCompletado && !esCancelado && (
+                                                                        <p className="text-xs text-amber-600 font-medium mt-0.5 flex items-center gap-1">
+                                                                            <AlertTriangle className="w-3 h-3" />
+                                                                            Sin inventario asignado
+                                                                        </p>
+                                                                    )}
+                                                                </td>
+                                                                <td className="px-4 py-3 text-center">
+                                                                    {elem.cantidad || 1}
+                                                                </td>
+                                                                <td className="px-4 py-3 text-center">
+                                                                    <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${
+                                                                        elem.estado === 'completado' || elem.estado === 'retornado'
+                                                                            ? 'bg-green-100 text-green-700'
+                                                                            : elem.estado === 'con_problema' || elem.estado === 'incidencia'
+                                                                            ? 'bg-red-100 text-red-700'
+                                                                            : elem.estado === 'preparado' || elem.estado === 'cargado' || elem.estado === 'instalado'
+                                                                            ? 'bg-blue-100 text-blue-700'
+                                                                            : 'bg-yellow-100 text-yellow-700'
+                                                                    }`}>
+                                                                        {elem.estado || 'pendiente'}
+                                                                    </span>
+                                                                </td>
+                                                            </tr>
+                                                        )
+                                                    })}
                                                 </tbody>
                                             </table>
                                         </div>
@@ -1101,6 +1462,28 @@ export default function OrdenDetallePage() {
                                         <p className="text-slate-500 text-center py-4">
                                             No hay elementos asignados a esta orden
                                         </p>
+                                    )}
+
+                                    {/* Botón asignar inventario si hay elementos pendientes */}
+                                    {hayElementosSinInventario && canManage && !esCompletado && !esCancelado && (
+                                        <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                                            <div className="flex items-center justify-between gap-3">
+                                                <div className="flex items-center gap-2">
+                                                    <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
+                                                    <p className="text-sm text-amber-700">
+                                                        <span className="font-medium">{elementosPendientesInv.length} elemento(s)</span> sin inventario del almacen
+                                                    </p>
+                                                </div>
+                                                <Button
+                                                    color="orange"
+                                                    icon={Box}
+                                                    size="sm"
+                                                    onClick={() => setShowModalInventario(true)}
+                                                >
+                                                    Asignar Inventario
+                                                </Button>
+                                            </div>
+                                        </div>
                                     )}
                                 </div>
                             )}
@@ -1110,21 +1493,46 @@ export default function OrdenDetallePage() {
                     {/* COLUMNA LATERAL */}
                     <div className="space-y-6">
 
-                        {/* ACCIONES DE ESTADO */}
-                        {canManage && orden.estado !== 'completado' && orden.estado !== 'cancelado' && (
-                            <div className="bg-white rounded-xl border border-slate-200 p-6">
-                                <h3 className="text-lg font-semibold text-slate-900 mb-4">
-                                    Acciones
-                                </h3>
-                                <div className="space-y-3">
-                                    {/* Flujo: pendiente -> confirmado -> en_preparacion -> en_ruta -> en_sitio -> en_proceso -> completado */}
+                        {/* SIGUIENTE PASO + ACCIONES */}
+                        {canManage && !esCompletado && !esCancelado && (
+                            <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                                {/* Descripción del estado actual */}
+                                <div className="px-6 py-4 bg-slate-50 border-b border-slate-200">
+                                    <p className="text-sm text-slate-600">
+                                        {getDescripcionEstado()}
+                                    </p>
+                                </div>
+
+                                <div className="p-6 space-y-3">
+                                    {/* Advertencia sin responsable */}
+                                    {!tieneResponsable && ['pendiente', 'confirmado'].includes(orden.estado) && (
+                                        <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                                            <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
+                                            <div>
+                                                <p className="text-sm text-amber-700 font-medium">Sin responsable</p>
+                                                <button
+                                                    onClick={() => setShowModalResponsable(true)}
+                                                    className="text-xs text-amber-600 hover:text-amber-700 underline"
+                                                >
+                                                    Asignar ahora
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* === ACCIÓN PRINCIPAL por estado === */}
 
                                     {orden.estado === 'pendiente' && (
                                         <Button
                                             color="blue"
                                             icon={CheckCircle}
                                             className="w-full"
-                                            onClick={() => handleCambiarEstado('confirmado')}
+                                            onClick={() => {
+                                                if (!tieneResponsable) {
+                                                    if (!confirm('No hay responsable asignado. ¿Deseas confirmar la orden de todas formas?')) return
+                                                }
+                                                handleCambiarEstado('confirmado')
+                                            }}
                                             disabled={cambiarEstado.isPending}
                                         >
                                             Confirmar Orden
@@ -1145,19 +1553,46 @@ export default function OrdenDetallePage() {
 
                                     {orden.estado === 'en_preparacion' && orden.tipo === 'montaje' && (
                                         <>
-                                            <Button
-                                                color="green"
-                                                icon={LogOut}
-                                                className="w-full"
-                                                onClick={handleEjecutarSalida}
-                                                disabled={ejecutandoSalida || !elementos?.length}
-                                            >
-                                                {ejecutandoSalida ? 'Ejecutando...' : 'Ejecutar Salida'}
-                                            </Button>
-                                            {!elementos?.length && (
-                                                <p className="text-xs text-amber-600 text-center">
-                                                    No hay elementos asignados
-                                                </p>
+                                            {hayElementosSinInventario ? (
+                                                <div className="space-y-2">
+                                                    <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                                                        <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
+                                                        <div>
+                                                            <p className="text-sm text-amber-700 font-medium">
+                                                                No se puede despachar
+                                                            </p>
+                                                            <p className="text-xs text-amber-600 mt-0.5">
+                                                                {elementosPendientesInv.length} elemento(s) sin inventario asignado del almacen
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    <Button
+                                                        color="orange"
+                                                        icon={Box}
+                                                        className="w-full"
+                                                        onClick={() => setShowModalInventario(true)}
+                                                    >
+                                                        Asignar Inventario
+                                                    </Button>
+                                                </div>
+                                            ) : (
+                                                <Button
+                                                    color="green"
+                                                    icon={LogOut}
+                                                    className="w-full"
+                                                    onClick={handleEjecutarSalida}
+                                                    disabled={ejecutandoSalida || !elementos?.length}
+                                                >
+                                                    {ejecutandoSalida ? 'Ejecutando...' : 'Ejecutar Salida'}
+                                                </Button>
+                                            )}
+                                            {!elementos?.length && !hayElementosSinInventario && (
+                                                <div className="flex items-center gap-2 p-2 bg-amber-50 border border-amber-200 rounded-lg">
+                                                    <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
+                                                    <p className="text-xs text-amber-700">
+                                                        Asigna elementos antes de ejecutar la salida
+                                                    </p>
+                                                </div>
                                             )}
                                         </>
                                     )}
@@ -1186,7 +1621,7 @@ export default function OrdenDetallePage() {
                                         </Button>
                                     )}
 
-                                    {orden.estado === 'en_sitio' && (
+                                    {orden.estado === 'en_sitio' && orden.tipo === 'montaje' && (
                                         <Button
                                             color="blue"
                                             icon={Play}
@@ -1194,24 +1629,11 @@ export default function OrdenDetallePage() {
                                             onClick={() => handleCambiarEstado('en_proceso')}
                                             disabled={cambiarEstado.isPending}
                                         >
-                                            Iniciar Trabajo
+                                            Iniciar Montaje
                                         </Button>
                                     )}
 
-                                    {orden.estado === 'en_proceso' && orden.tipo === 'montaje' && (
-                                        <Button
-                                            color="green"
-                                            icon={CheckCircle}
-                                            className="w-full"
-                                            onClick={() => handleCambiarEstado('completado')}
-                                            disabled={cambiarEstado.isPending}
-                                        >
-                                            Marcar Completado
-                                        </Button>
-                                    )}
-
-                                    {/* Para desmontaje en_sitio o en_proceso: Registrar Retorno */}
-                                    {orden.tipo === 'desmontaje' && ['en_sitio', 'en_proceso'].includes(orden.estado) && (
+                                    {orden.estado === 'en_sitio' && orden.tipo === 'desmontaje' && (
                                         <Button
                                             color="orange"
                                             icon={RotateCcw}
@@ -1222,121 +1644,110 @@ export default function OrdenDetallePage() {
                                         </Button>
                                     )}
 
-                                    {/* Botón cancelar siempre disponible excepto en completado/cancelado */}
-                                    <Button
-                                        color="red"
-                                        icon={XCircle}
-                                        variant="outline"
-                                        className="w-full"
-                                        onClick={() => handleCambiarEstado('cancelado')}
-                                        disabled={cambiarEstado.isPending}
-                                    >
-                                        Cancelar Orden
-                                    </Button>
+                                    {orden.estado === 'en_proceso' && orden.tipo === 'montaje' && (
+                                        <Button
+                                            color="green"
+                                            icon={CheckCircle}
+                                            className="w-full"
+                                            onClick={() => {
+                                                if (!confirm('¿Marcar esta orden como completada?')) return
+                                                handleCambiarEstado('completado')
+                                            }}
+                                            disabled={cambiarEstado.isPending}
+                                        >
+                                            Marcar Completado
+                                        </Button>
+                                    )}
+
+                                    {orden.estado === 'en_proceso' && orden.tipo === 'desmontaje' && (
+                                        <Button
+                                            color="orange"
+                                            icon={RotateCcw}
+                                            className="w-full"
+                                            onClick={() => setShowModalRetorno(true)}
+                                        >
+                                            Registrar Retorno
+                                        </Button>
+                                    )}
+
+                                    {/* Separador antes de cancelar */}
+                                    <div className="border-t border-slate-200 pt-3">
+                                        <Button
+                                            color="red"
+                                            icon={XCircle}
+                                            variant="outline"
+                                            className="w-full"
+                                            onClick={() => {
+                                                if (!confirm('¿Estás seguro de cancelar esta orden? Esta acción no se puede deshacer.')) return
+                                                handleCambiarEstado('cancelado')
+                                            }}
+                                            disabled={cambiarEstado.isPending}
+                                        >
+                                            Cancelar Orden
+                                        </Button>
+                                    </div>
                                 </div>
                             </div>
                         )}
 
-                        {/* EQUIPO ASIGNADO */}
-                        <div className="bg-white rounded-xl border border-slate-200 p-6">
-                            <div className="flex items-center justify-between mb-4">
-                                <h3 className="text-lg font-semibold text-slate-900">
-                                    Equipo de Trabajo
-                                </h3>
-                                {canManage && (
-                                    <button
-                                        onClick={() => setShowModalEquipo(true)}
-                                        className="text-sm text-orange-600 hover:text-orange-700 font-medium"
-                                    >
-                                        {orden.equipo?.length > 0 ? 'Editar' : 'Asignar'}
-                                    </button>
-                                )}
+                        {/* ESTADO COMPLETADO */}
+                        {esCompletado && (
+                            <div className="bg-green-50 border border-green-200 rounded-xl p-6 text-center">
+                                <CheckCircle className="w-10 h-10 text-green-500 mx-auto mb-2" />
+                                <p className="font-semibold text-green-800">Orden Completada</p>
+                                <p className="text-sm text-green-600 mt-1">
+                                    Esta orden fue completada exitosamente
+                                </p>
                             </div>
-                            {orden.equipo?.length > 0 ? (
-                                <div className="space-y-3">
-                                    {orden.equipo.map((miembro, index) => (
-                                        <div
-                                            key={index}
-                                            className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg"
-                                        >
-                                            <div className="p-2 bg-white rounded-full">
-                                                <User className="w-4 h-4 text-slate-600" />
-                                            </div>
-                                            <div>
-                                                <p className="font-medium text-slate-900 text-sm">
-                                                    {miembro.nombre}
-                                                </p>
-                                                <p className="text-xs text-slate-500">
-                                                    {miembro.rol}
-                                                </p>
-                                            </div>
-                                            {miembro.es_responsable && (
-                                                <span className="ml-auto px-2 py-0.5 bg-orange-100 text-orange-700 text-xs rounded">
-                                                    Responsable
-                                                </span>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="text-center py-6">
-                                    <Users className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                                    <p className="text-slate-500 text-sm">
-                                        Sin equipo asignado
-                                    </p>
-                                    {canManage && (
-                                        <button
-                                            onClick={() => setShowModalEquipo(true)}
-                                            className="mt-2 text-sm text-orange-600 hover:text-orange-700 font-medium"
-                                        >
-                                            Asignar equipo
-                                        </button>
-                                    )}
-                                </div>
-                            )}
-                        </div>
+                        )}
 
-                        {/* VEHÍCULO ASIGNADO */}
+                        {/* RESPONSABLE ASIGNADO */}
                         <div className="bg-white rounded-xl border border-slate-200 p-6">
                             <div className="flex items-center justify-between mb-4">
                                 <h3 className="text-lg font-semibold text-slate-900">
-                                    Vehículo
+                                    Responsable
                                 </h3>
-                                {canManage && (
+                                {canManage && !esCompletado && !esCancelado && (
                                     <button
-                                        onClick={() => setShowModalVehiculo(true)}
+                                        onClick={() => setShowModalResponsable(true)}
                                         className="text-sm text-orange-600 hover:text-orange-700 font-medium"
                                     >
-                                        {orden.vehiculo_placa ? 'Cambiar' : 'Asignar'}
+                                        {tieneResponsable ? 'Cambiar' : 'Asignar'}
                                     </button>
                                 )}
                             </div>
-                            {orden.vehiculo_placa ? (
+                            {tieneResponsable ? (
                                 <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
                                     <div className="p-2 bg-white rounded-full">
-                                        <Car className="w-5 h-5 text-slate-600" />
+                                        <User className="w-5 h-5 text-slate-600" />
                                     </div>
                                     <div>
                                         <p className="font-medium text-slate-900">
-                                            {orden.vehiculo_placa}
+                                            {orden.equipo[0].nombre} {orden.equipo[0].apellido || ''}
                                         </p>
                                         <p className="text-sm text-slate-500">
-                                            {orden.vehiculo_tipo || 'Vehículo'}
+                                            {orden.equipo[0].rol_empleado || orden.equipo[0].cargo || 'Empleado'}
                                         </p>
+                                        {orden.equipo[0].telefono && (
+                                            <p className="text-sm text-slate-500 flex items-center gap-1 mt-1">
+                                                <Phone className="w-3.5 h-3.5" />
+                                                {orden.equipo[0].telefono}
+                                            </p>
+                                        )}
                                     </div>
                                 </div>
                             ) : (
                                 <div className="text-center py-6">
-                                    <Car className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                                    <User className="w-8 h-8 text-slate-300 mx-auto mb-2" />
                                     <p className="text-slate-500 text-sm">
-                                        Sin vehículo asignado
+                                        Sin responsable asignado
                                     </p>
-                                    {canManage && (
+                                    {canManage && !esCompletado && !esCancelado && (
                                         <button
-                                            onClick={() => setShowModalVehiculo(true)}
+                                            onClick={() => setShowModalResponsable(true)}
                                             className="mt-2 text-sm text-orange-600 hover:text-orange-700 font-medium"
                                         >
-                                            Asignar vehículo
+                                            Asignar responsable
                                         </button>
                                     )}
                                 </div>
@@ -1347,18 +1758,11 @@ export default function OrdenDetallePage() {
             </div>
 
             {/* MODALES */}
-            {showModalEquipo && (
-                <ModalAsignarEquipo
+            {showModalResponsable && (
+                <ModalAsignarResponsable
                     orden={orden}
-                    onClose={() => setShowModalEquipo(false)}
-                    onSave={handleAsignarEquipo}
-                />
-            )}
-            {showModalVehiculo && (
-                <ModalAsignarVehiculo
-                    orden={orden}
-                    onClose={() => setShowModalVehiculo(false)}
-                    onSave={handleAsignarVehiculo}
+                    onClose={() => setShowModalResponsable(false)}
+                    onSave={handleAsignarResponsable}
                 />
             )}
             {showModalEditar && (
@@ -1374,6 +1778,14 @@ export default function OrdenDetallePage() {
                     elementos={elementos}
                     onClose={() => setShowModalRetorno(false)}
                     onSave={handleEjecutarRetorno}
+                />
+            )}
+            {showModalInventario && (
+                <ModalAsignarInventario
+                    ordenId={orden.id}
+                    elementosPendientes={elementosPendientesInv}
+                    onClose={() => setShowModalInventario(false)}
+                    onSave={handleAsignarInventario}
                 />
             )}
         </div>

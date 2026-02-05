@@ -623,6 +623,38 @@ const resolverAlerta = async (req, res, next) => {
     }
 };
 
+/**
+ * POST /api/operaciones/alertas
+ * Crear alerta manual (ej: insuficiencia de inventario)
+ */
+const crearAlerta = async (req, res, next) => {
+    try {
+        const { orden_id, tipo, severidad, titulo, mensaje } = req.body;
+
+        if (!tipo || !titulo || !mensaje) {
+            throw new AppError('Se requiere tipo, titulo y mensaje', 400);
+        }
+
+        const alerta = await AlertaModel.crear({
+            orden_id: orden_id || null,
+            tipo,
+            severidad: severidad || 'alta',
+            titulo,
+            mensaje
+        });
+
+        logger.info('operaciones', `Alerta creada: "${titulo}" por ${req.usuario.email}`);
+
+        res.status(201).json({
+            success: true,
+            message: 'Alerta creada correctamente',
+            data: alerta
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 // ============================================
 // VALIDACIÓN
 // ============================================
@@ -833,6 +865,18 @@ const ejecutarRetorno = async (req, res, next) => {
 
         logger.info('operaciones', `Retorno ejecutado - Orden ${id} por ${req.usuario.email}`);
 
+        // Verificar si el retorno de inventario resuelve alertas de disponibilidad pendientes
+        // Se ejecuta en background para no retrasar la respuesta al operador
+        SincronizacionAlquilerService.verificarAlertasDisponibilidad()
+            .then(verificacion => {
+                if (verificacion.resueltas > 0) {
+                    logger.info('operaciones', `Post-retorno: ${verificacion.resueltas} alerta(s) de disponibilidad resueltas`);
+                }
+            })
+            .catch(err => {
+                logger.error('operaciones', `Error en verificación post-retorno: ${err.message}`);
+            });
+
         res.json({
             success: true,
             message: resultado.mensaje,
@@ -883,6 +927,24 @@ const verificarConsistencia = async (req, res, next) => {
     }
 };
 
+/**
+ * GET /api/operaciones/ordenes/:id/alertas
+ * Obtener alertas asociadas a una orden de trabajo
+ */
+const getAlertasPorOrden = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const alertas = await AlertaModel.obtenerPorOrden(parseInt(id));
+
+        res.json({
+            success: true,
+            data: alertas
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 module.exports = {
     // Órdenes
     getOrdenes,
@@ -908,7 +970,9 @@ module.exports = {
     getAlertas,
     getAlertasPendientes,
     getResumenAlertas,
+    getAlertasPorOrden,
     resolverAlerta,
+    crearAlerta,
 
     // Validación
     validarCambioFecha,

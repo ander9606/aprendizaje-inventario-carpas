@@ -497,7 +497,7 @@ El modulo de Operaciones ya tiene una implementacion sustancial:
 
 | Archivo | Lineas | Funcion |
 |---------|--------|---------|
-| `ordenTrabajoController.js` | 926 | CRUD ordenes, cambio estado, asignar equipo/vehiculo |
+| `ordenTrabajoController.js` | 926 | CRUD ordenes, cambio estado, asignar responsable |
 | `OrdenTrabajoModel.js` | 795 | Queries SQL para ordenes de trabajo |
 | `OrdenElementoModel.js` | 371 | Gestion de elementos dentro de ordenes |
 | `AlertaModel.js` | 375 | Sistema de alertas operacionales |
@@ -509,10 +509,10 @@ El modulo de Operaciones ya tiene una implementacion sustancial:
 
 | Archivo | Funcion |
 |---------|---------|
-| `OperacionesDashboard.jsx` | Dashboard con ordenes del dia, estadisticas, alertas |
+| `OperacionesDashboard.jsx` | Dashboard con tarjetas de evento (hoy + semana), alertas |
 | `OrdenesTrabajoPage.jsx` | Listado con filtros (estado, tipo, fecha, busqueda) |
-| `OrdenDetallePage.jsx` | Detalle de orden (preparacion, salida, retorno) |
-| `CalendarioOperaciones.jsx` | Calendario mensual de operaciones |
+| `OrdenDetallePage.jsx` | Detalle de orden (responsable, preparacion, salida, retorno) |
+| `CalendarioOperaciones.jsx` | Calendario con vistas dia/semana/mes |
 | `AlertasPage.jsx` | Panel de alertas con filtros y resolucion |
 | `apiOperaciones.js` | Cliente API completo (ordenes, elementos, alertas, validacion) |
 | `useOrdenesTrabajo.js` | 20 hooks (queries + mutations) |
@@ -527,8 +527,7 @@ GET    /api/operaciones/ordenes/:id/completa         # Con cotizacion
 PUT    /api/operaciones/ordenes/:id                  # Actualizar (notas, prioridad)
 PUT    /api/operaciones/ordenes/:id/estado           # Cambiar estado
 PUT    /api/operaciones/ordenes/:id/fecha            # Cambiar fecha (con validacion)
-PUT    /api/operaciones/ordenes/:id/equipo           # Asignar empleados
-PUT    /api/operaciones/ordenes/:id/vehiculo         # Asignar vehiculo
+PUT    /api/operaciones/ordenes/:id/equipo           # Asignar responsable (1 empleado)
 POST   /api/operaciones/ordenes                      # Crear orden manual
 
 # ELEMENTOS DE ORDEN
@@ -594,7 +593,7 @@ pendiente → preparado → cargado → instalado → desmontado → retornado
 ```
 1. Cotizacion aprobada → Se crea alquiler + ordenes (montaje + desmontaje)
 2. Orden montaje: pendiente
-3. Asignar equipo (empleados) y vehiculo
+3. Asignar responsable (1 empleado encargado)
 4. Estado: en_preparacion
 5. Preparar elementos (asignar series/lotes fisicos)
 6. Ejecutar salida:
@@ -643,7 +642,7 @@ pendiente → preparado → cargado → instalado → desmontado → retornado
 │  (Operativo)                                  │
 │                                               │
 │  Ordenes de Trabajo                           │
-│    ├── Asignar equipo/vehiculo                │
+│    ├── Asignar responsable                    │
 │    ├── Preparar elementos (series/lotes)      │
 │    ├── Ejecutar salida → Alquiler ACTIVO      │
 │    └── Ejecutar retorno → Alquiler FINALIZADO │
@@ -997,9 +996,10 @@ ordenes_trabajo (
   vehiculo_id, notas, created_at, updated_at
 )
 
--- Equipo asignado a cada orden
-orden_equipo (
-  id, orden_id, empleado_id, rol
+-- Responsable asignado a cada orden (usa tabla equipo con 1 registro)
+orden_trabajo_equipo (
+  id, orden_id, empleado_id, rol_en_orden
+  -- NOTA: Simplificado a 1 responsable por orden (rol_en_orden = 'responsable')
 )
 
 -- Elementos fisicos asignados a cada orden

@@ -109,22 +109,12 @@ const ordenesAPI = {
     },
 
     /**
-     * Asignar equipo a orden
+     * Asignar responsable a orden
      * @param {number} id
-     * @param {Object} datos - { empleados: [id1, id2, ...], responsable_id }
+     * @param {Object} datos - { empleados: [{empleado_id, rol_en_orden}] }
      */
     asignarEquipo: async (id, datos) => {
         const response = await api.put(`/operaciones/ordenes/${id}/equipo`, datos)
-        return response.data
-    },
-
-    /**
-     * Asignar vehículo a orden
-     * @param {number} id
-     * @param {Object} datos - { vehiculo_id }
-     */
-    asignarVehiculo: async (id, datos) => {
-        const response = await api.put(`/operaciones/ordenes/${id}/vehiculo`, datos)
         return response.data
     },
 
@@ -188,6 +178,16 @@ const ordenesAPI = {
      */
     ejecutarRetorno: async (id, retornos) => {
         const response = await api.post(`/operaciones/ordenes/${id}/ejecutar-retorno`, { retornos })
+        return response.data
+    },
+
+    /**
+     * Obtener alertas de una orden específica
+     * @param {number} id - ID de la orden
+     * @returns {Array} - Alertas asociadas a la orden
+     */
+    obtenerAlertasPorOrden: async (id) => {
+        const response = await api.get(`/operaciones/ordenes/${id}/alertas`)
         return response.data
     }
 }
@@ -302,6 +302,15 @@ const alertasAPI = {
      */
     resolver: async (id, datos = {}) => {
         const response = await api.put(`/operaciones/alertas/${id}/resolver`, datos)
+        return response.data
+    },
+
+    /**
+     * Crear alerta manual (ej: insuficiencia de inventario)
+     * @param {Object} datos - { orden_id, tipo, severidad, titulo, mensaje }
+     */
+    crear: async (datos) => {
+        const response = await api.post('/operaciones/alertas', datos)
         return response.data
     }
 }

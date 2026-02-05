@@ -6,7 +6,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import operacionesAPI from '../api/apiOperaciones'
 
-const { ordenes: ordenesAPI, elementos: elementosAPI, validacion: validacionAPI } = operacionesAPI
+const { ordenes: ordenesAPI, elementos: elementosAPI, validacion: validacionAPI, alertas: alertasOperacionesAPI } = operacionesAPI
 
 // ============================================
 // HOOK: useGetOrdenes
@@ -196,25 +196,6 @@ export const useAsignarEquipo = () => {
 }
 
 // ============================================
-// HOOK: useAsignarVehiculo
-// Asigna vehículo a una orden
-// ============================================
-
-export const useAsignarVehiculo = () => {
-    const queryClient = useQueryClient()
-
-    return useMutation({
-        mutationFn: ({ id, data }) => ordenesAPI.asignarVehiculo(id, data),
-        retry: 0,
-        onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({ queryKey: ['ordenes'] })
-            queryClient.invalidateQueries({ queryKey: ['ordenes', variables.id] })
-            queryClient.invalidateQueries({ queryKey: ['vehiculos'] })
-        }
-    })
-}
-
-// ============================================
 // HOOK: useValidarCambioFecha
 // Valida un cambio de fecha antes de aplicarlo
 // ============================================
@@ -384,6 +365,49 @@ export const useEjecutarRetorno = () => {
             queryClient.invalidateQueries({ queryKey: ['ordenes', variables.ordenId] })
             queryClient.invalidateQueries({ queryKey: ['alquileres'] })
             queryClient.invalidateQueries({ queryKey: ['alquiler'] })
+            // El retorno puede resolver alertas de disponibilidad → refrescar alertas
+            queryClient.invalidateQueries({ queryKey: ['alertas'] })
+            queryClient.invalidateQueries({ queryKey: ['alertas-operaciones'] })
+        }
+    })
+}
+
+/**
+ * Hook: useGetAlertasOrden
+ * Obtiene alertas asociadas a una orden de trabajo
+ */
+export const useGetAlertasOrden = (ordenId) => {
+    const { data, isLoading, error, refetch } = useQuery({
+        queryKey: ['ordenes', ordenId, 'alertas'],
+        queryFn: () => ordenesAPI.obtenerAlertasPorOrden(ordenId),
+        enabled: !!ordenId
+    })
+
+    return {
+        alertas: data?.data || [],
+        isLoading,
+        error,
+        refetch
+    }
+}
+
+/**
+ * Hook: useCrearAlertaOperaciones
+ * Crea una alerta de operaciones (ej: insuficiencia de inventario)
+ */
+export const useCrearAlertaOperaciones = () => {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: (datos) => alertasOperacionesAPI.crear(datos),
+        retry: 0,
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({ queryKey: ['alertas-operaciones'] })
+            queryClient.invalidateQueries({ queryKey: ['alertas'] })
+            // Invalidar alertas de la orden si se especificó orden_id
+            if (variables?.orden_id) {
+                queryClient.invalidateQueries({ queryKey: ['ordenes', variables.orden_id, 'alertas'] })
+            }
         }
     })
 }

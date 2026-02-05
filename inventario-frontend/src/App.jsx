@@ -33,6 +33,7 @@ import ConfiguracionAlquileresPage from './pages/ConfiguracionAlquileresPage'
 import AlquileresPage from './pages/AlquileresPage'
 import AlquilerDetallePage from './pages/AlquilerDetallePage'
 import AlquileresLayout from './components/layouts/AlquileresLayout'
+import OperacionesLayout from './components/layouts/OperacionesLayout'
 import ReportesAlquileresPage from './pages/ReportesAlquileresPage'
 import TransportePage from './pages/TransportePage'
 
@@ -167,14 +168,16 @@ function App() {
                 <Route path="/configuracion/ubicaciones" element={<UbicacionesPage />} />
 
                 {/* ============================================
-                    OPERACIONES
+                    OPERACIONES (con sidebar)
                     ============================================ */}
 
-                <Route path="/operaciones" element={<OperacionesDashboard />} />
-                <Route path="/operaciones/ordenes" element={<OrdenesTrabajoPage />} />
-                <Route path="/operaciones/ordenes/:id" element={<OrdenDetallePage />} />
-                <Route path="/operaciones/calendario" element={<CalendarioOperaciones />} />
-                <Route path="/operaciones/alertas" element={<AlertasPage />} />
+                <Route path="/operaciones" element={<OperacionesLayout />}>
+                  <Route index element={<OperacionesDashboard />} />
+                  <Route path="ordenes" element={<OrdenesTrabajoPage />} />
+                  <Route path="ordenes/:id" element={<OrdenDetallePage />} />
+                  <Route path="calendario" element={<CalendarioOperaciones />} />
+                  <Route path="alertas" element={<AlertasPage />} />
+                </Route>
 
             </Route>
 

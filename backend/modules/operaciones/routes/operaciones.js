@@ -163,6 +163,13 @@ router.post(
     ordenTrabajoController.ejecutarRetorno
 );
 
+// Alertas de una orden específica
+router.get(
+    '/ordenes/:id/alertas',
+    verificarRol(['admin', 'gerente', 'operaciones']),
+    ordenTrabajoController.getAlertasPorOrden
+);
+
 // ============================================
 // RUTAS DE ELEMENTOS DE ÓRDENES
 // ============================================
@@ -211,6 +218,12 @@ router.get(
     '/alertas',
     verificarRol(['admin', 'gerente', 'operaciones']),
     ordenTrabajoController.getAlertas
+);
+
+router.post(
+    '/alertas',
+    verificarRol(['admin', 'gerente', 'operaciones']),
+    ordenTrabajoController.crearAlerta
 );
 
 router.put(

@@ -45,7 +45,6 @@ export {
     useCambiarFechaOrden,
     useCambiarEstadoOrden,
     useAsignarEquipo,
-    useAsignarVehiculo,
     useValidarCambioFecha,
     useGetElementosOrden,
     useCambiarEstadoElemento,
