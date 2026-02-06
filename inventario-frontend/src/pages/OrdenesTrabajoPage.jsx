@@ -22,6 +22,7 @@ import {
     RefreshCw,
     X,
     Save,
+    History,
     Wrench,
     ArrowRightLeft,
     ClipboardCheck,
@@ -135,6 +136,16 @@ const agruparPorEvento = (ordenes) => {
     })
 
     return { eventos, manuales }
+}
+
+// ============================================
+// HELPER: Verificar si evento está finalizado
+// ============================================
+const esEventoFinalizado = (evento) => {
+    const estadosFinal = ['completado', 'cancelado']
+    const montajeOk = !evento.montaje || estadosFinal.includes(evento.montaje.estado)
+    const desmonOk = !evento.desmontaje || estadosFinal.includes(evento.desmontaje.estado)
+    return montajeOk && desmonOk
 }
 
 // ============================================
@@ -597,6 +608,7 @@ export default function OrdenesTrabajoPage() {
     })
     const [showFiltros, setShowFiltros] = useState(false)
     const [showModalNuevaOrden, setShowModalNuevaOrden] = useState(false)
+    const [mostrarFinalizados, setMostrarFinalizados] = useState(false)
 
     const debouncedBusqueda = useDebounce(busqueda, 500)
 
@@ -619,6 +631,22 @@ export default function OrdenesTrabajoPage() {
     // DATOS PROCESADOS
     // ============================================
     const { eventos, manuales } = useMemo(() => agruparPorEvento(ordenes), [ordenes])
+
+    // Separar eventos activos de finalizados
+    const eventosActivos = useMemo(() => eventos.filter(e => !esEventoFinalizado(e)), [eventos])
+    const eventosFinalizados = useMemo(() => eventos.filter(e => esEventoFinalizado(e)), [eventos])
+
+    // Separar manuales activos de finalizados
+    const manualesActivos = useMemo(() =>
+        manuales.filter(o => !['completado', 'cancelado'].includes(o.estado)),
+        [manuales]
+    )
+    const manualesFinalizados = useMemo(() =>
+        manuales.filter(o => ['completado', 'cancelado'].includes(o.estado)),
+        [manuales]
+    )
+
+    const totalFinalizados = eventosFinalizados.length + manualesFinalizados.length
 
     // ============================================
     // HANDLERS
@@ -804,26 +832,29 @@ export default function OrdenesTrabajoPage() {
 
             {/* CONTADOR */}
             <div className="mb-4 text-sm text-slate-500">
-                {eventos.length > 0 && (
-                    <span>{eventos.length} evento{eventos.length !== 1 ? 's' : ''}</span>
+                {eventosActivos.length > 0 && (
+                    <span>{eventosActivos.length} evento{eventosActivos.length !== 1 ? 's' : ''} activo{eventosActivos.length !== 1 ? 's' : ''}</span>
                 )}
-                {eventos.length > 0 && manuales.length > 0 && <span> · </span>}
-                {manuales.length > 0 && (
-                    <span>{manuales.length} orden{manuales.length !== 1 ? 'es' : ''} manual{manuales.length !== 1 ? 'es' : ''}</span>
+                {eventosActivos.length > 0 && manualesActivos.length > 0 && <span> · </span>}
+                {manualesActivos.length > 0 && (
+                    <span>{manualesActivos.length} orden{manualesActivos.length !== 1 ? 'es' : ''} manual{manualesActivos.length !== 1 ? 'es' : ''}</span>
                 )}
-                {eventos.length === 0 && manuales.length === 0 && (
+                {eventosActivos.length === 0 && manualesActivos.length === 0 && totalFinalizados === 0 && (
                     <span>0 órdenes</span>
+                )}
+                {totalFinalizados > 0 && (
+                    <span className="text-green-600"> · {totalFinalizados} finalizado{totalFinalizados !== 1 ? 's' : ''}</span>
                 )}
             </div>
 
-            {/* EVENTOS AGRUPADOS */}
-            {eventos.length > 0 && (
+            {/* EVENTOS AGRUPADOS (ACTIVOS) */}
+            {eventosActivos.length > 0 && (
                 <div className="mb-8">
                     <h2 className="text-sm font-semibold text-slate-700 uppercase tracking-wider mb-3">
-                        Eventos
+                        Eventos Activos
                     </h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {eventos.map((evento, idx) => (
+                        {eventosActivos.map((evento, idx) => (
                             <EventoCard
                                 key={evento.alquiler_id || idx}
                                 evento={evento}
@@ -834,15 +865,15 @@ export default function OrdenesTrabajoPage() {
                 </div>
             )}
 
-            {/* ÓRDENES MANUALES */}
-            {manuales.length > 0 && (
-                <div>
+            {/* ÓRDENES MANUALES (ACTIVAS) */}
+            {manualesActivos.length > 0 && (
+                <div className="mb-8">
                     <h2 className="text-sm font-semibold text-slate-700 uppercase tracking-wider mb-3">
                         Órdenes Manuales
                     </h2>
                     <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
                         <div className="divide-y divide-slate-100">
-                            {manuales.map((orden) => (
+                            {manualesActivos.map((orden) => (
                                 <OrdenManualRow
                                     key={orden.id}
                                     orden={orden}
@@ -854,8 +885,73 @@ export default function OrdenesTrabajoPage() {
                 </div>
             )}
 
+            {/* SECCIÓN FINALIZADOS (COLAPSABLE) */}
+            {totalFinalizados > 0 && (
+                <div className="mb-8 border-t border-slate-200 pt-6">
+                    <button
+                        onClick={() => setMostrarFinalizados(!mostrarFinalizados)}
+                        className="flex items-center gap-2 text-slate-600 hover:text-slate-800 transition-colors mb-4"
+                    >
+                        {mostrarFinalizados ? (
+                            <ChevronDown className="w-4 h-4" />
+                        ) : (
+                            <ChevronRight className="w-4 h-4" />
+                        )}
+                        <History className="w-4 h-4" />
+                        <span className="text-sm font-medium">
+                            Órdenes finalizadas
+                        </span>
+                        <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded-full">
+                            {totalFinalizados}
+                        </span>
+                    </button>
+
+                    {mostrarFinalizados && (
+                        <div className="space-y-6 opacity-75">
+                            {/* Eventos finalizados */}
+                            {eventosFinalizados.length > 0 && (
+                                <div>
+                                    <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-2">
+                                        Eventos completados ({eventosFinalizados.length})
+                                    </p>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        {eventosFinalizados.map((evento, idx) => (
+                                            <EventoCard
+                                                key={evento.alquiler_id || `fin-${idx}`}
+                                                evento={evento}
+                                                navigate={navigate}
+                                            />
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Manuales finalizados */}
+                            {manualesFinalizados.length > 0 && (
+                                <div>
+                                    <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-2">
+                                        Órdenes manuales completadas ({manualesFinalizados.length})
+                                    </p>
+                                    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                                        <div className="divide-y divide-slate-100">
+                                            {manualesFinalizados.map((orden) => (
+                                                <OrdenManualRow
+                                                    key={orden.id}
+                                                    orden={orden}
+                                                    navigate={navigate}
+                                                />
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+            )}
+
             {/* ESTADO VACÍO */}
-            {eventos.length === 0 && manuales.length === 0 && (
+            {eventosActivos.length === 0 && manualesActivos.length === 0 && totalFinalizados === 0 && (
                 <div className="bg-white rounded-xl border border-slate-200 p-12 text-center">
                     <Truck className="w-12 h-12 text-slate-300 mx-auto mb-4" />
                     <h3 className="text-lg font-medium text-slate-900 mb-2">

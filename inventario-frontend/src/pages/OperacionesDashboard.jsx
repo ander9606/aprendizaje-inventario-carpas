@@ -3,7 +3,7 @@
 // Vista principal con tarjetas de evento agrupadas
 // ============================================
 
-import { useMemo } from 'react'
+import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
     Truck,
@@ -18,7 +18,9 @@ import {
     LayoutDashboard,
     User,
     Calendar,
-    ChevronRight
+    ChevronRight,
+    ChevronDown,
+    History
 } from 'lucide-react'
 import { useGetOrdenes, useGetEstadisticasOperaciones } from '../hooks/useOrdenesTrabajo'
 import { useGetAlertasPendientes, useGetResumenAlertas } from '../hooks/useAlertas'
@@ -121,6 +123,16 @@ const agruparPorEvento = (ordenes) => {
         const fechaB = b.montaje?.fecha_programada || b.desmontaje?.fecha_programada
         return new Date(fechaA) - new Date(fechaB)
     })
+}
+
+// ============================================
+// HELPER: Verificar si evento está finalizado
+// ============================================
+const esEventoFinalizado = (evento) => {
+    const estadosFinal = ['completado', 'cancelado']
+    const montajeOk = !evento.montaje || estadosFinal.includes(evento.montaje.estado)
+    const desmonOk = !evento.desmontaje || estadosFinal.includes(evento.desmontaje.estado)
+    return montajeOk && desmonOk
 }
 
 // ============================================
@@ -335,6 +347,7 @@ const SeccionEventos = ({ titulo, subtitulo, eventos, navigate, emptyMessage }) 
 // ============================================
 export default function OperacionesDashboard() {
     const navigate = useNavigate()
+    const [mostrarHistorial, setMostrarHistorial] = useState(false)
 
     const hoy = getHoy()
     const inicioSemana = getInicioSemana()
@@ -373,6 +386,19 @@ export default function OperacionesDashboard() {
         })
         return agruparPorEvento(ordenesNoHoy)
     }, [ordenesSemana, hoy])
+
+    // Separar eventos activos de finalizados
+    const { eventosHoyActivos, eventosHoyFinalizados } = useMemo(() => ({
+        eventosHoyActivos: eventosHoy.filter(e => !esEventoFinalizado(e)),
+        eventosHoyFinalizados: eventosHoy.filter(e => esEventoFinalizado(e))
+    }), [eventosHoy])
+
+    const { eventosRestaSemanaActivos, eventosRestaSemanaFinalizados } = useMemo(() => ({
+        eventosRestaSemanaActivos: eventosRestaSemana.filter(e => !esEventoFinalizado(e)),
+        eventosRestaSemanaFinalizados: eventosRestaSemana.filter(e => esEventoFinalizado(e))
+    }), [eventosRestaSemana])
+
+    const totalFinalizados = eventosHoyFinalizados.length + eventosRestaSemanaFinalizados.length
 
     const sinResponsable = estadisticas?.alertas?.sinResponsable || 0
 
@@ -490,20 +516,80 @@ export default function OperacionesDashboard() {
                     {/* HOY */}
                     <SeccionEventos
                         titulo="Hoy"
-                        subtitulo={`${eventosHoy.length} evento(s) programado(s)`}
-                        eventos={eventosHoy}
+                        subtitulo={`${eventosHoyActivos.length} evento(s) activo(s)`}
+                        eventos={eventosHoyActivos}
                         navigate={navigate}
-                        emptyMessage="No hay eventos programados para hoy"
+                        emptyMessage="No hay eventos activos para hoy"
                     />
 
                     {/* ESTA SEMANA */}
                     <SeccionEventos
                         titulo="Resto de la Semana"
-                        subtitulo={`${eventosRestaSemana.length} evento(s)`}
-                        eventos={eventosRestaSemana}
+                        subtitulo={`${eventosRestaSemanaActivos.length} evento(s) activo(s)`}
+                        eventos={eventosRestaSemanaActivos}
                         navigate={navigate}
-                        emptyMessage="No hay más eventos esta semana"
+                        emptyMessage="No hay más eventos activos esta semana"
                     />
+
+                    {/* HISTORIAL COMPLETADO */}
+                    {totalFinalizados > 0 && (
+                        <div className="border-t border-slate-200 pt-6">
+                            <button
+                                onClick={() => setMostrarHistorial(!mostrarHistorial)}
+                                className="flex items-center gap-2 text-slate-600 hover:text-slate-800 transition-colors mb-4"
+                            >
+                                {mostrarHistorial ? (
+                                    <ChevronDown className="w-4 h-4" />
+                                ) : (
+                                    <ChevronRight className="w-4 h-4" />
+                                )}
+                                <History className="w-4 h-4" />
+                                <span className="text-sm font-medium">
+                                    Historial completado
+                                </span>
+                                <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded-full">
+                                    {totalFinalizados}
+                                </span>
+                            </button>
+
+                            {mostrarHistorial && (
+                                <div className="space-y-6 opacity-75">
+                                    {eventosHoyFinalizados.length > 0 && (
+                                        <div>
+                                            <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-2">
+                                                Hoy
+                                            </p>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                {eventosHoyFinalizados.map((evento, idx) => (
+                                                    <EventoCard
+                                                        key={evento.alquiler_id || `hoy-${idx}`}
+                                                        evento={evento}
+                                                        navigate={navigate}
+                                                    />
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                    {eventosRestaSemanaFinalizados.length > 0 && (
+                                        <div>
+                                            <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-2">
+                                                Esta semana
+                                            </p>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                {eventosRestaSemanaFinalizados.map((evento, idx) => (
+                                                    <EventoCard
+                                                        key={evento.alquiler_id || `semana-${idx}`}
+                                                        evento={evento}
+                                                        navigate={navigate}
+                                                    />
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    )}
 
                     {/* Link a todas las órdenes */}
                     <div className="flex justify-center">
