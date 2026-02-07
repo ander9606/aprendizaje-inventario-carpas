@@ -28,44 +28,47 @@ Revisar cómo se obtienen y muestran los elementos en `ModalRetornoElementos.jsx
 
 ---
 
-## ISSUE #2: Selector de elementos - Propósito no claro
-**Estado:** En evaluación
-**Severidad:** Baja (UX)
-**Archivo afectado:** `inventario-frontend/src/pages/OrdenDetallePage.jsx`
+## ISSUE #2: Selector de elementos - Reemplazar con Orden de Cargue
+**Estado:** Solución definida
+**Severidad:** Media (UX)
+**Archivos afectados:**
+- `inventario-frontend/src/pages/OrdenDetallePage.jsx`
+- Nuevo: `ModalOrdenCargue.jsx`
 
 ### Descripción
-Los checkboxes de selección de elementos no aportan mucho al flujo de trabajo actual.
+Los checkboxes de selección de elementos no aportan al flujo de trabajo real. Los operadores necesitan saber QUÉ cargar, no marcar elemento por elemento.
 
-### Contexto
-Se implementó la selección masiva de elementos para cambiar estados rápidamente (pendiente → preparado → cargado → instalado → retornado).
+### Solución acordada: "Orden de Cargue"
+Crear un documento/modal que muestre:
+- Lista de elementos con cantidades necesarias
+- Agrupado por tipo de producto
+- Un solo botón: **"Revisado y Cargado"**
 
-### Preguntas a responder
-1. ¿Es útil cambiar estados de múltiples elementos a la vez?
-2. ¿El flujo de trabajo real requiere marcar elementos individualmente?
-3. ¿Los estados de elementos se actualizan automáticamente con las acciones principales? (ej: Ejecutar Salida debería marcar todos como "despachados")
-
-### Opciones
-- **A) Mantener:** Útil para operadores que preparan físicamente elementos uno por uno
-- **B) Simplificar:** Cambiar estados automáticamente con las acciones de la orden
-- **C) Remover:** Si no aporta valor al flujo, eliminar los checkboxes
-
-### Flujo esperado actual de estados de elementos:
+### Flujo propuesto
 ```
-Orden Montaje:
-  pendiente → preparado (manual/auto) → cargado (Ejecutar Salida) → instalado (en_proceso) → retornado (desmontaje)
-
-Orden Desmontaje:
-  instalado → desmontado → retornado (Modal Retorno)
+1. Operador abre "Ver Orden de Cargue"
+2. Ve la lista completa:
+   - Carpa 6x12: 1 unidad (Serie: ABC-001)
+   - Estacas 1m: 11 unidades (Lote: 001)
+   - Postes perimetrales: 10 unidades (Lote: 001)
+   - etc.
+3. Revisa físicamente que todo esté en el camión
+4. Presiona "Confirmar Cargue"
+5. Sistema marca TODOS los elementos como "cargado"
 ```
 
----
+### Cambios a realizar
+1. **Eliminar**: Checkboxes de selección individual en tabla de elementos
+2. **Eliminar**: Barra flotante de acciones masivas
+3. **Crear**: `ModalOrdenCargue.jsx` con lista de elementos y botón de confirmación
+4. **Agregar**: Botón "Ver Orden de Cargue" en estado `en_preparacion`
+5. **Opcional**: Permitir imprimir/exportar la orden de cargue
 
-## Notas adicionales
-
-### Preguntas para el usuario
-1. ¿Cómo es el flujo real cuando se preparan los elementos en el almacén?
-2. ¿Los operadores marcan cada elemento individualmente o todo de una vez?
-3. ¿Hay casos donde se necesita marcar "este elemento está preparado pero este otro no"?
+### Beneficios
+- Más simple para el operador
+- Flujo más natural (revisar lista → confirmar)
+- Menos clics
+- Posibilidad de imprimir para llevar al almacén
 
 ---
 
