@@ -133,7 +133,9 @@ const ElementoRetornoItem = ({ elemento, retorno, onChange }) => {
 // Permite dividir la cantidad entre bueno/dañado/perdido
 // ============================================
 const ElementoLoteRetornoItem = ({ elemento, retorno, onChange }) => {
+    // Soportar diferentes nombres de campos según el origen de datos
     const cantidadTotal = elemento.cantidad_lote || elemento.cantidad || 1
+    const loteCodigo = elemento.lote_codigo || elemento.lote_numero || `Lote #${elemento.lote_id}`
 
     // Obtener cantidades actuales del retorno
     const cantidadBueno = retorno.cantidad_bueno ?? cantidadTotal
@@ -208,7 +210,7 @@ const ElementoLoteRetornoItem = ({ elemento, retorno, onChange }) => {
                     <div className="flex items-center gap-3 mt-1 text-xs text-slate-500">
                         <span className="flex items-center gap-1">
                             <Layers className="w-3 h-3" />
-                            {elemento.lote_codigo}
+                            {loteCodigo}
                         </span>
                         <span className="px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded font-medium">
                             {cantidadTotal} unidades
@@ -416,8 +418,10 @@ const ProductoGroup = ({ producto, elementos, retornos, onRetornoChange, onMarca
                         if (!retorno) return null
 
                         // Usar componente de lote si tiene cantidad > 1 y es lote
+                        // Soportar diferentes nombres de campos según el origen de datos
                         const cantidadElemento = elemento.cantidad_lote || elemento.cantidad || 1
-                        const esLoteMultiple = elemento.lote_codigo && cantidadElemento > 1
+                        const esLote = elemento.lote_codigo || elemento.lote_numero || elemento.lote_id
+                        const esLoteMultiple = esLote && cantidadElemento > 1
 
                         return esLoteMultiple ? (
                             <ElementoLoteRetornoItem
@@ -461,8 +465,10 @@ const ModalRetornoElementos = ({
         if (isOpen && elementos?.length > 0) {
             setRetornos(
                 elementos.map(elem => {
+                    // Soportar diferentes nombres de campos según el origen de datos
                     const cantidadTotal = elem.cantidad_lote || elem.cantidad || 1
-                    const esLoteMultiple = elem.lote_codigo && cantidadTotal > 1
+                    const esLote = elem.lote_codigo || elem.lote_numero || elem.lote_id
+                    const esLoteMultiple = esLote && cantidadTotal > 1
 
                     return {
                         alquiler_elemento_id: elem.id,
