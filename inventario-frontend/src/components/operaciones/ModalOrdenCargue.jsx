@@ -22,7 +22,9 @@ import {
 } from 'lucide-react'
 import Modal from '../common/Modal'
 import Spinner from '../common/Spinner'
-import { useGetOrdenCompleta } from '../../hooks/useOrdenesTrabajo'
+import Button from '../common/Button'
+import { useGetOrdenCompleta, useCambiarEstadoElementosMasivo } from '../../hooks/useOrdenesTrabajo'
+import { toast } from 'sonner'
 
 // ============================================
 // COMPONENTE: Producto Expandible
@@ -137,13 +139,42 @@ const EstadoBadge = ({ estado }) => {
 
 // ============================================
 // COMPONENTE PRINCIPAL: ModalOrdenCargue
+// Props:
+//   - ordenId: ID de la orden
+//   - ordenInfo: Info básica de la orden (tipo, cliente, fecha, etc.)
+//   - elementos: Array de elementos de la orden (para obtener IDs)
+//   - onConfirmado: Callback cuando se confirma el cargue
 // ============================================
-const ModalOrdenCargue = ({ isOpen, onClose, ordenId, ordenInfo }) => {
+const ModalOrdenCargue = ({ isOpen, onClose, ordenId, ordenInfo, elementos, onConfirmado }) => {
     const [expandedProducts, setExpandedProducts] = useState({})
+    const cambiarEstadoMasivo = useCambiarEstadoElementosMasivo()
 
     const { productos, alquilerElementos, resumenElementos, isLoading } = useGetOrdenCompleta(
         isOpen ? ordenId : null
     )
+
+    // Handler para confirmar cargue de todos los elementos
+    const handleConfirmarCargue = async () => {
+        if (!elementos || elementos.length === 0) {
+            toast.error('No hay elementos para marcar como cargados')
+            return
+        }
+
+        const elementoIds = elementos.map(e => e.id)
+
+        try {
+            await cambiarEstadoMasivo.mutateAsync({
+                ordenId,
+                elementoIds,
+                estado: 'cargado'
+            })
+            toast.success(`${elementoIds.length} elemento(s) marcados como "cargado"`)
+            onConfirmado?.()
+            onClose()
+        } catch (error) {
+            toast.error(error?.response?.data?.message || 'Error al confirmar cargue')
+        }
+    }
 
     const toggleProduct = (productoId) => {
         setExpandedProducts(prev => ({
@@ -327,12 +358,22 @@ const ModalOrdenCargue = ({ isOpen, onClose, ordenId, ordenInfo }) => {
                             <Printer className="w-4 h-4" />
                             Imprimir
                         </button>
-                        <button
-                            onClick={onClose}
-                            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
-                        >
-                            Cerrar
-                        </button>
+                        <div className="flex items-center gap-3">
+                            <Button
+                                variant="secondary"
+                                onClick={onClose}
+                            >
+                                Cerrar
+                            </Button>
+                            <Button
+                                color="green"
+                                icon={CheckCircle}
+                                onClick={handleConfirmarCargue}
+                                disabled={cambiarEstadoMasivo.isPending || !elementos?.length}
+                            >
+                                {cambiarEstadoMasivo.isPending ? 'Confirmando...' : 'Confirmar Cargue'}
+                            </Button>
+                        </div>
                     </div>
                 </div>
             )}

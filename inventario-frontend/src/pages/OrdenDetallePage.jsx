@@ -45,14 +45,13 @@ import {
     useAsignarEquipo,
     useUpdateOrden,
     useEjecutarSalida,
-    useEjecutarRetorno,
-    useCambiarEstadoElementosMasivo
+    useEjecutarRetorno
 } from '../hooks/useOrdenesTrabajo'
 import { useGetEmpleadosCampo } from '../hooks/useEmpleados'
 import { useAuth } from '../hooks/auth/useAuth'
 import Button from '../components/common/Button'
 import Spinner from '../components/common/Spinner'
-import { ModalRetornoElementos } from '../components/operaciones'
+import { ModalRetornoElementos, ModalOrdenCargue } from '../components/operaciones'
 import { toast } from 'sonner'
 
 // ============================================
@@ -735,10 +734,9 @@ export default function OrdenDetallePage() {
     const [showModalEditar, setShowModalEditar] = useState(false)
     const [showModalRetorno, setShowModalRetorno] = useState(false)
     const [showModalInventario, setShowModalInventario] = useState(false)
+    const [showModalOrdenCargue, setShowModalOrdenCargue] = useState(false)
     const [expandElementos, setExpandElementos] = useState(true)
     const [ejecutandoSalida, setEjecutandoSalida] = useState(false)
-    // Estado para selección masiva de elementos
-    const [elementosSeleccionados, setElementosSeleccionados] = useState(new Set())
 
     // ============================================
     // HOOKS: Obtener datos
@@ -761,7 +759,6 @@ export default function OrdenDetallePage() {
     const prepararElementos = usePrepararElementos()
     const ejecutarSalida = useEjecutarSalida()
     const ejecutarRetorno = useEjecutarRetorno()
-    const cambiarEstadoMasivo = useCambiarEstadoElementosMasivo()
 
     // ============================================
     // HANDLERS
@@ -834,50 +831,6 @@ export default function OrdenDetallePage() {
         } catch (error) {
             toast.error(error?.response?.data?.message || 'Error al registrar retorno')
             throw error
-        }
-    }
-
-    // ============================================
-    // HANDLERS: Operaciones masivas de elementos
-    // ============================================
-    const handleToggleElemento = (elementoId) => {
-        setElementosSeleccionados(prev => {
-            const newSet = new Set(prev)
-            if (newSet.has(elementoId)) {
-                newSet.delete(elementoId)
-            } else {
-                newSet.add(elementoId)
-            }
-            return newSet
-        })
-    }
-
-    const handleToggleTodos = () => {
-        if (!elementos) return
-        if (elementosSeleccionados.size === elementos.length) {
-            // Deseleccionar todos
-            setElementosSeleccionados(new Set())
-        } else {
-            // Seleccionar todos
-            setElementosSeleccionados(new Set(elementos.map(e => e.id)))
-        }
-    }
-
-    const handleCambiarEstadoMasivo = async (nuevoEstado) => {
-        if (elementosSeleccionados.size === 0) return
-
-        const elementoIds = Array.from(elementosSeleccionados)
-
-        try {
-            await cambiarEstadoMasivo.mutateAsync({
-                ordenId: orden.id,
-                elementoIds,
-                estado: nuevoEstado
-            })
-            toast.success(`${elementoIds.length} elemento(s) actualizado(s) a "${nuevoEstado}"`)
-            setElementosSeleccionados(new Set()) // Limpiar selección después de éxito
-        } catch (error) {
-            toast.error(error?.response?.data?.message || 'Error al cambiar estado')
         }
     }
 
@@ -1335,18 +1288,6 @@ export default function OrdenDetallePage() {
                                             <table className="w-full">
                                                 <thead className="bg-slate-50">
                                                     <tr>
-                                                        {/* Checkbox para selección masiva (solo si puede gestionar) */}
-                                                        {canManage && !esCompletado && !esCancelado && (
-                                                            <th className="px-3 py-3 text-center w-10">
-                                                                <input
-                                                                    type="checkbox"
-                                                                    className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                                                                    checked={elementos?.length > 0 && elementosSeleccionados.size === elementos.length}
-                                                                    onChange={handleToggleTodos}
-                                                                    title="Seleccionar todos"
-                                                                />
-                                                            </th>
-                                                        )}
                                                         <th className="px-4 py-3 text-left text-sm font-medium text-slate-600">
                                                             Elemento
                                                         </th>
@@ -1361,23 +1302,11 @@ export default function OrdenDetallePage() {
                                                 <tbody className="divide-y divide-slate-100">
                                                     {elementos.map((elem) => {
                                                         const sinInventario = !elem.serie_id && !elem.lote_id
-                                                        const isSelected = elementosSeleccionados.has(elem.id)
                                                         return (
                                                             <tr
                                                                 key={elem.id}
-                                                                className={`${sinInventario ? 'bg-amber-50/50' : 'hover:bg-slate-50'} ${isSelected ? 'bg-blue-50' : ''}`}
+                                                                className={sinInventario ? 'bg-amber-50/50' : 'hover:bg-slate-50'}
                                                             >
-                                                                {/* Checkbox para selección individual */}
-                                                                {canManage && !esCompletado && !esCancelado && (
-                                                                    <td className="px-3 py-3 text-center">
-                                                                        <input
-                                                                            type="checkbox"
-                                                                            className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                                                                            checked={isSelected}
-                                                                            onChange={() => handleToggleElemento(elem.id)}
-                                                                        />
-                                                                    </td>
-                                                                )}
                                                                 <td className="px-4 py-3">
                                                                     <p className="font-medium text-slate-900">
                                                                         {elem.elemento_nombre || elem.nombre}
@@ -1427,67 +1356,24 @@ export default function OrdenDetallePage() {
                                         </p>
                                     )}
 
-                                    {/* ========================================
-                                        BARRA FLOTANTE DE ACCIONES MASIVAS
-                                        Aparece cuando hay elementos seleccionados
-                                    ======================================== */}
-                                    {elementosSeleccionados.size > 0 && canManage && (
-                                        <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg shadow-sm">
-                                            <div className="flex items-center justify-between gap-4">
-                                                <div className="flex items-center gap-3">
-                                                    <span className="text-sm font-medium text-blue-700">
-                                                        {elementosSeleccionados.size} elemento(s) seleccionado(s)
-                                                    </span>
-                                                    <button
-                                                        onClick={() => setElementosSeleccionados(new Set())}
-                                                        className="text-xs text-blue-600 hover:text-blue-800 underline"
-                                                    >
-                                                        Limpiar
-                                                    </button>
-                                                </div>
+                                    {/* Botón Ver Orden de Cargue - Solo en preparación con inventario asignado */}
+                                    {orden.estado === 'en_preparacion' && orden.tipo === 'montaje' && !hayElementosSinInventario && elementos?.length > 0 && canManage && (
+                                        <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                            <div className="flex items-center justify-between gap-3">
                                                 <div className="flex items-center gap-2">
-                                                    <span className="text-xs text-slate-500 mr-2">Cambiar a:</span>
-                                                    <Button
-                                                        size="sm"
-                                                        color="amber"
-                                                        onClick={() => handleCambiarEstadoMasivo('preparado')}
-                                                        disabled={cambiarEstadoMasivo.isPending}
-                                                    >
-                                                        Preparado
-                                                    </Button>
-                                                    <Button
-                                                        size="sm"
-                                                        color="blue"
-                                                        onClick={() => handleCambiarEstadoMasivo('cargado')}
-                                                        disabled={cambiarEstadoMasivo.isPending}
-                                                    >
-                                                        Cargado
-                                                    </Button>
-                                                    <Button
-                                                        size="sm"
-                                                        color="purple"
-                                                        onClick={() => handleCambiarEstadoMasivo('instalado')}
-                                                        disabled={cambiarEstadoMasivo.isPending}
-                                                    >
-                                                        Instalado
-                                                    </Button>
-                                                    <Button
-                                                        size="sm"
-                                                        color="orange"
-                                                        onClick={() => handleCambiarEstadoMasivo('desmontado')}
-                                                        disabled={cambiarEstadoMasivo.isPending}
-                                                    >
-                                                        Desmontado
-                                                    </Button>
-                                                    <Button
-                                                        size="sm"
-                                                        color="green"
-                                                        onClick={() => handleCambiarEstadoMasivo('retornado')}
-                                                        disabled={cambiarEstadoMasivo.isPending}
-                                                    >
-                                                        Retornado
-                                                    </Button>
+                                                    <Truck className="w-4 h-4 text-blue-500 shrink-0" />
+                                                    <p className="text-sm text-blue-700">
+                                                        <span className="font-medium">{elementos.length} elemento(s)</span> listos para cargar
+                                                    </p>
                                                 </div>
+                                                <Button
+                                                    color="blue"
+                                                    icon={Truck}
+                                                    size="sm"
+                                                    onClick={() => setShowModalOrdenCargue(true)}
+                                                >
+                                                    Ver Orden de Cargue
+                                                </Button>
                                             </div>
                                         </div>
                                     )}
@@ -1817,6 +1703,16 @@ export default function OrdenDetallePage() {
                     elementosPendientes={elementosPendientesInv}
                     onClose={() => setShowModalInventario(false)}
                     onSave={handleAsignarInventario}
+                />
+            )}
+            {showModalOrdenCargue && (
+                <ModalOrdenCargue
+                    isOpen={showModalOrdenCargue}
+                    onClose={() => setShowModalOrdenCargue(false)}
+                    ordenId={orden.id}
+                    ordenInfo={orden}
+                    elementos={elementos}
+                    onConfirmado={refetch}
                 />
             )}
         </div>
