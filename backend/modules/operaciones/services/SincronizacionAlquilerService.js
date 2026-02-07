@@ -799,13 +799,13 @@ class SincronizacionAlquilerService {
         if (loteId) {
           await connection.query(`
             UPDATE lotes
-            SET cantidad_disponible = cantidad_disponible - ?
+            SET cantidad = cantidad - ?
             WHERE id = ?
           `, [elem.cantidad, loteId]);
 
           // Obtener info del lote para log
           const [loteData] = await connection.query(
-            'SELECT lote_numero, cantidad_disponible FROM lotes WHERE id = ?',
+            'SELECT lote_numero, cantidad FROM lotes WHERE id = ?',
             [loteId]
           );
 
@@ -813,12 +813,12 @@ class SincronizacionAlquilerService {
             id: loteId,
             lote_numero: loteData[0]?.lote_numero,
             cantidad_reducida: elem.cantidad,
-            cantidad_restante: loteData[0]?.cantidad_disponible
+            cantidad_restante: loteData[0]?.cantidad
           });
 
           logger.debug(
             `[SincronizacionAlquilerService] Lote ${loteData[0]?.lote_numero}: ` +
-            `-${elem.cantidad} → ${loteData[0]?.cantidad_disponible} disponibles`
+            `-${elem.cantidad} → ${loteData[0]?.cantidad} disponibles`
           );
         }
 
@@ -1153,13 +1153,13 @@ class SincronizacionAlquilerService {
             // Restaurar cantidad al lote
             await connection.query(`
               UPDATE lotes
-              SET cantidad_disponible = cantidad_disponible + ?
+              SET cantidad = cantidad + ?
               WHERE id = ?
             `, [elem.cantidad_lote, elem.lote_id]);
 
             // Obtener info para log
             const [loteData] = await connection.query(
-              'SELECT lote_numero, cantidad_disponible FROM lotes WHERE id = ?',
+              'SELECT lote_numero, cantidad FROM lotes WHERE id = ?',
               [elem.lote_id]
             );
 
@@ -1167,12 +1167,12 @@ class SincronizacionAlquilerService {
               id: elem.lote_id,
               lote_numero: loteData[0]?.lote_numero,
               cantidad_restaurada: elem.cantidad_lote,
-              cantidad_actual: loteData[0]?.cantidad_disponible
+              cantidad_actual: loteData[0]?.cantidad
             });
 
             logger.debug(
               `[SincronizacionAlquilerService] Lote ${loteData[0]?.lote_numero} ` +
-              `+${elem.cantidad_lote} → ${loteData[0]?.cantidad_disponible}`
+              `+${elem.cantidad_lote} → ${loteData[0]?.cantidad}`
             );
           } else {
             // Si está dañado o perdido, la cantidad NO se restaura
