@@ -5,7 +5,7 @@ Este documento registra los issues encontrados durante las pruebas para revisió
 ---
 
 ## ISSUE #1: Modal de Retorno - Lotes como unidades individuales
-**Estado:** Pendiente
+**Estado:** IMPLEMENTADO
 **Severidad:** Media
 **Archivo afectado:** `inventario-frontend/src/components/operaciones/ModalRetornoElementos.jsx`
 
@@ -19,12 +19,16 @@ Si tengo un lote de 11 estacas asignadas a una orden, el modal debería:
 - Posiblemente permitir marcar estados diferentes si algunas vienen dañadas
 
 ### Comportamiento actual
-Trata cada elemento de lote como cantidad = 1, independientemente de cuántas unidades tenga el lote.
+~~Trata cada elemento de lote como cantidad = 1, independientemente de cuántas unidades tenga el lote.~~
 
-### Solución propuesta
-Revisar cómo se obtienen y muestran los elementos en `ModalRetornoElementos.jsx`. Debe considerar:
-- `elem.cantidad` para mostrar la cantidad real del lote
-- Permitir dividir el retorno si hay diferentes estados (ej: 9 buenas, 2 dañadas)
+### Solución implementada
+Se creó un nuevo componente `ElementoLoteRetornoItem` que:
+- Detecta automáticamente cuando un elemento es un lote con cantidad > 1
+- Muestra 3 inputs numéricos para distribuir la cantidad: Buenos / Dañados / Perdidos
+- Valida que la suma de las cantidades sea igual al total del lote
+- Muestra advertencia visual si la suma no cuadra
+- Incluye botón rápido "Todos OK" para resetear a todos buenos
+- Las estadísticas del modal ahora cuentan unidades reales, no solo elementos
 
 ---
 

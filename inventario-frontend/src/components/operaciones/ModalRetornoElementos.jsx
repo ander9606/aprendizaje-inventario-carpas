@@ -20,7 +20,7 @@ import Modal from '../common/Modal'
 import Button from '../common/Button'
 
 // ============================================
-// COMPONENTE: Elemento de Retorno Individual
+// COMPONENTE: Elemento de Retorno Individual (Series - cantidad 1)
 // ============================================
 const ElementoRetornoItem = ({ elemento, retorno, onChange }) => {
     const estados = [
@@ -96,6 +96,203 @@ const ElementoRetornoItem = ({ elemento, retorno, onChange }) => {
                     <div>
                         <label className="block text-xs font-medium text-slate-600 mb-1">
                             Costo del daño
+                        </label>
+                        <div className="relative">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">$</span>
+                            <input
+                                type="number"
+                                min="0"
+                                step="1000"
+                                value={retorno.costo_dano || ''}
+                                onChange={(e) => onChange({ ...retorno, costo_dano: parseFloat(e.target.value) || 0 })}
+                                className="w-full pl-7 pr-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+                                placeholder="0"
+                            />
+                        </div>
+                    </div>
+                    <div>
+                        <label className="block text-xs font-medium text-slate-600 mb-1">
+                            Descripción del daño
+                        </label>
+                        <input
+                            type="text"
+                            value={retorno.notas || ''}
+                            onChange={(e) => onChange({ ...retorno, notas: e.target.value })}
+                            className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+                            placeholder="Describir el daño o pérdida..."
+                        />
+                    </div>
+                </div>
+            )}
+        </div>
+    )
+}
+
+// ============================================
+// COMPONENTE: Elemento de Retorno para Lotes (cantidad > 1)
+// Permite dividir la cantidad entre bueno/dañado/perdido
+// ============================================
+const ElementoLoteRetornoItem = ({ elemento, retorno, onChange }) => {
+    const cantidadTotal = elemento.cantidad_lote || elemento.cantidad || 1
+
+    // Obtener cantidades actuales del retorno
+    const cantidadBueno = retorno.cantidad_bueno ?? cantidadTotal
+    const cantidadDanado = retorno.cantidad_danado ?? 0
+    const cantidadPerdido = retorno.cantidad_perdido ?? 0
+
+    // Validar si la suma es correcta
+    const sumaActual = cantidadBueno + cantidadDanado + cantidadPerdido
+    const esValido = sumaActual === cantidadTotal
+
+    // Handler para cambiar cantidades
+    const handleCantidadChange = (campo, valor) => {
+        const nuevaCantidad = Math.max(0, Math.min(cantidadTotal, parseInt(valor) || 0))
+
+        // Calcular el nuevo estado
+        const nuevosValores = {
+            cantidad_bueno: campo === 'cantidad_bueno' ? nuevaCantidad : cantidadBueno,
+            cantidad_danado: campo === 'cantidad_danado' ? nuevaCantidad : cantidadDanado,
+            cantidad_perdido: campo === 'cantidad_perdido' ? nuevaCantidad : cantidadPerdido
+        }
+
+        // Determinar el estado_retorno basado en las cantidades
+        let estado_retorno = 'bueno'
+        if (nuevosValores.cantidad_perdido > 0) {
+            estado_retorno = 'perdido'
+        } else if (nuevosValores.cantidad_danado > 0) {
+            estado_retorno = 'dañado'
+        }
+
+        onChange({
+            ...retorno,
+            ...nuevosValores,
+            estado_retorno,
+            cantidad_total: cantidadTotal,
+            costo_dano: (nuevosValores.cantidad_danado === 0 && nuevosValores.cantidad_perdido === 0)
+                ? 0
+                : retorno.costo_dano
+        })
+    }
+
+    // Marcar todos como buenos
+    const handleTodosBuenos = () => {
+        onChange({
+            ...retorno,
+            cantidad_bueno: cantidadTotal,
+            cantidad_danado: 0,
+            cantidad_perdido: 0,
+            cantidad_total: cantidadTotal,
+            estado_retorno: 'bueno',
+            costo_dano: 0
+        })
+    }
+
+    // Determinar color del borde basado en el estado
+    const getBorderColor = () => {
+        if (!esValido) return 'border-red-300 bg-red-50/50'
+        if (cantidadPerdido > 0) return 'border-red-200 bg-red-50/50'
+        if (cantidadDanado > 0) return 'border-amber-200 bg-amber-50/50'
+        return 'border-green-200 bg-green-50/50'
+    }
+
+    const hayDanosOPerdidos = cantidadDanado > 0 || cantidadPerdido > 0
+
+    return (
+        <div className={`border rounded-lg p-3 transition-colors ${getBorderColor()}`}>
+            {/* Info del elemento */}
+            <div className="flex items-start justify-between mb-3">
+                <div className="flex-1 min-w-0">
+                    <p className="font-medium text-slate-900 truncate">
+                        {elemento.elemento_nombre || elemento.nombre}
+                    </p>
+                    <div className="flex items-center gap-3 mt-1 text-xs text-slate-500">
+                        <span className="flex items-center gap-1">
+                            <Layers className="w-3 h-3" />
+                            {elemento.lote_codigo}
+                        </span>
+                        <span className="px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded font-medium">
+                            {cantidadTotal} unidades
+                        </span>
+                    </div>
+                </div>
+                {/* Botón rápido todos buenos */}
+                {(cantidadDanado > 0 || cantidadPerdido > 0) && (
+                    <button
+                        type="button"
+                        onClick={handleTodosBuenos}
+                        className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-green-600 hover:bg-green-100 rounded transition-colors"
+                    >
+                        <CheckCheck className="w-3 h-3" />
+                        Todos OK
+                    </button>
+                )}
+            </div>
+
+            {/* Inputs para dividir cantidades */}
+            <div className="grid grid-cols-3 gap-2 mb-2">
+                {/* Bueno */}
+                <div className="flex flex-col">
+                    <label className="flex items-center gap-1 text-xs font-medium text-green-700 mb-1">
+                        <CheckCircle className="w-3 h-3" />
+                        Buenos
+                    </label>
+                    <input
+                        type="number"
+                        min="0"
+                        max={cantidadTotal}
+                        value={cantidadBueno}
+                        onChange={(e) => handleCantidadChange('cantidad_bueno', e.target.value)}
+                        className="w-full px-2 py-1.5 text-sm text-center border border-green-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 bg-white"
+                    />
+                </div>
+
+                {/* Dañado */}
+                <div className="flex flex-col">
+                    <label className="flex items-center gap-1 text-xs font-medium text-amber-700 mb-1">
+                        <AlertTriangle className="w-3 h-3" />
+                        Dañados
+                    </label>
+                    <input
+                        type="number"
+                        min="0"
+                        max={cantidadTotal}
+                        value={cantidadDanado}
+                        onChange={(e) => handleCantidadChange('cantidad_danado', e.target.value)}
+                        className="w-full px-2 py-1.5 text-sm text-center border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 bg-white"
+                    />
+                </div>
+
+                {/* Perdido */}
+                <div className="flex flex-col">
+                    <label className="flex items-center gap-1 text-xs font-medium text-red-700 mb-1">
+                        <XCircle className="w-3 h-3" />
+                        Perdidos
+                    </label>
+                    <input
+                        type="number"
+                        min="0"
+                        max={cantidadTotal}
+                        value={cantidadPerdido}
+                        onChange={(e) => handleCantidadChange('cantidad_perdido', e.target.value)}
+                        className="w-full px-2 py-1.5 text-sm text-center border border-red-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 bg-white"
+                    />
+                </div>
+            </div>
+
+            {/* Advertencia si la suma no cuadra */}
+            {!esValido && (
+                <div className="flex items-center gap-2 px-2 py-1.5 bg-red-100 text-red-700 rounded text-xs mb-2">
+                    <AlertTriangle className="w-3 h-3 shrink-0" />
+                    La suma ({sumaActual}) no coincide con el total ({cantidadTotal})
+                </div>
+            )}
+
+            {/* Campos adicionales para dañado/perdido */}
+            {hayDanosOPerdidos && (
+                <div className="space-y-2 pt-2 border-t border-slate-200">
+                    <div>
+                        <label className="block text-xs font-medium text-slate-600 mb-1">
+                            Costo total de daños/pérdidas
                         </label>
                         <div className="relative">
                             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">$</span>
@@ -217,7 +414,19 @@ const ProductoGroup = ({ producto, elementos, retornos, onRetornoChange, onMarca
                     {elementosProducto.map(elemento => {
                         const retorno = retornos.find(r => r.alquiler_elemento_id === elemento.id)
                         if (!retorno) return null
-                        return (
+
+                        // Usar componente de lote si tiene cantidad > 1 y es lote
+                        const cantidadElemento = elemento.cantidad_lote || elemento.cantidad || 1
+                        const esLoteMultiple = elemento.lote_codigo && cantidadElemento > 1
+
+                        return esLoteMultiple ? (
+                            <ElementoLoteRetornoItem
+                                key={elemento.id}
+                                elemento={elemento}
+                                retorno={retorno}
+                                onChange={(newRetorno) => onRetornoChange(elemento.id, newRetorno)}
+                            />
+                        ) : (
                             <ElementoRetornoItem
                                 key={elemento.id}
                                 elemento={elemento}
@@ -251,31 +460,78 @@ const ModalRetornoElementos = ({
     useEffect(() => {
         if (isOpen && elementos?.length > 0) {
             setRetornos(
-                elementos.map(elem => ({
-                    alquiler_elemento_id: elem.id,
-                    estado_retorno: 'bueno',
-                    costo_dano: 0,
-                    notas: ''
-                }))
+                elementos.map(elem => {
+                    const cantidadTotal = elem.cantidad_lote || elem.cantidad || 1
+                    const esLoteMultiple = elem.lote_codigo && cantidadTotal > 1
+
+                    return {
+                        alquiler_elemento_id: elem.id,
+                        estado_retorno: 'bueno',
+                        costo_dano: 0,
+                        notas: '',
+                        // Campos adicionales para lotes con cantidad > 1
+                        ...(esLoteMultiple && {
+                            cantidad_total: cantidadTotal,
+                            cantidad_bueno: cantidadTotal,
+                            cantidad_danado: 0,
+                            cantidad_perdido: 0
+                        })
+                    }
+                })
             )
         }
     }, [isOpen, elementos])
 
     // ============================================
     // CÁLCULO: Estadísticas y progreso de retorno
+    // Considera cantidades de lotes para conteo correcto
     // ============================================
     const estadisticas = useMemo(() => {
-        const buenos = retornos.filter(r => r.estado_retorno === 'bueno').length
-        const danados = retornos.filter(r => r.estado_retorno === 'dañado').length
-        const perdidos = retornos.filter(r => r.estado_retorno === 'perdido').length
+        let buenos = 0
+        let danados = 0
+        let perdidos = 0
+        let totalUnidades = 0
+        let unidadesMarcadas = 0
+
+        retornos.forEach(r => {
+            // Si tiene campos de cantidad (es un lote), usar esos valores
+            if (r.cantidad_total !== undefined) {
+                totalUnidades += r.cantidad_total
+                buenos += r.cantidad_bueno || 0
+                danados += r.cantidad_danado || 0
+                perdidos += r.cantidad_perdido || 0
+                // Marcado si la suma de cantidades es igual al total
+                const suma = (r.cantidad_bueno || 0) + (r.cantidad_danado || 0) + (r.cantidad_perdido || 0)
+                if (suma === r.cantidad_total) {
+                    unidadesMarcadas += r.cantidad_total
+                }
+            } else {
+                // Elemento individual (serie o cantidad = 1)
+                totalUnidades += 1
+                if (r.estado_retorno === 'bueno') buenos += 1
+                else if (r.estado_retorno === 'dañado') danados += 1
+                else if (r.estado_retorno === 'perdido') perdidos += 1
+
+                if (r.estado_retorno) {
+                    unidadesMarcadas += 1
+                }
+            }
+        })
+
         const totalDanos = retornos.reduce((sum, r) => sum + (r.costo_dano || 0), 0)
         const saldo = deposito - totalDanos
-        // Progreso: elementos con estado asignado
-        const marcados = retornos.filter(r => r.estado_retorno).length
-        const total = retornos.length
-        const porcentaje = total > 0 ? Math.round((marcados / total) * 100) : 0
+        const porcentaje = totalUnidades > 0 ? Math.round((unidadesMarcadas / totalUnidades) * 100) : 0
 
-        return { buenos, danados, perdidos, totalDanos, saldo, total, marcados, porcentaje }
+        return {
+            buenos,
+            danados,
+            perdidos,
+            totalDanos,
+            saldo,
+            total: totalUnidades,
+            marcados: unidadesMarcadas,
+            porcentaje
+        }
     }, [retornos, deposito])
 
     // Handlers
@@ -293,6 +549,18 @@ const ModalRetornoElementos = ({
             prev.map(r => {
                 const elemento = elementosProducto.find(e => e.id === r.alquiler_elemento_id)
                 if (elemento) {
+                    // Si es un lote con cantidad, resetear también las cantidades
+                    if (r.cantidad_total !== undefined) {
+                        return {
+                            ...r,
+                            estado_retorno: 'bueno',
+                            costo_dano: 0,
+                            notas: '',
+                            cantidad_bueno: r.cantidad_total,
+                            cantidad_danado: 0,
+                            cantidad_perdido: 0
+                        }
+                    }
                     return { ...r, estado_retorno: 'bueno', costo_dano: 0, notas: '' }
                 }
                 return r
@@ -302,7 +570,21 @@ const ModalRetornoElementos = ({
 
     const handleMarcarTodosGlobalBuenos = () => {
         setRetornos(prev =>
-            prev.map(r => ({ ...r, estado_retorno: 'bueno', costo_dano: 0, notas: '' }))
+            prev.map(r => {
+                // Si es un lote con cantidad, resetear también las cantidades
+                if (r.cantidad_total !== undefined) {
+                    return {
+                        ...r,
+                        estado_retorno: 'bueno',
+                        costo_dano: 0,
+                        notas: '',
+                        cantidad_bueno: r.cantidad_total,
+                        cantidad_danado: 0,
+                        cantidad_perdido: 0
+                    }
+                }
+                return { ...r, estado_retorno: 'bueno', costo_dano: 0, notas: '' }
+            })
         )
     }
 
@@ -456,7 +738,19 @@ const ModalRetornoElementos = ({
                                 {elementosSinProducto.map(elemento => {
                                     const retorno = retornos.find(r => r.alquiler_elemento_id === elemento.id)
                                     if (!retorno) return null
-                                    return (
+
+                                    // Usar componente de lote si tiene cantidad > 1 y es lote
+                                    const cantidadElemento = elemento.cantidad_lote || elemento.cantidad || 1
+                                    const esLoteMultiple = elemento.lote_codigo && cantidadElemento > 1
+
+                                    return esLoteMultiple ? (
+                                        <ElementoLoteRetornoItem
+                                            key={elemento.id}
+                                            elemento={elemento}
+                                            retorno={retorno}
+                                            onChange={(newRetorno) => handleRetornoChange(elemento.id, newRetorno)}
+                                        />
+                                    ) : (
                                         <ElementoRetornoItem
                                             key={elemento.id}
                                             elemento={elemento}
