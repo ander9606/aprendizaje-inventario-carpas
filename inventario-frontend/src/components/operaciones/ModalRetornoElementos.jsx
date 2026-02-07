@@ -147,14 +147,28 @@ const ElementoLoteRetornoItem = ({ elemento, retorno, onChange }) => {
     const esValido = sumaActual === cantidadTotal
 
     // Handler para cambiar cantidades
+    // Al cambiar dañados/perdidos, ajusta automáticamente los buenos
     const handleCantidadChange = (campo, valor) => {
         const nuevaCantidad = Math.max(0, Math.min(cantidadTotal, parseInt(valor) || 0))
 
-        // Calcular el nuevo estado
-        const nuevosValores = {
-            cantidad_bueno: campo === 'cantidad_bueno' ? nuevaCantidad : cantidadBueno,
-            cantidad_danado: campo === 'cantidad_danado' ? nuevaCantidad : cantidadDanado,
-            cantidad_perdido: campo === 'cantidad_perdido' ? nuevaCantidad : cantidadPerdido
+        let nuevosValores = {
+            cantidad_bueno: cantidadBueno,
+            cantidad_danado: cantidadDanado,
+            cantidad_perdido: cantidadPerdido
+        }
+
+        // Actualizar el campo editado
+        nuevosValores[campo] = nuevaCantidad
+
+        // Auto-ajustar buenos cuando se cambian dañados o perdidos
+        if (campo === 'cantidad_danado' || campo === 'cantidad_perdido') {
+            // Buenos = Total - Dañados - Perdidos (no puede ser negativo)
+            const buenosCalculados = cantidadTotal - nuevosValores.cantidad_danado - nuevosValores.cantidad_perdido
+            nuevosValores.cantidad_bueno = Math.max(0, buenosCalculados)
+        } else if (campo === 'cantidad_bueno') {
+            // Si se editan buenos directamente, ajustar dañados proporcionalmente
+            const diferencia = cantidadTotal - nuevaCantidad - nuevosValores.cantidad_perdido
+            nuevosValores.cantidad_danado = Math.max(0, diferencia)
         }
 
         // Determinar el estado_retorno basado en las cantidades
@@ -463,20 +477,6 @@ const ModalRetornoElementos = ({
     // Inicializar retornos cuando se abre el modal o cambian los elementos
     useEffect(() => {
         if (isOpen && elementos?.length > 0) {
-            // DEBUG: Ver qué datos llegan al modal
-            console.log('📦 ModalRetornoElementos - elementos recibidos:', elementos)
-            elementos.forEach((elem, i) => {
-                console.log(`  [${i}] ${elem.elemento_nombre || elem.nombre}:`, {
-                    id: elem.id,
-                    lote_id: elem.lote_id,
-                    lote_codigo: elem.lote_codigo,
-                    lote_numero: elem.lote_numero,
-                    cantidad: elem.cantidad,
-                    cantidad_lote: elem.cantidad_lote,
-                    serie_id: elem.serie_id
-                })
-            })
-
             setRetornos(
                 elementos.map(elem => {
                     // Soportar diferentes nombres de campos según el origen de datos
