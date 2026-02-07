@@ -463,6 +463,20 @@ const ModalRetornoElementos = ({
     // Inicializar retornos cuando se abre el modal o cambian los elementos
     useEffect(() => {
         if (isOpen && elementos?.length > 0) {
+            // DEBUG: Ver qué datos llegan al modal
+            console.log('📦 ModalRetornoElementos - elementos recibidos:', elementos)
+            elementos.forEach((elem, i) => {
+                console.log(`  [${i}] ${elem.elemento_nombre || elem.nombre}:`, {
+                    id: elem.id,
+                    lote_id: elem.lote_id,
+                    lote_codigo: elem.lote_codigo,
+                    lote_numero: elem.lote_numero,
+                    cantidad: elem.cantidad,
+                    cantidad_lote: elem.cantidad_lote,
+                    serie_id: elem.serie_id
+                })
+            })
+
             setRetornos(
                 elementos.map(elem => {
                     // Soportar diferentes nombres de campos según el origen de datos
@@ -746,8 +760,10 @@ const ModalRetornoElementos = ({
                                     if (!retorno) return null
 
                                     // Usar componente de lote si tiene cantidad > 1 y es lote
+                                    // Soportar diferentes nombres de campos según el origen de datos
                                     const cantidadElemento = elemento.cantidad_lote || elemento.cantidad || 1
-                                    const esLoteMultiple = elemento.lote_codigo && cantidadElemento > 1
+                                    const esLote = elemento.lote_codigo || elemento.lote_numero || elemento.lote_id
+                                    const esLoteMultiple = esLote && cantidadElemento > 1
 
                                     return esLoteMultiple ? (
                                         <ElementoLoteRetornoItem
