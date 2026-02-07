@@ -30,7 +30,8 @@ import {
     RotateCcw,
     Box,
     Hash,
-    Bell
+    Bell,
+    Zap
 } from 'lucide-react'
 import {
     useGetOrden,
@@ -44,7 +45,8 @@ import {
     useAsignarEquipo,
     useUpdateOrden,
     useEjecutarSalida,
-    useEjecutarRetorno
+    useEjecutarRetorno,
+    useCambiarEstadoElementosMasivo
 } from '../hooks/useOrdenesTrabajo'
 import { useGetEmpleadosCampo } from '../hooks/useEmpleados'
 import { useAuth } from '../hooks/auth/useAuth'
@@ -321,6 +323,62 @@ const ModalAsignarInventario = ({ ordenId, elementosPendientes, onClose, onSave 
         }
     }
 
+    // ============================================
+    // HELPER: Ordenar disponibles por prioridad
+    // Prioridad: bueno > nuevo, mayor cantidad disponible
+    // ============================================
+    const ordenarPorPrioridad = (disponibles) => {
+        return [...disponibles].sort((a, b) => {
+            // 1. Priorizar estado 'bueno' sobre 'nuevo' (preservar nuevos)
+            if (a.estado === 'bueno' && b.estado === 'nuevo') return -1
+            if (a.estado === 'nuevo' && b.estado === 'bueno') return 1
+            // 2. Para lotes: priorizar el que tenga mayor cantidad
+            if (a.tipo === 'lote' && b.tipo === 'lote') {
+                return b.cantidad - a.cantidad
+            }
+            return 0
+        })
+    }
+
+    // ============================================
+    // HANDLER: Auto-asignar todos los disponibles
+    // Recorre elementos pendientes y asigna el mejor disponible
+    // ============================================
+    const handleAutoAsignar = () => {
+        const nuevaSeleccion = {}
+        let asignados = 0
+        let sinStock = 0
+
+        for (const elem of elementosPendientes) {
+            const info = disponiblesPorElemento[elem.elemento_id]
+            const disponibles = ordenarPorPrioridad(info?.disponibles || [])
+
+            if (disponibles.length > 0) {
+                const mejor = disponibles[0]
+                nuevaSeleccion[elem.elemento_id] = mejor.tipo === 'serie'
+                    ? { serie_id: mejor.id, lote_id: null, cantidad: 1 }
+                    : { serie_id: null, lote_id: mejor.id, cantidad: Math.min(mejor.cantidad, elem.cantidad || 1) }
+                asignados++
+            } else {
+                sinStock++
+            }
+        }
+
+        setSeleccion(nuevaSeleccion)
+        if (asignados > 0) {
+            toast.success(`${asignados} elemento(s) asignado(s)${sinStock > 0 ? `, ${sinStock} sin stock` : ''}`)
+        } else {
+            toast.warning('No hay inventario disponible para asignar')
+        }
+    }
+
+    // ============================================
+    // HANDLER: Limpiar toda la selección
+    // ============================================
+    const handleLimpiarSeleccion = () => {
+        setSeleccion({})
+    }
+
     const handleSeleccionarSerie = (elementoId, serieId) => {
         setSeleccion(prev => ({
             ...prev,
@@ -423,6 +481,31 @@ const ModalAsignarInventario = ({ ordenId, elementosPendientes, onClose, onSave 
                         </button>
                     </div>
                 </div>
+
+                {/* Barra de acciones rápidas */}
+                {!isLoading && elementosPendientes.length > 0 && (
+                    <div className="px-6 py-3 bg-slate-50 border-b border-slate-200 flex items-center gap-3">
+                        <Button
+                            size="sm"
+                            color="amber"
+                            icon={Zap}
+                            onClick={handleAutoAsignar}
+                        >
+                            Auto-asignar disponibles
+                        </Button>
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={handleLimpiarSeleccion}
+                            disabled={Object.keys(seleccion).length === 0}
+                        >
+                            Limpiar selección
+                        </Button>
+                        <span className="ml-auto text-xs text-slate-500">
+                            Prioriza: bueno → nuevo
+                        </span>
+                    </div>
+                )}
 
                 {/* Body */}
                 <div className="flex-1 overflow-y-auto p-6">
@@ -654,6 +737,8 @@ export default function OrdenDetallePage() {
     const [showModalInventario, setShowModalInventario] = useState(false)
     const [expandElementos, setExpandElementos] = useState(true)
     const [ejecutandoSalida, setEjecutandoSalida] = useState(false)
+    // Estado para selección masiva de elementos
+    const [elementosSeleccionados, setElementosSeleccionados] = useState(new Set())
 
     // ============================================
     // HOOKS: Obtener datos
@@ -676,6 +761,7 @@ export default function OrdenDetallePage() {
     const prepararElementos = usePrepararElementos()
     const ejecutarSalida = useEjecutarSalida()
     const ejecutarRetorno = useEjecutarRetorno()
+    const cambiarEstadoMasivo = useCambiarEstadoElementosMasivo()
 
     // ============================================
     // HANDLERS
@@ -748,6 +834,50 @@ export default function OrdenDetallePage() {
         } catch (error) {
             toast.error(error?.response?.data?.message || 'Error al registrar retorno')
             throw error
+        }
+    }
+
+    // ============================================
+    // HANDLERS: Operaciones masivas de elementos
+    // ============================================
+    const handleToggleElemento = (elementoId) => {
+        setElementosSeleccionados(prev => {
+            const newSet = new Set(prev)
+            if (newSet.has(elementoId)) {
+                newSet.delete(elementoId)
+            } else {
+                newSet.add(elementoId)
+            }
+            return newSet
+        })
+    }
+
+    const handleToggleTodos = () => {
+        if (!elementos) return
+        if (elementosSeleccionados.size === elementos.length) {
+            // Deseleccionar todos
+            setElementosSeleccionados(new Set())
+        } else {
+            // Seleccionar todos
+            setElementosSeleccionados(new Set(elementos.map(e => e.id)))
+        }
+    }
+
+    const handleCambiarEstadoMasivo = async (nuevoEstado) => {
+        if (elementosSeleccionados.size === 0) return
+
+        const elementoIds = Array.from(elementosSeleccionados)
+
+        try {
+            await cambiarEstadoMasivo.mutateAsync({
+                ordenId: orden.id,
+                elementoIds,
+                estado: nuevoEstado
+            })
+            toast.success(`${elementoIds.length} elemento(s) actualizado(s) a "${nuevoEstado}"`)
+            setElementosSeleccionados(new Set()) // Limpiar selección después de éxito
+        } catch (error) {
+            toast.error(error?.response?.data?.message || 'Error al cambiar estado')
         }
     }
 
@@ -1205,6 +1335,18 @@ export default function OrdenDetallePage() {
                                             <table className="w-full">
                                                 <thead className="bg-slate-50">
                                                     <tr>
+                                                        {/* Checkbox para selección masiva (solo si puede gestionar) */}
+                                                        {canManage && !esCompletado && !esCancelado && (
+                                                            <th className="px-3 py-3 text-center w-10">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                                                                    checked={elementos?.length > 0 && elementosSeleccionados.size === elementos.length}
+                                                                    onChange={handleToggleTodos}
+                                                                    title="Seleccionar todos"
+                                                                />
+                                                            </th>
+                                                        )}
                                                         <th className="px-4 py-3 text-left text-sm font-medium text-slate-600">
                                                             Elemento
                                                         </th>
@@ -1219,8 +1361,23 @@ export default function OrdenDetallePage() {
                                                 <tbody className="divide-y divide-slate-100">
                                                     {elementos.map((elem) => {
                                                         const sinInventario = !elem.serie_id && !elem.lote_id
+                                                        const isSelected = elementosSeleccionados.has(elem.id)
                                                         return (
-                                                            <tr key={elem.id} className={sinInventario ? 'bg-amber-50/50' : 'hover:bg-slate-50'}>
+                                                            <tr
+                                                                key={elem.id}
+                                                                className={`${sinInventario ? 'bg-amber-50/50' : 'hover:bg-slate-50'} ${isSelected ? 'bg-blue-50' : ''}`}
+                                                            >
+                                                                {/* Checkbox para selección individual */}
+                                                                {canManage && !esCompletado && !esCancelado && (
+                                                                    <td className="px-3 py-3 text-center">
+                                                                        <input
+                                                                            type="checkbox"
+                                                                            className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                                                                            checked={isSelected}
+                                                                            onChange={() => handleToggleElemento(elem.id)}
+                                                                        />
+                                                                    </td>
+                                                                )}
                                                                 <td className="px-4 py-3">
                                                                     <p className="font-medium text-slate-900">
                                                                         {elem.elemento_nombre || elem.nombre}
@@ -1268,6 +1425,71 @@ export default function OrdenDetallePage() {
                                         <p className="text-slate-500 text-center py-4">
                                             No hay elementos asignados a esta orden
                                         </p>
+                                    )}
+
+                                    {/* ========================================
+                                        BARRA FLOTANTE DE ACCIONES MASIVAS
+                                        Aparece cuando hay elementos seleccionados
+                                    ======================================== */}
+                                    {elementosSeleccionados.size > 0 && canManage && (
+                                        <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg shadow-sm">
+                                            <div className="flex items-center justify-between gap-4">
+                                                <div className="flex items-center gap-3">
+                                                    <span className="text-sm font-medium text-blue-700">
+                                                        {elementosSeleccionados.size} elemento(s) seleccionado(s)
+                                                    </span>
+                                                    <button
+                                                        onClick={() => setElementosSeleccionados(new Set())}
+                                                        className="text-xs text-blue-600 hover:text-blue-800 underline"
+                                                    >
+                                                        Limpiar
+                                                    </button>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-xs text-slate-500 mr-2">Cambiar a:</span>
+                                                    <Button
+                                                        size="sm"
+                                                        color="amber"
+                                                        onClick={() => handleCambiarEstadoMasivo('preparado')}
+                                                        disabled={cambiarEstadoMasivo.isPending}
+                                                    >
+                                                        Preparado
+                                                    </Button>
+                                                    <Button
+                                                        size="sm"
+                                                        color="blue"
+                                                        onClick={() => handleCambiarEstadoMasivo('cargado')}
+                                                        disabled={cambiarEstadoMasivo.isPending}
+                                                    >
+                                                        Cargado
+                                                    </Button>
+                                                    <Button
+                                                        size="sm"
+                                                        color="purple"
+                                                        onClick={() => handleCambiarEstadoMasivo('instalado')}
+                                                        disabled={cambiarEstadoMasivo.isPending}
+                                                    >
+                                                        Instalado
+                                                    </Button>
+                                                    <Button
+                                                        size="sm"
+                                                        color="orange"
+                                                        onClick={() => handleCambiarEstadoMasivo('desmontado')}
+                                                        disabled={cambiarEstadoMasivo.isPending}
+                                                    >
+                                                        Desmontado
+                                                    </Button>
+                                                    <Button
+                                                        size="sm"
+                                                        color="green"
+                                                        onClick={() => handleCambiarEstadoMasivo('retornado')}
+                                                        disabled={cambiarEstadoMasivo.isPending}
+                                                    >
+                                                        Retornado
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        </div>
                                     )}
 
                                     {/* Botón asignar inventario si hay elementos pendientes */}

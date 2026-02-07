@@ -79,6 +79,51 @@ class OrdenElementoModel {
     }
 
     /**
+     * ============================================
+     * Cambiar estado de múltiples elementos a la vez
+     * Permite operaciones masivas para agilizar el proceso
+     * ============================================
+     * @param {number} ordenId - ID de la orden de trabajo
+     * @param {Array<number>} elementoIds - IDs de los registros en orden_trabajo_elementos
+     * @param {string} estado - Nuevo estado a aplicar
+     * @returns {Promise<Object>} - Cantidad de registros actualizados
+     */
+    static async cambiarEstadoMasivo(ordenId, elementoIds, estado) {
+        const estadosValidos = ['pendiente', 'preparado', 'cargado', 'instalado', 'desmontado', 'retornado', 'incidencia'];
+
+        if (!estadosValidos.includes(estado)) {
+            throw new AppError(`Estado inválido. Valores permitidos: ${estadosValidos.join(', ')}`, 400);
+        }
+
+        if (!Array.isArray(elementoIds) || elementoIds.length === 0) {
+            throw new AppError('Debe proporcionar al menos un elemento', 400);
+        }
+
+        // Verificar que todos los elementos pertenecen a la orden
+        const placeholders = elementoIds.map(() => '?').join(',');
+        const [existentes] = await pool.query(
+            `SELECT id FROM orden_trabajo_elementos WHERE orden_id = ? AND id IN (${placeholders})`,
+            [ordenId, ...elementoIds]
+        );
+
+        if (existentes.length !== elementoIds.length) {
+            throw new AppError('Algunos elementos no pertenecen a esta orden', 400);
+        }
+
+        // Actualizar todos los elementos
+        const [result] = await pool.query(`
+            UPDATE orden_trabajo_elementos
+            SET estado = ?, updated_at = NOW()
+            WHERE orden_id = ? AND id IN (${placeholders})
+        `, [estado, ordenId, ...elementoIds]);
+
+        return {
+            actualizados: result.affectedRows,
+            estado: estado
+        };
+    }
+
+    /**
      * Verificar salida de elemento
      * @param {number} elementoId
      * @param {number} verificadoPor

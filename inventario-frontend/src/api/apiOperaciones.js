@@ -232,6 +232,21 @@ const elementosAPI = {
     },
 
     /**
+     * Cambiar estado de múltiples elementos a la vez
+     * Permite operaciones masivas para agilizar el proceso
+     * @param {number} ordenId
+     * @param {Array<number>} elementoIds - IDs de los elementos a actualizar
+     * @param {string} estado - Nuevo estado a aplicar
+     */
+    cambiarEstadoMasivo: async (ordenId, elementoIds, estado) => {
+        const response = await api.put(
+            `/operaciones/ordenes/${ordenId}/elementos/estado-masivo`,
+            { elemento_ids: elementoIds, estado }
+        )
+        return response.data
+    },
+
+    /**
      * Reportar incidencia en elemento
      * @param {number} ordenId
      * @param {number} elementoId

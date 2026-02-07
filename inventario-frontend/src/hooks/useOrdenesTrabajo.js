@@ -271,6 +271,26 @@ export const useCambiarEstadoElemento = () => {
 }
 
 // ============================================
+// HOOK: useCambiarEstadoElementosMasivo
+// Cambia el estado de múltiples elementos a la vez
+// Permite operaciones masivas para agilizar el proceso
+// ============================================
+
+export const useCambiarEstadoElementosMasivo = () => {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: ({ ordenId, elementoIds, estado }) =>
+            elementosAPI.cambiarEstadoMasivo(ordenId, elementoIds, estado),
+        retry: 0,
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({ queryKey: ['ordenes', variables.ordenId, 'elementos'] })
+            queryClient.invalidateQueries({ queryKey: ['ordenes', variables.ordenId] })
+        }
+    })
+}
+
+// ============================================
 // HOOK: useReportarIncidencia
 // Reporta una incidencia en un elemento
 // ============================================

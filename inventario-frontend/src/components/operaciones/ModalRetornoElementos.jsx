@@ -261,15 +261,21 @@ const ModalRetornoElementos = ({
         }
     }, [isOpen, elementos])
 
-    // Calcular estadísticas
+    // ============================================
+    // CÁLCULO: Estadísticas y progreso de retorno
+    // ============================================
     const estadisticas = useMemo(() => {
         const buenos = retornos.filter(r => r.estado_retorno === 'bueno').length
         const danados = retornos.filter(r => r.estado_retorno === 'dañado').length
         const perdidos = retornos.filter(r => r.estado_retorno === 'perdido').length
         const totalDanos = retornos.reduce((sum, r) => sum + (r.costo_dano || 0), 0)
         const saldo = deposito - totalDanos
+        // Progreso: elementos con estado asignado
+        const marcados = retornos.filter(r => r.estado_retorno).length
+        const total = retornos.length
+        const porcentaje = total > 0 ? Math.round((marcados / total) * 100) : 0
 
-        return { buenos, danados, perdidos, totalDanos, saldo, total: retornos.length }
+        return { buenos, danados, perdidos, totalDanos, saldo, total, marcados, porcentaje }
     }, [retornos, deposito])
 
     // Handlers
@@ -300,12 +306,24 @@ const ModalRetornoElementos = ({
         )
     }
 
+    // ============================================
+    // HANDLER: Guardar con validación
+    // Advierte si hay elementos sin estado marcado
+    // ============================================
     const handleGuardar = async () => {
+        const sinMarcar = retornos.filter(r => !r.estado_retorno).length
+        if (sinMarcar > 0) {
+            const confirmar = window.confirm(
+                `Hay ${sinMarcar} elemento(s) sin estado marcado.\n\n¿Deseas continuar de todas formas?`
+            )
+            if (!confirmar) return
+        }
+
         setSaving(true)
         try {
             await onSave(retornos.map(r => ({
                 alquiler_elemento_id: r.alquiler_elemento_id,
-                estado_retorno: r.estado_retorno,
+                estado_retorno: r.estado_retorno || 'bueno', // Default a bueno si no marcado
                 costo_dano: r.costo_dano,
                 notas: r.notas
             })))
@@ -353,6 +371,28 @@ const ModalRetornoElementos = ({
             size="lg"
         >
             <div className="space-y-4">
+                {/* Indicador de progreso */}
+                <div className="bg-slate-100 rounded-lg p-3">
+                    <div className="flex items-center justify-between text-sm mb-2">
+                        <span className="font-medium text-slate-700">
+                            {estadisticas.marcados} de {estadisticas.total} elementos marcados
+                        </span>
+                        <span className={`font-bold ${
+                            estadisticas.porcentaje === 100 ? 'text-green-600' : 'text-slate-500'
+                        }`}>
+                            {estadisticas.porcentaje}%
+                        </span>
+                    </div>
+                    <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
+                        <div
+                            className={`h-full transition-all duration-300 ${
+                                estadisticas.porcentaje === 100 ? 'bg-green-500' : 'bg-orange-500'
+                            }`}
+                            style={{ width: `${estadisticas.porcentaje}%` }}
+                        />
+                    </div>
+                </div>
+
                 {/* Resumen global */}
                 <div className="bg-slate-50 rounded-lg p-4">
                     <div className="flex flex-wrap items-center justify-between gap-4">
