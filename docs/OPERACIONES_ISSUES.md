@@ -29,7 +29,7 @@ Revisar cómo se obtienen y muestran los elementos en `ModalRetornoElementos.jsx
 ---
 
 ## ISSUE #2: Selector de elementos - Reemplazar con Orden de Cargue
-**Estado:** Solución definida
+**Estado:** IMPLEMENTADO
 **Severidad:** Media (UX)
 **Archivos afectados:**
 - `inventario-frontend/src/pages/OrdenDetallePage.jsx`
