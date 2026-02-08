@@ -99,10 +99,10 @@ const ProductoItem = ({ producto, elementos, expanded, onToggle }) => {
                                     )}
                                 </div>
                                 <div className="col-span-2 text-center">
-                                    {elem.cantidad_lote || 1}
+                                    {elem.cantidad_lote || elem.cantidad || 1}
                                 </div>
                                 <div className="col-span-2 text-center">
-                                    <EstadoBadge estado={elem.estado_salida} />
+                                    <EstadoBadge estado={elem.estado_salida || elem.estado} />
                                 </div>
                             </div>
                         ))}
@@ -125,9 +125,17 @@ const ProductoItem = ({ producto, elementos, expanded, onToggle }) => {
 // ============================================
 const EstadoBadge = ({ estado }) => {
     const config = {
+        // Estados de alquiler_elementos
         nuevo: { bg: 'bg-green-100', text: 'text-green-700', label: 'Nuevo' },
         bueno: { bg: 'bg-blue-100', text: 'text-blue-700', label: 'Bueno' },
-        mantenimiento: { bg: 'bg-amber-100', text: 'text-amber-700', label: 'Mtto' }
+        mantenimiento: { bg: 'bg-amber-100', text: 'text-amber-700', label: 'Mtto' },
+        // Estados de orden_trabajo_elementos
+        pendiente: { bg: 'bg-amber-100', text: 'text-amber-700', label: 'Pendiente' },
+        cargado: { bg: 'bg-green-100', text: 'text-green-700', label: 'Cargado' },
+        descargado: { bg: 'bg-blue-100', text: 'text-blue-700', label: 'Descargado' },
+        instalado: { bg: 'bg-emerald-100', text: 'text-emerald-700', label: 'Instalado' },
+        verificado: { bg: 'bg-green-100', text: 'text-green-700', label: 'Verificado' },
+        con_problema: { bg: 'bg-red-100', text: 'text-red-700', label: 'Con problema' }
     }
     const c = config[estado] || { bg: 'bg-slate-100', text: 'text-slate-700', label: estado || '-' }
     return (
@@ -149,7 +157,7 @@ const ModalOrdenCargue = ({ isOpen, onClose, ordenId, ordenInfo, elementos, onCo
     const [expandedProducts, setExpandedProducts] = useState({})
     const cambiarEstadoMasivo = useCambiarEstadoElementosMasivo()
 
-    const { productos, alquilerElementos, resumenElementos, isLoading } = useGetOrdenCompleta(
+    const { productos, elementosCargue, resumenElementos, isLoading } = useGetOrdenCompleta(
         isOpen ? ordenId : null
     )
 
@@ -194,12 +202,13 @@ const ModalOrdenCargue = ({ isOpen, onClose, ordenId, ordenInfo, elementos, onCo
     }
 
     // Agrupar elementos por tipo para resumen
-    const resumenPorTipo = alquilerElementos.reduce((acc, elem) => {
+    const resumenPorTipo = elementosCargue.reduce((acc, elem) => {
         const nombre = elem.elemento_nombre || 'Sin nombre'
         if (!acc[nombre]) {
             acc[nombre] = { cantidad: 0, series: [], lotes: [] }
         }
-        acc[nombre].cantidad += elem.cantidad_lote || 1
+        // Soportar ambos campos: cantidad_lote (alquiler_elementos) y cantidad (orden_trabajo_elementos)
+        acc[nombre].cantidad += elem.cantidad_lote || elem.cantidad || 1
         if (elem.serie_codigo) acc[nombre].series.push(elem.serie_codigo)
         if (elem.lote_codigo) acc[nombre].lotes.push(elem.lote_codigo)
         return acc
@@ -267,7 +276,7 @@ const ModalOrdenCargue = ({ isOpen, onClose, ordenId, ordenInfo, elementos, onCo
                         <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 rounded-lg">
                             <Box className="w-4 h-4 text-emerald-600" />
                             <span className="text-sm font-medium text-emerald-700">
-                                {alquilerElementos.length} elementos
+                                {elementosCargue.length} elementos
                             </span>
                         </div>
                         <div className="flex-1" />
@@ -300,7 +309,7 @@ const ModalOrdenCargue = ({ isOpen, onClose, ordenId, ordenInfo, elementos, onCo
                                     <ProductoItem
                                         key={producto.id}
                                         producto={producto}
-                                        elementos={alquilerElementos}
+                                        elementos={elementosCargue}
                                         expanded={expandedProducts[producto.id]}
                                         onToggle={() => toggleProduct(producto.id)}
                                     />

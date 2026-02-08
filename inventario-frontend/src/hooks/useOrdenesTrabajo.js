@@ -84,6 +84,8 @@ export const useGetOrdenCompleta = (id, options = {}) => {
         ordenCompleta: data?.data || null,
         productos: data?.data?.productos || [],
         alquilerElementos: data?.data?.alquiler_elementos || [],
+        ordenElementos: data?.data?.orden_elementos || [],
+        elementosCargue: data?.data?.elementos_cargue || [], // Elementos para modal de cargue
         resumenCotizacion: data?.data?.resumen_cotizacion || null,
         resumenElementos: data?.data?.resumen_elementos || null,
         isLoading,
