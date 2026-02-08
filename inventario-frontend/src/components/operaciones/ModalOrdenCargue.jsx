@@ -71,7 +71,7 @@ const ProductoItem = ({ producto, elementos, expanded, onToggle }) => {
                     <div className="px-4 py-2 bg-slate-100 border-b border-slate-200">
                         <div className="grid grid-cols-12 gap-2 text-xs font-medium text-slate-600">
                             <div className="col-span-5">Elemento</div>
-                            <div className="col-span-3">Serie/Lote</div>
+                            <div className="col-span-3">Serie</div>
                             <div className="col-span-2 text-center">Cantidad</div>
                             <div className="col-span-2 text-center">Estado</div>
                         </div>
@@ -88,11 +88,6 @@ const ProductoItem = ({ producto, elementos, expanded, onToggle }) => {
                                         <span className="flex items-center gap-1 text-xs">
                                             <Hash className="w-3 h-3 text-slate-400" />
                                             {elem.serie_codigo}
-                                        </span>
-                                    ) : elem.lote_codigo ? (
-                                        <span className="flex items-center gap-1 text-xs">
-                                            <Layers className="w-3 h-3 text-slate-400" />
-                                            {elem.lote_codigo}
                                         </span>
                                     ) : (
                                         <span className="text-xs text-slate-400">-</span>
@@ -205,12 +200,12 @@ const ModalOrdenCargue = ({ isOpen, onClose, ordenId, ordenInfo, elementos, onCo
     const resumenPorTipo = elementosCargue.reduce((acc, elem) => {
         const nombre = elem.elemento_nombre || 'Sin nombre'
         if (!acc[nombre]) {
-            acc[nombre] = { cantidad: 0, series: [], lotes: [] }
+            acc[nombre] = { cantidad: 0, series: [] }
         }
         // Soportar ambos campos: cantidad_lote (alquiler_elementos) y cantidad (orden_trabajo_elementos)
         acc[nombre].cantidad += elem.cantidad_lote || elem.cantidad || 1
+        // Solo mostrar números de serie, no de lote
         if (elem.serie_codigo) acc[nombre].series.push(elem.serie_codigo)
-        if (elem.lote_codigo) acc[nombre].lotes.push(elem.lote_codigo)
         return acc
     }, {})
 
@@ -334,7 +329,7 @@ const ModalOrdenCargue = ({ isOpen, onClose, ordenId, ordenInfo, elementos, onCo
                                     <div className="grid grid-cols-12 gap-2 text-xs font-medium text-slate-600">
                                         <div className="col-span-6">Elemento</div>
                                         <div className="col-span-2 text-center">Cantidad</div>
-                                        <div className="col-span-4">Series/Lotes</div>
+                                        <div className="col-span-4">Series</div>
                                     </div>
                                 </div>
                                 <div className="divide-y divide-slate-200">
@@ -347,9 +342,7 @@ const ModalOrdenCargue = ({ isOpen, onClose, ordenId, ordenInfo, elementos, onCo
                                                 </span>
                                             </div>
                                             <div className="col-span-4 text-xs text-slate-500 truncate">
-                                                {data.series.length > 0 && data.series.join(', ')}
-                                                {data.lotes.length > 0 && data.lotes.join(', ')}
-                                                {data.series.length === 0 && data.lotes.length === 0 && '-'}
+                                                {data.series.length > 0 ? data.series.join(', ') : '-'}
                                             </div>
                                         </div>
                                     ))}
