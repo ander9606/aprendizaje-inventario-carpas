@@ -745,10 +745,9 @@ export default function OrdenDetallePage() {
     const { elementos, isLoading: loadingElementos } = useGetElementosOrden(id)
     const { alertas: alertasOrden } = useGetAlertasOrden(id)
 
-    // Obtener orden completa para modal de retorno (productos y depósito)
-    const { productos, alquilerElementos, resumenCotizacion } = useGetOrdenCompleta(id, {
-        enabled: showModalRetorno // Solo cargar cuando se abre el modal
-    })
+    // Obtener orden completa: productos, elementos y depósito
+    // Se carga siempre para mostrar productos y validar estado de cargue
+    const { productos, alquilerElementos, elementosCargue, resumenCotizacion } = useGetOrdenCompleta(id)
 
     // ============================================
     // HOOKS: Mutaciones
@@ -984,6 +983,31 @@ export default function OrdenDetallePage() {
         e => !e.serie_id && !e.lote_id
     )
     const hayElementosSinInventario = elementosPendientesInv.length > 0
+
+    // Verificar estado de cargue para transiciones estrictas
+    const elementosCargados = (elementos || []).filter(e => e.estado === 'cargado')
+    const todosElementosCargados = elementos?.length > 0 && elementosCargados.length === elementos.length
+    const algunElementoCargado = elementosCargados.length > 0
+    const elementosPendientesCargue = (elementos || []).filter(e => e.estado !== 'cargado')
+
+    // Agrupar elementos por producto para vista resumida
+    const productosConEstado = (productos || []).map(producto => {
+        const elementosDelProducto = (elementosCargue || []).filter(
+            e => e.compuesto_id === producto.compuesto_id
+        )
+        const totalElementos = elementosDelProducto.length
+        const cargados = elementosDelProducto.filter(e =>
+            e.estado === 'cargado' || e.estado_salida === 'cargado'
+        ).length
+
+        return {
+            ...producto,
+            totalElementos,
+            cargados,
+            listoParaCargar: totalElementos > 0 && cargados === totalElementos,
+            sinAsignar: totalElementos === 0
+        }
+    })
 
     // Detectar alertas de stock disponible (notificación de que el inventario volvió)
     const alertaStockDisponible = (alertasOrden || []).find(
@@ -1259,7 +1283,7 @@ export default function OrdenDetallePage() {
                             </div>
                         )}
 
-                        {/* ELEMENTOS DE LA ORDEN */}
+                        {/* PRODUCTOS DE LA ORDEN */}
                         <div className="bg-white rounded-xl border border-slate-200">
                             <button
                                 onClick={() => setExpandElementos(!expandElementos)}
@@ -1267,9 +1291,14 @@ export default function OrdenDetallePage() {
                             >
                                 <div className="flex items-center gap-3">
                                     <Package className="w-5 h-5 text-slate-400" />
-                                    <h2 className="text-lg font-semibold text-slate-900">
-                                        Elementos ({elementos?.length || 0})
-                                    </h2>
+                                    <div>
+                                        <h2 className="text-lg font-semibold text-slate-900">
+                                            Productos ({productosConEstado?.length || 0})
+                                        </h2>
+                                        <p className="text-sm text-slate-500">
+                                            {elementos?.length || 0} elementos en total
+                                        </p>
+                                    </div>
                                 </div>
                                 {expandElementos ? (
                                     <ChevronUp className="w-5 h-5 text-slate-400" />
@@ -1283,72 +1312,67 @@ export default function OrdenDetallePage() {
                                         <div className="py-4 text-center">
                                             <Spinner size="sm" />
                                         </div>
+                                    ) : productosConEstado?.length > 0 ? (
+                                        <div className="space-y-3">
+                                            {productosConEstado.map((producto) => (
+                                                <div
+                                                    key={producto.id}
+                                                    className={`border rounded-lg p-4 transition-colors ${
+                                                        producto.listoParaCargar
+                                                            ? 'border-green-200 bg-green-50/50'
+                                                            : producto.sinAsignar
+                                                            ? 'border-amber-200 bg-amber-50/50'
+                                                            : 'border-slate-200 hover:bg-slate-50'
+                                                    }`}
+                                                >
+                                                    <div className="flex items-center justify-between">
+                                                        <div className="flex items-center gap-3">
+                                                            <span className="text-2xl">{producto.categoria_emoji || '📦'}</span>
+                                                            <div>
+                                                                <p className="font-medium text-slate-900">
+                                                                    {producto.cantidad}x {producto.producto_nombre}
+                                                                </p>
+                                                                <p className="text-sm text-slate-500">
+                                                                    {producto.categoria_nombre}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                        <div className="text-right">
+                                                            {producto.listoParaCargar ? (
+                                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
+                                                                    <CheckCircle className="w-4 h-4" />
+                                                                    Listo - {producto.totalElementos} elem.
+                                                                </span>
+                                                            ) : producto.sinAsignar ? (
+                                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-100 text-amber-700 rounded-full text-sm font-medium">
+                                                                    <AlertTriangle className="w-4 h-4" />
+                                                                    Sin asignar
+                                                                </span>
+                                                            ) : producto.cargados > 0 ? (
+                                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
+                                                                    <Box className="w-4 h-4" />
+                                                                    {producto.cargados}/{producto.totalElementos} cargados
+                                                                </span>
+                                                            ) : (
+                                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 text-slate-600 rounded-full text-sm font-medium">
+                                                                    <Clock className="w-4 h-4" />
+                                                                    {producto.totalElementos} pendientes
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
                                     ) : elementos?.length > 0 ? (
-                                        <div className="border border-slate-200 rounded-lg overflow-hidden">
-                                            <table className="w-full">
-                                                <thead className="bg-slate-50">
-                                                    <tr>
-                                                        <th className="px-4 py-3 text-left text-sm font-medium text-slate-600">
-                                                            Elemento
-                                                        </th>
-                                                        <th className="px-4 py-3 text-center text-sm font-medium text-slate-600">
-                                                            Cantidad
-                                                        </th>
-                                                        <th className="px-4 py-3 text-center text-sm font-medium text-slate-600">
-                                                            Estado
-                                                        </th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody className="divide-y divide-slate-100">
-                                                    {elementos.map((elem) => {
-                                                        const sinInventario = !elem.serie_id && !elem.lote_id
-                                                        return (
-                                                            <tr
-                                                                key={elem.id}
-                                                                className={sinInventario ? 'bg-amber-50/50' : 'hover:bg-slate-50'}
-                                                            >
-                                                                <td className="px-4 py-3">
-                                                                    <p className="font-medium text-slate-900">
-                                                                        {elem.elemento_nombre || elem.nombre}
-                                                                    </p>
-                                                                    {elem.numero_serie && (
-                                                                        <p className="text-sm text-slate-500">
-                                                                            Serie: {elem.numero_serie}
-                                                                        </p>
-                                                                    )}
-                                                                    {elem.lote_numero && (
-                                                                        <p className="text-sm text-slate-500">
-                                                                            Lote: {elem.lote_numero}
-                                                                        </p>
-                                                                    )}
-                                                                    {sinInventario && !esCompletado && !esCancelado && (
-                                                                        <p className="text-xs text-amber-600 font-medium mt-0.5 flex items-center gap-1">
-                                                                            <AlertTriangle className="w-3 h-3" />
-                                                                            Sin inventario asignado
-                                                                        </p>
-                                                                    )}
-                                                                </td>
-                                                                <td className="px-4 py-3 text-center">
-                                                                    {elem.cantidad || 1}
-                                                                </td>
-                                                                <td className="px-4 py-3 text-center">
-                                                                    <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${
-                                                                        elem.estado === 'completado' || elem.estado === 'retornado'
-                                                                            ? 'bg-green-100 text-green-700'
-                                                                            : elem.estado === 'con_problema' || elem.estado === 'incidencia'
-                                                                            ? 'bg-red-100 text-red-700'
-                                                                            : elem.estado === 'preparado' || elem.estado === 'cargado' || elem.estado === 'instalado'
-                                                                            ? 'bg-blue-100 text-blue-700'
-                                                                            : 'bg-yellow-100 text-yellow-700'
-                                                                    }`}>
-                                                                        {elem.estado || 'pendiente'}
-                                                                    </span>
-                                                                </td>
-                                                            </tr>
-                                                        )
-                                                    })}
-                                                </tbody>
-                                            </table>
+                                        // Fallback: mostrar resumen simple si no hay productos
+                                        <div className="p-4 bg-slate-50 rounded-lg text-center">
+                                            <p className="text-slate-600">
+                                                <span className="font-medium">{elementos.length}</span> elementos asignados
+                                            </p>
+                                            <p className="text-sm text-slate-500 mt-1">
+                                                {elementosCargados.length} cargados, {elementosPendientesCargue.length} pendientes
+                                            </p>
                                         </div>
                                     ) : (
                                         <p className="text-slate-500 text-center py-4">
@@ -1358,21 +1382,46 @@ export default function OrdenDetallePage() {
 
                                     {/* Botón Ver Orden de Cargue - Solo en preparación con inventario asignado */}
                                     {orden.estado === 'en_preparacion' && orden.tipo === 'montaje' && !hayElementosSinInventario && elementos?.length > 0 && canManage && (
-                                        <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                        <div className={`mt-4 p-4 rounded-lg border ${
+                                            todosElementosCargados
+                                                ? 'bg-green-50 border-green-200'
+                                                : 'bg-blue-50 border-blue-200'
+                                        }`}>
                                             <div className="flex items-center justify-between gap-3">
                                                 <div className="flex items-center gap-2">
-                                                    <Truck className="w-4 h-4 text-blue-500 shrink-0" />
-                                                    <p className="text-sm text-blue-700">
-                                                        <span className="font-medium">{elementos.length} elemento(s)</span> listos para cargar
-                                                    </p>
+                                                    {todosElementosCargados ? (
+                                                        <>
+                                                            <CheckCircle className="w-5 h-5 text-green-600 shrink-0" />
+                                                            <div>
+                                                                <p className="text-sm font-medium text-green-800">
+                                                                    Cargue confirmado
+                                                                </p>
+                                                                <p className="text-xs text-green-600">
+                                                                    {elementos.length} elemento(s) listos para salida
+                                                                </p>
+                                                            </div>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <Truck className="w-5 h-5 text-blue-600 shrink-0" />
+                                                            <div>
+                                                                <p className="text-sm font-medium text-blue-800">
+                                                                    Pendiente confirmar cargue
+                                                                </p>
+                                                                <p className="text-xs text-blue-600">
+                                                                    {elementosPendientesCargue.length} de {elementos.length} elemento(s) sin confirmar
+                                                                </p>
+                                                            </div>
+                                                        </>
+                                                    )}
                                                 </div>
                                                 <Button
-                                                    color="blue"
+                                                    color={todosElementosCargados ? 'green' : 'blue'}
                                                     icon={Truck}
                                                     size="sm"
                                                     onClick={() => setShowModalOrdenCargue(true)}
                                                 >
-                                                    Ver Orden de Cargue
+                                                    {todosElementosCargados ? 'Ver Detalle' : 'Confirmar Cargue'}
                                                 </Button>
                                             </div>
                                         </div>
@@ -1380,13 +1429,18 @@ export default function OrdenDetallePage() {
 
                                     {/* Botón asignar inventario si hay elementos pendientes */}
                                     {hayElementosSinInventario && canManage && !esCompletado && !esCancelado && (
-                                        <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                                        <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
                                             <div className="flex items-center justify-between gap-3">
                                                 <div className="flex items-center gap-2">
-                                                    <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
-                                                    <p className="text-sm text-amber-700">
-                                                        <span className="font-medium">{elementosPendientesInv.length} elemento(s)</span> sin inventario del almacen
-                                                    </p>
+                                                    <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0" />
+                                                    <div>
+                                                        <p className="text-sm font-medium text-amber-800">
+                                                            Inventario pendiente
+                                                        </p>
+                                                        <p className="text-xs text-amber-600">
+                                                            {elementosPendientesInv.length} elemento(s) sin asignar del almacen
+                                                        </p>
+                                                    </div>
                                                 </div>
                                                 <Button
                                                     color="orange"
@@ -1467,16 +1521,17 @@ export default function OrdenDetallePage() {
 
                                     {orden.estado === 'en_preparacion' && orden.tipo === 'montaje' && (
                                         <>
+                                            {/* Paso 1: Asignar inventario */}
                                             {hayElementosSinInventario ? (
                                                 <div className="space-y-2">
                                                     <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
                                                         <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
                                                         <div>
                                                             <p className="text-sm text-amber-700 font-medium">
-                                                                No se puede despachar
+                                                                Paso 1: Asignar inventario
                                                             </p>
                                                             <p className="text-xs text-amber-600 mt-0.5">
-                                                                {elementosPendientesInv.length} elemento(s) sin inventario asignado del almacen
+                                                                {elementosPendientesInv.length} elemento(s) sin inventario del almacen
                                                             </p>
                                                         </div>
                                                     </div>
@@ -1489,16 +1544,53 @@ export default function OrdenDetallePage() {
                                                         Asignar Inventario
                                                     </Button>
                                                 </div>
+                                            ) : !todosElementosCargados ? (
+                                                /* Paso 2: Confirmar cargue */
+                                                <div className="space-y-2">
+                                                    <div className="flex items-start gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                                        <Truck className="w-4 h-4 text-blue-500 mt-0.5 shrink-0" />
+                                                        <div>
+                                                            <p className="text-sm text-blue-700 font-medium">
+                                                                Paso 2: Confirmar cargue
+                                                            </p>
+                                                            <p className="text-xs text-blue-600 mt-0.5">
+                                                                {elementosPendientesCargue.length} de {elementos?.length} elemento(s) sin confirmar
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    <Button
+                                                        color="blue"
+                                                        icon={Truck}
+                                                        className="w-full"
+                                                        onClick={() => setShowModalOrdenCargue(true)}
+                                                    >
+                                                        Confirmar Cargue
+                                                    </Button>
+                                                </div>
                                             ) : (
-                                                <Button
-                                                    color="green"
-                                                    icon={LogOut}
-                                                    className="w-full"
-                                                    onClick={handleEjecutarSalida}
-                                                    disabled={ejecutandoSalida || !elementos?.length}
-                                                >
-                                                    {ejecutandoSalida ? 'Ejecutando...' : 'Ejecutar Salida'}
-                                                </Button>
+                                                /* Paso 3: Ejecutar salida */
+                                                <div className="space-y-2">
+                                                    <div className="flex items-start gap-2 p-3 bg-green-50 border border-green-200 rounded-lg">
+                                                        <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 shrink-0" />
+                                                        <div>
+                                                            <p className="text-sm text-green-700 font-medium">
+                                                                Listo para salida
+                                                            </p>
+                                                            <p className="text-xs text-green-600 mt-0.5">
+                                                                {elementos?.length} elemento(s) cargados y verificados
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    <Button
+                                                        color="green"
+                                                        icon={LogOut}
+                                                        className="w-full"
+                                                        onClick={handleEjecutarSalida}
+                                                        disabled={ejecutandoSalida}
+                                                    >
+                                                        {ejecutandoSalida ? 'Ejecutando...' : 'Ejecutar Salida'}
+                                                    </Button>
+                                                </div>
                                             )}
                                             {!elementos?.length && !hayElementosSinInventario && (
                                                 <div className="flex items-center gap-2 p-2 bg-amber-50 border border-amber-200 rounded-lg">
