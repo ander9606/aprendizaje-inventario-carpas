@@ -327,7 +327,7 @@ const SeccionEventos = ({ titulo, subtitulo, eventos, navigate, emptyMessage }) 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {eventos.map((evento, idx) => (
                     <EventoCard
-                        key={evento.alquiler_id || idx}
+                        key={evento.id || evento.alquiler_id || idx}
                         evento={evento}
                         navigate={navigate}
                     />
@@ -562,7 +562,7 @@ export default function OperacionesDashboard() {
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                                 {eventosHoyFinalizados.map((evento, idx) => (
                                                     <EventoCard
-                                                        key={evento.alquiler_id || `hoy-${idx}`}
+                                                        key={evento.id || `hoy-${idx}`}
                                                         evento={evento}
                                                         navigate={navigate}
                                                     />
@@ -578,7 +578,7 @@ export default function OperacionesDashboard() {
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                                 {eventosRestaSemanaFinalizados.map((evento, idx) => (
                                                     <EventoCard
-                                                        key={evento.alquiler_id || `semana-${idx}`}
+                                                        key={evento.id || `semana-${idx}`}
                                                         evento={evento}
                                                         navigate={navigate}
                                                     />
