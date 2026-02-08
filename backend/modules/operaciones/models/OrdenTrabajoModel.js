@@ -339,13 +339,11 @@ class OrdenTrabajoModel {
                     ote.estado,
                     e.nombre as elemento_nombre,
                     s.numero_serie as serie_codigo,
-                    l.lote_numero as lote_codigo,
-                    ecc.compuesto_id
+                    l.lote_numero as lote_codigo
                 FROM orden_trabajo_elementos ote
                 INNER JOIN elementos e ON ote.elemento_id = e.id
                 LEFT JOIN series s ON ote.serie_id = s.id
                 LEFT JOIN lotes l ON ote.lote_id = l.id
-                LEFT JOIN elemento_compuesto_componentes ecc ON ecc.elemento_id = ote.elemento_id
                 WHERE ote.orden_id = ?
                 ORDER BY e.nombre
             `, [id])
