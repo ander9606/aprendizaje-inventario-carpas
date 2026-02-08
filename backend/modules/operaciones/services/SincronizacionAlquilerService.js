@@ -700,6 +700,19 @@ class SincronizacionAlquilerService {
       logger.info(`[SincronizacionAlquilerService] Elementos a despachar: ${elementosOrden.length}`);
 
       // ---------------------------------------------------------------------
+      // PASO 2.5: Limpiar registros previos en alquiler_elementos
+      // Esto permite reintentar salidas que fallaron parcialmente
+      // ---------------------------------------------------------------------
+      const [deleteResult] = await connection.query(
+        'DELETE FROM alquiler_elementos WHERE alquiler_id = ?',
+        [alquilerId]
+      );
+
+      if (deleteResult.affectedRows > 0) {
+        logger.debug(`[SincronizacionAlquilerService] Eliminados ${deleteResult.affectedRows} registros previos en alquiler_elementos`);
+      }
+
+      // ---------------------------------------------------------------------
       // PASO 3: Procesar cada elemento
       // ---------------------------------------------------------------------
       const resumen = {
