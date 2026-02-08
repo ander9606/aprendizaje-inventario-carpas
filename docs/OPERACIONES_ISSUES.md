@@ -5,7 +5,7 @@ Este documento registra los issues encontrados durante las pruebas para revisió
 ---
 
 ## ISSUE #1: Modal de Retorno - Lotes como unidades individuales
-**Estado:** IMPLEMENTADO
+**Estado:** IMPLEMENTADO ✅
 **Severidad:** Media
 **Archivo afectado:** `inventario-frontend/src/components/operaciones/ModalRetornoElementos.jsx`
 
@@ -29,51 +29,71 @@ Se creó un nuevo componente `ElementoLoteRetornoItem` que:
 - Muestra advertencia visual si la suma no cuadra
 - Incluye botón rápido "Todos OK" para resetear a todos buenos
 - Las estadísticas del modal ahora cuentan unidades reales, no solo elementos
+- **UX mejorada**: Al cambiar dañados/perdidos, buenos se auto-ajusta automáticamente
 
 ---
 
 ## ISSUE #2: Selector de elementos - Reemplazar con Orden de Cargue
-**Estado:** IMPLEMENTADO
+**Estado:** IMPLEMENTADO ✅
 **Severidad:** Media (UX)
 **Archivos afectados:**
 - `inventario-frontend/src/pages/OrdenDetallePage.jsx`
-- Nuevo: `ModalOrdenCargue.jsx`
+- `inventario-frontend/src/components/operaciones/ModalOrdenCargue.jsx`
+- `backend/modules/operaciones/models/OrdenTrabajoModel.js`
 
 ### Descripción
 Los checkboxes de selección de elementos no aportan al flujo de trabajo real. Los operadores necesitan saber QUÉ cargar, no marcar elemento por elemento.
 
-### Solución acordada: "Orden de Cargue"
-Crear un documento/modal que muestre:
+### Solución implementada: "Orden de Cargue"
+Modal que muestra:
 - Lista de elementos con cantidades necesarias
 - Agrupado por tipo de producto
-- Un solo botón: **"Revisado y Cargado"**
+- Lotes y series asignados del inventario real
+- Un solo botón: **"Confirmar Cargue"**
 
-### Flujo propuesto
-```
-1. Operador abre "Ver Orden de Cargue"
-2. Ve la lista completa:
-   - Carpa 6x12: 1 unidad (Serie: ABC-001)
-   - Estacas 1m: 11 unidades (Lote: 001)
-   - Postes perimetrales: 10 unidades (Lote: 001)
-   - etc.
-3. Revisa físicamente que todo esté en el camión
-4. Presiona "Confirmar Cargue"
-5. Sistema marca TODOS los elementos como "cargado"
-```
-
-### Cambios a realizar
-1. **Eliminar**: Checkboxes de selección individual en tabla de elementos
-2. **Eliminar**: Barra flotante de acciones masivas
-3. **Crear**: `ModalOrdenCargue.jsx` con lista de elementos y botón de confirmación
-4. **Agregar**: Botón "Ver Orden de Cargue" en estado `en_preparacion`
-5. **Opcional**: Permitir imprimir/exportar la orden de cargue
-
-### Beneficios
-- Más simple para el operador
-- Flujo más natural (revisar lista → confirmar)
-- Menos clics
-- Posibilidad de imprimir para llevar al almacén
+### Correcciones aplicadas (2026-02-08)
+- **Bug fix**: El "Resumen de Cargue" mostraba "-" porque usaba `alquiler_elementos` (vacío antes de salida)
+- **Solución**: Ahora usa `orden_trabajo_elementos` que tiene los lotes/series asignados
+- **Nuevo campo**: `elementos_cargue` en el backend que usa la fuente correcta según el estado
 
 ---
 
-*Última actualización: 2026-02-07*
+## ISSUE #3: Error "Duplicate entry" al ejecutar salida
+**Estado:** CORREGIDO ✅
+**Severidad:** Alta
+**Archivo afectado:** `backend/modules/operaciones/services/SincronizacionAlquilerService.js`
+
+### Descripción
+Al ejecutar la salida, si un intento previo falló parcialmente, quedaban registros huérfanos en `alquiler_elementos` que causaban error de duplicate key.
+
+### Error
+```
+Duplicate entry '6-13' for key 'alquiler_elementos.uk_alquiler_serie'
+```
+
+### Solución implementada
+Se agregó limpieza de registros previos en `ejecutarSalida()` (líneas 702-713):
+```javascript
+// PASO 2.5: Limpiar registros previos en alquiler_elementos
+const [deleteResult] = await connection.query(
+  'DELETE FROM alquiler_elementos WHERE alquiler_id = ?',
+  [alquilerId]
+);
+```
+
+---
+
+## ISSUE #4: Error "Unknown column 'cantidad_disponible'"
+**Estado:** CORREGIDO ✅
+**Severidad:** Alta
+**Archivo afectado:** `backend/modules/operaciones/services/SincronizacionAlquilerService.js`
+
+### Descripción
+El servicio usaba `cantidad_disponible` pero la tabla `lotes` usa `cantidad`.
+
+### Solución
+Cambiados todos los UPDATE de lotes para usar `cantidad` en lugar de `cantidad_disponible`.
+
+---
+
+*Última actualización: 2026-02-08*
