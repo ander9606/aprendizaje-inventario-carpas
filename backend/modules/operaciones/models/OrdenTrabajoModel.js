@@ -261,7 +261,9 @@ class OrdenTrabajoModel {
                 cotizacion: null,
                 productos: [],
                 transporte: [],
-                alquiler_elementos: []
+                alquiler_elementos: [],
+                orden_elementos: [],
+                elementos_cargue: []
             };
         }
 
