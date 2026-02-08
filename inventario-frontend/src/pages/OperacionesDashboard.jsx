@@ -628,11 +628,11 @@ export default function OperacionesDashboard() {
 
                         {alertasPendientes?.length > 0 ? (
                             <div className="divide-y divide-slate-100">
-                                {alertasPendientes.slice(0, 5).map((alerta) => {
+                                {alertasPendientes.slice(0, 5).map((alerta, idx) => {
                                     const esStockDisponible = alerta.tipo === 'stock_disponible'
                                     return (
                                         <div
-                                            key={alerta.id}
+                                            key={alerta.id || `alerta-${idx}`}
                                             onClick={() => {
                                                 if (alerta.orden_id) {
                                                     navigate(`/operaciones/ordenes/${alerta.orden_id}`)
