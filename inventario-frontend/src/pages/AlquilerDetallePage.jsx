@@ -22,7 +22,9 @@ import {
   LogIn,
   Printer,
   MoreVertical,
-  ExternalLink
+  ExternalLink,
+  RefreshCw,
+  ChevronRight
 } from 'lucide-react'
 import {
   useGetAlquilerCompleto,
@@ -124,6 +126,20 @@ export default function AlquilerDetallePage() {
     return new Date() > new Date(alquiler.fecha_retorno_esperado)
   }
 
+  const getOrdenEstadoConfig = (estado) => {
+    const configs = {
+      pendiente: { label: 'Pendiente', icon: Clock, bg: 'bg-yellow-100', text: 'text-yellow-700', border: 'border-yellow-200' },
+      confirmado: { label: 'Confirmado', icon: CheckCircle, bg: 'bg-indigo-100', text: 'text-indigo-700', border: 'border-indigo-200' },
+      en_preparacion: { label: 'Preparación', icon: Package, bg: 'bg-purple-100', text: 'text-purple-700', border: 'border-purple-200' },
+      en_ruta: { label: 'En ruta', icon: Truck, bg: 'bg-cyan-100', text: 'text-cyan-700', border: 'border-cyan-200' },
+      en_sitio: { label: 'En sitio', icon: MapPin, bg: 'bg-amber-100', text: 'text-amber-700', border: 'border-amber-200' },
+      en_proceso: { label: 'En proceso', icon: RefreshCw, bg: 'bg-blue-100', text: 'text-blue-700', border: 'border-blue-200' },
+      completado: { label: 'Completado', icon: CheckCircle, bg: 'bg-green-100', text: 'text-green-700', border: 'border-green-200' },
+      cancelado: { label: 'Cancelado', icon: XCircle, bg: 'bg-red-100', text: 'text-red-700', border: 'border-red-200' }
+    }
+    return configs[estado] || configs.pendiente
+  }
+
   // ============================================
   // HANDLERS
   // ============================================
@@ -223,28 +239,6 @@ export default function AlquilerDetallePage() {
 
             {/* Acciones */}
             <div className="flex items-center gap-2">
-              {/* Ver Órdenes de Trabajo (gestionadas en Operaciones) */}
-              {alquiler.orden_montaje_id && (
-                <Link to={`/operaciones/ordenes/${alquiler.orden_montaje_id}`}>
-                  <Button
-                    variant="secondary"
-                    icon={<ExternalLink className="w-4 h-4" />}
-                  >
-                    Ver Orden Montaje
-                  </Button>
-                </Link>
-              )}
-              {alquiler.orden_desmontaje_id && (
-                <Link to={`/operaciones/ordenes/${alquiler.orden_desmontaje_id}`}>
-                  <Button
-                    variant="secondary"
-                    icon={<ExternalLink className="w-4 h-4" />}
-                  >
-                    Ver Orden Desmontaje
-                  </Button>
-                </Link>
-              )}
-
               {/* Menú de más acciones */}
               <div className="relative">
                 <Button
@@ -262,9 +256,12 @@ export default function AlquilerDetallePage() {
                       <button
                         className="w-full px-4 py-2 text-left text-sm hover:bg-slate-50 flex items-center gap-2"
                         onClick={() => {
-                          // TODO: Implementar ver cotización
-                          toast.info('Funcionalidad en desarrollo')
                           setShowMenuAcciones(false)
+                          if (alquiler.cotizacion_id) {
+                            navigate('/alquileres/cotizaciones')
+                          } else {
+                            toast.info('Cotización no disponible')
+                          }
                         }}
                       >
                         <FileText className="w-4 h-4" />
@@ -372,6 +369,66 @@ export default function AlquilerDetallePage() {
                 )}
               </div>
             </div>
+
+            {/* Estado de Órdenes de Trabajo */}
+            {(alquiler.orden_montaje_id || alquiler.orden_desmontaje_id) && (
+              <div className="bg-white rounded-xl border border-slate-200 p-6">
+                <h2 className="text-lg font-semibold text-slate-900 mb-4">
+                  Órdenes de Trabajo
+                </h2>
+                <div className="space-y-3">
+                  {/* Orden de Montaje */}
+                  {alquiler.orden_montaje_id && (() => {
+                    const cfg = getOrdenEstadoConfig(alquiler.orden_montaje_estado)
+                    const Icon = cfg.icon
+                    return (
+                      <Link
+                        to={`/operaciones/ordenes/${alquiler.orden_montaje_id}`}
+                        className="flex items-center gap-4 p-4 border border-slate-200 rounded-lg hover:border-slate-300 hover:bg-slate-50 transition-colors group"
+                      >
+                        <div className="p-2.5 bg-emerald-50 rounded-lg">
+                          <Package className="w-5 h-5 text-emerald-600" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-slate-900">Montaje</p>
+                          <p className="text-sm text-slate-500">Orden #{alquiler.orden_montaje_id}</p>
+                        </div>
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${cfg.bg} ${cfg.text} ${cfg.border}`}>
+                          <Icon className="w-3.5 h-3.5" />
+                          {cfg.label}
+                        </span>
+                        <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-orange-500 transition-colors" />
+                      </Link>
+                    )
+                  })()}
+
+                  {/* Orden de Desmontaje */}
+                  {alquiler.orden_desmontaje_id && (() => {
+                    const cfg = getOrdenEstadoConfig(alquiler.orden_desmontaje_estado)
+                    const Icon = cfg.icon
+                    return (
+                      <Link
+                        to={`/operaciones/ordenes/${alquiler.orden_desmontaje_id}`}
+                        className="flex items-center gap-4 p-4 border border-slate-200 rounded-lg hover:border-slate-300 hover:bg-slate-50 transition-colors group"
+                      >
+                        <div className="p-2.5 bg-orange-50 rounded-lg">
+                          <Truck className="w-5 h-5 text-orange-600" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-slate-900">Desmontaje</p>
+                          <p className="text-sm text-slate-500">Orden #{alquiler.orden_desmontaje_id}</p>
+                        </div>
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${cfg.bg} ${cfg.text} ${cfg.border}`}>
+                          <Icon className="w-3.5 h-3.5" />
+                          {cfg.label}
+                        </span>
+                        <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-orange-500 transition-colors" />
+                      </Link>
+                    )
+                  })()}
+                </div>
+              </div>
+            )}
 
             {/* Resumen Financiero */}
             <div className="bg-white rounded-xl border border-slate-200 p-6">

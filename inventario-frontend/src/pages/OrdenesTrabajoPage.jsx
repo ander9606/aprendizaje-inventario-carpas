@@ -27,7 +27,9 @@ import {
     ArrowRightLeft,
     ClipboardCheck,
     ClipboardList,
-    Boxes
+    Boxes,
+    AlertTriangle,
+    ExternalLink
 } from 'lucide-react'
 import { useGetOrdenes, useCrearOrdenManual } from '../hooks/useOrdenesTrabajo'
 import { useAuth } from '../hooks/auth/useAuth'
@@ -213,13 +215,22 @@ const OrdenRow = ({ orden, tipo, navigate }) => {
                     <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold border ${config.color}`}>
                         {config.label}
                     </span>
+                    {orden.prioridad && orden.prioridad !== 'normal' && (
+                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                            orden.prioridad === 'urgente' ? 'bg-red-50 text-red-600 border border-red-200'
+                            : orden.prioridad === 'alta' ? 'bg-orange-50 text-orange-600 border border-orange-200'
+                            : 'bg-slate-50 text-slate-500 border border-slate-200'
+                        }`}>
+                            {orden.prioridad === 'urgente' ? 'Urgente' : orden.prioridad === 'alta' ? 'Alta' : 'Baja'}
+                        </span>
+                    )}
                     {!tieneResponsable && orden.estado !== 'completado' && orden.estado !== 'cancelado' && (
                         <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-50 text-amber-600 border border-amber-200">
                             Sin resp.
                         </span>
                     )}
                 </div>
-                {/* Barra de progreso */}
+                {/* Barra de progreso + conteo elementos */}
                 <div className="flex items-center gap-2">
                     <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
                         <div
@@ -228,6 +239,11 @@ const OrdenRow = ({ orden, tipo, navigate }) => {
                         />
                     </div>
                     <span className="text-[10px] text-slate-400 w-7 text-right">{progreso}%</span>
+                    {(orden.total_elementos > 0) && (
+                        <span className="text-[10px] text-slate-400">
+                            {orden.total_elementos} elem.
+                        </span>
+                    )}
                 </div>
             </div>
 
@@ -288,13 +304,43 @@ const EventoCard = ({ evento, navigate }) => {
                             {todasCompletadas && (
                                 <CheckCircle className="w-4 h-4 text-green-500 shrink-0" />
                             )}
+                            {/* Priority indicator */}
+                            {((montaje?.prioridad && montaje.prioridad !== 'normal') || (desmontaje?.prioridad && desmontaje.prioridad !== 'normal')) && (() => {
+                                const prio = montaje?.prioridad === 'urgente' || desmontaje?.prioridad === 'urgente'
+                                    ? 'urgente'
+                                    : montaje?.prioridad === 'alta' || desmontaje?.prioridad === 'alta'
+                                        ? 'alta' : 'baja'
+                                return (
+                                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium shrink-0 ${
+                                        prio === 'urgente' ? 'bg-red-50 text-red-600 border border-red-200'
+                                        : prio === 'alta' ? 'bg-orange-50 text-orange-600 border border-orange-200'
+                                        : 'bg-slate-50 text-slate-500 border border-slate-200'
+                                    }`}>
+                                        {prio === 'urgente' ? 'Urgente' : prio === 'alta' ? 'Alta' : 'Baja'}
+                                    </span>
+                                )
+                            })()}
                         </div>
-                        {evento.evento_nombre && evento.cliente_nombre && (
-                            <p className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
-                                <User className="w-3 h-3" />
-                                {evento.cliente_nombre}
-                            </p>
-                        )}
+                        <div className="flex items-center gap-2 mt-0.5">
+                            {evento.evento_nombre && evento.cliente_nombre && (
+                                <p className="text-xs text-slate-500 flex items-center gap-1">
+                                    <User className="w-3 h-3" />
+                                    {evento.cliente_nombre}
+                                </p>
+                            )}
+                            {evento.alquiler_id && (
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation()
+                                        navigate(`/alquileres/gestion/${evento.alquiler_id}`)
+                                    }}
+                                    className="text-[11px] text-orange-500 hover:text-orange-700 hover:underline flex items-center gap-0.5"
+                                >
+                                    Alquiler #{evento.alquiler_id}
+                                    <ExternalLink className="w-3 h-3" />
+                                </button>
+                            )}
+                        </div>
                     </div>
                     {montaje && (
                         <div className="text-right shrink-0 ml-3">

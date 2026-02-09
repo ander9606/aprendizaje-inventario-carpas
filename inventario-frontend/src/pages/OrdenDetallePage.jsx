@@ -4,7 +4,7 @@
 // ============================================
 
 import { useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, Link } from 'react-router-dom'
 import {
     Truck,
     Package,
@@ -27,7 +27,8 @@ import {
     LogOut,
     RotateCcw,
     Box,
-    Bell
+    Bell,
+    ExternalLink
 } from 'lucide-react'
 import {
     useGetOrden,
@@ -576,8 +577,23 @@ export default function OrdenDetallePage() {
                                         <FileText className="w-5 h-5 text-slate-400 mt-0.5" />
                                         <div>
                                             <p className="text-sm text-slate-500">Alquiler</p>
-                                            <p className="font-medium text-slate-900">
+                                            <Link
+                                                to={`/alquileres/gestion/${orden.alquiler_id}`}
+                                                className="font-medium text-orange-600 hover:text-orange-700 hover:underline inline-flex items-center gap-1"
+                                            >
                                                 #{orden.alquiler_id}
+                                                <ExternalLink className="w-3.5 h-3.5" />
+                                            </Link>
+                                        </div>
+                                    </div>
+                                )}
+                                {orden.cotizacion_id && (
+                                    <div className="flex items-start gap-3">
+                                        <FileText className="w-5 h-5 text-slate-400 mt-0.5" />
+                                        <div>
+                                            <p className="text-sm text-slate-500">Cotización</p>
+                                            <p className="font-medium text-slate-900">
+                                                #{orden.cotizacion_id}
                                             </p>
                                         </div>
                                     </div>
