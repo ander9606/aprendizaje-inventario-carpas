@@ -150,34 +150,52 @@ const generarChecklistImprimible = ({ ordenId, ordenInfo, productos, elementosCa
         })
         : '-'
 
-    // Agrupar elementos por producto
+    // Agrupar elementos por producto usando compuesto_id
     const productosConElementos = productos.map(p => ({
         ...p,
         elementos: elementosCargue.filter(e => e.compuesto_id === p.compuesto_id)
     }))
 
+    // Elementos sin producto asignado (por si alguno no tiene compuesto_id)
+    const elementosSinProducto = elementosCargue.filter(e =>
+        !e.compuesto_id || !productos.some(p => p.compuesto_id === e.compuesto_id)
+    )
+
     const totalElementos = elementosCargue.length
 
-    const filas = productosConElementos.flatMap((prod) => {
-        if (prod.elementos.length === 0) {
-            // Producto sin elementos desglosados - una fila por cantidad
-            return Array.from({ length: prod.cantidad }, (_, i) => ({
-                producto: i === 0 ? `${prod.cantidad}x ${prod.producto_nombre}` : '',
-                elemento: prod.producto_nombre,
-                serie: '-',
-                cantidad: 1,
-                esCabecera: i === 0
-            }))
-        }
-        // Producto con elementos desglosados
-        return prod.elementos.map((elem, i) => ({
-            producto: i === 0 ? `${prod.cantidad}x ${prod.producto_nombre}` : '',
-            elemento: elem.elemento_nombre,
-            serie: elem.serie_codigo || (elem.lote_codigo ? `Lote: ${elem.lote_codigo}` : '-'),
-            cantidad: elem.cantidad_lote || elem.cantidad || 1,
-            esCabecera: i === 0
-        }))
-    })
+    // Generar secciones HTML por producto
+    const seccionesProductos = productosConElementos.map((prod) => {
+        const elemRows = prod.elementos.length > 0
+            ? prod.elementos.map(elem => `
+                <tr>
+                    <td class="elem-indent">${elem.elemento_nombre}</td>
+                    <td>${elem.serie_codigo || (elem.lote_codigo ? 'Lote: ' + elem.lote_codigo : '-')}</td>
+                    <td class="center">${elem.cantidad_lote || elem.cantidad || 1}</td>
+                    <td class="center"><span class="check-box"></span></td>
+                    <td></td>
+                </tr>`).join('')
+            : `<tr><td class="elem-indent no-elem" colspan="4">Sin elementos asignados</td><td></td></tr>`
+
+        return `
+            <tr class="producto-header">
+                <td colspan="5">${prod.cantidad}x ${prod.producto_nombre} <span class="cat-label">${prod.categoria_nombre || ''}</span> <span class="elem-count">${prod.elementos.length} elem.</span></td>
+            </tr>
+            ${elemRows}`
+    }).join('')
+
+    // Elementos sin producto
+    const seccionSinProducto = elementosSinProducto.length > 0 ? `
+        <tr class="producto-header">
+            <td colspan="5">Otros elementos <span class="elem-count">${elementosSinProducto.length} elem.</span></td>
+        </tr>
+        ${elementosSinProducto.map(elem => `
+            <tr>
+                <td class="elem-indent">${elem.elemento_nombre}</td>
+                <td>${elem.serie_codigo || (elem.lote_codigo ? 'Lote: ' + elem.lote_codigo : '-')}</td>
+                <td class="center">${elem.cantidad_lote || elem.cantidad || 1}</td>
+                <td class="center"><span class="check-box"></span></td>
+                <td></td>
+            </tr>`).join('')}` : ''
 
     return `<!DOCTYPE html>
 <html lang="es">
@@ -201,9 +219,13 @@ const generarChecklistImprimible = ({ ordenId, ordenInfo, productos, elementosCa
     table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
     th { background: #333; color: #fff; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; padding: 7px 8px; text-align: left; }
     th.center { text-align: center; }
-    td { padding: 6px 8px; border-bottom: 1px solid #ddd; font-size: 11px; vertical-align: middle; }
+    td { padding: 5px 8px; border-bottom: 1px solid #ddd; font-size: 11px; vertical-align: middle; }
     td.center { text-align: center; }
-    tr.producto-header td { background: #f0f0f0; font-weight: bold; border-bottom: 1px solid #bbb; }
+    tr.producto-header td { background: #e8e8e8; font-weight: bold; font-size: 12px; border-bottom: 2px solid #999; padding: 8px; }
+    .cat-label { font-weight: normal; font-size: 10px; color: #666; }
+    .elem-count { font-weight: normal; font-size: 10px; color: #888; float: right; }
+    .elem-indent { padding-left: 24px; }
+    .no-elem { color: #999; font-style: italic; }
     .check-box { width: 16px; height: 16px; border: 2px solid #333; display: inline-block; vertical-align: middle; border-radius: 2px; }
     .footer { margin-top: 24px; padding-top: 12px; border-top: 1px solid #ccc; }
     .firma-grid { display: flex; gap: 40px; margin-top: 30px; }
@@ -245,24 +267,16 @@ const generarChecklistImprimible = ({ ordenId, ordenInfo, productos, elementosCa
     <table>
         <thead>
             <tr>
-                <th style="width:30%">Producto</th>
-                <th style="width:25%">Elemento</th>
-                <th style="width:18%">Serie / Lote</th>
-                <th class="center" style="width:8%">Cant.</th>
-                <th class="center" style="width:9%">Cargado</th>
-                <th style="width:10%">Obs.</th>
+                <th style="width:35%">Elemento</th>
+                <th style="width:22%">Serie / Lote</th>
+                <th class="center" style="width:10%">Cant.</th>
+                <th class="center" style="width:13%">Cargado</th>
+                <th style="width:20%">Obs.</th>
             </tr>
         </thead>
         <tbody>
-            ${filas.map(f => `
-            <tr${f.esCabecera && f.producto ? ' class="producto-header"' : ''}>
-                <td>${f.producto}</td>
-                <td>${f.elemento}</td>
-                <td>${f.serie}</td>
-                <td class="center">${f.cantidad}</td>
-                <td class="center"><span class="check-box"></span></td>
-                <td></td>
-            </tr>`).join('')}
+            ${seccionesProductos}
+            ${seccionSinProducto}
         </tbody>
     </table>
 

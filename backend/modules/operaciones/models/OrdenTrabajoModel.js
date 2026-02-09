@@ -331,14 +331,17 @@ class OrdenTrabajoModel {
                     ae.notas_retorno,
                     e.nombre as elemento_nombre,
                     s.numero_serie as serie_codigo,
-                    l.lote_numero as lote_codigo
+                    l.lote_numero as lote_codigo,
+                    cc.compuesto_id
                 FROM alquiler_elementos ae
                 INNER JOIN elementos e ON ae.elemento_id = e.id
                 LEFT JOIN series s ON ae.serie_id = s.id
                 LEFT JOIN lotes l ON ae.lote_id = l.id
+                LEFT JOIN compuesto_componentes cc ON cc.elemento_id = e.id
+                    AND cc.compuesto_id IN (SELECT cp.compuesto_id FROM cotizacion_productos cp WHERE cp.cotizacion_id = ?)
                 WHERE ae.alquiler_id = ?
-                ORDER BY e.nombre
-            `, [orden.alquiler_id]) : Promise.resolve([[]]),
+                ORDER BY cc.compuesto_id, e.nombre
+            `, [orden.cotizacion_id, orden.alquiler_id]) : Promise.resolve([[]]),
             // Elementos asignados a la orden (antes de ejecutar salida)
             pool.query(`
                 SELECT
@@ -350,14 +353,17 @@ class OrdenTrabajoModel {
                     ote.estado,
                     e.nombre as elemento_nombre,
                     s.numero_serie as serie_codigo,
-                    l.lote_numero as lote_codigo
+                    l.lote_numero as lote_codigo,
+                    cc.compuesto_id
                 FROM orden_trabajo_elementos ote
                 INNER JOIN elementos e ON ote.elemento_id = e.id
                 LEFT JOIN series s ON ote.serie_id = s.id
                 LEFT JOIN lotes l ON ote.lote_id = l.id
+                LEFT JOIN compuesto_componentes cc ON cc.elemento_id = e.id
+                    AND cc.compuesto_id IN (SELECT cp.compuesto_id FROM cotizacion_productos cp WHERE cp.cotizacion_id = ?)
                 WHERE ote.orden_id = ?
-                ORDER BY e.nombre
-            `, [id])
+                ORDER BY cc.compuesto_id, e.nombre
+            `, [orden.cotizacion_id, id])
         ]);
 
         // Calcular resúmenes
