@@ -14,6 +14,7 @@ class OrdenTrabajoModel {
             limit = 20,
             tipo = null,
             estado = null,
+            excluir_finalizados = false,
             fecha_desde = null,
             fecha_hasta = null,
             alquiler_id = null,
@@ -35,6 +36,10 @@ class OrdenTrabajoModel {
         if (estado) {
             whereClause += ` AND ot.estado = ?`;
             params.push(estado);
+        }
+
+        if (excluir_finalizados) {
+            whereClause += ` AND ot.estado NOT IN ('completado', 'cancelado')`;
         }
 
         if (fecha_desde) {

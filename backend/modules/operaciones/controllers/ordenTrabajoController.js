@@ -23,6 +23,7 @@ const getOrdenes = async (req, res, next) => {
             limit: parseInt(req.query.limit) || 20,
             tipo: req.query.tipo,
             estado: req.query.estado,
+            excluir_finalizados: req.query.excluir_finalizados === 'true',
             fecha_desde: req.query.fecha_desde,
             fecha_hasta: req.query.fecha_hasta,
             alquiler_id: req.query.alquiler_id ? parseInt(req.query.alquiler_id) : null,

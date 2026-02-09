@@ -1,6 +1,7 @@
 // ============================================
 // PÁGINA: OPERACIONES DASHBOARD
 // Vista principal con tarjetas de evento agrupadas
+// Agrupa órdenes por alquiler mostrando pares montaje/desmontaje completos
 // ============================================
 
 import { useState, useMemo } from 'react'
@@ -20,7 +21,8 @@ import {
     Calendar,
     ChevronRight,
     ChevronDown,
-    History
+    History,
+    AlertCircle
 } from 'lucide-react'
 import { useGetOrdenes, useGetEstadisticasOperaciones } from '../hooks/useOrdenesTrabajo'
 import { useGetAlertasPendientes, useGetResumenAlertas } from '../hooks/useAlertas'
@@ -42,6 +44,11 @@ const getProximos7Dias = () => {
     const d = new Date()
     d.setDate(d.getDate() + 7)
     return formatLocalDate(d)
+}
+
+const getFechaLocal = (fecha) => {
+    if (!fecha) return null
+    return fecha.split('T')[0]
 }
 
 // ============================================
@@ -90,6 +97,7 @@ const formatFechaCorta = (fecha) => {
 
 // ============================================
 // HELPER: Agrupar órdenes por alquiler_id
+// Combina montaje y desmontaje en una sola tarjeta
 // ============================================
 const agruparPorEvento = (ordenes) => {
     if (!ordenes?.length) return []
@@ -120,6 +128,50 @@ const agruparPorEvento = (ordenes) => {
         const fechaB = b.montaje?.fecha_programada || b.desmontaje?.fecha_programada
         return new Date(fechaA) - new Date(fechaB)
     })
+}
+
+// ============================================
+// HELPER: Determinar la fecha más relevante de un grupo
+// Retorna la fecha de la próxima orden activa
+// ============================================
+const getFechaRelevante = (evento) => {
+    const estadosFinal = ['completado', 'cancelado']
+    const fechas = []
+
+    // Priorizar la orden activa más próxima
+    if (evento.montaje && !estadosFinal.includes(evento.montaje.estado)) {
+        fechas.push(evento.montaje.fecha_programada)
+    }
+    if (evento.desmontaje && !estadosFinal.includes(evento.desmontaje.estado)) {
+        fechas.push(evento.desmontaje.fecha_programada)
+    }
+
+    // Si no hay órdenes activas, usar cualquier fecha disponible
+    if (fechas.length === 0) {
+        if (evento.montaje) fechas.push(evento.montaje.fecha_programada)
+        if (evento.desmontaje) fechas.push(evento.desmontaje.fecha_programada)
+    }
+
+    if (fechas.length === 0) return null
+    return fechas.sort((a, b) => new Date(a) - new Date(b))[0]
+}
+
+// ============================================
+// HELPER: Verificar si alguna orden tiene fecha vencida
+// ============================================
+const tieneOrdenVencida = (evento) => {
+    const hoy = getHoy()
+    const estadosFinal = ['completado', 'cancelado']
+
+    if (evento.montaje && !estadosFinal.includes(evento.montaje.estado)) {
+        const fecha = getFechaLocal(evento.montaje.fecha_programada)
+        if (fecha && fecha < hoy) return true
+    }
+    if (evento.desmontaje && !estadosFinal.includes(evento.desmontaje.estado)) {
+        const fecha = getFechaLocal(evento.desmontaje.fecha_programada)
+        if (fecha && fecha < hoy) return true
+    }
+    return false
 }
 
 // ============================================
@@ -236,26 +288,28 @@ const EventoCard = ({ evento, navigate }) => {
     const hayOrdenActiva = (montaje && estadosActivos.includes(montaje.estado))
         || (desmontaje && estadosActivos.includes(desmontaje.estado))
 
-    const todasCompletadas = (
-        (!montaje || montaje.estado === 'completado') &&
-        (!desmontaje || desmontaje.estado === 'completado')
-    )
+    const todasCompletadas = esEventoFinalizado(evento)
+    const vencida = tieneOrdenVencida(evento)
 
     return (
         <div className={`bg-white rounded-xl border overflow-hidden transition-all ${
             todasCompletadas
                 ? 'border-green-200 bg-green-50/30'
-                : hayOrdenActiva
-                    ? 'border-orange-200 shadow-sm shadow-orange-100'
-                    : 'border-slate-200 hover:border-slate-300'
+                : vencida
+                    ? 'border-red-200 shadow-sm shadow-red-100'
+                    : hayOrdenActiva
+                        ? 'border-orange-200 shadow-sm shadow-orange-100'
+                        : 'border-slate-200 hover:border-slate-300'
         }`}>
             {/* Header */}
             <div className={`px-4 py-3 ${
                 todasCompletadas
                     ? 'bg-green-50 border-b border-green-100'
-                    : hayOrdenActiva
-                        ? 'bg-orange-50/50 border-b border-orange-100'
-                        : 'border-b border-slate-100'
+                    : vencida
+                        ? 'bg-red-50/50 border-b border-red-100'
+                        : hayOrdenActiva
+                            ? 'bg-orange-50/50 border-b border-orange-100'
+                            : 'border-b border-slate-100'
             }`}>
                 <div className="flex items-center justify-between">
                     <div className="flex-1 min-w-0">
@@ -263,6 +317,11 @@ const EventoCard = ({ evento, navigate }) => {
                             <p className="font-semibold text-slate-900 truncate">
                                 {evento.evento_nombre || evento.cliente_nombre || 'Evento'}
                             </p>
+                            {vencida && !todasCompletadas && (
+                                <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-red-100 text-red-700 border border-red-200 shrink-0">
+                                    Vencida
+                                </span>
+                            )}
                             {hayOrdenActiva && (
                                 <span className="relative flex h-2 w-2 shrink-0">
                                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75" />
@@ -310,21 +369,24 @@ const EventoCard = ({ evento, navigate }) => {
 // ============================================
 // COMPONENTE: Sección de eventos
 // ============================================
-const SeccionEventos = ({ titulo, subtitulo, eventos, navigate, emptyMessage }) => (
+const SeccionEventos = ({ titulo, subtitulo, eventos, navigate, emptyMessage, icono: Icono }) => (
     <div>
         <div className="flex items-center justify-between mb-3">
-            <div>
-                <h2 className="text-lg font-semibold text-slate-900">{titulo}</h2>
-                {subtitulo && (
-                    <p className="text-sm text-slate-500">{subtitulo}</p>
-                )}
+            <div className="flex items-center gap-2">
+                {Icono && <Icono className="w-5 h-5 text-slate-400" />}
+                <div>
+                    <h2 className="text-lg font-semibold text-slate-900">{titulo}</h2>
+                    {subtitulo && (
+                        <p className="text-sm text-slate-500">{subtitulo}</p>
+                    )}
+                </div>
             </div>
         </div>
         {eventos.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {eventos.map((evento, idx) => (
                     <EventoCard
-                        key={evento.id || evento.alquiler_id || idx}
+                        key={evento.alquiler_id || idx}
                         evento={evento}
                         navigate={navigate}
                     />
@@ -351,18 +413,20 @@ export default function OperacionesDashboard() {
 
     // ============================================
     // HOOKS: Obtener datos
+    // UNA sola query para TODAS las órdenes activas
+    // → garantiza pares montaje/desmontaje completos
+    // + query separada para completadas hoy (historial)
     // ============================================
-    const { ordenes: ordenesHoy, isLoading: loadingHoy } = useGetOrdenes({
-        fecha_desde: hoy,
-        fecha_hasta: hoy,
-        limit: 50
+    const { ordenes: ordenesActivas, isLoading: loadingActivas } = useGetOrdenes({
+        excluir_finalizados: true,
+        limit: 200
     })
 
-    // Próximos 7 días (incluyendo hoy)
-    const { ordenes: ordenesProximas, isLoading: loadingProximas } = useGetOrdenes({
+    const { ordenes: ordenesCompletadasHoy, isLoading: loadingCompletadas } = useGetOrdenes({
         fecha_desde: hoy,
-        fecha_hasta: fin7Dias,
-        limit: 100
+        fecha_hasta: hoy,
+        estado: 'completado',
+        limit: 50
     })
 
     const { estadisticas, isLoading: loadingStats } = useGetEstadisticasOperaciones()
@@ -371,38 +435,62 @@ export default function OperacionesDashboard() {
 
     // ============================================
     // DATOS PROCESADOS
+    // Agrupar TODAS las órdenes activas por alquiler
+    // → pares montaje/desmontaje siempre completos
     // ============================================
-    const eventosHoy = useMemo(() => agruparPorEvento(ordenesHoy), [ordenesHoy])
+    const todosLosEventos = useMemo(
+        () => agruparPorEvento(ordenesActivas),
+        [ordenesActivas]
+    )
 
-    // Órdenes de los próximos días excluyendo las de hoy
-    const eventosProximos = useMemo(() => {
-        if (!ordenesProximas?.length) return []
-        const ordenesNoHoy = ordenesProximas.filter(o => {
-            const fechaOrden = o.fecha_programada?.split('T')[0]
-            return fechaOrden !== hoy
+    // Clasificar eventos por fecha relevante (la próxima orden activa)
+    const { eventosVencidos, eventosHoy, eventosProximos, eventosFuturos } = useMemo(() => {
+        const vencidos = []
+        const deHoy = []
+        const proximos = []
+        const futuros = []
+
+        todosLosEventos.forEach(evento => {
+            const fechaRef = getFechaRelevante(evento)
+            const fechaLocal = fechaRef ? getFechaLocal(fechaRef) : null
+
+            if (!fechaLocal) {
+                futuros.push(evento)
+                return
+            }
+
+            if (fechaLocal < hoy) {
+                vencidos.push(evento)
+            } else if (fechaLocal === hoy) {
+                deHoy.push(evento)
+            } else if (fechaLocal <= fin7Dias) {
+                proximos.push(evento)
+            } else {
+                futuros.push(evento)
+            }
         })
-        return agruparPorEvento(ordenesNoHoy)
-    }, [ordenesProximas, hoy])
 
-    // Separar eventos activos de finalizados
-    const { eventosHoyActivos, eventosHoyFinalizados } = useMemo(() => ({
-        eventosHoyActivos: eventosHoy.filter(e => !esEventoFinalizado(e)),
-        eventosHoyFinalizados: eventosHoy.filter(e => esEventoFinalizado(e))
-    }), [eventosHoy])
+        return {
+            eventosVencidos: vencidos,
+            eventosHoy: deHoy,
+            eventosProximos: proximos,
+            eventosFuturos: futuros
+        }
+    }, [todosLosEventos, hoy, fin7Dias])
 
-    const { eventosProximosActivos, eventosProximosFinalizados } = useMemo(() => ({
-        eventosProximosActivos: eventosProximos.filter(e => !esEventoFinalizado(e)),
-        eventosProximosFinalizados: eventosProximos.filter(e => esEventoFinalizado(e))
-    }), [eventosProximos])
-
-    const totalFinalizados = eventosHoyFinalizados.length + eventosProximosFinalizados.length
+    // Historial: órdenes completadas hoy agrupadas
+    const eventosCompletadosHoy = useMemo(
+        () => agruparPorEvento(ordenesCompletadasHoy),
+        [ordenesCompletadasHoy]
+    )
 
     const sinResponsable = estadisticas?.alertas?.sinResponsable || 0
+    const totalActivos = eventosVencidos.length + eventosHoy.length + eventosProximos.length + eventosFuturos.length
 
     // ============================================
     // RENDER: Loading
     // ============================================
-    if (loadingHoy && loadingProximas && loadingStats) {
+    if (loadingActivas && loadingStats) {
         return (
             <div className="flex justify-center py-12">
                 <Spinner size="lg" text="Cargando operaciones..." />
@@ -438,8 +526,8 @@ export default function OperacionesDashboard() {
             </div>
 
             {/* STATS CARDS */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-                {/* Órdenes Hoy */}
+            <div className={`grid grid-cols-2 ${eventosVencidos.length > 0 ? 'sm:grid-cols-5' : 'sm:grid-cols-4'} gap-4 mb-6`}>
+                {/* Eventos Activos */}
                 <div className="bg-white rounded-xl border border-slate-200 p-4">
                     <div className="flex items-center gap-3">
                         <div className="p-2 bg-blue-100 rounded-lg">
@@ -447,12 +535,29 @@ export default function OperacionesDashboard() {
                         </div>
                         <div>
                             <p className="text-2xl font-bold text-slate-900">
-                                {ordenesHoy?.length || 0}
+                                {totalActivos}
                             </p>
-                            <p className="text-sm text-slate-500">Órdenes hoy</p>
+                            <p className="text-sm text-slate-500">Eventos activos</p>
                         </div>
                     </div>
                 </div>
+
+                {/* Vencidos (solo si hay) */}
+                {eventosVencidos.length > 0 && (
+                    <div className="bg-white rounded-xl border border-red-200 p-4">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-red-100 rounded-lg">
+                                <AlertCircle className="w-5 h-5 text-red-600" />
+                            </div>
+                            <div>
+                                <p className="text-2xl font-bold text-red-600">
+                                    {eventosVencidos.length}
+                                </p>
+                                <p className="text-sm text-red-500">Vencidos</p>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {/* Pendientes */}
                 <div className="bg-white rounded-xl border border-slate-200 p-4">
@@ -510,26 +615,51 @@ export default function OperacionesDashboard() {
                 {/* EVENTOS - 2/3 */}
                 <div className="lg:col-span-2 space-y-8">
 
+                    {/* VENCIDOS (si hay) */}
+                    {eventosVencidos.length > 0 && (
+                        <SeccionEventos
+                            titulo="Atrasados"
+                            subtitulo={`${eventosVencidos.length} evento(s) con fecha vencida`}
+                            eventos={eventosVencidos}
+                            navigate={navigate}
+                            emptyMessage=""
+                            icono={AlertCircle}
+                        />
+                    )}
+
                     {/* HOY */}
                     <SeccionEventos
                         titulo="Hoy"
-                        subtitulo={`${eventosHoyActivos.length} evento(s) activo(s)`}
-                        eventos={eventosHoyActivos}
+                        subtitulo={`${eventosHoy.length} evento(s) para hoy`}
+                        eventos={eventosHoy}
                         navigate={navigate}
-                        emptyMessage="No hay eventos activos para hoy"
+                        emptyMessage="No hay eventos programados para hoy"
+                        icono={Calendar}
                     />
 
-                    {/* PRÓXIMOS DÍAS */}
+                    {/* PRÓXIMOS 7 DÍAS */}
                     <SeccionEventos
                         titulo="Próximos 7 días"
-                        subtitulo={`${eventosProximosActivos.length} evento(s) programado(s)`}
-                        eventos={eventosProximosActivos}
+                        subtitulo={`${eventosProximos.length} evento(s) programado(s)`}
+                        eventos={eventosProximos}
                         navigate={navigate}
                         emptyMessage="No hay eventos programados para los próximos días"
+                        icono={Clock}
                     />
 
-                    {/* HISTORIAL COMPLETADO */}
-                    {totalFinalizados > 0 && (
+                    {/* MÁS ADELANTE (si hay) */}
+                    {eventosFuturos.length > 0 && (
+                        <SeccionEventos
+                            titulo="Más adelante"
+                            subtitulo={`${eventosFuturos.length} evento(s) programado(s)`}
+                            eventos={eventosFuturos}
+                            navigate={navigate}
+                            emptyMessage=""
+                        />
+                    )}
+
+                    {/* HISTORIAL COMPLETADO HOY */}
+                    {eventosCompletadosHoy.length > 0 && (
                         <div className="border-t border-slate-200 pt-6">
                             <button
                                 onClick={() => setMostrarHistorial(!mostrarHistorial)}
@@ -542,47 +672,24 @@ export default function OperacionesDashboard() {
                                 )}
                                 <History className="w-4 h-4" />
                                 <span className="text-sm font-medium">
-                                    Historial completado
+                                    Completados hoy
                                 </span>
                                 <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded-full">
-                                    {totalFinalizados}
+                                    {eventosCompletadosHoy.length}
                                 </span>
                             </button>
 
                             {mostrarHistorial && (
-                                <div className="space-y-6 opacity-75">
-                                    {eventosHoyFinalizados.length > 0 && (
-                                        <div>
-                                            <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-2">
-                                                Hoy
-                                            </p>
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                                {eventosHoyFinalizados.map((evento, idx) => (
-                                                    <EventoCard
-                                                        key={evento.id || `hoy-${idx}`}
-                                                        evento={evento}
-                                                        navigate={navigate}
-                                                    />
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-                                    {eventosProximosFinalizados.length > 0 && (
-                                        <div>
-                                            <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-2">
-                                                Próximos días
-                                            </p>
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                                {eventosProximosFinalizados.map((evento, idx) => (
-                                                    <EventoCard
-                                                        key={evento.id || `proximos-${idx}`}
-                                                        evento={evento}
-                                                        navigate={navigate}
-                                                    />
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
+                                <div className="opacity-75">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        {eventosCompletadosHoy.map((evento, idx) => (
+                                            <EventoCard
+                                                key={evento.alquiler_id || `completado-${idx}`}
+                                                evento={evento}
+                                                navigate={navigate}
+                                            />
+                                        ))}
+                                    </div>
                                 </div>
                             )}
                         </div>
