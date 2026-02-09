@@ -35,6 +35,10 @@ exports.obtenerPorId = async (req, res, next) => {
       throw new AppError('Evento no encontrado', 404);
     }
 
+    // Enriquecer con información de si se pueden agregar cotizaciones
+    const puedeAgregar = await EventoModel.puedeAgregarCotizaciones(id);
+    evento.puede_agregar_cotizaciones = puedeAgregar;
+
     res.json({
       success: true,
       data: evento
@@ -246,6 +250,24 @@ exports.obtenerCotizaciones = async (req, res, next) => {
       success: true,
       data: cotizaciones,
       total: cotizaciones.length
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ============================================
+// VERIFICAR SI SE PUEDEN AGREGAR COTIZACIONES
+// ============================================
+exports.puedeAgregarCotizacion = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const resultado = await EventoModel.puedeAgregarCotizaciones(id);
+
+    res.json({
+      success: true,
+      data: resultado
     });
   } catch (error) {
     next(error);

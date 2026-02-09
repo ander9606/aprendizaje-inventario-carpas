@@ -1,15 +1,17 @@
 // ============================================
 // PÁGINA: EventosPage
 // Lista de eventos con múltiples cotizaciones
+// Sección activos + sección realizados colapsable
 // ============================================
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import {
     Calendar,
     Plus,
     Search,
     Filter,
     ChevronDown,
+    ChevronRight,
     Eye,
     Edit2,
     Trash2,
@@ -17,9 +19,10 @@ import {
     CheckCircle,
     XCircle,
     Clock,
-    Users,
     MapPin,
-    DollarSign
+    DollarSign,
+    History,
+    Package
 } from 'lucide-react'
 import {
     useGetEventos,
@@ -34,6 +37,13 @@ import EventoFormModal from '../components/modals/EventoFormModal'
 import EventoDetalleModal from '../components/modals/EventoDetalleModal'
 import CotizacionFormModal from '../components/forms/CotizacionFormModal'
 import { toast } from 'sonner'
+
+// ============================================
+// HELPER: Verificar si un evento está "finalizado"
+// ============================================
+const esEventoFinalizado = (evento) => {
+    return evento.estado === 'completado' || evento.estado === 'cancelado'
+}
 
 // ============================================
 // COMPONENTE: EventoCard
@@ -57,18 +67,11 @@ const EventoCard = ({ evento, onVer, onEditar, onEliminar, onCambiarEstado }) =>
         if (!fecha) return '-'
         try {
             let fechaStr = ''
-
-            // Caso 1: Es un objeto Date nativo de JavaScript
             if (fecha instanceof Date) {
                 fechaStr = fecha.toISOString().split('T')[0]
-            }
-            // Caso 2: Es un string (ISO o solo fecha)
-            else if (typeof fecha === 'string') {
+            } else if (typeof fecha === 'string') {
                 fechaStr = fecha.split('T')[0]
-            }
-            // Caso 3: Es un objeto tipo MySQL Date (tiene propiedades o es convertible a string)
-            else if (typeof fecha === 'object') {
-                // Intentar convertir a string primero
+            } else if (typeof fecha === 'object') {
                 const str = String(fecha)
                 if (str && str !== '[object Object]' && !str.includes('Invalid')) {
                     fechaStr = str.split('T')[0]
@@ -76,12 +79,9 @@ const EventoCard = ({ evento, onVer, onEditar, onEliminar, onCambiarEstado }) =>
                     return '-'
                 }
             }
-
             if (!fechaStr) return '-'
-
             const fechaObj = new Date(fechaStr + 'T12:00:00')
             if (isNaN(fechaObj.getTime())) return '-'
-
             return fechaObj.toLocaleDateString('es-CO', {
                 day: 'numeric',
                 month: 'short',
@@ -100,14 +100,30 @@ const EventoCard = ({ evento, onVer, onEditar, onEliminar, onCambiarEstado }) =>
         }).format(valor || 0)
     }
 
+    // Indicador de progreso de alquileres
+    const totalAlquileres = evento.total_alquileres || 0
+    const alquileresFinalizados = evento.alquileres_finalizados || 0
+    const alquileresActivos = evento.alquileres_activos || 0
+
     return (
-        <div className="bg-white rounded-xl border border-slate-200 p-5 hover:shadow-md transition-shadow">
+        <div className={`bg-white rounded-xl border p-5 hover:shadow-md transition-shadow ${
+            evento.estado === 'completado'
+                ? 'border-green-200 bg-green-50/30'
+                : evento.estado === 'cancelado'
+                    ? 'border-red-200 bg-red-50/20'
+                    : 'border-slate-200'
+        }`}>
             {/* Header */}
             <div className="flex items-start justify-between mb-4">
                 <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-slate-900 truncate">
-                        {evento.nombre}
-                    </h3>
+                    <div className="flex items-center gap-2">
+                        <h3 className="font-semibold text-slate-900 truncate">
+                            {evento.nombre}
+                        </h3>
+                        {evento.estado === 'completado' && (
+                            <CheckCircle className="w-4 h-4 text-green-500 shrink-0" />
+                        )}
+                    </div>
                     <p className="text-sm text-slate-500 mt-0.5">
                         {evento.cliente_nombre}
                     </p>
@@ -133,13 +149,15 @@ const EventoCard = ({ evento, onVer, onEditar, onEliminar, onCambiarEstado }) =>
                                     <Eye className="w-4 h-4" />
                                     Ver detalle
                                 </button>
-                                <button
-                                    onClick={() => { onEditar(evento); setShowMenu(false); }}
-                                    className="w-full px-4 py-2 text-left text-sm hover:bg-slate-50 flex items-center gap-2"
-                                >
-                                    <Edit2 className="w-4 h-4" />
-                                    Editar
-                                </button>
+                                {evento.estado === 'activo' && (
+                                    <button
+                                        onClick={() => { onEditar(evento); setShowMenu(false); }}
+                                        className="w-full px-4 py-2 text-left text-sm hover:bg-slate-50 flex items-center gap-2"
+                                    >
+                                        <Edit2 className="w-4 h-4" />
+                                        Editar
+                                    </button>
+                                )}
                                 {evento.estado === 'activo' && (
                                     <button
                                         onClick={() => { onCambiarEstado(evento.id, 'completado'); setShowMenu(false); }}
@@ -149,13 +167,22 @@ const EventoCard = ({ evento, onVer, onEditar, onEliminar, onCambiarEstado }) =>
                                         Marcar completado
                                     </button>
                                 )}
-                                {evento.estado !== 'cancelado' && (
+                                {evento.estado !== 'cancelado' && evento.estado !== 'completado' && (
                                     <button
                                         onClick={() => { onCambiarEstado(evento.id, 'cancelado'); setShowMenu(false); }}
                                         className="w-full px-4 py-2 text-left text-sm hover:bg-slate-50 flex items-center gap-2 text-red-600"
                                     >
                                         <XCircle className="w-4 h-4" />
                                         Cancelar
+                                    </button>
+                                )}
+                                {evento.estado === 'completado' && (
+                                    <button
+                                        onClick={() => { onCambiarEstado(evento.id, 'activo'); setShowMenu(false); }}
+                                        className="w-full px-4 py-2 text-left text-sm hover:bg-slate-50 flex items-center gap-2 text-blue-600"
+                                    >
+                                        <Clock className="w-4 h-4" />
+                                        Reactivar
                                     </button>
                                 )}
                                 <hr className="my-1" />
@@ -212,7 +239,34 @@ const EventoCard = ({ evento, onVer, onEditar, onEliminar, onCambiarEstado }) =>
                 </div>
             </div>
 
-            {/* Estado */}
+            {/* Progreso alquileres (si hay) */}
+            {totalAlquileres > 0 && (
+                <div className="mb-4 px-3 py-2 bg-slate-50 rounded-lg">
+                    <div className="flex items-center justify-between text-xs mb-1.5">
+                        <span className="text-slate-500 flex items-center gap-1">
+                            <Package className="w-3 h-3" />
+                            Alquileres
+                        </span>
+                        <span className="font-medium text-slate-700">
+                            {alquileresFinalizados}/{totalAlquileres} finalizados
+                        </span>
+                    </div>
+                    <div className="h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                        <div
+                            className={`h-full rounded-full transition-all ${
+                                alquileresFinalizados === totalAlquileres
+                                    ? 'bg-green-500'
+                                    : alquileresActivos > 0
+                                        ? 'bg-orange-500'
+                                        : 'bg-blue-500'
+                            }`}
+                            style={{ width: `${totalAlquileres > 0 ? (alquileresFinalizados / totalAlquileres) * 100 : 0}%` }}
+                        />
+                    </div>
+                </div>
+            )}
+
+            {/* Estado + Botón */}
             <div className="flex items-center justify-between">
                 <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${estadoConfig.color}`}>
                     <EstadoIcon className="w-3.5 h-3.5" />
@@ -234,8 +288,6 @@ const EventoCard = ({ evento, onVer, onEditar, onEliminar, onCambiarEstado }) =>
 // COMPONENTE PRINCIPAL: EventosPage
 // ============================================
 export default function EventosPage() {
-    // Navegación (si se necesita en el futuro)
-    // const navigate = useNavigate()
     // Estado
     const [busqueda, setBusqueda] = useState('')
     const [filtroEstado, setFiltroEstado] = useState('')
@@ -247,6 +299,7 @@ export default function EventosPage() {
     const [showModalCotizacion, setShowModalCotizacion] = useState(false)
     const [eventoParaCotizacion, setEventoParaCotizacion] = useState(null)
     const [cotizacionEditar, setCotizacionEditar] = useState(null)
+    const [mostrarRealizados, setMostrarRealizados] = useState(false)
 
     // Queries y mutations
     const { eventos, isLoading, refetch } = useGetEventos({ estado: filtroEstado || undefined })
@@ -256,14 +309,26 @@ export default function EventosPage() {
     const cambiarEstado = useCambiarEstadoEvento()
 
     // Filtrar por búsqueda
-    const eventosFiltrados = eventos.filter(e => {
-        if (!busqueda) return true
-        const termino = busqueda.toLowerCase()
-        return (
-            e.nombre?.toLowerCase().includes(termino) ||
-            e.cliente_nombre?.toLowerCase().includes(termino)
-        )
-    })
+    const eventosFiltrados = useMemo(() => {
+        return eventos.filter(e => {
+            if (!busqueda) return true
+            const termino = busqueda.toLowerCase()
+            return (
+                e.nombre?.toLowerCase().includes(termino) ||
+                e.cliente_nombre?.toLowerCase().includes(termino)
+            )
+        })
+    }, [eventos, busqueda])
+
+    // Separar activos de finalizados
+    const eventosActivos = useMemo(
+        () => eventosFiltrados.filter(e => !esEventoFinalizado(e)),
+        [eventosFiltrados]
+    )
+    const eventosRealizados = useMemo(
+        () => eventosFiltrados.filter(e => esEventoFinalizado(e)),
+        [eventosFiltrados]
+    )
 
     // Handlers
     const handleCrearEvento = async (datos) => {
@@ -420,45 +485,112 @@ export default function EventosPage() {
                 )}
             </div>
 
-            {/* Lista de eventos */}
+            {/* Contador */}
+            {!isLoading && (
+                <div className="mb-4 text-sm text-slate-500">
+                    {eventosActivos.length > 0 && (
+                        <span>{eventosActivos.length} evento{eventosActivos.length !== 1 ? 's' : ''} activo{eventosActivos.length !== 1 ? 's' : ''}</span>
+                    )}
+                    {eventosRealizados.length > 0 && (
+                        <span className="text-green-600"> · {eventosRealizados.length} realizado{eventosRealizados.length !== 1 ? 's' : ''}</span>
+                    )}
+                    {eventosActivos.length === 0 && eventosRealizados.length === 0 && (
+                        <span>0 eventos</span>
+                    )}
+                </div>
+            )}
+
+            {/* EVENTOS ACTIVOS */}
             {isLoading ? (
                 <div className="flex justify-center py-12">
                     <Spinner size="lg" />
                 </div>
-            ) : eventosFiltrados.length === 0 ? (
-                <div className="bg-white rounded-xl border border-slate-200 p-12 text-center">
-                    <Calendar className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-slate-900 mb-2">
-                        No hay eventos
-                    </h3>
-                    <p className="text-slate-500 mb-6">
-                        {busqueda || filtroEstado
-                            ? 'No se encontraron eventos con los filtros seleccionados'
-                            : 'Crea tu primer evento para agrupar cotizaciones'}
-                    </p>
-                    {!busqueda && !filtroEstado && (
-                        <Button
-                            color="blue"
-                            icon={Plus}
-                            onClick={() => setShowModalEvento(true)}
-                        >
-                            Crear Evento
-                        </Button>
-                    )}
-                </div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {eventosFiltrados.map(evento => (
-                        <EventoCard
-                            key={evento.id}
-                            evento={evento}
-                            onVer={handleVerEvento}
-                            onEditar={(e) => setEventoEditar(e)}
-                            onEliminar={(e) => setEventoEliminar(e)}
-                            onCambiarEstado={handleCambiarEstado}
-                        />
-                    ))}
-                </div>
+                <>
+                    {eventosActivos.length > 0 && (
+                        <div className="mb-8">
+                            <h2 className="text-sm font-semibold text-slate-700 uppercase tracking-wider mb-3">
+                                Eventos Activos
+                            </h2>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {eventosActivos.map(evento => (
+                                    <EventoCard
+                                        key={evento.id}
+                                        evento={evento}
+                                        onVer={handleVerEvento}
+                                        onEditar={(e) => setEventoEditar(e)}
+                                        onEliminar={(e) => setEventoEliminar(e)}
+                                        onCambiarEstado={handleCambiarEstado}
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* SECCIÓN REALIZADOS (COLAPSABLE) */}
+                    {eventosRealizados.length > 0 && (
+                        <div className="mb-8 border-t border-slate-200 pt-6">
+                            <button
+                                onClick={() => setMostrarRealizados(!mostrarRealizados)}
+                                className="flex items-center gap-2 text-slate-600 hover:text-slate-800 transition-colors mb-4"
+                            >
+                                {mostrarRealizados ? (
+                                    <ChevronDown className="w-4 h-4" />
+                                ) : (
+                                    <ChevronRight className="w-4 h-4" />
+                                )}
+                                <History className="w-4 h-4" />
+                                <span className="text-sm font-medium">
+                                    Eventos realizados
+                                </span>
+                                <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded-full">
+                                    {eventosRealizados.length}
+                                </span>
+                            </button>
+
+                            {mostrarRealizados && (
+                                <div className="opacity-75">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                        {eventosRealizados.map(evento => (
+                                            <EventoCard
+                                                key={evento.id}
+                                                evento={evento}
+                                                onVer={handleVerEvento}
+                                                onEditar={(e) => setEventoEditar(e)}
+                                                onEliminar={(e) => setEventoEliminar(e)}
+                                                onCambiarEstado={handleCambiarEstado}
+                                            />
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* ESTADO VACÍO */}
+                    {eventosActivos.length === 0 && eventosRealizados.length === 0 && (
+                        <div className="bg-white rounded-xl border border-slate-200 p-12 text-center">
+                            <Calendar className="w-12 h-12 text-slate-300 mx-auto mb-4" />
+                            <h3 className="text-lg font-medium text-slate-900 mb-2">
+                                No hay eventos
+                            </h3>
+                            <p className="text-slate-500 mb-6">
+                                {busqueda || filtroEstado
+                                    ? 'No se encontraron eventos con los filtros seleccionados'
+                                    : 'Crea tu primer evento para agrupar cotizaciones'}
+                            </p>
+                            {!busqueda && !filtroEstado && (
+                                <Button
+                                    color="blue"
+                                    icon={Plus}
+                                    onClick={() => setShowModalEvento(true)}
+                                >
+                                    Crear Evento
+                                </Button>
+                            )}
+                        </div>
+                    )}
+                </>
             )}
 
             {/* Modal crear/editar evento */}

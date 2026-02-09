@@ -1,45 +1,61 @@
 // ============================================
 // PÁGINA: CALENDARIO DE OPERACIONES
-// Vista de calendario con vistas mes/semana/día
+// Usa FullCalendar (como CalendarioPage) con
+// sidebar, stats, filtros y leyenda consistentes
 // ============================================
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
     Truck,
     Calendar,
-    ChevronLeft,
-    ChevronRight,
     Package,
     Clock,
     MapPin,
     User,
     AlertCircle,
-    Filter,
     CheckCircle,
-    Circle,
-    FileText
+    FileText,
+    RefreshCw,
+    Wrench,
+    PackageOpen,
+    Eye,
+    EyeOff,
+    Filter
 } from 'lucide-react'
 import { useGetCalendario } from '../hooks/useOrdenesTrabajo'
 import { useAuth } from '../hooks/auth/useAuth'
+import CalendarWrapper from '../components/calendar/CalendarWrapper'
 import Spinner from '../components/common/Spinner'
 import { ModalOrdenCargue } from '../components/operaciones'
 
 // ============================================
-// CONSTANTES
+// CONSTANTES: Colores para tipos de orden
 // ============================================
-const NOMBRES_MESES = [
-    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
-]
+const ORDEN_COLORS = {
+    montaje: {
+        backgroundColor: '#10B981',
+        borderColor: '#059669',
+        textColor: '#FFFFFF'
+    },
+    desmontaje: {
+        backgroundColor: '#F59E0B',
+        borderColor: '#D97706',
+        textColor: '#FFFFFF'
+    }
+}
 
-const DIAS_SEMANA = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
-const DIAS_SEMANA_COMPLETO = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
-
-const VISTAS = {
-    MES: 'mes',
-    SEMANA: 'semana',
-    DIA: 'dia'
+const ORDEN_COLORS_COMPLETADO = {
+    montaje: {
+        backgroundColor: '#86EFAC',
+        borderColor: '#4ADE80',
+        textColor: '#166534'
+    },
+    desmontaje: {
+        backgroundColor: '#FDE68A',
+        borderColor: '#FBBF24',
+        textColor: '#92400E'
+    }
 }
 
 // Configuración de estados para badges
@@ -54,44 +70,6 @@ const ESTADOS_CONFIG = {
     cancelado: { label: 'Cancelado', bg: 'bg-red-100', text: 'text-red-700' }
 }
 
-// ============================================
-// HELPERS DE FECHA
-// ============================================
-const formatFechaKey = (date) => {
-    const y = date.getFullYear()
-    const m = String(date.getMonth() + 1).padStart(2, '0')
-    const d = String(date.getDate()).padStart(2, '0')
-    return `${y}-${m}-${d}`
-}
-
-const isToday = (date) => {
-    const today = new Date()
-    return date.getDate() === today.getDate() &&
-           date.getMonth() === today.getMonth() &&
-           date.getFullYear() === today.getFullYear()
-}
-
-const isSameDay = (d1, d2) => {
-    if (!d1 || !d2) return false
-    return d1.getDate() === d2.getDate() &&
-           d1.getMonth() === d2.getMonth() &&
-           d1.getFullYear() === d2.getFullYear()
-}
-
-const getInicioSemana = (date) => {
-    const d = new Date(date)
-    const day = d.getDay()
-    d.setDate(d.getDate() - day)
-    d.setHours(0, 0, 0, 0)
-    return d
-}
-
-const getFinSemana = (date) => {
-    const d = getInicioSemana(date)
-    d.setDate(d.getDate() + 6)
-    return d
-}
-
 const formatHora = (fecha) => {
     return new Date(fecha).toLocaleTimeString('es-CO', {
         hour: '2-digit',
@@ -100,9 +78,135 @@ const formatHora = (fecha) => {
 }
 
 // ============================================
-// COMPONENTE: Tarjeta de Orden (reutilizable)
+// COMPONENTE: StatCard
 // ============================================
-const OrdenCard = ({ orden, compact = false, onClick, onOpenCargue }) => {
+const StatCard = ({ icon: Icon, label, value, color = 'slate' }) => {
+    const colorMap = {
+        slate: 'bg-slate-100 text-slate-600',
+        green: 'bg-green-100 text-green-600',
+        amber: 'bg-amber-100 text-amber-600',
+        emerald: 'bg-emerald-100 text-emerald-600',
+        red: 'bg-red-100 text-red-600'
+    }
+
+    return (
+        <div className="bg-white rounded-lg border border-slate-200 p-4">
+            <div className="flex items-center gap-3">
+                <div className={`p-2 rounded-lg ${colorMap[color]}`}>
+                    <Icon className="w-5 h-5" />
+                </div>
+                <div>
+                    <p className="text-2xl font-bold text-slate-900">{value}</p>
+                    <p className="text-xs text-slate-500">{label}</p>
+                </div>
+            </div>
+        </div>
+    )
+}
+
+// ============================================
+// COMPONENTE: Filtros de Operaciones
+// ============================================
+const OperacionesFilters = ({ filters, onFilterChange }) => {
+    const { showMontaje, showDesmontaje, filtroEstado } = filters
+
+    const handleToggle = (key) => {
+        onFilterChange({ ...filters, [key]: !filters[key] })
+    }
+
+    const getButtonClasses = (active, color) => {
+        const base = 'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all'
+        if (active) {
+            const map = {
+                emerald: 'bg-emerald-100 text-emerald-700 border border-emerald-200',
+                amber: 'bg-amber-100 text-amber-700 border border-amber-200'
+            }
+            return `${base} ${map[color]}`
+        }
+        return `${base} bg-slate-100 text-slate-400 border border-slate-200`
+    }
+
+    return (
+        <div className="bg-white rounded-lg border border-slate-200 p-4">
+            <div className="flex flex-wrap items-center gap-4">
+                <div className="flex items-center gap-2 text-slate-600">
+                    <Filter className="w-4 h-4" />
+                    <span className="text-sm font-medium">Filtros:</span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={() => handleToggle('showMontaje')}
+                        className={getButtonClasses(showMontaje, 'emerald')}
+                    >
+                        {showMontaje ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                        Montaje
+                    </button>
+                    <button
+                        onClick={() => handleToggle('showDesmontaje')}
+                        className={getButtonClasses(showDesmontaje, 'amber')}
+                    >
+                        {showDesmontaje ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                        Desmontaje
+                    </button>
+                </div>
+
+                <div className="h-6 w-px bg-slate-200" />
+
+                <div className="flex items-center gap-2">
+                    <label className="text-sm text-slate-600">Estado:</label>
+                    <select
+                        value={filtroEstado}
+                        onChange={(e) => onFilterChange({ ...filters, filtroEstado: e.target.value })}
+                        className="px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                        <option value="todos">Todos</option>
+                        <option value="pendiente">Pendiente</option>
+                        <option value="en_proceso">En proceso</option>
+                        <option value="completado">Completado</option>
+                        <option value="cancelado">Cancelado</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    )
+}
+
+// ============================================
+// COMPONENTE: Leyenda de Operaciones
+// ============================================
+const OperacionesLegend = () => {
+    return (
+        <div className="bg-white rounded-lg border border-slate-200 p-3">
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+                Leyenda
+            </p>
+            <div className="flex flex-col gap-2">
+                <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 rounded" style={{ backgroundColor: ORDEN_COLORS.montaje.backgroundColor }} />
+                    <span className="text-xs text-slate-600">Montaje</span>
+                </div>
+                <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 rounded" style={{ backgroundColor: ORDEN_COLORS.desmontaje.backgroundColor }} />
+                    <span className="text-xs text-slate-600">Desmontaje</span>
+                </div>
+                <div className="flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4 text-green-500" />
+                    <span className="text-xs text-slate-600">Completado</span>
+                </div>
+                <div className="flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-amber-500" />
+                    <span className="text-xs text-slate-600">Sin responsable</span>
+                </div>
+            </div>
+        </div>
+    )
+}
+
+// ============================================
+// COMPONENTE: OrdenCard (sidebar)
+// ============================================
+const OrdenCard = ({ orden, onClick, onOpenCargue }) => {
     const esMontaje = orden.tipo === 'montaje'
     const estadoConfig = ESTADOS_CONFIG[orden.estado] || ESTADOS_CONFIG.pendiente
     const sinResponsable = !orden.responsable_id
@@ -113,35 +217,10 @@ const OrdenCard = ({ orden, compact = false, onClick, onOpenCargue }) => {
         if (onOpenCargue) onOpenCargue(orden)
     }
 
-    if (compact) {
-        return (
-            <button
-                onClick={onClick}
-                className={`w-full text-left px-2 py-1 rounded text-xs truncate relative ${
-                    esCompletado
-                        ? 'bg-green-50 text-green-700 hover:bg-green-100'
-                        : esMontaje
-                            ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
-                            : 'bg-orange-100 text-orange-700 hover:bg-orange-200'
-                } transition-colors`}
-            >
-                <span className="flex items-center gap-1">
-                    {esCompletado && <CheckCircle className="w-3 h-3 shrink-0" />}
-                    {sinResponsable && !esCompletado && <AlertCircle className="w-3 h-3 text-amber-500 shrink-0" />}
-                    <span className="truncate">
-                        {formatHora(orden.fecha_programada)} {orden.cliente_nombre || 'Cliente'}
-                    </span>
-                </span>
-            </button>
-        )
-    }
-
     return (
-        <div
-            className={`px-4 py-3 border-b border-slate-100 last:border-b-0 ${
-                esCompletado ? 'bg-green-50/30' : ''
-            }`}
-        >
+        <div className={`px-4 py-3 border-b border-slate-100 last:border-b-0 ${
+            esCompletado ? 'bg-green-50/30' : ''
+        }`}>
             <div className="flex items-start gap-3">
                 <div
                     onClick={onClick}
@@ -209,7 +288,6 @@ const OrdenCard = ({ orden, compact = false, onClick, onOpenCargue }) => {
                             )
                         )}
                     </div>
-                    {/* Botón de orden de cargue */}
                     <div className="mt-2 pt-2 border-t border-slate-100">
                         <button
                             onClick={handleCargueClick}
@@ -226,430 +304,134 @@ const OrdenCard = ({ orden, compact = false, onClick, onOpenCargue }) => {
 }
 
 // ============================================
-// COMPONENTE: Vista Mes
-// ============================================
-const VistaMes = ({ currentDate, selectedDate, setSelectedDate, ordenesPorFecha, navigate }) => {
-    const year = currentDate.getFullYear()
-    const month = currentDate.getMonth()
-
-    const diasDelMes = useMemo(() => {
-        const primerDia = new Date(year, month, 1)
-        const ultimoDia = new Date(year, month + 1, 0)
-        const diasEnMes = ultimoDia.getDate()
-        const diaInicio = primerDia.getDay()
-
-        const dias = []
-
-        // Días del mes anterior
-        const ultimoDiaMesAnterior = new Date(year, month, 0).getDate()
-        for (let i = diaInicio - 1; i >= 0; i--) {
-            dias.push({
-                day: ultimoDiaMesAnterior - i,
-                isCurrentMonth: false,
-                date: new Date(year, month - 1, ultimoDiaMesAnterior - i)
-            })
-        }
-
-        // Días del mes actual
-        for (let i = 1; i <= diasEnMes; i++) {
-            dias.push({
-                day: i,
-                isCurrentMonth: true,
-                date: new Date(year, month, i)
-            })
-        }
-
-        // Completar última semana
-        const diasRestantes = 42 - dias.length
-        for (let i = 1; i <= diasRestantes; i++) {
-            dias.push({
-                day: i,
-                isCurrentMonth: false,
-                date: new Date(year, month + 1, i)
-            })
-        }
-
-        return dias
-    }, [year, month])
-
-    return (
-        <div className="p-4">
-            {/* Días de la semana */}
-            <div className="grid grid-cols-7 gap-1 mb-2">
-                {DIAS_SEMANA.map((dia) => (
-                    <div key={dia} className="text-center py-2 text-sm font-medium text-slate-500">
-                        {dia}
-                    </div>
-                ))}
-            </div>
-
-            {/* Días del mes */}
-            <div className="grid grid-cols-7 gap-1">
-                {diasDelMes.map((dia, index) => {
-                    const fechaKey = formatFechaKey(dia.date)
-                    const ordenesDia = ordenesPorFecha[fechaKey] || []
-                    const montajes = ordenesDia.filter(o => o.tipo === 'montaje').length
-                    const desmontajes = ordenesDia.filter(o => o.tipo === 'desmontaje').length
-
-                    return (
-                        <button
-                            key={index}
-                            onClick={() => setSelectedDate(dia.date)}
-                            className={`
-                                relative min-h-[80px] p-2 rounded-lg border transition-all text-left
-                                ${dia.isCurrentMonth
-                                    ? 'bg-white hover:bg-slate-50'
-                                    : 'bg-slate-50 text-slate-400'
-                                }
-                                ${isToday(dia.date)
-                                    ? 'border-blue-500 ring-1 ring-blue-500'
-                                    : 'border-slate-200'
-                                }
-                                ${isSameDay(dia.date, selectedDate)
-                                    ? 'border-orange-500 ring-1 ring-orange-500 bg-orange-50'
-                                    : ''
-                                }
-                            `}
-                        >
-                            <span className={`
-                                text-sm font-medium
-                                ${isToday(dia.date) ? 'text-blue-600' : ''}
-                            `}>
-                                {dia.day}
-                            </span>
-
-                            {ordenesDia.length > 0 && (() => {
-                                const completados = ordenesDia.filter(o => o.estado === 'completado').length
-                                const sinResponsable = ordenesDia.filter(o => !o.responsable_id && o.estado !== 'completado').length
-                                return (
-                                    <div className="mt-1 space-y-1">
-                                        {montajes > 0 && (
-                                            <div className="flex items-center gap-1 text-xs">
-                                                <div className="w-2 h-2 bg-emerald-500 rounded-full" />
-                                                <span className="text-emerald-700">{montajes}</span>
-                                            </div>
-                                        )}
-                                        {desmontajes > 0 && (
-                                            <div className="flex items-center gap-1 text-xs">
-                                                <div className="w-2 h-2 bg-orange-500 rounded-full" />
-                                                <span className="text-orange-700">{desmontajes}</span>
-                                            </div>
-                                        )}
-                                        {completados > 0 && (
-                                            <div className="flex items-center gap-1 text-xs">
-                                                <CheckCircle className="w-2.5 h-2.5 text-green-500" />
-                                                <span className="text-green-600">{completados}</span>
-                                            </div>
-                                        )}
-                                        {sinResponsable > 0 && (
-                                            <div className="flex items-center gap-1 text-xs">
-                                                <AlertCircle className="w-2.5 h-2.5 text-amber-500" />
-                                            </div>
-                                        )}
-                                    </div>
-                                )
-                            })()}
-                        </button>
-                    )
-                })}
-            </div>
-        </div>
-    )
-}
-
-// ============================================
-// COMPONENTE: Vista Semana
-// ============================================
-const VistaSemana = ({ currentDate, ordenesPorFecha, navigate }) => {
-    const inicioSemana = getInicioSemana(currentDate)
-
-    const diasSemana = useMemo(() => {
-        const dias = []
-        for (let i = 0; i < 7; i++) {
-            const d = new Date(inicioSemana)
-            d.setDate(d.getDate() + i)
-            dias.push(d)
-        }
-        return dias
-    }, [inicioSemana.getTime()])
-
-    // Horas del día (6am a 10pm)
-    const horas = []
-    for (let h = 6; h <= 22; h++) {
-        horas.push(h)
-    }
-
-    return (
-        <div className="overflow-x-auto">
-            <div className="min-w-[700px]">
-                {/* Header con días */}
-                <div className="grid grid-cols-[60px_repeat(7,1fr)] border-b border-slate-200">
-                    <div className="p-2" />
-                    {diasSemana.map((dia, i) => (
-                        <div
-                            key={i}
-                            className={`p-3 text-center border-l border-slate-200 ${
-                                isToday(dia) ? 'bg-blue-50' : ''
-                            }`}
-                        >
-                            <p className="text-xs text-slate-500">{DIAS_SEMANA[dia.getDay()]}</p>
-                            <p className={`text-lg font-bold ${
-                                isToday(dia) ? 'text-blue-600' : 'text-slate-900'
-                            }`}>
-                                {dia.getDate()}
-                            </p>
-                        </div>
-                    ))}
-                </div>
-
-                {/* Grid de horas */}
-                <div className="relative">
-                    {horas.map((hora) => (
-                        <div key={hora} className="grid grid-cols-[60px_repeat(7,1fr)] border-b border-slate-100">
-                            <div className="p-2 text-xs text-slate-400 text-right pr-3 py-3">
-                                {`${hora}:00`}
-                            </div>
-                            {diasSemana.map((dia, i) => {
-                                const fechaKey = formatFechaKey(dia)
-                                const ordenesDia = ordenesPorFecha[fechaKey] || []
-                                const ordenesHora = ordenesDia.filter(o => {
-                                    const h = new Date(o.fecha_programada).getHours()
-                                    return h === hora
-                                })
-
-                                return (
-                                    <div
-                                        key={i}
-                                        className={`border-l border-slate-200 min-h-[48px] p-0.5 ${
-                                            isToday(dia) ? 'bg-blue-50/30' : ''
-                                        }`}
-                                    >
-                                        {ordenesHora.map((orden) => (
-                                            <OrdenCard
-                                                key={orden.id}
-                                                orden={orden}
-                                                compact
-                                                onClick={() => navigate(`/operaciones/ordenes/${orden.id}`)}
-                                            />
-                                        ))}
-                                    </div>
-                                )
-                            })}
-                        </div>
-                    ))}
-                </div>
-            </div>
-        </div>
-    )
-}
-
-// ============================================
-// COMPONENTE: Vista Día
-// ============================================
-const VistaDia = ({ currentDate, ordenesPorFecha, navigate, onOpenCargue }) => {
-    const fechaKey = formatFechaKey(currentDate)
-    const ordenesDia = ordenesPorFecha[fechaKey] || []
-
-    // Horas del día (6am a 10pm)
-    const horas = []
-    for (let h = 6; h <= 22; h++) {
-        horas.push(h)
-    }
-
-    return (
-        <div>
-            {/* Header del día */}
-            <div className="px-6 py-4 border-b border-slate-200 bg-slate-50">
-                <p className="text-lg font-semibold text-slate-900">
-                    {DIAS_SEMANA_COMPLETO[currentDate.getDay()]}, {currentDate.getDate()} de {NOMBRES_MESES[currentDate.getMonth()]}
-                </p>
-                <p className="text-sm text-slate-500">
-                    {ordenesDia.length} orden{ordenesDia.length !== 1 ? 'es' : ''} programada{ordenesDia.length !== 1 ? 's' : ''}
-                </p>
-            </div>
-
-            {/* Timeline de horas */}
-            <div>
-                {horas.map((hora) => {
-                    const ordenesHora = ordenesDia.filter(o => {
-                        const h = new Date(o.fecha_programada).getHours()
-                        return h === hora
-                    })
-
-                    return (
-                        <div key={hora} className="flex border-b border-slate-100">
-                            <div className="w-20 shrink-0 p-3 text-right text-sm text-slate-400 border-r border-slate-200">
-                                {`${hora}:00`}
-                            </div>
-                            <div className="flex-1 min-h-[56px]">
-                                {ordenesHora.length > 0 ? (
-                                    <div className="divide-y divide-slate-100">
-                                        {ordenesHora.map((orden) => (
-                                            <OrdenCard
-                                                key={orden.id}
-                                                orden={orden}
-                                                onClick={() => navigate(`/operaciones/ordenes/${orden.id}`)}
-                                                onOpenCargue={onOpenCargue}
-                                            />
-                                        ))}
-                                    </div>
-                                ) : null}
-                            </div>
-                        </div>
-                    )
-                })}
-            </div>
-
-            {/* Si no hay órdenes */}
-            {ordenesDia.length === 0 && (
-                <div className="px-6 py-12 text-center">
-                    <Calendar className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-                    <p className="text-slate-600 font-medium">No hay órdenes para este día</p>
-                    <p className="text-sm text-slate-500 mt-1">Las órdenes programadas aparecerán aquí</p>
-                </div>
-            )}
-        </div>
-    )
-}
-
-// ============================================
 // COMPONENTE PRINCIPAL
 // ============================================
 export default function CalendarioOperaciones() {
     const navigate = useNavigate()
     useAuth()
 
-    // ============================================
-    // ESTADO
-    // ============================================
-    const [vista, setVista] = useState(VISTAS.MES)
-    const [currentDate, setCurrentDate] = useState(new Date())
-    const [selectedDate, setSelectedDate] = useState(null)
+    const calendarRef = useRef(null)
 
-    // Filtros
-    const [filtroTipo, setFiltroTipo] = useState('todos') // todos, montaje, desmontaje
-    const [filtroEstado, setFiltroEstado] = useState('todos') // todos, pendiente, en_proceso, completado
-    const [mostrarFiltros, setMostrarFiltros] = useState(false)
-
-    // Modal de orden de cargue
-    const [ordenCargueModal, setOrdenCargueModal] = useState({ isOpen: false, orden: null })
-
-    const year = currentDate.getFullYear()
-    const month = currentDate.getMonth()
-
-    // Calcular rango según la vista
-    const rango = useMemo(() => {
-        if (vista === VISTAS.MES) {
-            return {
-                desde: new Date(year, month, 1).toISOString().split('T')[0],
-                hasta: new Date(year, month + 1, 0).toISOString().split('T')[0]
-            }
-        } else if (vista === VISTAS.SEMANA) {
-            const inicio = getInicioSemana(currentDate)
-            const fin = getFinSemana(currentDate)
-            return {
-                desde: formatFechaKey(inicio),
-                hasta: formatFechaKey(fin)
-            }
-        } else {
-            const fecha = formatFechaKey(currentDate)
-            return { desde: fecha, hasta: fecha }
-        }
-    }, [vista, year, month, currentDate.getTime()])
-
-    // ============================================
-    // HOOKS: Obtener datos
-    // ============================================
-    const { eventos: calendario, isLoading } = useGetCalendario({
-        desde: rango.desde,
-        hasta: rango.hasta
+    // Estado de filtros
+    const [filters, setFilters] = useState({
+        showMontaje: true,
+        showDesmontaje: true,
+        filtroEstado: 'todos'
     })
 
-    // Filtrar y agrupar órdenes por fecha
-    const { ordenesPorFecha, estadisticas } = useMemo(() => {
-        if (!calendario) return { ordenesPorFecha: {}, estadisticas: { total: 0, montajes: 0, desmontajes: 0, completados: 0, sinResponsable: 0 } }
+    // Tooltip y detalle
+    const [selectedEvent, setSelectedEvent] = useState(null)
+    const [ordenCargueModal, setOrdenCargueModal] = useState({ isOpen: false, orden: null })
 
-        // Calcular estadísticas de todas las órdenes (sin filtrar)
-        const stats = {
+    // Obtener datos del calendario (amplio rango para que FullCalendar navegue)
+    const { eventos: calendario, isLoading, error, refetch } = useGetCalendario({})
+
+    // Transformar órdenes a formato FullCalendar
+    const { events, stats, ordenesPorId } = useMemo(() => {
+        if (!calendario || !calendario.length) {
+            return {
+                events: [],
+                stats: { total: 0, montajes: 0, desmontajes: 0, completados: 0, sinResponsable: 0 },
+                ordenesPorId: {}
+            }
+        }
+
+        const statsCalc = {
             total: calendario.length,
             montajes: calendario.filter(o => o.tipo === 'montaje').length,
             desmontajes: calendario.filter(o => o.tipo === 'desmontaje').length,
             completados: calendario.filter(o => o.estado === 'completado').length,
-            sinResponsable: calendario.filter(o => !o.responsable_id && o.estado !== 'completado').length
+            sinResponsable: calendario.filter(o => !o.responsable_id && o.estado !== 'completado' && o.estado !== 'cancelado').length
         }
 
-        // Aplicar filtros
+        // Filtrar
         let filtradas = calendario
-        if (filtroTipo !== 'todos') {
-            filtradas = filtradas.filter(o => o.tipo === filtroTipo)
+        if (!filters.showMontaje) {
+            filtradas = filtradas.filter(o => o.tipo !== 'montaje')
         }
-        if (filtroEstado !== 'todos') {
-            if (filtroEstado === 'en_proceso') {
-                // Incluir todos los estados activos excepto completado/cancelado
+        if (!filters.showDesmontaje) {
+            filtradas = filtradas.filter(o => o.tipo !== 'desmontaje')
+        }
+        if (filters.filtroEstado !== 'todos') {
+            if (filters.filtroEstado === 'en_proceso') {
                 filtradas = filtradas.filter(o =>
                     !['completado', 'cancelado', 'pendiente'].includes(o.estado)
                 )
             } else {
-                filtradas = filtradas.filter(o => o.estado === filtroEstado)
+                filtradas = filtradas.filter(o => o.estado === filters.filtroEstado)
             }
         }
 
-        // Agrupar por fecha
-        const agrupado = {}
-        filtradas.forEach(orden => {
-            const fecha = orden.fecha_programada?.split('T')[0]
-            if (!agrupado[fecha]) agrupado[fecha] = []
-            agrupado[fecha].push(orden)
+        // Mapa para lookup rápido
+        const idMap = {}
+        calendario.forEach(o => { idMap[o.id] = o })
+
+        // Transformar a eventos FullCalendar
+        const calEvents = filtradas.map(orden => {
+            const esCompletado = orden.estado === 'completado'
+            const colors = esCompletado
+                ? (ORDEN_COLORS_COMPLETADO[orden.tipo] || ORDEN_COLORS_COMPLETADO.montaje)
+                : (ORDEN_COLORS[orden.tipo] || ORDEN_COLORS.montaje)
+
+            const hora = formatHora(orden.fecha_programada)
+            const titulo = `${hora} ${orden.cliente_nombre || 'Orden'}`
+
+            return {
+                id: String(orden.id),
+                title: titulo,
+                start: orden.fecha_programada,
+                backgroundColor: colors.backgroundColor,
+                borderColor: colors.borderColor,
+                textColor: colors.textColor,
+                display: 'block',
+                extendedProps: {
+                    tipo: orden.tipo,
+                    estado: orden.estado,
+                    cliente: orden.cliente_nombre,
+                    nombreEvento: orden.nombre_evento,
+                    ciudadEvento: orden.ciudad_evento,
+                    direccionEvento: orden.direccion_evento,
+                    responsableId: orden.responsable_id,
+                    totalEquipo: orden.total_equipo,
+                    ordenId: orden.id
+                }
+            }
         })
 
-        return { ordenesPorFecha: agrupado, estadisticas: stats }
-    }, [calendario, filtroTipo, filtroEstado])
+        return { events: calEvents, stats: statsCalc, ordenesPorId: idMap }
+    }, [calendario, filters])
 
-    // Órdenes del día seleccionado (para panel lateral en vista mes)
-    const ordenesSeleccionadas = selectedDate
-        ? (ordenesPorFecha[formatFechaKey(selectedDate)] || [])
-        : []
-
-    // ============================================
-    // NAVEGACIÓN
-    // ============================================
-    const navegar = (direccion) => {
-        const d = new Date(currentDate)
-        if (vista === VISTAS.MES) {
-            d.setMonth(d.getMonth() + direccion)
-        } else if (vista === VISTAS.SEMANA) {
-            d.setDate(d.getDate() + (7 * direccion))
-        } else {
-            d.setDate(d.getDate() + direccion)
+    // Handler de click en evento del calendario
+    const handleEventClick = useCallback((info) => {
+        const ordenId = parseInt(info.event.id)
+        const orden = ordenesPorId[ordenId]
+        if (orden) {
+            setSelectedEvent(orden)
         }
-        setCurrentDate(d)
-        setSelectedDate(null)
-    }
+    }, [ordenesPorId])
 
-    const irAHoy = () => {
-        setCurrentDate(new Date())
-        setSelectedDate(null)
-    }
-
-    // Título dinámico según vista
-    const getTitulo = () => {
-        if (vista === VISTAS.MES) {
-            return `${NOMBRES_MESES[month]} ${year}`
-        } else if (vista === VISTAS.SEMANA) {
-            const inicio = getInicioSemana(currentDate)
-            const fin = getFinSemana(currentDate)
-            const mInicio = NOMBRES_MESES[inicio.getMonth()].substring(0, 3)
-            const mFin = NOMBRES_MESES[fin.getMonth()].substring(0, 3)
-            if (inicio.getMonth() === fin.getMonth()) {
-                return `${inicio.getDate()} - ${fin.getDate()} ${mFin} ${year}`
-            }
-            return `${inicio.getDate()} ${mInicio} - ${fin.getDate()} ${mFin} ${year}`
-        } else {
-            return `${DIAS_SEMANA_COMPLETO[currentDate.getDay()]}, ${currentDate.getDate()} de ${NOMBRES_MESES[month]}`
+    const goToToday = useCallback(() => {
+        if (calendarRef.current) {
+            calendarRef.current.getApi().today()
         }
-    }
+    }, [])
 
-    // Abrir modal de orden de cargue
+    const handleIrOrdenes = useCallback(() => {
+        navigate('/operaciones/ordenes')
+    }, [navigate])
+
+    // Opciones del calendario
+    const calendarOptions = useMemo(() => ({
+        headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'dayGridMonth,timeGridWeek,listWeek'
+        },
+        dayMaxEvents: 3,
+        eventDisplay: 'block',
+        height: 'auto'
+    }), [])
+
     const abrirOrdenCargue = (orden) => {
         setOrdenCargueModal({ isOpen: true, orden })
     }
@@ -658,303 +440,152 @@ export default function CalendarioOperaciones() {
         setOrdenCargueModal({ isOpen: false, orden: null })
     }
 
-    // ============================================
-    // RENDER
-    // ============================================
     return (
-        <div className="p-6">
-            {/* HEADER CONSISTENTE */}
-            <div className="mb-6">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                    <div>
-                        <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-3">
-                            <div className="p-2 bg-blue-100 rounded-lg">
-                                <Calendar className="w-6 h-6 text-blue-600" />
-                            </div>
-                            Calendario de Operaciones
-                        </h1>
-                        <p className="text-slate-500 mt-1">
-                            Programación de montajes y desmontajes
-                        </p>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                        {/* Botón de filtros */}
-                        <button
-                            onClick={() => setMostrarFiltros(!mostrarFiltros)}
-                            className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors ${
-                                mostrarFiltros || filtroTipo !== 'todos' || filtroEstado !== 'todos'
-                                    ? 'bg-blue-50 border-blue-200 text-blue-700'
-                                    : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
-                            }`}
-                        >
-                            <Filter className="w-4 h-4" />
-                            Filtros
-                            {(filtroTipo !== 'todos' || filtroEstado !== 'todos') && (
-                                <span className="px-1.5 py-0.5 bg-blue-600 text-white text-xs rounded-full">
-                                    {(filtroTipo !== 'todos' ? 1 : 0) + (filtroEstado !== 'todos' ? 1 : 0)}
-                                </span>
-                            )}
-                        </button>
-
-                        {/* Selector de vista */}
-                        <div className="flex items-center bg-white border border-slate-200 rounded-lg p-1">
-                            {[
-                                { key: VISTAS.DIA, label: 'Día' },
-                                { key: VISTAS.SEMANA, label: 'Semana' },
-                                { key: VISTAS.MES, label: 'Mes' }
-                            ].map(({ key, label }) => (
-                                <button
-                                    key={key}
-                                    onClick={() => { setVista(key); setSelectedDate(null) }}
-                                    className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-                                        vista === key
-                                            ? 'bg-blue-600 text-white shadow-sm'
-                                            : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-                                    }`}
-                                >
-                                    {label}
-                                </button>
-                            ))}
+        <div className="p-6 space-y-6">
+            {/* HEADER */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                    <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-3">
+                        <div className="p-2 bg-blue-100 rounded-lg">
+                            <Calendar className="w-6 h-6 text-blue-600" />
                         </div>
-                    </div>
+                        Calendario de Operaciones
+                    </h1>
+                    <p className="text-slate-500 mt-1">
+                        Programación de montajes y desmontajes
+                    </p>
                 </div>
+                <button
+                    onClick={() => refetch()}
+                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
+                >
+                    <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+                    Actualizar
+                </button>
+            </div>
 
-                {/* Panel de filtros colapsible */}
-                {mostrarFiltros && (
-                    <div className="mt-4 p-4 bg-white rounded-xl border border-slate-200">
-                        <div className="flex flex-wrap items-center gap-4">
-                            {/* Filtro por tipo */}
-                            <div className="flex items-center gap-2">
-                                <span className="text-sm font-medium text-slate-700">Tipo:</span>
-                                <div className="flex items-center bg-slate-100 rounded-lg p-0.5">
-                                    {[
-                                        { key: 'todos', label: 'Todos' },
-                                        { key: 'montaje', label: 'Montajes' },
-                                        { key: 'desmontaje', label: 'Desmontajes' }
-                                    ].map(({ key, label }) => (
-                                        <button
-                                            key={key}
-                                            onClick={() => setFiltroTipo(key)}
-                                            className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                                                filtroTipo === key
-                                                    ? 'bg-white text-slate-900 shadow-sm'
-                                                    : 'text-slate-600 hover:text-slate-900'
-                                            }`}
-                                        >
-                                            {label}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* Filtro por estado */}
-                            <div className="flex items-center gap-2">
-                                <span className="text-sm font-medium text-slate-700">Estado:</span>
-                                <div className="flex items-center bg-slate-100 rounded-lg p-0.5">
-                                    {[
-                                        { key: 'todos', label: 'Todos' },
-                                        { key: 'pendiente', label: 'Pendiente' },
-                                        { key: 'en_proceso', label: 'En proceso' },
-                                        { key: 'completado', label: 'Completado' }
-                                    ].map(({ key, label }) => (
-                                        <button
-                                            key={key}
-                                            onClick={() => setFiltroEstado(key)}
-                                            className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                                                filtroEstado === key
-                                                    ? 'bg-white text-slate-900 shadow-sm'
-                                                    : 'text-slate-600 hover:text-slate-900'
-                                            }`}
-                                        >
-                                            {label}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* Limpiar filtros */}
-                            {(filtroTipo !== 'todos' || filtroEstado !== 'todos') && (
-                                <button
-                                    onClick={() => { setFiltroTipo('todos'); setFiltroEstado('todos') }}
-                                    className="text-sm text-blue-600 hover:text-blue-700 font-medium"
-                                >
-                                    Limpiar filtros
-                                </button>
-                            )}
-                        </div>
-                    </div>
-                )}
-
-                {/* Barra de estadísticas */}
-                {!isLoading && (
-                    <div className="mt-4 flex flex-wrap items-center gap-4 text-sm">
-                        <div className="flex items-center gap-2 px-3 py-1.5 bg-white rounded-lg border border-slate-200">
-                            <Circle className="w-3 h-3 text-slate-400" />
-                            <span className="text-slate-600">{estadisticas.total} total</span>
-                        </div>
-                        <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 rounded-lg border border-emerald-200">
-                            <Package className="w-3 h-3 text-emerald-600" />
-                            <span className="text-emerald-700">{estadisticas.montajes} montajes</span>
-                        </div>
-                        <div className="flex items-center gap-2 px-3 py-1.5 bg-orange-50 rounded-lg border border-orange-200">
-                            <Truck className="w-3 h-3 text-orange-600" />
-                            <span className="text-orange-700">{estadisticas.desmontajes} desmontajes</span>
-                        </div>
-                        <div className="flex items-center gap-2 px-3 py-1.5 bg-green-50 rounded-lg border border-green-200">
-                            <CheckCircle className="w-3 h-3 text-green-600" />
-                            <span className="text-green-700">{estadisticas.completados} completados</span>
-                        </div>
-                        {estadisticas.sinResponsable > 0 && (
-                            <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-50 rounded-lg border border-amber-200">
-                                <AlertCircle className="w-3 h-3 text-amber-600" />
-                                <span className="text-amber-700">{estadisticas.sinResponsable} sin responsable</span>
-                            </div>
-                        )}
-                    </div>
+            {/* ESTADÍSTICAS */}
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                <StatCard icon={Calendar} label="Total Ordenes" value={stats.total} color="slate" />
+                <StatCard icon={Wrench} label="Montajes" value={stats.montajes} color="emerald" />
+                <StatCard icon={PackageOpen} label="Desmontajes" value={stats.desmontajes} color="amber" />
+                <StatCard icon={CheckCircle} label="Completados" value={stats.completados} color="green" />
+                {stats.sinResponsable > 0 && (
+                    <StatCard icon={AlertCircle} label="Sin responsable" value={stats.sinResponsable} color="red" />
                 )}
             </div>
 
-            {/* CONTENIDO PRINCIPAL */}
-            <div className={`grid gap-6 ${vista === VISTAS.MES ? 'grid-cols-1 lg:grid-cols-3' : 'grid-cols-1'}`}>
-                {/* CALENDARIO */}
-                <div className={vista === VISTAS.MES ? 'lg:col-span-2' : ''}>
-                    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-                        {/* Controles de navegación */}
-                        <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
-                            <div className="flex items-center gap-3">
+            {/* FILTROS */}
+            <OperacionesFilters
+                filters={filters}
+                onFilterChange={setFilters}
+            />
+
+            {/* CONTENIDO: CALENDARIO + SIDEBAR */}
+            {isLoading ? (
+                <div className="flex justify-center py-12">
+                    <Spinner size="lg" text="Cargando calendario..." />
+                </div>
+            ) : error ? (
+                <div className="bg-white rounded-lg border border-slate-200 p-12 text-center">
+                    <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
+                    <p className="text-slate-600 font-medium">Error al cargar el calendario</p>
+                    <button
+                        onClick={() => refetch()}
+                        className="mt-4 px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                    >
+                        Reintentar
+                    </button>
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                    {/* CALENDARIO (FullCalendar) */}
+                    <div className="lg:col-span-3">
+                        <div className="bg-white rounded-lg border border-slate-200 p-4">
+                            <CalendarWrapper
+                                calendarRef={calendarRef}
+                                events={events}
+                                options={calendarOptions}
+                                handlers={{
+                                    eventClick: handleEventClick
+                                }}
+                            />
+                        </div>
+                    </div>
+
+                    {/* PANEL LATERAL */}
+                    <div className="space-y-4">
+                        {/* Leyenda */}
+                        <OperacionesLegend />
+
+                        {/* Acciones rápidas */}
+                        <div className="bg-white rounded-lg border border-slate-200 p-4">
+                            <h3 className="text-sm font-semibold text-slate-700 mb-3">
+                                Acciones Rapidas
+                            </h3>
+                            <div className="space-y-2">
                                 <button
-                                    onClick={() => navegar(-1)}
-                                    className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+                                    onClick={goToToday}
+                                    className="w-full px-4 py-2 text-left text-sm text-slate-600 hover:bg-slate-50 rounded-lg transition-colors"
                                 >
-                                    <ChevronLeft className="w-5 h-5 text-slate-600" />
+                                    Ir a Hoy
                                 </button>
-                                <h2 className="text-lg font-semibold text-slate-900 min-w-[200px] text-center">
-                                    {getTitulo()}
-                                </h2>
                                 <button
-                                    onClick={() => navegar(1)}
-                                    className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+                                    onClick={handleIrOrdenes}
+                                    className="w-full px-4 py-2 text-left text-sm text-slate-600 hover:bg-slate-50 rounded-lg transition-colors"
                                 >
-                                    <ChevronRight className="w-5 h-5 text-slate-600" />
+                                    Ver Todas las Ordenes
                                 </button>
                             </div>
-                            <button
-                                onClick={irAHoy}
-                                className="px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                            >
-                                Hoy
-                            </button>
                         </div>
 
-                        {/* Vista del calendario */}
-                        {isLoading ? (
-                            <div className="flex justify-center py-12">
-                                <Spinner size="lg" text="Cargando calendario..." />
+                        {/* Resumen */}
+                        <div className="bg-white rounded-lg border border-slate-200 p-4">
+                            <h3 className="text-sm font-semibold text-slate-700 mb-3">
+                                Resumen
+                            </h3>
+                            <div className="space-y-2 text-sm">
+                                <div className="flex justify-between">
+                                    <span className="text-slate-500">Ordenes:</span>
+                                    <span className="font-medium">{stats.total}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-slate-500">Visibles:</span>
+                                    <span className="font-medium">{events.length}</span>
+                                </div>
+                                {stats.sinResponsable > 0 && (
+                                    <div className="flex justify-between text-amber-600">
+                                        <span>Sin responsable:</span>
+                                        <span className="font-medium">{stats.sinResponsable}</span>
+                                    </div>
+                                )}
                             </div>
-                        ) : (
-                            <>
-                                {vista === VISTAS.MES && (
-                                    <VistaMes
-                                        currentDate={currentDate}
-                                        selectedDate={selectedDate}
-                                        setSelectedDate={setSelectedDate}
-                                        ordenesPorFecha={ordenesPorFecha}
-                                        navigate={navigate}
-                                    />
-                                )}
-                                {vista === VISTAS.SEMANA && (
-                                    <VistaSemana
-                                        currentDate={currentDate}
-                                        ordenesPorFecha={ordenesPorFecha}
-                                        navigate={navigate}
-                                    />
-                                )}
-                                {vista === VISTAS.DIA && (
-                                    <VistaDia
-                                        currentDate={currentDate}
-                                        ordenesPorFecha={ordenesPorFecha}
-                                        navigate={navigate}
-                                        onOpenCargue={abrirOrdenCargue}
-                                    />
-                                )}
-                            </>
+                        </div>
+
+                        {/* Detalle de orden seleccionada */}
+                        {selectedEvent && (
+                            <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
+                                <div className="px-4 py-3 border-b border-slate-200 flex items-center justify-between">
+                                    <h3 className="text-sm font-semibold text-slate-700">
+                                        Orden Seleccionada
+                                    </h3>
+                                    <button
+                                        onClick={() => setSelectedEvent(null)}
+                                        className="text-xs text-slate-400 hover:text-slate-600"
+                                    >
+                                        Cerrar
+                                    </button>
+                                </div>
+                                <OrdenCard
+                                    orden={selectedEvent}
+                                    onClick={() => navigate(`/operaciones/ordenes/${selectedEvent.id}`)}
+                                    onOpenCargue={abrirOrdenCargue}
+                                />
+                            </div>
                         )}
-
-                        {/* Leyenda (siempre visible) */}
-                        <div className="px-6 py-3 border-t border-slate-200 bg-slate-50">
-                            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
-                                <div className="flex items-center gap-2">
-                                    <div className="w-3 h-3 bg-emerald-500 rounded-full" />
-                                    <span className="text-slate-600">Montajes</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <div className="w-3 h-3 bg-orange-500 rounded-full" />
-                                    <span className="text-slate-600">Desmontajes</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <CheckCircle className="w-3 h-3 text-green-500" />
-                                    <span className="text-slate-600">Completados</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <AlertCircle className="w-3 h-3 text-amber-500" />
-                                    <span className="text-slate-600">Sin responsable</span>
-                                </div>
-                            </div>
-                        </div>
                     </div>
                 </div>
-
-                {/* PANEL LATERAL - Solo en vista mes */}
-                {vista === VISTAS.MES && (
-                    <div>
-                        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-                            <div className="px-6 py-4 border-b border-slate-200">
-                                <h3 className="font-semibold text-slate-900">
-                                    {selectedDate
-                                        ? selectedDate.toLocaleDateString('es-CO', {
-                                            weekday: 'long',
-                                            day: 'numeric',
-                                            month: 'long'
-                                        })
-                                        : 'Selecciona un día'
-                                    }
-                                </h3>
-                                {selectedDate && (
-                                    <p className="text-sm text-slate-500">
-                                        {ordenesSeleccionadas.length} orden{ordenesSeleccionadas.length !== 1 ? 'es' : ''} programada{ordenesSeleccionadas.length !== 1 ? 's' : ''}
-                                    </p>
-                                )}
-                            </div>
-
-                            {selectedDate ? (
-                                ordenesSeleccionadas.length > 0 ? (
-                                    <div className="max-h-[500px] overflow-y-auto">
-                                        {ordenesSeleccionadas.map((orden) => (
-                                            <OrdenCard
-                                                key={orden.id}
-                                                orden={orden}
-                                                onClick={() => navigate(`/operaciones/ordenes/${orden.id}`)}
-                                                onOpenCargue={abrirOrdenCargue}
-                                            />
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <div className="px-6 py-12 text-center">
-                                        <Calendar className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-                                        <p className="text-slate-600">No hay órdenes para este día</p>
-                                    </div>
-                                )
-                            ) : (
-                                <div className="px-6 py-12 text-center">
-                                    <Calendar className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-                                    <p className="text-slate-600">Haz clic en un día para ver las órdenes</p>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                )}
-            </div>
+            )}
 
             {/* Modal de Orden de Cargue */}
             <ModalOrdenCargue
