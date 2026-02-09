@@ -3,7 +3,7 @@
 // Filtros para el calendario
 // ============================================
 
-import { Filter, Eye, EyeOff } from 'lucide-react'
+import { Filter, Eye, EyeOff, History } from 'lucide-react'
 import { EVENT_TYPES } from '../../constants/calendarConfig'
 
 /**
@@ -22,7 +22,8 @@ const CalendarFilters = ({
     showMontaje = true,
     showEvento = true,
     showDesmontaje = true,
-    filtroEstado = 'todos'
+    filtroEstado = 'todos',
+    mostrarFinalizados = false
   } = filters
 
   const handleToggle = (key) => {
@@ -105,6 +106,22 @@ const CalendarFilters = ({
             <option value="vencida">Vencidas</option>
           </select>
         </div>
+
+        {/* Separador */}
+        <div className="h-6 w-px bg-slate-200" />
+
+        {/* Toggle finalizados */}
+        <button
+          onClick={() => handleToggle('mostrarFinalizados')}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+            mostrarFinalizados
+              ? 'bg-indigo-100 text-indigo-700 border border-indigo-200'
+              : 'bg-slate-100 text-slate-400 border border-slate-200'
+          }`}
+        >
+          <History className="w-3.5 h-3.5" />
+          Finalizados
+        </button>
       </div>
     </div>
   )

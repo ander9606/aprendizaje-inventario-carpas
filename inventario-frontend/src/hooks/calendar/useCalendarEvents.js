@@ -19,7 +19,8 @@ export const useCalendarEvents = (cotizaciones = [], options = {}) => {
     showEvento = true,
     showDesmontaje = true,
     colorByEstado = false,
-    filtroEstado = null
+    filtroEstado = null,
+    ocultarFinalizados = true
   } = options
 
   /**
@@ -68,6 +69,7 @@ export const useCalendarEvents = (cotizaciones = [], options = {}) => {
         cotizacionId: cotizacion.id,
         tipo,
         estado: cotizacion.estado,
+        alquilerEstado: cotizacion.alquiler_estado || null,
         cliente: clienteNombre,
         eventoNombre: cotizacion.evento_nombre,
         eventoCiudad: cotizacion.evento_ciudad,
@@ -100,10 +102,18 @@ export const useCalendarEvents = (cotizaciones = [], options = {}) => {
 
     const eventList = []
 
-    // Filtrar por estado si es necesario
-    const cotizacionesFiltradas = filtroEstado
+    // Filtrar por estado de cotización si es necesario
+    let cotizacionesFiltradas = filtroEstado
       ? cotizaciones.filter(c => c.estado === filtroEstado)
       : cotizaciones
+
+    // Ocultar cotizaciones cuyo alquiler ya está finalizado o cancelado
+    if (ocultarFinalizados) {
+      const estadosFinales = ['finalizado', 'cancelado']
+      cotizacionesFiltradas = cotizacionesFiltradas.filter(
+        c => !c.alquiler_estado || !estadosFinales.includes(c.alquiler_estado)
+      )
+    }
 
     cotizacionesFiltradas.forEach(cotizacion => {
       // Evento de montaje
@@ -126,7 +136,7 @@ export const useCalendarEvents = (cotizaciones = [], options = {}) => {
     })
 
     return eventList
-  }, [cotizaciones, showMontaje, showEvento, showDesmontaje, filtroEstado, createEvent])
+  }, [cotizaciones, showMontaje, showEvento, showDesmontaje, filtroEstado, ocultarFinalizados, createEvent])
 
   /**
    * Encuentra una cotización por ID de evento

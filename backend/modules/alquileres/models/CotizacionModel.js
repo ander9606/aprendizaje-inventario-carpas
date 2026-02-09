@@ -78,7 +78,9 @@ class CotizacionModel {
         cot.valor_iva,
         cl.nombre AS cliente_nombre,
         cl.telefono AS cliente_telefono,
-        (SELECT COUNT(*) FROM cotizacion_productos WHERE cotizacion_id = cot.id) AS total_productos
+        (SELECT COUNT(*) FROM cotizacion_productos WHERE cotizacion_id = cot.id) AS total_productos,
+        (SELECT a.id FROM alquileres a WHERE a.cotizacion_id = cot.id LIMIT 1) AS alquiler_id,
+        (SELECT a.estado FROM alquileres a WHERE a.cotizacion_id = cot.id LIMIT 1) AS alquiler_estado
       FROM cotizaciones cot
       INNER JOIN clientes cl ON cot.cliente_id = cl.id
       ORDER BY cot.created_at DESC
