@@ -318,8 +318,8 @@ const EventoCard = ({ evento, navigate }) => {
                     </div>
                     {montaje && (
                         <div className="text-right shrink-0 ml-3">
-                            <p className="text-[11px] text-slate-400">Elementos</p>
-                            <p className="text-sm font-semibold text-slate-700">{montaje.total_elementos || 0}</p>
+                            <p className="text-[11px] text-slate-400">Productos</p>
+                            <p className="text-sm font-semibold text-slate-700">{montaje.total_productos || 0}</p>
                         </div>
                     )}
                 </div>
