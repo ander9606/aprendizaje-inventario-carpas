@@ -17,11 +17,13 @@ import {
     AlertCircle,
     Filter,
     CheckCircle,
-    Circle
+    Circle,
+    FileText
 } from 'lucide-react'
 import { useGetCalendario } from '../hooks/useOrdenesTrabajo'
 import { useAuth } from '../hooks/auth/useAuth'
 import Spinner from '../components/common/Spinner'
+import { ModalOrdenCargue } from '../components/operaciones'
 
 // ============================================
 // CONSTANTES
@@ -100,11 +102,16 @@ const formatHora = (fecha) => {
 // ============================================
 // COMPONENTE: Tarjeta de Orden (reutilizable)
 // ============================================
-const OrdenCard = ({ orden, compact = false, onClick }) => {
+const OrdenCard = ({ orden, compact = false, onClick, onOpenCargue }) => {
     const esMontaje = orden.tipo === 'montaje'
     const estadoConfig = ESTADOS_CONFIG[orden.estado] || ESTADOS_CONFIG.pendiente
     const sinResponsable = !orden.responsable_id
     const esCompletado = orden.estado === 'completado'
+
+    const handleCargueClick = (e) => {
+        e.stopPropagation()
+        if (onOpenCargue) onOpenCargue(orden)
+    }
 
     if (compact) {
         return (
@@ -131,15 +138,17 @@ const OrdenCard = ({ orden, compact = false, onClick }) => {
 
     return (
         <div
-            onClick={onClick}
-            className={`px-4 py-3 hover:bg-slate-50 transition-colors cursor-pointer border-b border-slate-100 last:border-b-0 ${
+            className={`px-4 py-3 border-b border-slate-100 last:border-b-0 ${
                 esCompletado ? 'bg-green-50/30' : ''
             }`}
         >
             <div className="flex items-start gap-3">
-                <div className={`p-2 rounded-lg shrink-0 ${
-                    esCompletado ? 'bg-green-100' : esMontaje ? 'bg-emerald-100' : 'bg-orange-100'
-                }`}>
+                <div
+                    onClick={onClick}
+                    className={`p-2 rounded-lg shrink-0 cursor-pointer ${
+                        esCompletado ? 'bg-green-100' : esMontaje ? 'bg-emerald-100' : 'bg-orange-100'
+                    }`}
+                >
                     {esCompletado
                         ? <CheckCircle className="w-4 h-4 text-green-600" />
                         : esMontaje
@@ -148,27 +157,32 @@ const OrdenCard = ({ orden, compact = false, onClick }) => {
                     }
                 </div>
                 <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-                        <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${
-                            esMontaje
-                                ? 'bg-emerald-100 text-emerald-700'
-                                : 'bg-orange-100 text-orange-700'
-                        }`}>
-                            {esMontaje ? 'Montaje' : 'Desmontaje'}
-                        </span>
-                        <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${estadoConfig.bg} ${estadoConfig.text}`}>
-                            {estadoConfig.label}
-                        </span>
-                        <span className="text-xs text-slate-500">#{orden.id}</span>
-                    </div>
-                    <p className="font-medium text-slate-900 truncate">
-                        {orden.cliente_nombre || 'Cliente'}
-                    </p>
-                    {orden.nombre_evento && (
-                        <p className="text-sm text-slate-600 truncate">
-                            {orden.nombre_evento}
+                    <div
+                        onClick={onClick}
+                        className="cursor-pointer hover:bg-slate-50 -mx-1 px-1 rounded transition-colors"
+                    >
+                        <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                            <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${
+                                esMontaje
+                                    ? 'bg-emerald-100 text-emerald-700'
+                                    : 'bg-orange-100 text-orange-700'
+                            }`}>
+                                {esMontaje ? 'Montaje' : 'Desmontaje'}
+                            </span>
+                            <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${estadoConfig.bg} ${estadoConfig.text}`}>
+                                {estadoConfig.label}
+                            </span>
+                            <span className="text-xs text-slate-500">#{orden.id}</span>
+                        </div>
+                        <p className="font-medium text-slate-900 truncate">
+                            {orden.cliente_nombre || 'Cliente'}
                         </p>
-                    )}
+                        {orden.nombre_evento && (
+                            <p className="text-sm text-slate-600 truncate">
+                                {orden.nombre_evento}
+                            </p>
+                        )}
+                    </div>
                     <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 mt-1">
                         <span className="flex items-center gap-1">
                             <Clock className="w-3 h-3" />
@@ -194,6 +208,16 @@ const OrdenCard = ({ orden, compact = false, onClick }) => {
                                 </span>
                             )
                         )}
+                    </div>
+                    {/* Botón de orden de cargue */}
+                    <div className="mt-2 pt-2 border-t border-slate-100">
+                        <button
+                            onClick={handleCargueClick}
+                            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md transition-colors"
+                        >
+                            <FileText className="w-3.5 h-3.5" />
+                            Orden de Cargue
+                        </button>
                     </div>
                 </div>
             </div>
@@ -422,7 +446,7 @@ const VistaSemana = ({ currentDate, ordenesPorFecha, navigate }) => {
 // ============================================
 // COMPONENTE: Vista Día
 // ============================================
-const VistaDia = ({ currentDate, ordenesPorFecha, navigate }) => {
+const VistaDia = ({ currentDate, ordenesPorFecha, navigate, onOpenCargue }) => {
     const fechaKey = formatFechaKey(currentDate)
     const ordenesDia = ordenesPorFecha[fechaKey] || []
 
@@ -465,6 +489,7 @@ const VistaDia = ({ currentDate, ordenesPorFecha, navigate }) => {
                                                 key={orden.id}
                                                 orden={orden}
                                                 onClick={() => navigate(`/operaciones/ordenes/${orden.id}`)}
+                                                onOpenCargue={onOpenCargue}
                                             />
                                         ))}
                                     </div>
@@ -505,6 +530,9 @@ export default function CalendarioOperaciones() {
     const [filtroTipo, setFiltroTipo] = useState('todos') // todos, montaje, desmontaje
     const [filtroEstado, setFiltroEstado] = useState('todos') // todos, pendiente, en_proceso, completado
     const [mostrarFiltros, setMostrarFiltros] = useState(false)
+
+    // Modal de orden de cargue
+    const [ordenCargueModal, setOrdenCargueModal] = useState({ isOpen: false, orden: null })
 
     const year = currentDate.getFullYear()
     const month = currentDate.getMonth()
@@ -619,6 +647,15 @@ export default function CalendarioOperaciones() {
         } else {
             return `${DIAS_SEMANA_COMPLETO[currentDate.getDay()]}, ${currentDate.getDate()} de ${NOMBRES_MESES[month]}`
         }
+    }
+
+    // Abrir modal de orden de cargue
+    const abrirOrdenCargue = (orden) => {
+        setOrdenCargueModal({ isOpen: true, orden })
+    }
+
+    const cerrarOrdenCargue = () => {
+        setOrdenCargueModal({ isOpen: false, orden: null })
     }
 
     // ============================================
@@ -838,6 +875,7 @@ export default function CalendarioOperaciones() {
                                         currentDate={currentDate}
                                         ordenesPorFecha={ordenesPorFecha}
                                         navigate={navigate}
+                                        onOpenCargue={abrirOrdenCargue}
                                     />
                                 )}
                             </>
@@ -897,6 +935,7 @@ export default function CalendarioOperaciones() {
                                                 key={orden.id}
                                                 orden={orden}
                                                 onClick={() => navigate(`/operaciones/ordenes/${orden.id}`)}
+                                                onOpenCargue={abrirOrdenCargue}
                                             />
                                         ))}
                                     </div>
@@ -916,6 +955,14 @@ export default function CalendarioOperaciones() {
                     </div>
                 )}
             </div>
+
+            {/* Modal de Orden de Cargue */}
+            <ModalOrdenCargue
+                isOpen={ordenCargueModal.isOpen}
+                onClose={cerrarOrdenCargue}
+                ordenId={ordenCargueModal.orden?.id}
+                ordenInfo={ordenCargueModal.orden}
+            />
         </div>
     )
 }
