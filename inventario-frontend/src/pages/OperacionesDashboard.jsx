@@ -27,24 +27,31 @@ import { useGetAlertasPendientes, useGetResumenAlertas } from '../hooks/useAlert
 import Spinner from '../components/common/Spinner'
 
 // ============================================
-// HELPERS: Fechas
+// HELPERS: Fechas (usando hora local, no UTC)
 // ============================================
-const getHoy = () => new Date().toISOString().split('T')[0]
+const formatLocalDate = (date) => {
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+}
+
+const getHoy = () => formatLocalDate(new Date())
 
 const getInicioSemana = () => {
     const d = new Date()
     const day = d.getDay()
     const diff = d.getDate() - day + (day === 0 ? -6 : 1) // Lunes
-    const lunes = new Date(d.setDate(diff))
-    return lunes.toISOString().split('T')[0]
+    d.setDate(diff)
+    return formatLocalDate(d)
 }
 
 const getFinSemana = () => {
     const d = new Date()
     const day = d.getDay()
     const diff = d.getDate() - day + (day === 0 ? 0 : 7) // Domingo
-    const domingo = new Date(d.setDate(diff))
-    return domingo.toISOString().split('T')[0]
+    d.setDate(diff)
+    return formatLocalDate(d)
 }
 
 // ============================================
