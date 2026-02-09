@@ -286,7 +286,9 @@ export const useCambiarEstadoElementosMasivo = () => {
             elementosAPI.cambiarEstadoMasivo(ordenId, elementoIds, estado),
         retry: 0,
         onSuccess: (_, variables) => {
+            // Invalidar todas las queries relacionadas con la orden
             queryClient.invalidateQueries({ queryKey: ['ordenes', variables.ordenId, 'elementos'] })
+            queryClient.invalidateQueries({ queryKey: ['ordenes', variables.ordenId, 'completa'] })
             queryClient.invalidateQueries({ queryKey: ['ordenes', variables.ordenId] })
         }
     })
