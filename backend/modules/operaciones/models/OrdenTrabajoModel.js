@@ -117,7 +117,7 @@ class OrdenTrabajoModel {
             ) equipo_count ON equipo_count.orden_id = ot.id
             LEFT JOIN (
                 SELECT cotizacion_id, COUNT(*) as total
-                FROM cotizacion_compuestos
+                FROM cotizacion_productos
                 GROUP BY cotizacion_id
             ) prod_count ON prod_count.cotizacion_id = cot.id
             ${whereClause}
