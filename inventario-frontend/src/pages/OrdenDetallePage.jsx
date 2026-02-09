@@ -336,14 +336,17 @@ export default function OrdenDetallePage() {
             e.estado === 'cargado' || e.estado_salida === 'cargado'
         ).length
 
+        // En desmontaje no aplica "sin asignar" - la asignación se hizo en montaje
+        const esDesmontaje = orden?.tipo === 'desmontaje'
+
         return {
             ...producto,
             totalElementos,
             cargados,
             // Producto listo si sus elementos están cargados O si todos los elementos de la orden están cargados
-            listoParaCargar: (totalElementos > 0 && cargados === totalElementos) || todosElementosCargados,
-            // No mostrar "sin asignar" si todos los elementos están cargados (cargue confirmado)
-            sinAsignar: totalElementos === 0 && !todosElementosCargados
+            listoParaCargar: (totalElementos > 0 && cargados === totalElementos) || todosElementosCargados || esDesmontaje,
+            // No mostrar "sin asignar" en desmontaje ni si todos los elementos están cargados
+            sinAsignar: !esDesmontaje && totalElementos === 0 && !todosElementosCargados
         }
     })
 

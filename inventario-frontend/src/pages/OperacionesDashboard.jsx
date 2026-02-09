@@ -363,16 +363,25 @@ export default function OperacionesDashboard() {
     // ============================================
     // HOOKS: Obtener datos
     // ============================================
-    const { ordenes: ordenesHoy, isLoading: loadingHoy } = useGetOrdenes({
+    const { ordenes: ordenesHoy, isLoading: loadingHoy, error: errorHoy } = useGetOrdenes({
         fecha_desde: hoy,
         fecha_hasta: hoy,
         limit: 50
     })
 
-    const { ordenes: ordenesSemana, isLoading: loadingSemana } = useGetOrdenes({
+    const { ordenes: ordenesSemana, isLoading: loadingSemana, error: errorSemana } = useGetOrdenes({
         fecha_desde: inicioSemana,
         fecha_hasta: finSemana,
         limit: 100
+    })
+
+    // DEBUG: Descomentar para ver los datos
+    console.log('Dashboard DEBUG:', {
+        hoy, inicioSemana, finSemana,
+        ordenesHoy: ordenesHoy?.length,
+        ordenesSemana: ordenesSemana?.length,
+        loadingHoy, loadingSemana,
+        errorHoy, errorSemana
     })
 
     const { estadisticas, isLoading: loadingStats } = useGetEstadisticasOperaciones()
