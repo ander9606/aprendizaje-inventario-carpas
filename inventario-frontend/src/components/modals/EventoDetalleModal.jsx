@@ -21,7 +21,9 @@ import {
     Plus,
     ChevronRight,
     Edit,
-    Trash2
+    Trash2,
+    Lock,
+    Info
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
@@ -141,6 +143,10 @@ const EventoDetalleModal = ({ isOpen, onClose, eventoId, onCrearCotizacion, onEd
         }
         onClose()
     }
+
+    // Verificar si el evento permite agregar cotizaciones
+    const puedeAgregarCotizacion = evento?.puede_agregar_cotizaciones?.permitido !== false
+    const motivoNoPuede = evento?.puede_agregar_cotizaciones?.motivo || ''
 
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -300,19 +306,41 @@ const EventoDetalleModal = ({ isOpen, onClose, eventoId, onCrearCotizacion, onEd
 
                             {/* Lista de Cotizaciones */}
                             <div>
+                                {/* Banner de evento cerrado */}
+                                {!puedeAgregarCotizacion && (
+                                    <div className="flex items-start gap-3 mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                                        <Lock className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+                                        <div>
+                                            <p className="text-sm font-medium text-amber-800">
+                                                No se pueden agregar cotizaciones
+                                            </p>
+                                            <p className="text-xs text-amber-700 mt-0.5">
+                                                {motivoNoPuede}
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
+
                                 <div className="flex items-center justify-between mb-4">
                                     <h4 className="font-semibold text-slate-900 flex items-center gap-2">
                                         <FileText className="w-5 h-5 text-slate-500" />
                                         Cotizaciones del Evento
                                     </h4>
-                                    <Button
-                                        size="sm"
-                                        variant="secondary"
-                                        icon={Plus}
-                                        onClick={handleCrearCotizacion}
-                                    >
-                                        Nueva Cotización
-                                    </Button>
+                                    {puedeAgregarCotizacion ? (
+                                        <Button
+                                            size="sm"
+                                            variant="secondary"
+                                            icon={Plus}
+                                            onClick={handleCrearCotizacion}
+                                        >
+                                            Nueva Cotización
+                                        </Button>
+                                    ) : (
+                                        <span className="text-xs text-slate-400 flex items-center gap-1">
+                                            <Lock className="w-3 h-3" />
+                                            Evento cerrado
+                                        </span>
+                                    )}
                                 </div>
 
                                 {evento.cotizaciones && evento.cotizaciones.length > 0 ? (
@@ -430,13 +458,15 @@ const EventoDetalleModal = ({ isOpen, onClose, eventoId, onCrearCotizacion, onEd
                                         <p className="text-slate-500 mb-3">
                                             Este evento no tiene cotizaciones
                                         </p>
-                                        <Button
-                                            size="sm"
-                                            icon={Plus}
-                                            onClick={handleCrearCotizacion}
-                                        >
-                                            Crear Primera Cotización
-                                        </Button>
+                                        {puedeAgregarCotizacion && (
+                                            <Button
+                                                size="sm"
+                                                icon={Plus}
+                                                onClick={handleCrearCotizacion}
+                                            >
+                                                Crear Primera Cotización
+                                            </Button>
+                                        )}
                                     </div>
                                 )}
                             </div>
