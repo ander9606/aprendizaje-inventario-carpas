@@ -38,19 +38,9 @@ const formatLocalDate = (date) => {
 
 const getHoy = () => formatLocalDate(new Date())
 
-const getInicioSemana = () => {
+const getProximos7Dias = () => {
     const d = new Date()
-    const day = d.getDay()
-    const diff = d.getDate() - day + (day === 0 ? -6 : 1) // Lunes
-    d.setDate(diff)
-    return formatLocalDate(d)
-}
-
-const getFinSemana = () => {
-    const d = new Date()
-    const day = d.getDay()
-    const diff = d.getDate() - day + (day === 0 ? 0 : 7) // Domingo
-    d.setDate(diff)
+    d.setDate(d.getDate() + 7)
     return formatLocalDate(d)
 }
 
@@ -357,31 +347,22 @@ export default function OperacionesDashboard() {
     const [mostrarHistorial, setMostrarHistorial] = useState(false)
 
     const hoy = getHoy()
-    const inicioSemana = getInicioSemana()
-    const finSemana = getFinSemana()
+    const fin7Dias = getProximos7Dias()
 
     // ============================================
     // HOOKS: Obtener datos
     // ============================================
-    const { ordenes: ordenesHoy, isLoading: loadingHoy, error: errorHoy } = useGetOrdenes({
+    const { ordenes: ordenesHoy, isLoading: loadingHoy } = useGetOrdenes({
         fecha_desde: hoy,
         fecha_hasta: hoy,
         limit: 50
     })
 
-    const { ordenes: ordenesSemana, isLoading: loadingSemana, error: errorSemana } = useGetOrdenes({
-        fecha_desde: inicioSemana,
-        fecha_hasta: finSemana,
+    // Próximos 7 días (incluyendo hoy)
+    const { ordenes: ordenesProximas, isLoading: loadingProximas } = useGetOrdenes({
+        fecha_desde: hoy,
+        fecha_hasta: fin7Dias,
         limit: 100
-    })
-
-    // DEBUG: Descomentar para ver los datos
-    console.log('Dashboard DEBUG:', {
-        hoy, inicioSemana, finSemana,
-        ordenesHoy: ordenesHoy?.length,
-        ordenesSemana: ordenesSemana?.length,
-        loadingHoy, loadingSemana,
-        errorHoy, errorSemana
     })
 
     const { estadisticas, isLoading: loadingStats } = useGetEstadisticasOperaciones()
@@ -393,15 +374,15 @@ export default function OperacionesDashboard() {
     // ============================================
     const eventosHoy = useMemo(() => agruparPorEvento(ordenesHoy), [ordenesHoy])
 
-    // Órdenes de la semana excluyendo las de hoy
-    const eventosRestaSemana = useMemo(() => {
-        if (!ordenesSemana?.length) return []
-        const ordenesNoHoy = ordenesSemana.filter(o => {
+    // Órdenes de los próximos días excluyendo las de hoy
+    const eventosProximos = useMemo(() => {
+        if (!ordenesProximas?.length) return []
+        const ordenesNoHoy = ordenesProximas.filter(o => {
             const fechaOrden = o.fecha_programada?.split('T')[0]
             return fechaOrden !== hoy
         })
         return agruparPorEvento(ordenesNoHoy)
-    }, [ordenesSemana, hoy])
+    }, [ordenesProximas, hoy])
 
     // Separar eventos activos de finalizados
     const { eventosHoyActivos, eventosHoyFinalizados } = useMemo(() => ({
@@ -409,19 +390,19 @@ export default function OperacionesDashboard() {
         eventosHoyFinalizados: eventosHoy.filter(e => esEventoFinalizado(e))
     }), [eventosHoy])
 
-    const { eventosRestaSemanaActivos, eventosRestaSemanaFinalizados } = useMemo(() => ({
-        eventosRestaSemanaActivos: eventosRestaSemana.filter(e => !esEventoFinalizado(e)),
-        eventosRestaSemanaFinalizados: eventosRestaSemana.filter(e => esEventoFinalizado(e))
-    }), [eventosRestaSemana])
+    const { eventosProximosActivos, eventosProximosFinalizados } = useMemo(() => ({
+        eventosProximosActivos: eventosProximos.filter(e => !esEventoFinalizado(e)),
+        eventosProximosFinalizados: eventosProximos.filter(e => esEventoFinalizado(e))
+    }), [eventosProximos])
 
-    const totalFinalizados = eventosHoyFinalizados.length + eventosRestaSemanaFinalizados.length
+    const totalFinalizados = eventosHoyFinalizados.length + eventosProximosFinalizados.length
 
     const sinResponsable = estadisticas?.alertas?.sinResponsable || 0
 
     // ============================================
     // RENDER: Loading
     // ============================================
-    if (loadingHoy && loadingStats) {
+    if (loadingHoy && loadingProximas && loadingStats) {
         return (
             <div className="flex justify-center py-12">
                 <Spinner size="lg" text="Cargando operaciones..." />
@@ -538,13 +519,13 @@ export default function OperacionesDashboard() {
                         emptyMessage="No hay eventos activos para hoy"
                     />
 
-                    {/* ESTA SEMANA */}
+                    {/* PRÓXIMOS DÍAS */}
                     <SeccionEventos
-                        titulo="Resto de la Semana"
-                        subtitulo={`${eventosRestaSemanaActivos.length} evento(s) activo(s)`}
-                        eventos={eventosRestaSemanaActivos}
+                        titulo="Próximos 7 días"
+                        subtitulo={`${eventosProximosActivos.length} evento(s) programado(s)`}
+                        eventos={eventosProximosActivos}
                         navigate={navigate}
-                        emptyMessage="No hay más eventos activos esta semana"
+                        emptyMessage="No hay eventos programados para los próximos días"
                     />
 
                     {/* HISTORIAL COMPLETADO */}
@@ -586,15 +567,15 @@ export default function OperacionesDashboard() {
                                             </div>
                                         </div>
                                     )}
-                                    {eventosRestaSemanaFinalizados.length > 0 && (
+                                    {eventosProximosFinalizados.length > 0 && (
                                         <div>
                                             <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-2">
-                                                Esta semana
+                                                Próximos días
                                             </p>
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                                {eventosRestaSemanaFinalizados.map((evento, idx) => (
+                                                {eventosProximosFinalizados.map((evento, idx) => (
                                                     <EventoCard
-                                                        key={evento.id || `semana-${idx}`}
+                                                        key={evento.id || `proximos-${idx}`}
                                                         evento={evento}
                                                         navigate={navigate}
                                                     />
