@@ -3,7 +3,7 @@
 // Vista principal con tarjetas de evento agrupadas
 // ============================================
 
-import { useMemo } from 'react'
+import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
     Truck,
@@ -18,31 +18,30 @@ import {
     LayoutDashboard,
     User,
     Calendar,
-    ChevronRight
+    ChevronRight,
+    ChevronDown,
+    History
 } from 'lucide-react'
 import { useGetOrdenes, useGetEstadisticasOperaciones } from '../hooks/useOrdenesTrabajo'
 import { useGetAlertasPendientes, useGetResumenAlertas } from '../hooks/useAlertas'
 import Spinner from '../components/common/Spinner'
 
 // ============================================
-// HELPERS: Fechas
+// HELPERS: Fechas (usando hora local, no UTC)
 // ============================================
-const getHoy = () => new Date().toISOString().split('T')[0]
-
-const getInicioSemana = () => {
-    const d = new Date()
-    const day = d.getDay()
-    const diff = d.getDate() - day + (day === 0 ? -6 : 1) // Lunes
-    const lunes = new Date(d.setDate(diff))
-    return lunes.toISOString().split('T')[0]
+const formatLocalDate = (date) => {
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
 }
 
-const getFinSemana = () => {
+const getHoy = () => formatLocalDate(new Date())
+
+const getProximos7Dias = () => {
     const d = new Date()
-    const day = d.getDay()
-    const diff = d.getDate() - day + (day === 0 ? 0 : 7) // Domingo
-    const domingo = new Date(d.setDate(diff))
-    return domingo.toISOString().split('T')[0]
+    d.setDate(d.getDate() + 7)
+    return formatLocalDate(d)
 }
 
 // ============================================
@@ -121,6 +120,16 @@ const agruparPorEvento = (ordenes) => {
         const fechaB = b.montaje?.fecha_programada || b.desmontaje?.fecha_programada
         return new Date(fechaA) - new Date(fechaB)
     })
+}
+
+// ============================================
+// HELPER: Verificar si evento está finalizado
+// ============================================
+const esEventoFinalizado = (evento) => {
+    const estadosFinal = ['completado', 'cancelado']
+    const montajeOk = !evento.montaje || estadosFinal.includes(evento.montaje.estado)
+    const desmonOk = !evento.desmontaje || estadosFinal.includes(evento.desmontaje.estado)
+    return montajeOk && desmonOk
 }
 
 // ============================================
@@ -273,8 +282,8 @@ const EventoCard = ({ evento, navigate }) => {
                     </div>
                     {montaje && (
                         <div className="text-right shrink-0 ml-3">
-                            <p className="text-[11px] text-slate-400">Elementos</p>
-                            <p className="text-sm font-semibold text-slate-700">{montaje.total_elementos || 0}</p>
+                            <p className="text-[11px] text-slate-400">Productos</p>
+                            <p className="text-sm font-semibold text-slate-700">{montaje.total_productos || 0}</p>
                         </div>
                     )}
                 </div>
@@ -315,7 +324,7 @@ const SeccionEventos = ({ titulo, subtitulo, eventos, navigate, emptyMessage }) 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {eventos.map((evento, idx) => (
                     <EventoCard
-                        key={evento.alquiler_id || idx}
+                        key={evento.id || evento.alquiler_id || idx}
                         evento={evento}
                         navigate={navigate}
                     />
@@ -335,10 +344,10 @@ const SeccionEventos = ({ titulo, subtitulo, eventos, navigate, emptyMessage }) 
 // ============================================
 export default function OperacionesDashboard() {
     const navigate = useNavigate()
+    const [mostrarHistorial, setMostrarHistorial] = useState(false)
 
     const hoy = getHoy()
-    const inicioSemana = getInicioSemana()
-    const finSemana = getFinSemana()
+    const fin7Dias = getProximos7Dias()
 
     // ============================================
     // HOOKS: Obtener datos
@@ -349,9 +358,10 @@ export default function OperacionesDashboard() {
         limit: 50
     })
 
-    const { ordenes: ordenesSemana, isLoading: loadingSemana } = useGetOrdenes({
-        fecha_desde: inicioSemana,
-        fecha_hasta: finSemana,
+    // Próximos 7 días (incluyendo hoy)
+    const { ordenes: ordenesProximas, isLoading: loadingProximas } = useGetOrdenes({
+        fecha_desde: hoy,
+        fecha_hasta: fin7Dias,
         limit: 100
     })
 
@@ -364,22 +374,35 @@ export default function OperacionesDashboard() {
     // ============================================
     const eventosHoy = useMemo(() => agruparPorEvento(ordenesHoy), [ordenesHoy])
 
-    // Órdenes de la semana excluyendo las de hoy
-    const eventosRestaSemana = useMemo(() => {
-        if (!ordenesSemana?.length) return []
-        const ordenesNoHoy = ordenesSemana.filter(o => {
+    // Órdenes de los próximos días excluyendo las de hoy
+    const eventosProximos = useMemo(() => {
+        if (!ordenesProximas?.length) return []
+        const ordenesNoHoy = ordenesProximas.filter(o => {
             const fechaOrden = o.fecha_programada?.split('T')[0]
             return fechaOrden !== hoy
         })
         return agruparPorEvento(ordenesNoHoy)
-    }, [ordenesSemana, hoy])
+    }, [ordenesProximas, hoy])
+
+    // Separar eventos activos de finalizados
+    const { eventosHoyActivos, eventosHoyFinalizados } = useMemo(() => ({
+        eventosHoyActivos: eventosHoy.filter(e => !esEventoFinalizado(e)),
+        eventosHoyFinalizados: eventosHoy.filter(e => esEventoFinalizado(e))
+    }), [eventosHoy])
+
+    const { eventosProximosActivos, eventosProximosFinalizados } = useMemo(() => ({
+        eventosProximosActivos: eventosProximos.filter(e => !esEventoFinalizado(e)),
+        eventosProximosFinalizados: eventosProximos.filter(e => esEventoFinalizado(e))
+    }), [eventosProximos])
+
+    const totalFinalizados = eventosHoyFinalizados.length + eventosProximosFinalizados.length
 
     const sinResponsable = estadisticas?.alertas?.sinResponsable || 0
 
     // ============================================
     // RENDER: Loading
     // ============================================
-    if (loadingHoy && loadingStats) {
+    if (loadingHoy && loadingProximas && loadingStats) {
         return (
             <div className="flex justify-center py-12">
                 <Spinner size="lg" text="Cargando operaciones..." />
@@ -490,20 +513,80 @@ export default function OperacionesDashboard() {
                     {/* HOY */}
                     <SeccionEventos
                         titulo="Hoy"
-                        subtitulo={`${eventosHoy.length} evento(s) programado(s)`}
-                        eventos={eventosHoy}
+                        subtitulo={`${eventosHoyActivos.length} evento(s) activo(s)`}
+                        eventos={eventosHoyActivos}
                         navigate={navigate}
-                        emptyMessage="No hay eventos programados para hoy"
+                        emptyMessage="No hay eventos activos para hoy"
                     />
 
-                    {/* ESTA SEMANA */}
+                    {/* PRÓXIMOS DÍAS */}
                     <SeccionEventos
-                        titulo="Resto de la Semana"
-                        subtitulo={`${eventosRestaSemana.length} evento(s)`}
-                        eventos={eventosRestaSemana}
+                        titulo="Próximos 7 días"
+                        subtitulo={`${eventosProximosActivos.length} evento(s) programado(s)`}
+                        eventos={eventosProximosActivos}
                         navigate={navigate}
-                        emptyMessage="No hay más eventos esta semana"
+                        emptyMessage="No hay eventos programados para los próximos días"
                     />
+
+                    {/* HISTORIAL COMPLETADO */}
+                    {totalFinalizados > 0 && (
+                        <div className="border-t border-slate-200 pt-6">
+                            <button
+                                onClick={() => setMostrarHistorial(!mostrarHistorial)}
+                                className="flex items-center gap-2 text-slate-600 hover:text-slate-800 transition-colors mb-4"
+                            >
+                                {mostrarHistorial ? (
+                                    <ChevronDown className="w-4 h-4" />
+                                ) : (
+                                    <ChevronRight className="w-4 h-4" />
+                                )}
+                                <History className="w-4 h-4" />
+                                <span className="text-sm font-medium">
+                                    Historial completado
+                                </span>
+                                <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded-full">
+                                    {totalFinalizados}
+                                </span>
+                            </button>
+
+                            {mostrarHistorial && (
+                                <div className="space-y-6 opacity-75">
+                                    {eventosHoyFinalizados.length > 0 && (
+                                        <div>
+                                            <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-2">
+                                                Hoy
+                                            </p>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                {eventosHoyFinalizados.map((evento, idx) => (
+                                                    <EventoCard
+                                                        key={evento.id || `hoy-${idx}`}
+                                                        evento={evento}
+                                                        navigate={navigate}
+                                                    />
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                    {eventosProximosFinalizados.length > 0 && (
+                                        <div>
+                                            <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-2">
+                                                Próximos días
+                                            </p>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                {eventosProximosFinalizados.map((evento, idx) => (
+                                                    <EventoCard
+                                                        key={evento.id || `proximos-${idx}`}
+                                                        evento={evento}
+                                                        navigate={navigate}
+                                                    />
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    )}
 
                     {/* Link a todas las órdenes */}
                     <div className="flex justify-center">
@@ -542,11 +625,11 @@ export default function OperacionesDashboard() {
 
                         {alertasPendientes?.length > 0 ? (
                             <div className="divide-y divide-slate-100">
-                                {alertasPendientes.slice(0, 5).map((alerta) => {
+                                {alertasPendientes.slice(0, 5).map((alerta, idx) => {
                                     const esStockDisponible = alerta.tipo === 'stock_disponible'
                                     return (
                                         <div
-                                            key={alerta.id}
+                                            key={alerta.id || `alerta-${idx}`}
                                             onClick={() => {
                                                 if (alerta.orden_id) {
                                                     navigate(`/operaciones/ordenes/${alerta.orden_id}`)

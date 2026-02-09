@@ -69,6 +69,32 @@ export const useGetOrdenesPorAlquiler = (alquilerId) => {
 }
 
 // ============================================
+// HOOK: useGetOrdenCompleta
+// Obtiene una orden con productos, transporte y elementos
+// ============================================
+
+export const useGetOrdenCompleta = (id, options = {}) => {
+    const { data, isLoading, error, refetch } = useQuery({
+        queryKey: ['ordenes', id, 'completa'],
+        queryFn: () => ordenesAPI.obtenerOrdenCompleta(id),
+        enabled: !!id && (options.enabled !== false)
+    })
+
+    return {
+        ordenCompleta: data?.data || null,
+        productos: data?.data?.productos || [],
+        alquilerElementos: data?.data?.alquiler_elementos || [],
+        ordenElementos: data?.data?.orden_elementos || [],
+        elementosCargue: data?.data?.elementos_cargue || [], // Elementos para modal de cargue
+        resumenCotizacion: data?.data?.resumen_cotizacion || null,
+        resumenElementos: data?.data?.resumen_elementos || null,
+        isLoading,
+        error,
+        refetch
+    }
+}
+
+// ============================================
 // HOOK: useGetCalendario
 // Obtiene vista de calendario
 // ============================================
@@ -241,6 +267,28 @@ export const useCambiarEstadoElemento = () => {
         retry: 0,
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({ queryKey: ['ordenes', variables.ordenId, 'elementos'] })
+            queryClient.invalidateQueries({ queryKey: ['ordenes', variables.ordenId] })
+        }
+    })
+}
+
+// ============================================
+// HOOK: useCambiarEstadoElementosMasivo
+// Cambia el estado de múltiples elementos a la vez
+// Permite operaciones masivas para agilizar el proceso
+// ============================================
+
+export const useCambiarEstadoElementosMasivo = () => {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: ({ ordenId, elementoIds, estado }) =>
+            elementosAPI.cambiarEstadoMasivo(ordenId, elementoIds, estado),
+        retry: 0,
+        onSuccess: (_, variables) => {
+            // Invalidar todas las queries relacionadas con la orden
+            queryClient.invalidateQueries({ queryKey: ['ordenes', variables.ordenId, 'elementos'] })
+            queryClient.invalidateQueries({ queryKey: ['ordenes', variables.ordenId, 'completa'] })
             queryClient.invalidateQueries({ queryKey: ['ordenes', variables.ordenId] })
         }
     })

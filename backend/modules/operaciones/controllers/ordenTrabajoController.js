@@ -440,6 +440,42 @@ const cambiarEstadoElemento = async (req, res, next) => {
 };
 
 /**
+ * PUT /api/operaciones/ordenes/:id/elementos/estado-masivo
+ * Cambiar estado de múltiples elementos a la vez
+ * Permite operaciones masivas para agilizar el proceso
+ */
+const cambiarEstadoElementosMasivo = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const { elemento_ids, estado } = req.body;
+
+        if (!elemento_ids || !Array.isArray(elemento_ids) || elemento_ids.length === 0) {
+            throw new AppError('Debe proporcionar un array de elemento_ids', 400);
+        }
+
+        if (!estado) {
+            throw new AppError('El estado es requerido', 400);
+        }
+
+        const resultado = await OrdenElementoModel.cambiarEstadoMasivo(
+            parseInt(id),
+            elemento_ids.map(eId => parseInt(eId)),
+            estado
+        );
+
+        logger.info('operaciones', `${resultado.actualizados} elementos cambiados a ${estado} en orden ${id} por ${req.usuario.email}`);
+
+        res.json({
+            success: true,
+            message: `${resultado.actualizados} elemento(s) actualizado(s) a "${estado}"`,
+            data: resultado
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
  * POST /api/operaciones/ordenes/:id/elementos/:elemId/incidencia
  * Reportar incidencia en un elemento
  */
@@ -963,6 +999,7 @@ module.exports = {
     // Elementos
     getElementosOrden,
     cambiarEstadoElemento,
+    cambiarEstadoElementosMasivo,
     reportarIncidencia,
     subirFotoElemento,
 

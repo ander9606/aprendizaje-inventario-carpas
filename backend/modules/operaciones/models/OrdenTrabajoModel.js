@@ -93,7 +93,8 @@ class OrdenTrabajoModel {
                 v.placa as vehiculo_placa,
                 v.marca as vehiculo_marca,
                 COALESCE(elem_count.total, 0) as total_elementos,
-                COALESCE(equipo_count.total, 0) as total_equipo
+                COALESCE(equipo_count.total, 0) as total_equipo,
+                COALESCE(prod_count.total, 0) as total_productos
             FROM ordenes_trabajo ot
             LEFT JOIN alquileres a ON ot.alquiler_id = a.id
             LEFT JOIN cotizaciones cot ON a.cotizacion_id = cot.id
@@ -109,6 +110,11 @@ class OrdenTrabajoModel {
                 FROM orden_trabajo_equipo
                 GROUP BY orden_id
             ) equipo_count ON equipo_count.orden_id = ot.id
+            LEFT JOIN (
+                SELECT cotizacion_id, COUNT(*) as total
+                FROM cotizacion_compuestos
+                GROUP BY cotizacion_id
+            ) prod_count ON prod_count.cotizacion_id = cot.id
             ${whereClause}
             ORDER BY ot.${ordenarCampo} ${ordenarDireccion}
             LIMIT ? OFFSET ?
@@ -261,12 +267,14 @@ class OrdenTrabajoModel {
                 cotizacion: null,
                 productos: [],
                 transporte: [],
-                alquiler_elementos: []
+                alquiler_elementos: [],
+                orden_elementos: [],
+                elementos_cargue: []
             };
         }
 
         // Ejecutar queries adicionales en paralelo
-        const [productosResult, transporteResult, alquilerElementosResult] = await Promise.all([
+        const [productosResult, transporteResult, alquilerElementosResult, ordenElementosResult] = await Promise.all([
             // Productos de la cotización
             pool.query(`
                 SELECT
@@ -304,7 +312,7 @@ class OrdenTrabajoModel {
                 LEFT JOIN ciudades c ON t.ciudad_id = c.id
                 WHERE ct.cotizacion_id = ?
             `, [orden.cotizacion_id]),
-            // Elementos asignados al alquiler (si existe)
+            // Elementos asignados al alquiler (después de ejecutar salida)
             orden.alquiler_id ? pool.query(`
                 SELECT
                     ae.id,
@@ -317,31 +325,57 @@ class OrdenTrabajoModel {
                     ae.costo_dano,
                     ae.notas_retorno,
                     e.nombre as elemento_nombre,
-                    s.numero_serie,
-                    l.lote_numero
+                    s.numero_serie as serie_codigo,
+                    l.lote_numero as lote_codigo
                 FROM alquiler_elementos ae
                 INNER JOIN elementos e ON ae.elemento_id = e.id
                 LEFT JOIN series s ON ae.serie_id = s.id
                 LEFT JOIN lotes l ON ae.lote_id = l.id
                 WHERE ae.alquiler_id = ?
                 ORDER BY e.nombre
-            `, [orden.alquiler_id]) : Promise.resolve([[]])
+            `, [orden.alquiler_id]) : Promise.resolve([[]]),
+            // Elementos asignados a la orden (antes de ejecutar salida)
+            pool.query(`
+                SELECT
+                    ote.id,
+                    ote.elemento_id,
+                    ote.serie_id,
+                    ote.lote_id,
+                    ote.cantidad,
+                    ote.estado,
+                    e.nombre as elemento_nombre,
+                    s.numero_serie as serie_codigo,
+                    l.lote_numero as lote_codigo
+                FROM orden_trabajo_elementos ote
+                INNER JOIN elementos e ON ote.elemento_id = e.id
+                LEFT JOIN series s ON ote.serie_id = s.id
+                LEFT JOIN lotes l ON ote.lote_id = l.id
+                WHERE ote.orden_id = ?
+                ORDER BY e.nombre
+            `, [id])
         ]);
 
         // Calcular resúmenes
         const productos = productosResult[0];
         const transporte = transporteResult[0];
         const alquilerElementos = alquilerElementosResult[0];
+        const ordenElementos = ordenElementosResult[0];
 
         const subtotalProductos = productos.reduce((sum, p) => sum + parseFloat(p.subtotal || 0), 0);
         const subtotalTransporte = transporte.reduce((sum, t) => sum + parseFloat(t.subtotal || 0), 0);
         const totalDeposito = productos.reduce((sum, p) => sum + (parseFloat(p.deposito || 0) * p.cantidad), 0);
+
+        // Usar orden_elementos para el resumen de cargue (antes de salida)
+        // y alquiler_elementos para retornos (después de salida)
+        const elementosParaCargue = ordenElementos.length > 0 ? ordenElementos : alquilerElementos;
 
         return {
             ...orden,
             productos,
             transporte,
             alquiler_elementos: alquilerElementos,
+            orden_elementos: ordenElementos, // Elementos asignados a la orden (para cargue)
+            elementos_cargue: elementosParaCargue, // Elementos para mostrar en modal de cargue
             resumen_cotizacion: {
                 subtotal_productos: subtotalProductos,
                 subtotal_transporte: subtotalTransporte,
@@ -350,7 +384,7 @@ class OrdenTrabajoModel {
                 total_transportes: transporte.length
             },
             resumen_elementos: {
-                total: alquilerElementos.length,
+                total: elementosParaCargue.length,
                 retornados: alquilerElementos.filter(e => e.estado_retorno).length,
                 pendientes: alquilerElementos.filter(e => !e.estado_retorno).length,
                 danados: alquilerElementos.filter(e => e.estado_retorno === 'dañado').length,

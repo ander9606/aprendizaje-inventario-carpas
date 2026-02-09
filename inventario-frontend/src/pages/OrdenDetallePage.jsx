@@ -24,815 +24,34 @@ import {
     User,
     ChevronDown,
     ChevronUp,
-    Save,
-    X,
     LogOut,
     RotateCcw,
     Box,
-    Hash,
     Bell
 } from 'lucide-react'
 import {
     useGetOrden,
     useGetElementosOrden,
-    useGetElementosDisponibles,
+    useGetOrdenCompleta,
     useGetAlertasOrden,
     usePrepararElementos,
-    useCrearAlertaOperaciones,
     useCambiarEstadoOrden,
     useAsignarEquipo,
     useUpdateOrden,
     useEjecutarSalida,
     useEjecutarRetorno
 } from '../hooks/useOrdenesTrabajo'
-import { useGetEmpleadosCampo } from '../hooks/useEmpleados'
 import { useAuth } from '../hooks/auth/useAuth'
 import Button from '../components/common/Button'
 import Spinner from '../components/common/Spinner'
+import {
+    ModalRetornoElementos,
+    ModalOrdenCargue,
+    ModalAsignarResponsable,
+    ModalEditarOrden,
+    ModalAsignarInventario
+} from '../components/operaciones'
 import { toast } from 'sonner'
-
-// ============================================
-// COMPONENTE: Modal de Asignación de Responsable
-// ============================================
-const ModalAsignarResponsable = ({ orden, onClose, onSave }) => {
-    // Inicializar con responsable actual (primer miembro del equipo)
-    const responsableActual = orden.equipo?.find(e => e.rol_en_orden === 'responsable' || e.es_responsable)
-        || orden.equipo?.[0]
-    const [responsableId, setResponsableId] = useState(
-        responsableActual?.empleado_id?.toString() || responsableActual?.id?.toString() || ''
-    )
-    const [saving, setSaving] = useState(false)
-
-    // Obtener empleados disponibles desde API
-    const fechaOrden = orden.fecha_programada?.split('T')[0] || null
-    const { empleados: empleadosDisponibles, isLoading: loadingEmpleados } = useGetEmpleadosCampo(fechaOrden)
-
-    const handleGuardar = async () => {
-        if (!responsableId) return
-        setSaving(true)
-        try {
-            await onSave({
-                empleados: [{ empleado_id: parseInt(responsableId), rol_en_orden: 'responsable' }]
-            })
-            onClose()
-        } catch (error) {
-            console.error('Error al asignar responsable:', error)
-        } finally {
-            setSaving(false)
-        }
-    }
-
-    return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl w-full max-w-md max-h-[90vh] overflow-hidden">
-                <div className="p-6 border-b border-slate-200">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <h3 className="text-lg font-semibold text-slate-900">
-                                Asignar Responsable
-                            </h3>
-                            <p className="text-sm text-slate-500">
-                                Persona encargada de esta orden
-                            </p>
-                        </div>
-                        <button
-                            onClick={onClose}
-                            className="p-2 hover:bg-slate-100 rounded-lg"
-                        >
-                            <X className="w-5 h-5" />
-                        </button>
-                    </div>
-                </div>
-                <div className="p-6 overflow-y-auto max-h-[60vh]">
-                    {loadingEmpleados ? (
-                        <div className="py-8 text-center">
-                            <Spinner size="sm" text="Cargando empleados..." />
-                        </div>
-                    ) : empleadosDisponibles?.length > 0 ? (
-                        <div className="space-y-2">
-                            {empleadosDisponibles.map(emp => (
-                                <label
-                                    key={emp.id}
-                                    className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${
-                                        responsableId === emp.id.toString()
-                                            ? 'border-orange-500 bg-orange-50'
-                                            : 'border-slate-200 hover:bg-slate-50'
-                                    }`}
-                                >
-                                    <input
-                                        type="radio"
-                                        name="responsable"
-                                        value={emp.id}
-                                        checked={responsableId === emp.id.toString()}
-                                        onChange={(e) => setResponsableId(e.target.value)}
-                                        className="w-4 h-4 text-orange-500 focus:ring-orange-500"
-                                    />
-                                    <div className="p-2 bg-slate-100 rounded-full">
-                                        <User className="w-4 h-4 text-slate-600" />
-                                    </div>
-                                    <div className="flex-1">
-                                        <p className="font-medium text-slate-900">
-                                            {emp.nombre} {emp.apellido || ''}
-                                        </p>
-                                        <p className="text-sm text-slate-500">
-                                            {emp.rol_empleado || emp.cargo || 'Empleado'}
-                                            {emp.telefono ? ` - ${emp.telefono}` : ''}
-                                        </p>
-                                    </div>
-                                </label>
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="py-8 text-center text-slate-500">
-                            <User className="w-10 h-10 mx-auto mb-2 text-slate-300" />
-                            <p>No hay empleados disponibles</p>
-                        </div>
-                    )}
-                </div>
-                <div className="p-6 border-t border-slate-200 flex gap-3 justify-end">
-                    <Button variant="secondary" onClick={onClose}>
-                        Cancelar
-                    </Button>
-                    <Button
-                        color="orange"
-                        icon={Save}
-                        onClick={handleGuardar}
-                        disabled={saving || !responsableId}
-                    >
-                        {saving ? 'Guardando...' : 'Guardar'}
-                    </Button>
-                </div>
-            </div>
-        </div>
-    )
-}
-
-// ============================================
-// COMPONENTE: Modal de Editar Orden
-// ============================================
-const ModalEditarOrden = ({ orden, onClose, onSave }) => {
-    const [formData, setFormData] = useState({
-        fecha_programada: orden.fecha_programada?.split('T')[0] || '',
-        hora_programada: orden.fecha_programada?.split('T')[1]?.substring(0, 5) || '08:00',
-        notas: orden.notas || '',
-        prioridad: orden.prioridad || 'normal'
-    })
-    const [saving, setSaving] = useState(false)
-
-    const handleChange = (e) => {
-        const { name, value } = e.target
-        setFormData(prev => ({ ...prev, [name]: value }))
-    }
-
-    const handleGuardar = async () => {
-        setSaving(true)
-        try {
-            const fechaCompleta = `${formData.fecha_programada}T${formData.hora_programada}:00`
-            await onSave({
-                fecha_programada: fechaCompleta,
-                notas: formData.notas,
-                prioridad: formData.prioridad
-            })
-            onClose()
-        } catch (error) {
-            console.error('Error al actualizar orden:', error)
-        } finally {
-            setSaving(false)
-        }
-    }
-
-    return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl w-full max-w-md">
-                <div className="p-6 border-b border-slate-200">
-                    <div className="flex items-center justify-between">
-                        <h3 className="text-lg font-semibold text-slate-900">
-                            Editar Orden #{orden.id}
-                        </h3>
-                        <button
-                            onClick={onClose}
-                            className="p-2 hover:bg-slate-100 rounded-lg"
-                        >
-                            <X className="w-5 h-5" />
-                        </button>
-                    </div>
-                </div>
-                <div className="p-6 space-y-4">
-                    {/* Fecha */}
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">
-                            Fecha Programada
-                        </label>
-                        <input
-                            type="date"
-                            name="fecha_programada"
-                            value={formData.fecha_programada}
-                            onChange={handleChange}
-                            className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
-                        />
-                    </div>
-
-                    {/* Hora */}
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">
-                            Hora
-                        </label>
-                        <input
-                            type="time"
-                            name="hora_programada"
-                            value={formData.hora_programada}
-                            onChange={handleChange}
-                            className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
-                        />
-                    </div>
-
-                    {/* Prioridad */}
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">
-                            Prioridad
-                        </label>
-                        <select
-                            name="prioridad"
-                            value={formData.prioridad}
-                            onChange={handleChange}
-                            className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
-                        >
-                            <option value="baja">Baja</option>
-                            <option value="normal">Normal</option>
-                            <option value="alta">Alta</option>
-                            <option value="urgente">Urgente</option>
-                        </select>
-                    </div>
-
-                    {/* Notas */}
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">
-                            Notas
-                        </label>
-                        <textarea
-                            name="notas"
-                            value={formData.notas}
-                            onChange={handleChange}
-                            rows={3}
-                            className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 resize-none"
-                            placeholder="Notas adicionales..."
-                        />
-                    </div>
-                </div>
-                <div className="p-6 border-t border-slate-200 flex gap-3 justify-end">
-                    <Button variant="secondary" onClick={onClose}>
-                        Cancelar
-                    </Button>
-                    <Button
-                        color="orange"
-                        icon={Save}
-                        onClick={handleGuardar}
-                        disabled={saving}
-                    >
-                        {saving ? 'Guardando...' : 'Guardar Cambios'}
-                    </Button>
-                </div>
-            </div>
-        </div>
-    )
-}
-
-// ============================================
-// COMPONENTE: Modal de Registrar Retorno
-// ============================================
-const ModalRegistrarRetorno = ({ orden, elementos, onClose, onSave }) => {
-    const [retornos, setRetornos] = useState(
-        elementos?.map(elem => ({
-            alquiler_elemento_id: elem.id,
-            elemento_nombre: elem.elemento_nombre || elem.nombre,
-            serie_numero: elem.serie_numero,
-            cantidad: elem.cantidad || 1,
-            estado_retorno: 'bueno',
-            costo_dano: 0,
-            notas: ''
-        })) || []
-    )
-    const [saving, setSaving] = useState(false)
-
-    const handleEstadoChange = (index, estado) => {
-        setRetornos(prev => {
-            const updated = [...prev]
-            updated[index] = {
-                ...updated[index],
-                estado_retorno: estado,
-                costo_dano: estado === 'bueno' ? 0 : updated[index].costo_dano
-            }
-            return updated
-        })
-    }
-
-    const handleCostoDanoChange = (index, costo) => {
-        setRetornos(prev => {
-            const updated = [...prev]
-            updated[index] = { ...updated[index], costo_dano: parseFloat(costo) || 0 }
-            return updated
-        })
-    }
-
-    const handleNotasChange = (index, notas) => {
-        setRetornos(prev => {
-            const updated = [...prev]
-            updated[index] = { ...updated[index], notas }
-            return updated
-        })
-    }
-
-    const handleGuardar = async () => {
-        setSaving(true)
-        try {
-            await onSave(retornos.map(r => ({
-                alquiler_elemento_id: r.alquiler_elemento_id,
-                estado_retorno: r.estado_retorno,
-                costo_dano: r.costo_dano,
-                notas: r.notas
-            })))
-        } catch (error) {
-            console.error('Error al registrar retorno:', error)
-        } finally {
-            setSaving(false)
-        }
-    }
-
-    const totalDanos = retornos.reduce((sum, r) => sum + (r.costo_dano || 0), 0)
-
-    return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
-                <div className="p-6 border-b border-slate-200">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <h3 className="text-lg font-semibold text-slate-900">
-                                Registrar Retorno
-                            </h3>
-                            <p className="text-sm text-slate-500">
-                                Orden #{orden.id} - {orden.cliente_nombre}
-                            </p>
-                        </div>
-                        <button
-                            onClick={onClose}
-                            className="p-2 hover:bg-slate-100 rounded-lg"
-                        >
-                            <X className="w-5 h-5" />
-                        </button>
-                    </div>
-                </div>
-                <div className="p-6 overflow-y-auto max-h-[60vh]">
-                    <div className="space-y-4">
-                        {retornos.map((retorno, index) => (
-                            <div
-                                key={retorno.alquiler_elemento_id}
-                                className="border border-slate-200 rounded-lg p-4"
-                            >
-                                <div className="flex items-start justify-between mb-3">
-                                    <div>
-                                        <p className="font-medium text-slate-900">
-                                            {retorno.elemento_nombre}
-                                        </p>
-                                        {retorno.serie_numero && (
-                                            <p className="text-sm text-slate-500">
-                                                Serie: {retorno.serie_numero}
-                                            </p>
-                                        )}
-                                        <p className="text-sm text-slate-500">
-                                            Cantidad: {retorno.cantidad}
-                                        </p>
-                                    </div>
-                                </div>
-
-                                {/* Estado de retorno */}
-                                <div className="mb-3">
-                                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                                        Estado del Elemento
-                                    </label>
-                                    <div className="flex gap-2">
-                                        {[
-                                            { value: 'bueno', label: 'Bueno', color: 'green' },
-                                            { value: 'dañado', label: 'Dañado', color: 'yellow' },
-                                            { value: 'perdido', label: 'Perdido', color: 'red' }
-                                        ].map(opcion => (
-                                            <button
-                                                key={opcion.value}
-                                                onClick={() => handleEstadoChange(index, opcion.value)}
-                                                className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium border transition-colors ${
-                                                    retorno.estado_retorno === opcion.value
-                                                        ? opcion.color === 'green'
-                                                            ? 'bg-green-100 border-green-500 text-green-700'
-                                                            : opcion.color === 'yellow'
-                                                            ? 'bg-yellow-100 border-yellow-500 text-yellow-700'
-                                                            : 'bg-red-100 border-red-500 text-red-700'
-                                                        : 'border-slate-200 text-slate-600 hover:bg-slate-50'
-                                                }`}
-                                            >
-                                                {opcion.label}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                {/* Costo de daño (solo si está dañado o perdido) */}
-                                {retorno.estado_retorno !== 'bueno' && (
-                                    <div className="mb-3">
-                                        <label className="block text-sm font-medium text-slate-700 mb-1">
-                                            Costo del Daño ($)
-                                        </label>
-                                        <input
-                                            type="number"
-                                            min="0"
-                                            step="0.01"
-                                            value={retorno.costo_dano}
-                                            onChange={(e) => handleCostoDanoChange(index, e.target.value)}
-                                            className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
-                                            placeholder="0.00"
-                                        />
-                                    </div>
-                                )}
-
-                                {/* Notas */}
-                                {retorno.estado_retorno !== 'bueno' && (
-                                    <div>
-                                        <label className="block text-sm font-medium text-slate-700 mb-1">
-                                            Notas
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={retorno.notas}
-                                            onChange={(e) => handleNotasChange(index, e.target.value)}
-                                            className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
-                                            placeholder="Descripción del daño..."
-                                        />
-                                    </div>
-                                )}
-                            </div>
-                        ))}
-                    </div>
-
-                    {/* Resumen */}
-                    {totalDanos > 0 && (
-                        <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-                            <p className="text-sm font-medium text-red-700">
-                                Total Daños: ${totalDanos.toLocaleString('es-CO')}
-                            </p>
-                        </div>
-                    )}
-                </div>
-                <div className="p-6 border-t border-slate-200 flex gap-3 justify-end">
-                    <Button variant="secondary" onClick={onClose}>
-                        Cancelar
-                    </Button>
-                    <Button
-                        color="orange"
-                        icon={Save}
-                        onClick={handleGuardar}
-                        disabled={saving}
-                    >
-                        {saving ? 'Guardando...' : 'Confirmar Retorno'}
-                    </Button>
-                </div>
-            </div>
-        </div>
-    )
-}
-
-// ============================================
-// COMPONENTE: Modal de Asignación de Inventario
-// Permite al operador asignar series/lotes reales
-// a elementos que no tienen inventario asignado
-// ============================================
-const ModalAsignarInventario = ({ ordenId, elementosPendientes, onClose, onSave }) => {
-    const { productos, isLoading } = useGetElementosDisponibles(ordenId)
-    const crearAlerta = useCrearAlertaOperaciones()
-    const [seleccion, setSeleccion] = useState({}) // { elemento_id: { serie_id?, lote_id?, cantidad? } }
-    const [saving, setSaving] = useState(false)
-    const [alertaEnviada, setAlertaEnviada] = useState(false)
-
-    // Mapear disponibles por elemento_id para acceso rápido
-    const disponiblesPorElemento = {}
-    if (productos?.length > 0) {
-        for (const producto of productos) {
-            for (const comp of (producto.componentes || [])) {
-                disponiblesPorElemento[comp.elemento_id] = comp
-            }
-        }
-    }
-
-    const handleSeleccionarSerie = (elementoId, serieId) => {
-        setSeleccion(prev => ({
-            ...prev,
-            [elementoId]: serieId
-                ? { serie_id: serieId, lote_id: null, cantidad: 1 }
-                : undefined
-        }))
-    }
-
-    const handleSeleccionarLote = (elementoId, loteId, cantidadMax) => {
-        setSeleccion(prev => {
-            const actual = prev[elementoId]
-            if (actual?.lote_id === loteId) {
-                // Deseleccionar
-                return { ...prev, [elementoId]: undefined }
-            }
-            return {
-                ...prev,
-                [elementoId]: { serie_id: null, lote_id: loteId, cantidad: Math.min(cantidadMax, elementosPendientes.find(e => e.elemento_id === elementoId)?.cantidad || 1) }
-            }
-        })
-    }
-
-    const handleCantidadLote = (elementoId, cantidad) => {
-        setSeleccion(prev => ({
-            ...prev,
-            [elementoId]: { ...prev[elementoId], cantidad: Math.max(1, cantidad) }
-        }))
-    }
-
-    const todosAsignados = elementosPendientes.every(ep => seleccion[ep.elemento_id])
-
-    // Elementos que NO tienen inventario disponible en absoluto
-    const elementosSinStock = elementosPendientes.filter(ep => {
-        const info = disponiblesPorElemento[ep.elemento_id]
-        return !info || (info.disponibles || []).length === 0
-    })
-
-    const handleReportarInsuficiencia = async () => {
-        const nombres = elementosSinStock.map(e => e.elemento_nombre || e.nombre).join(', ')
-        try {
-            await crearAlerta.mutateAsync({
-                orden_id: ordenId,
-                tipo: 'conflicto_disponibilidad',
-                severidad: elementosSinStock.length > 2 ? 'critica' : 'alta',
-                titulo: `Insuficiencia de inventario - ${elementosSinStock.length} elemento(s)`,
-                mensaje: `La orden #${ordenId} requiere elementos que no están disponibles en el inventario: ${nombres}. Se necesita gestionar la adquisición o reasignación de estos elementos.`
-            })
-            setAlertaEnviada(true)
-            toast.success('Alerta de insuficiencia creada. El equipo de gestión será notificado.')
-        } catch (error) {
-            toast.error('Error al crear la alerta')
-        }
-    }
-
-    const handleGuardar = async () => {
-        const elementos = Object.entries(seleccion)
-            .filter(([, val]) => val)
-            .map(([elementoId, val]) => ({
-                elemento_id: parseInt(elementoId),
-                serie_id: val.serie_id || null,
-                lote_id: val.lote_id || null,
-                cantidad: val.cantidad || 1
-            }))
-
-        if (!elementos.length) {
-            toast.error('Selecciona al menos un elemento del inventario')
-            return
-        }
-
-        setSaving(true)
-        try {
-            await onSave(elementos)
-        } catch (error) {
-            toast.error(error?.response?.data?.message || 'Error al asignar inventario')
-        } finally {
-            setSaving(false)
-        }
-    }
-
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col mx-4">
-                {/* Header */}
-                <div className="p-6 border-b border-slate-200">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 bg-amber-100 rounded-lg">
-                                <Box className="w-5 h-5 text-amber-600" />
-                            </div>
-                            <div>
-                                <h2 className="text-lg font-bold text-slate-900">Asignar Inventario</h2>
-                                <p className="text-sm text-slate-500">
-                                    {elementosPendientes.length} elemento(s) sin inventario asignado
-                                </p>
-                            </div>
-                        </div>
-                        <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-lg">
-                            <X className="w-5 h-5 text-slate-400" />
-                        </button>
-                    </div>
-                </div>
-
-                {/* Body */}
-                <div className="flex-1 overflow-y-auto p-6">
-                    {isLoading ? (
-                        <div className="py-8 text-center">
-                            <Spinner size="md" text="Buscando inventario disponible..." />
-                        </div>
-                    ) : (
-                        <div className="space-y-6">
-                            {elementosPendientes.map((elem) => {
-                                const info = disponiblesPorElemento[elem.elemento_id]
-                                const disponiblesItems = info?.disponibles || []
-                                const series = disponiblesItems.filter(d => d.tipo === 'serie')
-                                const lotes = disponiblesItems.filter(d => d.tipo === 'lote')
-                                const selActual = seleccion[elem.elemento_id]
-
-                                return (
-                                    <div key={elem.id} className="border border-slate-200 rounded-lg overflow-hidden">
-                                        {/* Elemento header */}
-                                        <div className={`px-4 py-3 flex items-center justify-between ${
-                                            selActual ? 'bg-green-50 border-b border-green-200' : 'bg-slate-50 border-b border-slate-200'
-                                        }`}>
-                                            <div className="flex items-center gap-2">
-                                                <Package className="w-4 h-4 text-slate-500" />
-                                                <span className="font-medium text-slate-900">
-                                                    {elem.elemento_nombre || elem.nombre}
-                                                </span>
-                                                <span className="text-xs text-slate-500">
-                                                    (cant: {elem.cantidad || 1})
-                                                </span>
-                                            </div>
-                                            {selActual && (
-                                                <CheckCircle className="w-4 h-4 text-green-500" />
-                                            )}
-                                        </div>
-
-                                        {/* Opciones disponibles */}
-                                        <div className="p-3">
-                                            {disponiblesItems.length === 0 ? (
-                                                <div className="py-2 space-y-2">
-                                                    <p className="text-sm text-red-600 flex items-center gap-2">
-                                                        <AlertTriangle className="w-4 h-4" />
-                                                        No hay inventario disponible para este elemento
-                                                    </p>
-                                                    <p className="text-xs text-slate-500">
-                                                        No existen series ni lotes disponibles en el almacen. Reporta esta insuficiencia para que se gestione.
-                                                    </p>
-                                                </div>
-                                            ) : (
-                                                <div className="space-y-2">
-                                                    {/* Series disponibles */}
-                                                    {series.length > 0 && (
-                                                        <div>
-                                                            <p className="text-xs font-medium text-slate-500 uppercase mb-1.5">
-                                                                Series disponibles
-                                                            </p>
-                                                            <div className="space-y-1">
-                                                                {series.map(serie => (
-                                                                    <label
-                                                                        key={serie.id}
-                                                                        className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
-                                                                            selActual?.serie_id === serie.id
-                                                                                ? 'bg-green-50 border border-green-200'
-                                                                                : 'hover:bg-slate-50 border border-transparent'
-                                                                        }`}
-                                                                    >
-                                                                        <input
-                                                                            type="radio"
-                                                                            name={`elem-${elem.elemento_id}`}
-                                                                            checked={selActual?.serie_id === serie.id}
-                                                                            onChange={() => handleSeleccionarSerie(elem.elemento_id, serie.id)}
-                                                                            className="text-green-600"
-                                                                        />
-                                                                        <Hash className="w-3.5 h-3.5 text-slate-400" />
-                                                                        <span className="text-sm font-medium text-slate-800">
-                                                                            {serie.identificador}
-                                                                        </span>
-                                                                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
-                                                                            serie.estado === 'nuevo' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'
-                                                                        }`}>
-                                                                            {serie.estado}
-                                                                        </span>
-                                                                        {serie.ubicacion && (
-                                                                            <span className="text-xs text-slate-400 ml-auto">
-                                                                                {serie.ubicacion}
-                                                                            </span>
-                                                                        )}
-                                                                    </label>
-                                                                ))}
-                                                            </div>
-                                                        </div>
-                                                    )}
-
-                                                    {/* Lotes disponibles */}
-                                                    {lotes.length > 0 && (
-                                                        <div>
-                                                            <p className="text-xs font-medium text-slate-500 uppercase mb-1.5">
-                                                                Lotes disponibles
-                                                            </p>
-                                                            <div className="space-y-1">
-                                                                {lotes.map(lote => (
-                                                                    <label
-                                                                        key={lote.id}
-                                                                        className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
-                                                                            selActual?.lote_id === lote.id
-                                                                                ? 'bg-green-50 border border-green-200'
-                                                                                : 'hover:bg-slate-50 border border-transparent'
-                                                                        }`}
-                                                                    >
-                                                                        <input
-                                                                            type="radio"
-                                                                            name={`elem-${elem.elemento_id}`}
-                                                                            checked={selActual?.lote_id === lote.id}
-                                                                            onChange={() => handleSeleccionarLote(elem.elemento_id, lote.id, lote.cantidad)}
-                                                                            className="text-green-600"
-                                                                        />
-                                                                        <Box className="w-3.5 h-3.5 text-slate-400" />
-                                                                        <span className="text-sm font-medium text-slate-800">
-                                                                            {lote.identificador}
-                                                                        </span>
-                                                                        <span className="text-xs text-slate-500">
-                                                                            Disp: {lote.cantidad}
-                                                                        </span>
-                                                                        {selActual?.lote_id === lote.id && (
-                                                                            <div className="flex items-center gap-1 ml-auto">
-                                                                                <span className="text-xs text-slate-500">Cant:</span>
-                                                                                <input
-                                                                                    type="number"
-                                                                                    min={1}
-                                                                                    max={lote.cantidad}
-                                                                                    value={selActual.cantidad}
-                                                                                    onChange={(e) => handleCantidadLote(elem.elemento_id, parseInt(e.target.value) || 1)}
-                                                                                    className="w-16 px-2 py-0.5 border border-slate-300 rounded text-sm text-center"
-                                                                                    onClick={(e) => e.stopPropagation()}
-                                                                                />
-                                                                            </div>
-                                                                        )}
-                                                                        {lote.ubicacion && !selActual?.lote_id === lote.id && (
-                                                                            <span className="text-xs text-slate-400 ml-auto">
-                                                                                {lote.ubicacion}
-                                                                            </span>
-                                                                        )}
-                                                                    </label>
-                                                                ))}
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                )
-                            })}
-                        </div>
-                    )}
-                </div>
-
-                {/* Alerta de insuficiencia */}
-                {!isLoading && elementosSinStock.length > 0 && (
-                    <div className="px-6 py-3 bg-red-50 border-t border-red-200">
-                        <div className="flex items-center justify-between gap-3">
-                            <div className="flex items-center gap-2">
-                                <AlertTriangle className="w-4 h-4 text-red-500 shrink-0" />
-                                <p className="text-sm text-red-700">
-                                    <span className="font-medium">{elementosSinStock.length} elemento(s)</span> sin stock en inventario
-                                </p>
-                            </div>
-                            {alertaEnviada ? (
-                                <span className="text-xs text-green-600 font-medium flex items-center gap-1">
-                                    <CheckCircle className="w-3.5 h-3.5" />
-                                    Alerta enviada
-                                </span>
-                            ) : (
-                                <Button
-                                    color="red"
-                                    variant="outline"
-                                    size="sm"
-                                    icon={AlertTriangle}
-                                    onClick={handleReportarInsuficiencia}
-                                    disabled={crearAlerta.isPending}
-                                >
-                                    {crearAlerta.isPending ? 'Enviando...' : 'Reportar Insuficiencia'}
-                                </Button>
-                            )}
-                        </div>
-                    </div>
-                )}
-
-                {/* Footer */}
-                <div className="p-6 border-t border-slate-200 flex items-center justify-between">
-                    <p className="text-sm text-slate-500">
-                        {Object.values(seleccion).filter(Boolean).length} de {elementosPendientes.length} asignados
-                    </p>
-                    <div className="flex gap-3">
-                        <Button variant="secondary" onClick={onClose}>
-                            Cancelar
-                        </Button>
-                        <Button
-                            color="green"
-                            icon={CheckCircle}
-                            onClick={handleGuardar}
-                            disabled={saving || !todosAsignados}
-                        >
-                            {saving ? 'Asignando...' : 'Confirmar Asignación'}
-                        </Button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    )
-}
 
 // ============================================
 // COMPONENTE PRINCIPAL: OrdenDetallePage
@@ -851,6 +70,7 @@ export default function OrdenDetallePage() {
     const [showModalEditar, setShowModalEditar] = useState(false)
     const [showModalRetorno, setShowModalRetorno] = useState(false)
     const [showModalInventario, setShowModalInventario] = useState(false)
+    const [showModalOrdenCargue, setShowModalOrdenCargue] = useState(false)
     const [expandElementos, setExpandElementos] = useState(true)
     const [ejecutandoSalida, setEjecutandoSalida] = useState(false)
 
@@ -860,6 +80,10 @@ export default function OrdenDetallePage() {
     const { orden, isLoading, error, refetch } = useGetOrden(id)
     const { elementos, isLoading: loadingElementos } = useGetElementosOrden(id)
     const { alertas: alertasOrden } = useGetAlertasOrden(id)
+
+    // Obtener orden completa: productos, elementos y depósito
+    // Se carga siempre para mostrar productos y validar estado de cargue
+    const { productos, alquilerElementos, elementosCargue, resumenCotizacion } = useGetOrdenCompleta(id)
 
     // ============================================
     // HOOKS: Mutaciones
@@ -1095,6 +319,36 @@ export default function OrdenDetallePage() {
         e => !e.serie_id && !e.lote_id
     )
     const hayElementosSinInventario = elementosPendientesInv.length > 0
+
+    // Verificar estado de cargue para transiciones estrictas
+    const elementosCargados = (elementos || []).filter(e => e.estado === 'cargado')
+    const todosElementosCargados = elementos?.length > 0 && elementosCargados.length === elementos.length
+    const algunElementoCargado = elementosCargados.length > 0
+    const elementosPendientesCargue = (elementos || []).filter(e => e.estado !== 'cargado')
+
+    // Agrupar elementos por producto para vista resumida
+    const productosConEstado = (productos || []).map(producto => {
+        const elementosDelProducto = (elementosCargue || []).filter(
+            e => e.compuesto_id === producto.compuesto_id
+        )
+        const totalElementos = elementosDelProducto.length
+        const cargados = elementosDelProducto.filter(e =>
+            e.estado === 'cargado' || e.estado_salida === 'cargado'
+        ).length
+
+        // En desmontaje no aplica "sin asignar" - la asignación se hizo en montaje
+        const esDesmontaje = orden?.tipo === 'desmontaje'
+
+        return {
+            ...producto,
+            totalElementos,
+            cargados,
+            // Producto listo si sus elementos están cargados O si todos los elementos de la orden están cargados
+            listoParaCargar: (totalElementos > 0 && cargados === totalElementos) || todosElementosCargados || esDesmontaje,
+            // No mostrar "sin asignar" en desmontaje ni si todos los elementos están cargados
+            sinAsignar: !esDesmontaje && totalElementos === 0 && !todosElementosCargados
+        }
+    })
 
     // Detectar alertas de stock disponible (notificación de que el inventario volvió)
     const alertaStockDisponible = (alertasOrden || []).find(
@@ -1370,7 +624,7 @@ export default function OrdenDetallePage() {
                             </div>
                         )}
 
-                        {/* ELEMENTOS DE LA ORDEN */}
+                        {/* PRODUCTOS DE LA ORDEN */}
                         <div className="bg-white rounded-xl border border-slate-200">
                             <button
                                 onClick={() => setExpandElementos(!expandElementos)}
@@ -1378,9 +632,14 @@ export default function OrdenDetallePage() {
                             >
                                 <div className="flex items-center gap-3">
                                     <Package className="w-5 h-5 text-slate-400" />
-                                    <h2 className="text-lg font-semibold text-slate-900">
-                                        Elementos ({elementos?.length || 0})
-                                    </h2>
+                                    <div>
+                                        <h2 className="text-lg font-semibold text-slate-900">
+                                            Productos ({productosConEstado?.length || 0})
+                                        </h2>
+                                        <p className="text-sm text-slate-500">
+                                            {elementos?.length || 0} elementos en total
+                                        </p>
+                                    </div>
                                 </div>
                                 {expandElementos ? (
                                     <ChevronUp className="w-5 h-5 text-slate-400" />
@@ -1394,69 +653,67 @@ export default function OrdenDetallePage() {
                                         <div className="py-4 text-center">
                                             <Spinner size="sm" />
                                         </div>
+                                    ) : productosConEstado?.length > 0 ? (
+                                        <div className="space-y-3">
+                                            {productosConEstado.map((producto) => (
+                                                <div
+                                                    key={producto.id}
+                                                    className={`border rounded-lg p-4 transition-colors ${
+                                                        producto.listoParaCargar
+                                                            ? 'border-green-200 bg-green-50/50'
+                                                            : producto.sinAsignar
+                                                            ? 'border-amber-200 bg-amber-50/50'
+                                                            : 'border-slate-200 hover:bg-slate-50'
+                                                    }`}
+                                                >
+                                                    <div className="flex items-center justify-between">
+                                                        <div className="flex items-center gap-3">
+                                                            <span className="text-2xl">{producto.categoria_emoji || '📦'}</span>
+                                                            <div>
+                                                                <p className="font-medium text-slate-900">
+                                                                    {producto.cantidad}x {producto.producto_nombre}
+                                                                </p>
+                                                                <p className="text-sm text-slate-500">
+                                                                    {producto.categoria_nombre}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                        <div className="text-right">
+                                                            {producto.listoParaCargar ? (
+                                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
+                                                                    <CheckCircle className="w-4 h-4" />
+                                                                    Listo{producto.totalElementos > 0 ? ` - ${producto.totalElementos} elem.` : ''}
+                                                                </span>
+                                                            ) : producto.sinAsignar ? (
+                                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-100 text-amber-700 rounded-full text-sm font-medium">
+                                                                    <AlertTriangle className="w-4 h-4" />
+                                                                    Sin asignar
+                                                                </span>
+                                                            ) : producto.cargados > 0 ? (
+                                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
+                                                                    <Box className="w-4 h-4" />
+                                                                    {producto.cargados}/{producto.totalElementos} cargados
+                                                                </span>
+                                                            ) : (
+                                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 text-slate-600 rounded-full text-sm font-medium">
+                                                                    <Clock className="w-4 h-4" />
+                                                                    {producto.totalElementos} pendientes
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
                                     ) : elementos?.length > 0 ? (
-                                        <div className="border border-slate-200 rounded-lg overflow-hidden">
-                                            <table className="w-full">
-                                                <thead className="bg-slate-50">
-                                                    <tr>
-                                                        <th className="px-4 py-3 text-left text-sm font-medium text-slate-600">
-                                                            Elemento
-                                                        </th>
-                                                        <th className="px-4 py-3 text-center text-sm font-medium text-slate-600">
-                                                            Cantidad
-                                                        </th>
-                                                        <th className="px-4 py-3 text-center text-sm font-medium text-slate-600">
-                                                            Estado
-                                                        </th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody className="divide-y divide-slate-100">
-                                                    {elementos.map((elem) => {
-                                                        const sinInventario = !elem.serie_id && !elem.lote_id
-                                                        return (
-                                                            <tr key={elem.id} className={sinInventario ? 'bg-amber-50/50' : 'hover:bg-slate-50'}>
-                                                                <td className="px-4 py-3">
-                                                                    <p className="font-medium text-slate-900">
-                                                                        {elem.elemento_nombre || elem.nombre}
-                                                                    </p>
-                                                                    {elem.numero_serie && (
-                                                                        <p className="text-sm text-slate-500">
-                                                                            Serie: {elem.numero_serie}
-                                                                        </p>
-                                                                    )}
-                                                                    {elem.lote_numero && (
-                                                                        <p className="text-sm text-slate-500">
-                                                                            Lote: {elem.lote_numero}
-                                                                        </p>
-                                                                    )}
-                                                                    {sinInventario && !esCompletado && !esCancelado && (
-                                                                        <p className="text-xs text-amber-600 font-medium mt-0.5 flex items-center gap-1">
-                                                                            <AlertTriangle className="w-3 h-3" />
-                                                                            Sin inventario asignado
-                                                                        </p>
-                                                                    )}
-                                                                </td>
-                                                                <td className="px-4 py-3 text-center">
-                                                                    {elem.cantidad || 1}
-                                                                </td>
-                                                                <td className="px-4 py-3 text-center">
-                                                                    <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${
-                                                                        elem.estado === 'completado' || elem.estado === 'retornado'
-                                                                            ? 'bg-green-100 text-green-700'
-                                                                            : elem.estado === 'con_problema' || elem.estado === 'incidencia'
-                                                                            ? 'bg-red-100 text-red-700'
-                                                                            : elem.estado === 'preparado' || elem.estado === 'cargado' || elem.estado === 'instalado'
-                                                                            ? 'bg-blue-100 text-blue-700'
-                                                                            : 'bg-yellow-100 text-yellow-700'
-                                                                    }`}>
-                                                                        {elem.estado || 'pendiente'}
-                                                                    </span>
-                                                                </td>
-                                                            </tr>
-                                                        )
-                                                    })}
-                                                </tbody>
-                                            </table>
+                                        // Fallback: mostrar resumen simple si no hay productos
+                                        <div className="p-4 bg-slate-50 rounded-lg text-center">
+                                            <p className="text-slate-600">
+                                                <span className="font-medium">{elementos.length}</span> elementos asignados
+                                            </p>
+                                            <p className="text-sm text-slate-500 mt-1">
+                                                {elementosCargados.length} cargados, {elementosPendientesCargue.length} pendientes
+                                            </p>
                                         </div>
                                     ) : (
                                         <p className="text-slate-500 text-center py-4">
@@ -1464,15 +721,67 @@ export default function OrdenDetallePage() {
                                         </p>
                                     )}
 
-                                    {/* Botón asignar inventario si hay elementos pendientes */}
-                                    {hayElementosSinInventario && canManage && !esCompletado && !esCancelado && (
-                                        <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                                    {/* Botón Ver Orden de Cargue - Solo en preparación con inventario asignado */}
+                                    {orden.estado === 'en_preparacion' && orden.tipo === 'montaje' && !hayElementosSinInventario && elementos?.length > 0 && canManage && (
+                                        <div className={`mt-4 p-4 rounded-lg border ${
+                                            todosElementosCargados
+                                                ? 'bg-green-50 border-green-200'
+                                                : 'bg-blue-50 border-blue-200'
+                                        }`}>
                                             <div className="flex items-center justify-between gap-3">
                                                 <div className="flex items-center gap-2">
-                                                    <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
-                                                    <p className="text-sm text-amber-700">
-                                                        <span className="font-medium">{elementosPendientesInv.length} elemento(s)</span> sin inventario del almacen
-                                                    </p>
+                                                    {todosElementosCargados ? (
+                                                        <>
+                                                            <CheckCircle className="w-5 h-5 text-green-600 shrink-0" />
+                                                            <div>
+                                                                <p className="text-sm font-medium text-green-800">
+                                                                    Cargue confirmado
+                                                                </p>
+                                                                <p className="text-xs text-green-600">
+                                                                    {elementos.length} elemento(s) listos para salida
+                                                                </p>
+                                                            </div>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <Truck className="w-5 h-5 text-blue-600 shrink-0" />
+                                                            <div>
+                                                                <p className="text-sm font-medium text-blue-800">
+                                                                    Pendiente confirmar cargue
+                                                                </p>
+                                                                <p className="text-xs text-blue-600">
+                                                                    {elementosPendientesCargue.length} de {elementos.length} elemento(s) sin confirmar
+                                                                </p>
+                                                            </div>
+                                                        </>
+                                                    )}
+                                                </div>
+                                                <Button
+                                                    color={todosElementosCargados ? 'green' : 'blue'}
+                                                    icon={Truck}
+                                                    size="sm"
+                                                    onClick={() => setShowModalOrdenCargue(true)}
+                                                >
+                                                    {todosElementosCargados ? 'Ver Detalle' : 'Confirmar Cargue'}
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Botón asignar inventario si hay elementos pendientes */}
+                                    {hayElementosSinInventario && canManage && !esCompletado && !esCancelado && (
+                                        <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                                            <div className="flex items-center justify-between gap-3">
+                                                <div className="flex items-center gap-2">
+                                                    <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0" />
+                                                    <div>
+                                                        <p className="text-sm font-medium text-amber-800">
+                                                            Inventario pendiente
+                                                        </p>
+                                                        <p className="text-xs text-amber-600">
+                                                            {elementosPendientesInv.length} elemento(s) sin asignar del almacen
+                                                        </p>
+                                                    </div>
                                                 </div>
                                                 <Button
                                                     color="orange"
@@ -1553,16 +862,17 @@ export default function OrdenDetallePage() {
 
                                     {orden.estado === 'en_preparacion' && orden.tipo === 'montaje' && (
                                         <>
+                                            {/* Paso 1: Asignar inventario */}
                                             {hayElementosSinInventario ? (
                                                 <div className="space-y-2">
                                                     <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
                                                         <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
                                                         <div>
                                                             <p className="text-sm text-amber-700 font-medium">
-                                                                No se puede despachar
+                                                                Paso 1: Asignar inventario
                                                             </p>
                                                             <p className="text-xs text-amber-600 mt-0.5">
-                                                                {elementosPendientesInv.length} elemento(s) sin inventario asignado del almacen
+                                                                {elementosPendientesInv.length} elemento(s) sin inventario del almacen
                                                             </p>
                                                         </div>
                                                     </div>
@@ -1575,16 +885,53 @@ export default function OrdenDetallePage() {
                                                         Asignar Inventario
                                                     </Button>
                                                 </div>
+                                            ) : !todosElementosCargados ? (
+                                                /* Paso 2: Confirmar cargue */
+                                                <div className="space-y-2">
+                                                    <div className="flex items-start gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                                        <Truck className="w-4 h-4 text-blue-500 mt-0.5 shrink-0" />
+                                                        <div>
+                                                            <p className="text-sm text-blue-700 font-medium">
+                                                                Paso 2: Confirmar cargue
+                                                            </p>
+                                                            <p className="text-xs text-blue-600 mt-0.5">
+                                                                {elementosPendientesCargue.length} de {elementos?.length} elemento(s) sin confirmar
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    <Button
+                                                        color="blue"
+                                                        icon={Truck}
+                                                        className="w-full"
+                                                        onClick={() => setShowModalOrdenCargue(true)}
+                                                    >
+                                                        Confirmar Cargue
+                                                    </Button>
+                                                </div>
                                             ) : (
-                                                <Button
-                                                    color="green"
-                                                    icon={LogOut}
-                                                    className="w-full"
-                                                    onClick={handleEjecutarSalida}
-                                                    disabled={ejecutandoSalida || !elementos?.length}
-                                                >
-                                                    {ejecutandoSalida ? 'Ejecutando...' : 'Ejecutar Salida'}
-                                                </Button>
+                                                /* Paso 3: Ejecutar salida */
+                                                <div className="space-y-2">
+                                                    <div className="flex items-start gap-2 p-3 bg-green-50 border border-green-200 rounded-lg">
+                                                        <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 shrink-0" />
+                                                        <div>
+                                                            <p className="text-sm text-green-700 font-medium">
+                                                                Listo para salida
+                                                            </p>
+                                                            <p className="text-xs text-green-600 mt-0.5">
+                                                                {elementos?.length} elemento(s) cargados y verificados
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    <Button
+                                                        color="green"
+                                                        icon={LogOut}
+                                                        className="w-full"
+                                                        onClick={handleEjecutarSalida}
+                                                        disabled={ejecutandoSalida}
+                                                    >
+                                                        {ejecutandoSalida ? 'Ejecutando...' : 'Ejecutar Salida'}
+                                                    </Button>
+                                                </div>
                                             )}
                                             {!elementos?.length && !hayElementosSinInventario && (
                                                 <div className="flex items-center gap-2 p-2 bg-amber-50 border border-amber-200 rounded-lg">
@@ -1773,10 +1120,13 @@ export default function OrdenDetallePage() {
                 />
             )}
             {showModalRetorno && (
-                <ModalRegistrarRetorno
-                    orden={orden}
-                    elementos={elementos}
+                <ModalRetornoElementos
+                    isOpen={showModalRetorno}
                     onClose={() => setShowModalRetorno(false)}
+                    orden={orden}
+                    elementos={alquilerElementos?.length > 0 ? alquilerElementos : elementos}
+                    productos={productos}
+                    deposito={resumenCotizacion?.total_deposito || 0}
                     onSave={handleEjecutarRetorno}
                 />
             )}
@@ -1786,6 +1136,16 @@ export default function OrdenDetallePage() {
                     elementosPendientes={elementosPendientesInv}
                     onClose={() => setShowModalInventario(false)}
                     onSave={handleAsignarInventario}
+                />
+            )}
+            {showModalOrdenCargue && (
+                <ModalOrdenCargue
+                    isOpen={showModalOrdenCargue}
+                    onClose={() => setShowModalOrdenCargue(false)}
+                    ordenId={orden.id}
+                    ordenInfo={orden}
+                    elementos={elementos}
+                    onConfirmado={refetch}
                 />
             )}
         </div>

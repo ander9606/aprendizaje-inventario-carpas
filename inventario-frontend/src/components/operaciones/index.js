@@ -3,3 +3,8 @@
 // ============================================
 
 export { default as OperacionesSidebar } from './OperacionesSidebar'
+export { default as ModalOrdenCargue } from './ModalOrdenCargue'
+export { default as ModalRetornoElementos } from './ModalRetornoElementos'
+export { default as ModalAsignarResponsable } from './ModalAsignarResponsable'
+export { default as ModalEditarOrden } from './ModalEditarOrden'
+export { default as ModalAsignarInventario } from './ModalAsignarInventario'

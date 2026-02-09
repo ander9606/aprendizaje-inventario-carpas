@@ -186,6 +186,13 @@ router.put(
     ordenTrabajoController.cambiarEstadoElemento
 );
 
+// Cambiar estado de múltiples elementos (operaciones masivas)
+router.put(
+    '/ordenes/:id/elementos/estado-masivo',
+    verificarRol(['admin', 'gerente', 'operaciones']),
+    ordenTrabajoController.cambiarEstadoElementosMasivo
+);
+
 router.post(
     '/ordenes/:id/elementos/:elemId/incidencia',
     verificarRol(['admin', 'gerente', 'operaciones']),
