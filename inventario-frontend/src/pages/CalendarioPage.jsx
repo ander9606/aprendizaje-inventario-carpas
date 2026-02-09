@@ -31,7 +31,8 @@ export default function CalendarioPage() {
     showMontaje: true,
     showEvento: true,
     showDesmontaje: true,
-    filtroEstado: 'todos'
+    filtroEstado: 'todos',
+    mostrarFinalizados: false
   })
 
   const [tooltipData, setTooltipData] = useState(null)
@@ -48,7 +49,8 @@ export default function CalendarioPage() {
     showMontaje: filters.showMontaje,
     showEvento: filters.showEvento,
     showDesmontaje: filters.showDesmontaje,
-    filtroEstado: filters.filtroEstado === 'todos' ? null : filters.filtroEstado
+    filtroEstado: filters.filtroEstado === 'todos' ? null : filters.filtroEstado,
+    ocultarFinalizados: !filters.mostrarFinalizados
   })
 
   const { calendarOptions, goToToday } = useCalendarConfig()

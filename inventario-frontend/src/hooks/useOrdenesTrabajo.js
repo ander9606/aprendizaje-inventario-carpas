@@ -199,6 +199,10 @@ export const useCambiarEstadoOrden = () => {
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({ queryKey: ['ordenes'] })
             queryClient.invalidateQueries({ queryKey: ['ordenes', variables.id] })
+            // Cambio de estado puede afectar alquileres y eventos asociados
+            queryClient.invalidateQueries({ queryKey: ['alquileres'] })
+            queryClient.invalidateQueries({ queryKey: ['cotizaciones'] })
+            queryClient.invalidateQueries({ queryKey: ['eventos'] })
         }
     })
 }
@@ -392,6 +396,9 @@ export const useEjecutarSalida = () => {
             queryClient.invalidateQueries({ queryKey: ['ordenes', variables.ordenId] })
             queryClient.invalidateQueries({ queryKey: ['alquileres'] })
             queryClient.invalidateQueries({ queryKey: ['alquiler'] })
+            // La salida cambia alquiler_estado → refrescar cotizaciones (calendario) y eventos
+            queryClient.invalidateQueries({ queryKey: ['cotizaciones'] })
+            queryClient.invalidateQueries({ queryKey: ['eventos'] })
         }
     })
 }
@@ -416,6 +423,9 @@ export const useEjecutarRetorno = () => {
             // El retorno puede resolver alertas de disponibilidad → refrescar alertas
             queryClient.invalidateQueries({ queryKey: ['alertas'] })
             queryClient.invalidateQueries({ queryKey: ['alertas-operaciones'] })
+            // El retorno finaliza alquiler y puede auto-finalizar evento → refrescar cotizaciones (calendario) y eventos
+            queryClient.invalidateQueries({ queryKey: ['cotizaciones'] })
+            queryClient.invalidateQueries({ queryKey: ['eventos'] })
         }
     })
 }
