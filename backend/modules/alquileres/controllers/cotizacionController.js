@@ -211,7 +211,7 @@ exports.crear = async (req, res, next) => {
       throw new AppError('Cliente no encontrado', 404);
     }
 
-    // Si viene evento_id, verificar que existe y pertenece al cliente
+    // Si viene evento_id, verificar que existe, pertenece al cliente y acepta cotizaciones
     if (evento_id) {
       const evento = await EventoModel.obtenerPorId(evento_id);
       if (!evento) {
@@ -219,6 +219,12 @@ exports.crear = async (req, res, next) => {
       }
       if (evento.cliente_id !== cliente_id) {
         throw new AppError('El evento no pertenece al cliente seleccionado', 400);
+      }
+
+      // Verificar si el evento permite agregar cotizaciones
+      const { permitido, motivo } = await EventoModel.puedeAgregarCotizaciones(evento_id);
+      if (!permitido) {
+        throw new AppError(motivo, 400);
       }
     }
 

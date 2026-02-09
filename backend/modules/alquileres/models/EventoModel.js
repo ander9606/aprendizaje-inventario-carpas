@@ -28,7 +28,16 @@ class EventoModel {
         c.telefono AS cliente_telefono,
         ci.nombre AS ciudad_nombre,
         (SELECT COUNT(*) FROM cotizaciones WHERE evento_id = e.id) AS total_cotizaciones,
-        (SELECT COALESCE(SUM(total), 0) FROM cotizaciones WHERE evento_id = e.id) AS total_valor
+        (SELECT COALESCE(SUM(total), 0) FROM cotizaciones WHERE evento_id = e.id) AS total_valor,
+        (SELECT COUNT(*) FROM cotizaciones cot
+          INNER JOIN alquileres a ON a.cotizacion_id = cot.id
+          WHERE cot.evento_id = e.id) AS total_alquileres,
+        (SELECT COUNT(*) FROM cotizaciones cot
+          INNER JOIN alquileres a ON a.cotizacion_id = cot.id
+          WHERE cot.evento_id = e.id AND a.estado = 'finalizado') AS alquileres_finalizados,
+        (SELECT COUNT(*) FROM cotizaciones cot
+          INNER JOIN alquileres a ON a.cotizacion_id = cot.id
+          WHERE cot.evento_id = e.id AND a.estado = 'activo') AS alquileres_activos
       FROM eventos e
       INNER JOIN clientes c ON e.cliente_id = c.id
       LEFT JOIN ciudades ci ON e.ciudad_id = ci.id
@@ -247,6 +256,103 @@ class EventoModel {
       [id]
     );
     return rows[0].total > 0;
+  }
+
+  // ============================================
+  // VERIFICAR SI TODOS LOS ALQUILERES ESTÁN FINALIZADOS
+  // Retorna true si el evento tiene al menos una cotización aprobada
+  // con alquiler y TODOS esos alquileres están finalizados o cancelados
+  // ============================================
+  static async todosAlquileresFinalizados(eventoId) {
+    const query = `
+      SELECT
+        COUNT(a.id) AS total_alquileres,
+        SUM(CASE WHEN a.estado IN ('finalizado', 'cancelado') THEN 1 ELSE 0 END) AS alquileres_terminados
+      FROM cotizaciones c
+      INNER JOIN alquileres a ON a.cotizacion_id = c.id
+      WHERE c.evento_id = ?
+    `;
+    const [rows] = await pool.query(query, [eventoId]);
+    const { total_alquileres, alquileres_terminados } = rows[0];
+
+    // Solo auto-finalizar si hay al menos un alquiler y todos terminaron
+    return total_alquileres > 0 && total_alquileres === alquileres_terminados;
+  }
+
+  // ============================================
+  // AUTO-FINALIZAR EVENTO SI TODOS LOS ALQUILERES TERMINARON
+  // Llamado después de ejecutarRetorno en SincronizacionAlquilerService
+  // ============================================
+  static async autoFinalizarSiCompleto(eventoId) {
+    if (!eventoId) return { actualizado: false, motivo: 'Sin evento_id' };
+
+    const evento = await this.obtenerPorId(eventoId);
+    if (!evento) return { actualizado: false, motivo: 'Evento no encontrado' };
+
+    // Solo auto-finalizar si el evento está activo
+    if (evento.estado !== 'activo') {
+      return { actualizado: false, motivo: `Evento en estado ${evento.estado}` };
+    }
+
+    const todosFinalizados = await this.todosAlquileresFinalizados(eventoId);
+    if (todosFinalizados) {
+      await this.cambiarEstado(eventoId, 'completado');
+      return { actualizado: true, estado_nuevo: 'completado' };
+    }
+
+    return { actualizado: false, motivo: 'Aún hay alquileres pendientes' };
+  }
+
+  // ============================================
+  // OBTENER EVENTO_ID DESDE UN ALQUILER_ID
+  // Busca: alquiler -> cotización -> evento
+  // ============================================
+  static async obtenerEventoIdDesdeAlquiler(alquilerId) {
+    const query = `
+      SELECT c.evento_id
+      FROM alquileres a
+      INNER JOIN cotizaciones c ON a.cotizacion_id = c.id
+      WHERE a.id = ?
+        AND c.evento_id IS NOT NULL
+    `;
+    const [rows] = await pool.query(query, [alquilerId]);
+    return rows[0]?.evento_id || null;
+  }
+
+  // ============================================
+  // VERIFICAR SI SE PUEDEN AGREGAR COTIZACIONES
+  // No se permite si el evento está completado/cancelado
+  // o si la fecha_fin ya pasó
+  // ============================================
+  static async puedeAgregarCotizaciones(eventoId) {
+    const query = `
+      SELECT
+        e.estado,
+        DATE_FORMAT(e.fecha_fin, '%Y-%m-%d') AS fecha_fin
+      FROM eventos e
+      WHERE e.id = ?
+    `;
+    const [rows] = await pool.query(query, [eventoId]);
+    if (!rows.length) return { permitido: false, motivo: 'Evento no encontrado' };
+
+    const evento = rows[0];
+
+    if (evento.estado === 'completado') {
+      return { permitido: false, motivo: 'El evento ya está completado. No se pueden agregar más cotizaciones.' };
+    }
+    if (evento.estado === 'cancelado') {
+      return { permitido: false, motivo: 'El evento está cancelado. No se pueden agregar cotizaciones.' };
+    }
+
+    // Verificar si la fecha del evento ya pasó
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+    const fechaFin = new Date(evento.fecha_fin + 'T23:59:59');
+    if (fechaFin < hoy) {
+      return { permitido: false, motivo: 'La fecha del evento ya pasó. No se pueden agregar más cotizaciones.' };
+    }
+
+    return { permitido: true };
   }
 }
 

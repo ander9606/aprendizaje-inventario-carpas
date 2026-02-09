@@ -81,6 +81,7 @@ const AppError = require('../../../utils/AppError');
 const logger = require('../../../utils/logger');
 const AlertaModel = require('../models/AlertaModel');
 const DisponibilidadModel = require('../../alquileres/models/DisponibilidadModel');
+const EventoModel = require('../../alquileres/models/EventoModel');
 
 // ============================================================================
 // CONSTANTES: Estados válidos para máquinas de estado
@@ -1238,6 +1239,27 @@ class SincronizacionAlquilerService {
       logger.info(`[SincronizacionAlquilerService]   - Total daños: $${totalDanos.toLocaleString()}`);
       logger.info(`[SincronizacionAlquilerService]   - Depósito: $${depositoCobrado.toLocaleString()}`);
       logger.info(`[SincronizacionAlquilerService]   - Saldo: $${saldo.toLocaleString()}`);
+
+      // -----------------------------------------------------------------
+      // PASO 5: Auto-finalizar evento si todos sus alquileres terminaron
+      // -----------------------------------------------------------------
+      try {
+        const eventoId = await EventoModel.obtenerEventoIdDesdeAlquiler(alquilerId);
+        if (eventoId) {
+          const resultadoEvento = await EventoModel.autoFinalizarSiCompleto(eventoId);
+          if (resultadoEvento.actualizado) {
+            logger.info(
+              `[SincronizacionAlquilerService] Evento ${eventoId} auto-finalizado: ` +
+              `todos los alquileres del evento están finalizados`
+            );
+          }
+        }
+      } catch (eventoError) {
+        // No fallar el retorno por un error en la auto-finalización del evento
+        logger.error(
+          `[SincronizacionAlquilerService] Error al auto-finalizar evento: ${eventoError.message}`
+        );
+      }
 
       return {
         success: true,
