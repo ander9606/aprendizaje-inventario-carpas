@@ -340,8 +340,10 @@ export default function OrdenDetallePage() {
             ...producto,
             totalElementos,
             cargados,
-            listoParaCargar: totalElementos > 0 && cargados === totalElementos,
-            sinAsignar: totalElementos === 0
+            // Producto listo si sus elementos están cargados O si todos los elementos de la orden están cargados
+            listoParaCargar: (totalElementos > 0 && cargados === totalElementos) || todosElementosCargados,
+            // No mostrar "sin asignar" si todos los elementos están cargados (cargue confirmado)
+            sinAsignar: totalElementos === 0 && !todosElementosCargados
         }
     })
 
@@ -677,7 +679,7 @@ export default function OrdenDetallePage() {
                                                             {producto.listoParaCargar ? (
                                                                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
                                                                     <CheckCircle className="w-4 h-4" />
-                                                                    Listo - {producto.totalElementos} elem.
+                                                                    Listo{producto.totalElementos > 0 ? ` - ${producto.totalElementos} elem.` : ''}
                                                                 </span>
                                                             ) : producto.sinAsignar ? (
                                                                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-100 text-amber-700 rounded-full text-sm font-medium">
