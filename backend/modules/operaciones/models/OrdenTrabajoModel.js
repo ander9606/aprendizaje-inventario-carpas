@@ -93,7 +93,8 @@ class OrdenTrabajoModel {
                 v.placa as vehiculo_placa,
                 v.marca as vehiculo_marca,
                 COALESCE(elem_count.total, 0) as total_elementos,
-                COALESCE(equipo_count.total, 0) as total_equipo
+                COALESCE(equipo_count.total, 0) as total_equipo,
+                COALESCE(prod_count.total, 0) as total_productos
             FROM ordenes_trabajo ot
             LEFT JOIN alquileres a ON ot.alquiler_id = a.id
             LEFT JOIN cotizaciones cot ON a.cotizacion_id = cot.id
@@ -109,6 +110,11 @@ class OrdenTrabajoModel {
                 FROM orden_trabajo_equipo
                 GROUP BY orden_id
             ) equipo_count ON equipo_count.orden_id = ot.id
+            LEFT JOIN (
+                SELECT cotizacion_id, COUNT(*) as total
+                FROM cotizacion_compuestos
+                GROUP BY cotizacion_id
+            ) prod_count ON prod_count.cotizacion_id = cot.id
             ${whereClause}
             ORDER BY ot.${ordenarCampo} ${ordenarDireccion}
             LIMIT ? OFFSET ?
