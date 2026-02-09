@@ -169,7 +169,7 @@ const generarChecklistImprimible = ({ ordenId, ordenInfo, productos, elementosCa
             ? prod.elementos.map(elem => `
                 <tr>
                     <td class="elem-indent">${elem.elemento_nombre}</td>
-                    <td>${elem.serie_codigo || (elem.lote_codigo ? 'Lote: ' + elem.lote_codigo : '-')}</td>
+                    <td>${elem.serie_codigo || '-'}</td>
                     <td class="center">${elem.cantidad_lote || elem.cantidad || 1}</td>
                     <td class="center"><span class="check-box"></span></td>
                     <td></td>
@@ -191,7 +191,7 @@ const generarChecklistImprimible = ({ ordenId, ordenInfo, productos, elementosCa
         ${elementosSinProducto.map(elem => `
             <tr>
                 <td class="elem-indent">${elem.elemento_nombre}</td>
-                <td>${elem.serie_codigo || (elem.lote_codigo ? 'Lote: ' + elem.lote_codigo : '-')}</td>
+                <td>${elem.serie_codigo || '-'}</td>
                 <td class="center">${elem.cantidad_lote || elem.cantidad || 1}</td>
                 <td class="center"><span class="check-box"></span></td>
                 <td></td>
@@ -268,7 +268,7 @@ const generarChecklistImprimible = ({ ordenId, ordenInfo, productos, elementosCa
         <thead>
             <tr>
                 <th style="width:35%">Elemento</th>
-                <th style="width:22%">Serie / Lote</th>
+                <th style="width:22%">Serie</th>
                 <th class="center" style="width:10%">Cant.</th>
                 <th class="center" style="width:13%">Cargado</th>
                 <th style="width:20%">Obs.</th>
