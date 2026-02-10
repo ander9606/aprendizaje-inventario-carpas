@@ -279,7 +279,7 @@ class OrdenTrabajoModel {
         }
 
         // Ejecutar queries adicionales en paralelo
-        const [productosResult, transporteResult, alquilerElementosResult, ordenElementosResult] = await Promise.all([
+        const [productosResult, transporteResult, alquilerElementosResult, ordenElementosResult, componentesResult] = await Promise.all([
             // Productos de la cotización
             pool.query(`
                 SELECT
@@ -331,17 +331,14 @@ class OrdenTrabajoModel {
                     ae.notas_retorno,
                     e.nombre as elemento_nombre,
                     s.numero_serie as serie_codigo,
-                    l.lote_numero as lote_codigo,
-                    cc.compuesto_id
+                    l.lote_numero as lote_codigo
                 FROM alquiler_elementos ae
                 INNER JOIN elementos e ON ae.elemento_id = e.id
                 LEFT JOIN series s ON ae.serie_id = s.id
                 LEFT JOIN lotes l ON ae.lote_id = l.id
-                LEFT JOIN compuesto_componentes cc ON cc.elemento_id = e.id
-                    AND cc.compuesto_id IN (SELECT cp.compuesto_id FROM cotizacion_productos cp WHERE cp.cotizacion_id = ?)
                 WHERE ae.alquiler_id = ?
-                ORDER BY cc.compuesto_id, e.nombre
-            `, [orden.cotizacion_id, orden.alquiler_id]) : Promise.resolve([[]]),
+                ORDER BY e.nombre
+            `, [orden.alquiler_id]) : Promise.resolve([[]]),
             // Elementos asignados a la orden (antes de ejecutar salida)
             pool.query(`
                 SELECT
@@ -353,17 +350,22 @@ class OrdenTrabajoModel {
                     ote.estado,
                     e.nombre as elemento_nombre,
                     s.numero_serie as serie_codigo,
-                    l.lote_numero as lote_codigo,
-                    cc.compuesto_id
+                    l.lote_numero as lote_codigo
                 FROM orden_trabajo_elementos ote
                 INNER JOIN elementos e ON ote.elemento_id = e.id
                 LEFT JOIN series s ON ote.serie_id = s.id
                 LEFT JOIN lotes l ON ote.lote_id = l.id
-                LEFT JOIN compuesto_componentes cc ON cc.elemento_id = e.id
-                    AND cc.compuesto_id IN (SELECT cp.compuesto_id FROM cotizacion_productos cp WHERE cp.cotizacion_id = ?)
                 WHERE ote.orden_id = ?
-                ORDER BY cc.compuesto_id, e.nombre
-            `, [orden.cotizacion_id, id])
+                ORDER BY e.nombre
+            `, [id]),
+            // Mapa de elemento_id → compuesto_id para vincular elementos con productos
+            orden.cotizacion_id ? pool.query(`
+                SELECT DISTINCT cc.elemento_id, cc.compuesto_id
+                FROM compuesto_componentes cc
+                WHERE cc.compuesto_id IN (
+                    SELECT cp.compuesto_id FROM cotizacion_productos cp WHERE cp.cotizacion_id = ?
+                )
+            `, [orden.cotizacion_id]) : Promise.resolve([[]])
         ]);
 
         // Calcular resúmenes
@@ -371,6 +373,24 @@ class OrdenTrabajoModel {
         const transporte = transporteResult[0];
         const alquilerElementos = alquilerElementosResult[0];
         const ordenElementos = ordenElementosResult[0];
+        const componentesMap = (componentesResult || [[]])[0];
+
+        // Crear mapa elemento_id → compuesto_id para vincular elementos con productos
+        const elementoToCompuesto = {};
+        if (componentesMap) {
+            componentesMap.forEach(c => {
+                elementoToCompuesto[c.elemento_id] = c.compuesto_id;
+            });
+        }
+
+        // Agregar compuesto_id a cada elemento
+        const tagElementos = (elems) => elems.map(e => ({
+            ...e,
+            compuesto_id: elementoToCompuesto[e.elemento_id] || null
+        }));
+
+        const alquilerElementosTagged = tagElementos(alquilerElementos);
+        const ordenElementosTagged = tagElementos(ordenElementos);
 
         const subtotalProductos = productos.reduce((sum, p) => sum + parseFloat(p.subtotal || 0), 0);
         const subtotalTransporte = transporte.reduce((sum, t) => sum + parseFloat(t.subtotal || 0), 0);
@@ -378,14 +398,14 @@ class OrdenTrabajoModel {
 
         // Usar orden_elementos para el resumen de cargue (antes de salida)
         // y alquiler_elementos para retornos (después de salida)
-        const elementosParaCargue = ordenElementos.length > 0 ? ordenElementos : alquilerElementos;
+        const elementosParaCargue = ordenElementosTagged.length > 0 ? ordenElementosTagged : alquilerElementosTagged;
 
         return {
             ...orden,
             productos,
             transporte,
-            alquiler_elementos: alquilerElementos,
-            orden_elementos: ordenElementos, // Elementos asignados a la orden (para cargue)
+            alquiler_elementos: alquilerElementosTagged,
+            orden_elementos: ordenElementosTagged, // Elementos asignados a la orden (para cargue)
             elementos_cargue: elementosParaCargue, // Elementos para mostrar en modal de cargue
             resumen_cotizacion: {
                 subtotal_productos: subtotalProductos,
@@ -396,10 +416,10 @@ class OrdenTrabajoModel {
             },
             resumen_elementos: {
                 total: elementosParaCargue.length,
-                retornados: alquilerElementos.filter(e => e.estado_retorno).length,
-                pendientes: alquilerElementos.filter(e => !e.estado_retorno).length,
-                danados: alquilerElementos.filter(e => e.estado_retorno === 'dañado').length,
-                perdidos: alquilerElementos.filter(e => e.estado_retorno === 'perdido').length
+                retornados: alquilerElementosTagged.filter(e => e.estado_retorno).length,
+                pendientes: alquilerElementosTagged.filter(e => !e.estado_retorno).length,
+                danados: alquilerElementosTagged.filter(e => e.estado_retorno === 'dañado').length,
+                perdidos: alquilerElementosTagged.filter(e => e.estado_retorno === 'perdido').length
             }
         };
     }
