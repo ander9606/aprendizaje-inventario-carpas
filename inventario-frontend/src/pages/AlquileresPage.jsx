@@ -9,11 +9,11 @@ import {
   Package,
   Search,
   Clock,
-  CheckCircle,
-  XCircle,
   Truck,
   AlertTriangle,
-  X
+  X,
+  ChevronDown,
+  Archive
 } from 'lucide-react'
 import {
   useGetAlquileres,
@@ -36,12 +36,6 @@ const StatPill = ({ label, valor, icono: Icon, activo, onClick, color }) => {
     emerald: activo
       ? 'bg-emerald-500 text-white shadow-emerald-200'
       : 'bg-white text-slate-700 hover:bg-emerald-50 border-slate-200',
-    blue: activo
-      ? 'bg-blue-500 text-white shadow-blue-200'
-      : 'bg-white text-slate-700 hover:bg-blue-50 border-slate-200',
-    red: activo
-      ? 'bg-red-500 text-white shadow-red-200'
-      : 'bg-white text-slate-700 hover:bg-red-50 border-slate-200',
     orange: activo
       ? 'bg-orange-500 text-white shadow-orange-200'
       : 'bg-white text-orange-600 hover:bg-orange-50 border-orange-200'
@@ -77,6 +71,7 @@ export default function AlquileresPage() {
 
   const [busqueda, setBusqueda] = useState('')
   const [filtroEstado, setFiltroEstado] = useState('')
+  const [showHistorial, setShowHistorial] = useState(false)
 
   const { alquileres, isLoading } = useGetAlquileres()
   const { estadisticas, isLoading: loadingStats } = useGetEstadisticasAlquileres()
@@ -139,7 +134,30 @@ export default function AlquileresPage() {
     })
   }, [alquileresFiltrados])
 
-  const handleFiltro = (estado) => setFiltroEstado(filtroEstado === estado ? '' : estado)
+  // Separar en trabajo activo e historial
+  const { trabajoActivo, historial } = useMemo(() => {
+    const trabajo = []
+    const hist = []
+    for (const a of alquileresOrdenados) {
+      if (a.estado === 'finalizado' || a.estado === 'cancelado') {
+        hist.push(a)
+      } else {
+        trabajo.push(a)
+      }
+    }
+    return { trabajoActivo: trabajo, historial: hist }
+  }, [alquileresOrdenados])
+
+  const handleFiltro = (estado) => {
+    if (filtroEstado === estado) {
+      setFiltroEstado('')
+    } else {
+      setFiltroEstado(estado)
+      if (estado === 'finalizado' || estado === 'cancelado') {
+        setShowHistorial(true)
+      }
+    }
+  }
 
   return (
     <div className="p-4 sm:p-6 max-w-[1400px] mx-auto">
@@ -215,22 +233,6 @@ export default function AlquileresPage() {
             activo={filtroEstado === 'activo'}
             onClick={() => handleFiltro('activo')}
           />
-          <StatPill
-            label="Finalizados"
-            valor={loadingStats ? '-' : (estadisticas?.finalizados || 0)}
-            icono={CheckCircle}
-            color="blue"
-            activo={filtroEstado === 'finalizado'}
-            onClick={() => handleFiltro('finalizado')}
-          />
-          <StatPill
-            label="Cancelados"
-            valor={loadingStats ? '-' : (estadisticas?.cancelados || 0)}
-            icono={XCircle}
-            color="red"
-            activo={filtroEstado === 'cancelado'}
-            onClick={() => handleFiltro('cancelado')}
-          />
         </div>
       </div>
 
@@ -248,48 +250,85 @@ export default function AlquileresPage() {
         </div>
       )}
 
-      {/* Lista */}
+      {/* Lista principal - trabajo activo */}
       {isLoading ? (
         <div className="flex justify-center py-16">
           <Spinner size="lg" />
         </div>
-      ) : alquileresOrdenados.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-dashed border-slate-300 p-16 text-center">
-          <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <Package className="w-8 h-8 text-slate-400" />
-          </div>
-          <h3 className="text-lg font-semibold text-slate-900 mb-1">
-            No hay alquileres
-          </h3>
-          <p className="text-sm text-slate-500 mb-6 max-w-sm mx-auto">
-            {busqueda || filtroEstado
-              ? 'No se encontraron resultados con los filtros actuales'
-              : 'Aparecerán aquí cuando se aprueben cotizaciones'}
-          </p>
-          {(busqueda || filtroEstado) && (
-            <Button
-              variant="secondary"
-              onClick={() => { setFiltroEstado(''); setBusqueda('') }}
-            >
-              Limpiar filtros
-            </Button>
-          )}
-        </div>
       ) : (
         <>
-          <div className="mb-3 text-xs text-slate-400 font-medium uppercase tracking-wide">
-            {alquileresOrdenados.length} alquiler{alquileresOrdenados.length !== 1 ? 'es' : ''}
-          </div>
+          {/* Sección principal: Programados + Activos */}
+          {trabajoActivo.length === 0 && !(filtroEstado === 'finalizado' || filtroEstado === 'cancelado') ? (
+            <div className="bg-white rounded-2xl border border-dashed border-slate-300 p-16 text-center">
+              <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <Package className="w-8 h-8 text-slate-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-slate-900 mb-1">
+                No hay alquileres activos
+              </h3>
+              <p className="text-sm text-slate-500 mb-6 max-w-sm mx-auto">
+                {busqueda || filtroEstado
+                  ? 'No se encontraron resultados con los filtros actuales'
+                  : 'Aparecerán aquí cuando se aprueben cotizaciones'}
+              </p>
+              {(busqueda || filtroEstado) && (
+                <Button
+                  variant="secondary"
+                  onClick={() => { setFiltroEstado(''); setBusqueda('') }}
+                >
+                  Limpiar filtros
+                </Button>
+              )}
+            </div>
+          ) : trabajoActivo.length > 0 && (
+            <>
+              <div className="mb-3 text-xs text-slate-400 font-medium uppercase tracking-wide">
+                {trabajoActivo.length} alquiler{trabajoActivo.length !== 1 ? 'es' : ''} en curso
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                {trabajoActivo.map(alquiler => (
+                  <AlquilerCard
+                    key={alquiler.id}
+                    alquiler={alquiler}
+                    onVerDetalle={(id) => navigate(`/alquileres/gestion/${id}`)}
+                  />
+                ))}
+              </div>
+            </>
+          )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {alquileresOrdenados.map(alquiler => (
-              <AlquilerCard
-                key={alquiler.id}
-                alquiler={alquiler}
-                onVerDetalle={(id) => navigate(`/alquileres/gestion/${id}`)}
-              />
-            ))}
-          </div>
+          {/* Sección historial: Finalizados + Cancelados */}
+          {historial.length > 0 && (
+            <div className="mt-8">
+              <button
+                onClick={() => setShowHistorial(!showHistorial)}
+                className="w-full flex items-center justify-between px-4 py-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl transition-colors group"
+              >
+                <div className="flex items-center gap-2.5">
+                  <Archive className="w-4 h-4 text-slate-400" />
+                  <span className="text-sm font-medium text-slate-600">
+                    Historial
+                  </span>
+                  <span className="text-xs text-slate-400 bg-slate-200/60 px-2 py-0.5 rounded-full">
+                    {historial.length}
+                  </span>
+                </div>
+                <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${showHistorial ? 'rotate-180' : ''}`} />
+              </button>
+
+              {showHistorial && (
+                <div className="mt-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                  {historial.map(alquiler => (
+                    <AlquilerCard
+                      key={alquiler.id}
+                      alquiler={alquiler}
+                      onVerDetalle={(id) => navigate(`/alquileres/gestion/${id}`)}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </>
       )}
     </div>
