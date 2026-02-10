@@ -776,10 +776,10 @@ export default function OrdenesTrabajoPage() {
             <div className="bg-white rounded-xl border border-slate-200 p-4 mb-6">
                 <div className="flex flex-col md:flex-row gap-4">
                     <div className="flex-1 flex items-center gap-3">
-                        <Search className="w-5 h-5 text-slate-400" />
+                        <Search className="w-5 h-5 text-slate-400 shrink-0" />
                         <input
                             type="text"
-                            placeholder="Buscar por cliente o ubicación..."
+                            placeholder="Buscar por cliente, producto, evento o ciudad..."
                             value={busqueda}
                             onChange={(e) => setBusqueda(e.target.value)}
                             className="flex-1 border-0 focus:ring-0 text-sm placeholder:text-slate-400 outline-none"
@@ -787,9 +787,9 @@ export default function OrdenesTrabajoPage() {
                         {busqueda && (
                             <button
                                 onClick={() => setBusqueda('')}
-                                className="text-sm text-blue-600 hover:underline"
+                                className="p-1 hover:bg-slate-100 rounded shrink-0"
                             >
-                                Limpiar
+                                <X className="w-4 h-4 text-slate-400" />
                             </button>
                         )}
                     </div>
@@ -966,7 +966,7 @@ export default function OrdenesTrabajoPage() {
                                     <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                                     <input
                                         type="text"
-                                        placeholder="Buscar en historial..."
+                                        placeholder="Buscar por cliente, evento o ciudad..."
                                         value={busquedaHistorial}
                                         onChange={(e) => setBusquedaHistorial(e.target.value)}
                                         className="w-full pl-9 pr-8 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 bg-white"

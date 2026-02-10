@@ -12,6 +12,7 @@ class OrdenTrabajoModel {
         const {
             page = 1,
             limit = 20,
+            buscar = null,
             tipo = null,
             estado = null,
             excluir_finalizados = false,
@@ -27,6 +28,24 @@ class OrdenTrabajoModel {
         const offset = (page - 1) * limit;
         const params = [];
         let whereClause = 'WHERE 1=1';
+
+        // Búsqueda de texto: cliente, evento, producto, notas, ciudad
+        if (buscar) {
+            const termino = `%${buscar}%`;
+            whereClause += ` AND (
+                c.nombre LIKE ?
+                OR cot.evento_nombre LIKE ?
+                OR ot.notas LIKE ?
+                OR ot.ciudad_evento LIKE ?
+                OR cot.evento_ciudad LIKE ?
+                OR EXISTS (
+                    SELECT 1 FROM cotizacion_productos cp2
+                    INNER JOIN elementos_compuestos ec2 ON cp2.compuesto_id = ec2.id
+                    WHERE cp2.cotizacion_id = cot.id AND ec2.nombre LIKE ?
+                )
+            )`;
+            params.push(termino, termino, termino, termino, termino, termino);
+        }
 
         if (tipo) {
             whereClause += ` AND ot.tipo = ?`;

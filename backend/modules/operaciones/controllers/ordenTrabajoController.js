@@ -21,6 +21,7 @@ const getOrdenes = async (req, res, next) => {
         const filtros = {
             page: parseInt(req.query.page) || 1,
             limit: parseInt(req.query.limit) || 20,
+            buscar: req.query.buscar || null,
             tipo: req.query.tipo,
             estado: req.query.estado,
             excluir_finalizados: req.query.excluir_finalizados === 'true',
