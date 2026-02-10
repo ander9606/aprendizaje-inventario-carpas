@@ -233,6 +233,18 @@ const cambiarEstadoOrden = async (req, res, next) => {
         }
 
         const estadoAnterior = ordenAnterior.estado;
+
+        // Validar: desmontaje no puede avanzar más allá de confirmado si montaje no está completado
+        if (ordenAnterior.tipo === 'desmontaje' && ['en_preparacion', 'en_ruta', 'en_sitio', 'en_proceso', 'completado'].includes(estado)) {
+            const [montajeRows] = await pool.query(
+                `SELECT id, estado FROM ordenes_trabajo WHERE alquiler_id = ? AND tipo = 'montaje' AND estado != 'cancelado' LIMIT 1`,
+                [ordenAnterior.alquiler_id]
+            );
+            if (montajeRows.length > 0 && montajeRows[0].estado !== 'completado') {
+                throw new AppError('No se puede avanzar el desmontaje hasta que el montaje esté completado', 409);
+            }
+        }
+
         const orden = await OrdenTrabajoModel.cambiarEstado(parseInt(id), estado);
 
         // ========================================

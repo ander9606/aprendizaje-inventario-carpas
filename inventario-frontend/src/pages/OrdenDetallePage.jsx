@@ -301,6 +301,11 @@ export default function OrdenDetallePage() {
     const esCancelado = orden.estado === 'cancelado'
     const esCompletado = orden.estado === 'completado'
 
+    // Desmontaje: montaje aún no completado
+    const montajeNoCompletado = orden.tipo === 'desmontaje' && orden.montaje_estado && orden.montaje_estado !== 'completado'
+    // Bloquear avance si el desmontaje ya está confirmado y el montaje no terminó
+    const montajePendiente = montajeNoCompletado && orden.estado === 'confirmado'
+
     // Detectar elementos sin inventario asignado
     const elementosPendientesInv = (elementos || []).filter(
         e => !e.serie_id && !e.lote_id
@@ -518,7 +523,9 @@ export default function OrdenDetallePage() {
             {/* BANNER: SIGUIENTE ACCIÓN */}
             {canManage && !esCompletado && !esCancelado && (
                 <div className={`mb-6 rounded-xl border overflow-hidden ${
-                    orden.estado === 'en_preparacion' && orden.tipo === 'montaje' && hayElementosSinInventario
+                    montajePendiente
+                        ? 'bg-slate-50 border-slate-300'
+                        : orden.estado === 'en_preparacion' && orden.tipo === 'montaje' && hayElementosSinInventario
                         ? 'bg-amber-50 border-amber-200'
                         : orden.estado === 'en_preparacion' && orden.tipo === 'montaje' && !todosElementosCargados
                         ? 'bg-blue-50 border-blue-200'
@@ -528,27 +535,56 @@ export default function OrdenDetallePage() {
                 }`}>
                     <div className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div className="flex-1 min-w-0">
-                            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-1">Siguiente paso</p>
-                            <p className="text-sm text-slate-700">{getDescripcionEstado()}</p>
-                            {!tieneResponsable && ['pendiente', 'confirmado'].includes(orden.estado) && (
-                                <button
-                                    onClick={() => setShowModalResponsable(true)}
-                                    className="mt-2 inline-flex items-center gap-1.5 text-xs text-amber-600 hover:text-amber-700 font-medium"
-                                >
-                                    <AlertTriangle className="w-3.5 h-3.5" />
-                                    Sin responsable — Asignar ahora
-                                </button>
-                            )}
-                            {orden.estado === 'en_preparacion' && orden.tipo === 'montaje' && (
-                                hayElementosSinInventario ? (
-                                    <p className="text-xs text-amber-600 mt-1 font-medium">{elementosPendientesInv.length} elemento(s) sin inventario asignado</p>
-                                ) : !todosElementosCargados ? (
-                                    <p className="text-xs text-blue-600 mt-1 font-medium">{elementosPendientesCargue.length} de {elementos?.length} elemento(s) sin confirmar cargue</p>
-                                ) : (
-                                    <p className="text-xs text-green-600 mt-1 font-medium">{elementos?.length} elemento(s) cargados y verificados</p>
-                                )
+                            {montajePendiente ? (
+                                <>
+                                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-1">Esperando montaje</p>
+                                    <p className="text-sm text-slate-700">
+                                        El desmontaje no puede avanzar hasta que la orden de montaje esté completada.
+                                    </p>
+                                    <Link
+                                        to={`/operaciones/ordenes/${orden.montaje_id}`}
+                                        className="mt-2 inline-flex items-center gap-1.5 text-xs text-orange-600 hover:text-orange-700 font-medium"
+                                    >
+                                        <Package className="w-3.5 h-3.5" />
+                                        Ver montaje #{orden.montaje_id} — {getEstadoConfig(orden.montaje_estado).label}
+                                        <ExternalLink className="w-3 h-3" />
+                                    </Link>
+                                </>
+                            ) : (
+                                <>
+                                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-1">Siguiente paso</p>
+                                    <p className="text-sm text-slate-700">{getDescripcionEstado()}</p>
+                                    {!tieneResponsable && ['pendiente', 'confirmado'].includes(orden.estado) && (
+                                        <button
+                                            onClick={() => setShowModalResponsable(true)}
+                                            className="mt-2 inline-flex items-center gap-1.5 text-xs text-amber-600 hover:text-amber-700 font-medium"
+                                        >
+                                            <AlertTriangle className="w-3.5 h-3.5" />
+                                            Sin responsable — Asignar ahora
+                                        </button>
+                                    )}
+                                    {orden.estado === 'en_preparacion' && orden.tipo === 'montaje' && (
+                                        hayElementosSinInventario ? (
+                                            <p className="text-xs text-amber-600 mt-1 font-medium">{elementosPendientesInv.length} elemento(s) sin inventario asignado</p>
+                                        ) : !todosElementosCargados ? (
+                                            <p className="text-xs text-blue-600 mt-1 font-medium">{elementosPendientesCargue.length} de {elementos?.length} elemento(s) sin confirmar cargue</p>
+                                        ) : (
+                                            <p className="text-xs text-green-600 mt-1 font-medium">{elementos?.length} elemento(s) cargados y verificados</p>
+                                        )
+                                    )}
+                                    {montajeNoCompletado && orden.estado === 'pendiente' && (
+                                        <Link
+                                            to={`/operaciones/ordenes/${orden.montaje_id}`}
+                                            className="mt-2 inline-flex items-center gap-1.5 text-xs text-slate-500 hover:text-orange-600 font-medium"
+                                        >
+                                            <Package className="w-3.5 h-3.5" />
+                                            Montaje #{orden.montaje_id} aún en {getEstadoConfig(orden.montaje_estado).label.toLowerCase()}
+                                        </Link>
+                                    )}
+                                </>
                             )}
                         </div>
+                        {!montajePendiente && (
                         <div className="shrink-0 flex items-center gap-2">
                             {orden.estado === 'pendiente' && (
                                 <Button
@@ -625,6 +661,7 @@ export default function OrdenDetallePage() {
                                 >Registrar Retorno</Button>
                             )}
                         </div>
+                        )}
                     </div>
                 </div>
             )}

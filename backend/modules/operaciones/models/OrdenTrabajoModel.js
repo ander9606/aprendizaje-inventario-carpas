@@ -252,6 +252,18 @@ class OrdenTrabajoModel {
         orden.elementos = elementosResult[0];
         orden.cambiosFecha = cambiosFechaResult[0];
 
+        // Si es desmontaje, incluir estado del montaje relacionado
+        if (orden.tipo === 'desmontaje' && orden.alquiler_id) {
+            const [montajeRows] = await pool.query(
+                `SELECT id, estado FROM ordenes_trabajo WHERE alquiler_id = ? AND tipo = 'montaje' AND estado != 'cancelado' LIMIT 1`,
+                [orden.alquiler_id]
+            );
+            if (montajeRows.length > 0) {
+                orden.montaje_id = montajeRows[0].id;
+                orden.montaje_estado = montajeRows[0].estado;
+            }
+        }
+
         return orden;
     }
 
