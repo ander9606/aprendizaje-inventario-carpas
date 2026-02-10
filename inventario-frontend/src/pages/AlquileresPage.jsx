@@ -3,19 +3,17 @@
 // Dashboard de alquileres activos y programados
 // ============================================
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Package,
   Search,
-  Filter,
   Clock,
   CheckCircle,
   XCircle,
   Truck,
-  Calendar,
-  DollarSign,
-  AlertTriangle
+  AlertTriangle,
+  X
 } from 'lucide-react'
 import {
   useGetAlquileres,
@@ -28,43 +26,45 @@ import Button from '../components/common/Button'
 import Spinner from '../components/common/Spinner'
 
 // ============================================
-// COMPONENTE: StatCard
+// COMPONENTE: StatPill - stat compacta clickable
 // ============================================
-const StatCard = ({ titulo, valor, icono: Icon, color, activo, onClick }) => {
-  const colorClasses = {
-    yellow: 'bg-yellow-50 border-yellow-200 text-yellow-700',
-    green: 'bg-green-50 border-green-200 text-green-700',
-    blue: 'bg-blue-50 border-blue-200 text-blue-700',
-    red: 'bg-red-50 border-red-200 text-red-700'
+const StatPill = ({ label, valor, icono: Icon, activo, onClick, color }) => {
+  const colors = {
+    amber: activo
+      ? 'bg-amber-500 text-white shadow-amber-200'
+      : 'bg-white text-slate-700 hover:bg-amber-50 border-slate-200',
+    emerald: activo
+      ? 'bg-emerald-500 text-white shadow-emerald-200'
+      : 'bg-white text-slate-700 hover:bg-emerald-50 border-slate-200',
+    blue: activo
+      ? 'bg-blue-500 text-white shadow-blue-200'
+      : 'bg-white text-slate-700 hover:bg-blue-50 border-slate-200',
+    red: activo
+      ? 'bg-red-500 text-white shadow-red-200'
+      : 'bg-white text-slate-700 hover:bg-red-50 border-slate-200',
+    orange: activo
+      ? 'bg-orange-500 text-white shadow-orange-200'
+      : 'bg-white text-orange-600 hover:bg-orange-50 border-orange-200'
   }
 
   return (
     <button
       onClick={onClick}
       className={`
-        p-4 rounded-xl border-2 transition-all w-full text-left
-        ${activo
-          ? `${colorClasses[color]} ring-2 ring-offset-2 ring-${color}-400`
-          : 'bg-white border-slate-200 hover:border-slate-300'
-        }
+        flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-medium
+        transition-all duration-200
+        ${activo ? 'shadow-lg' : 'shadow-sm'}
+        ${colors[color]}
       `}
     >
-      <div className="flex items-center gap-3">
-        <div className={`
-          p-2 rounded-lg
-          ${activo ? colorClasses[color] : 'bg-slate-100'}
-        `}>
-          <Icon className={`w-5 h-5 ${activo ? '' : 'text-slate-500'}`} />
-        </div>
-        <div>
-          <p className={`text-2xl font-bold ${activo ? '' : 'text-slate-900'}`}>
-            {valor}
-          </p>
-          <p className={`text-sm ${activo ? '' : 'text-slate-500'}`}>
-            {titulo}
-          </p>
-        </div>
-      </div>
+      <Icon className="w-4 h-4" />
+      <span className="hidden sm:inline">{label}</span>
+      <span className={`
+        font-bold text-base ml-0.5
+        ${activo ? '' : color === 'orange' ? 'text-orange-600' : 'text-slate-900'}
+      `}>
+        {valor}
+      </span>
     </button>
   )
 }
@@ -75,21 +75,12 @@ const StatCard = ({ titulo, valor, icono: Icon, color, activo, onClick }) => {
 export default function AlquileresPage() {
   const navigate = useNavigate()
 
-  // ============================================
-  // ESTADO
-  // ============================================
   const [busqueda, setBusqueda] = useState('')
   const [filtroEstado, setFiltroEstado] = useState('')
 
-  // ============================================
-  // QUERIES
-  // ============================================
   const { alquileres, isLoading } = useGetAlquileres()
   const { estadisticas, isLoading: loadingStats } = useGetEstadisticasAlquileres()
 
-  // ============================================
-  // ALERTAS
-  // ============================================
   const {
     alertas,
     resumen: resumenAlertas,
@@ -99,90 +90,70 @@ export default function AlquileresPage() {
     isIgnorando
   } = useAlertasManager()
 
-  // ============================================
-  // FILTRADO
-  // ============================================
-  const alquileresFiltrados = (Array.isArray(alquileres) ? alquileres : []).filter(a => {
-    // Filtro por estado
-    if (filtroEstado && a.estado !== filtroEstado) return false
-
-    // Filtro por búsqueda
-    if (busqueda) {
-      const termino = busqueda.toLowerCase()
-      return (
-        a.evento_nombre?.toLowerCase().includes(termino) ||
-        a.cliente_nombre?.toLowerCase().includes(termino) ||
-        String(a.id).includes(termino)
-      )
-    }
-
-    return true
-  })
-
-  // Ordenar: primero los activos vencidos, luego activos, luego programados
-  const alquileresOrdenados = [...alquileresFiltrados].sort((a, b) => {
-    const prioridad = { activo: 1, programado: 2, finalizado: 3, cancelado: 4 }
-    const prioA = prioridad[a.estado] || 5
-    const prioB = prioridad[b.estado] || 5
-
-    if (prioA !== prioB) return prioA - prioB
-
-    // Si ambos son activos, los vencidos primero
-    if (a.estado === 'activo' && b.estado === 'activo') {
-      const hoy = new Date()
-      const vencidoA = new Date(a.fecha_retorno_esperado) < hoy
-      const vencidoB = new Date(b.fecha_retorno_esperado) < hoy
-      if (vencidoA && !vencidoB) return -1
-      if (!vencidoA && vencidoB) return 1
-    }
-
-    // Por fecha de salida más próxima
-    return new Date(a.fecha_salida) - new Date(b.fecha_salida)
-  })
-
   // Contar vencidos
-  const cantidadVencidos = alquileres.filter(a => {
-    if (a.estado !== 'activo') return false
-    return new Date(a.fecha_retorno_esperado) < new Date()
-  }).length
+  const cantidadVencidos = useMemo(() =>
+    (Array.isArray(alquileres) ? alquileres : []).filter(a =>
+      a.estado === 'activo' && a.fecha_retorno_esperado && new Date() > new Date(a.fecha_retorno_esperado)
+    ).length,
+    [alquileres]
+  )
 
-  // ============================================
-  // HANDLERS
-  // ============================================
+  // Filtrado
+  const alquileresFiltrados = useMemo(() => {
+    return (Array.isArray(alquileres) ? alquileres : []).filter(a => {
+      if (filtroEstado === 'vencido') {
+        if (a.estado !== 'activo') return false
+        if (!a.fecha_retorno_esperado || new Date() <= new Date(a.fecha_retorno_esperado)) return false
+      } else if (filtroEstado && a.estado !== filtroEstado) {
+        return false
+      }
 
-  const handleVerDetalle = (id) => {
-    navigate(`/alquileres/gestion/${id}`)
-  }
+      if (busqueda) {
+        const t = busqueda.toLowerCase()
+        return (
+          a.evento_nombre?.toLowerCase().includes(t) ||
+          a.cliente_nombre?.toLowerCase().includes(t) ||
+          String(a.id).includes(t)
+        )
+      }
+      return true
+    })
+  }, [alquileres, filtroEstado, busqueda])
 
-  const handleFiltroEstado = (estado) => {
-    setFiltroEstado(filtroEstado === estado ? '' : estado)
-  }
+  // Ordenar
+  const alquileresOrdenados = useMemo(() => {
+    return [...alquileresFiltrados].sort((a, b) => {
+      const prio = { activo: 1, programado: 2, finalizado: 3, cancelado: 4 }
+      const pA = prio[a.estado] || 5
+      const pB = prio[b.estado] || 5
+      if (pA !== pB) return pA - pB
 
-  // ============================================
-  // RENDER
-  // ============================================
+      if (a.estado === 'activo' && b.estado === 'activo') {
+        const hoy = new Date()
+        const vA = new Date(a.fecha_retorno_esperado) < hoy
+        const vB = new Date(b.fecha_retorno_esperado) < hoy
+        if (vA && !vB) return -1
+        if (!vA && vB) return 1
+      }
+      return new Date(a.fecha_salida) - new Date(b.fecha_salida)
+    })
+  }, [alquileresFiltrados])
+
+  const handleFiltro = (estado) => setFiltroEstado(filtroEstado === estado ? '' : estado)
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6 max-w-[1400px] mx-auto">
       {/* Header */}
       <div className="mb-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-3">
-              <div className="p-2 bg-indigo-100 rounded-lg">
-                <Package className="w-6 h-6 text-indigo-600" />
-              </div>
-              Gestión de Alquileres
-            </h1>
-            <p className="text-slate-500 mt-1">
-              Administra los alquileres activos y programados
-            </p>
-          </div>
-
-        </div>
+        <h1 className="text-2xl font-bold text-slate-900">
+          Gestión de Alquileres
+        </h1>
+        <p className="text-slate-500 text-sm mt-0.5">
+          {loadingStats ? '' : `${estadisticas?.activos || 0} activos, ${estadisticas?.programados || 0} programados`}
+        </p>
       </div>
 
-      {/* Panel de Alertas */}
+      {/* Alertas */}
       <AlertasPanel
         alertas={alertas}
         resumen={resumenAlertas}
@@ -194,117 +165,111 @@ export default function AlquileresPage() {
         inicialmenteColapsado={false}
       />
 
-      {/* Estadísticas */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <StatCard
-          titulo="Programados"
-          valor={loadingStats ? '-' : (estadisticas?.programados || 0)}
-          icono={Clock}
-          color="yellow"
-          activo={filtroEstado === 'programado'}
-          onClick={() => handleFiltroEstado('programado')}
-        />
-        <StatCard
-          titulo="Activos"
-          valor={loadingStats ? '-' : (estadisticas?.activos || 0)}
-          icono={Truck}
-          color="green"
-          activo={filtroEstado === 'activo'}
-          onClick={() => handleFiltroEstado('activo')}
-        />
-        <StatCard
-          titulo="Finalizados"
-          valor={loadingStats ? '-' : (estadisticas?.finalizados || 0)}
-          icono={CheckCircle}
-          color="blue"
-          activo={filtroEstado === 'finalizado'}
-          onClick={() => handleFiltroEstado('finalizado')}
-        />
-        <StatCard
-          titulo="Cancelados"
-          valor={loadingStats ? '-' : (estadisticas?.cancelados || 0)}
-          icono={XCircle}
-          color="red"
-          activo={filtroEstado === 'cancelado'}
-          onClick={() => handleFiltroEstado('cancelado')}
-        />
-      </div>
-
-      {/* Barra de búsqueda y filtros */}
-      <div className="bg-white rounded-xl border border-slate-200 p-4 mb-6">
-        <div className="flex flex-col sm:flex-row gap-4">
-          {/* Búsqueda */}
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-            <input
-              type="text"
-              value={busqueda}
-              onChange={(e) => setBusqueda(e.target.value)}
-              placeholder="Buscar por evento, cliente o ID..."
-              className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-            />
-          </div>
-
-          {/* Botón limpiar filtros */}
-          {(filtroEstado || busqueda) && (
-            <Button
-              variant="ghost"
-              onClick={() => {
-                setFiltroEstado('')
-                setBusqueda('')
-              }}
+      {/* Filtros + búsqueda */}
+      <div className="flex flex-col sm:flex-row gap-3 mb-6">
+        {/* Search */}
+        <div className="flex-1 relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <input
+            type="text"
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            placeholder="Buscar por evento, cliente o ID..."
+            className="w-full pl-10 pr-10 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-400 transition-colors"
+          />
+          {busqueda && (
+            <button
+              onClick={() => setBusqueda('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 hover:bg-slate-100 rounded-full"
             >
-              Limpiar filtros
-            </Button>
+              <X className="w-3.5 h-3.5 text-slate-400" />
+            </button>
           )}
         </div>
 
-        {/* Indicador de filtro activo */}
-        {filtroEstado && (
-          <div className="mt-3 flex items-center gap-2">
-            <span className="text-sm text-slate-500">Filtrando por:</span>
-            <span className={`
-              inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full
-              ${filtroEstado === 'programado' ? 'bg-yellow-100 text-yellow-700' : ''}
-              ${filtroEstado === 'activo' ? 'bg-green-100 text-green-700' : ''}
-              ${filtroEstado === 'finalizado' ? 'bg-blue-100 text-blue-700' : ''}
-              ${filtroEstado === 'cancelado' ? 'bg-red-100 text-red-700' : ''}
-            `}>
-              {filtroEstado.charAt(0).toUpperCase() + filtroEstado.slice(1)}
-              <button
-                onClick={() => setFiltroEstado('')}
-                className="ml-1 hover:bg-black/10 rounded-full p-0.5"
-              >
-                <XCircle className="w-3 h-3" />
-              </button>
-            </span>
-          </div>
-        )}
+        {/* Stat pills */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1">
+          {cantidadVencidos > 0 && (
+            <StatPill
+              label="Vencidos"
+              valor={cantidadVencidos}
+              icono={AlertTriangle}
+              color="orange"
+              activo={filtroEstado === 'vencido'}
+              onClick={() => handleFiltro('vencido')}
+            />
+          )}
+          <StatPill
+            label="Programados"
+            valor={loadingStats ? '-' : (estadisticas?.programados || 0)}
+            icono={Clock}
+            color="amber"
+            activo={filtroEstado === 'programado'}
+            onClick={() => handleFiltro('programado')}
+          />
+          <StatPill
+            label="Activos"
+            valor={loadingStats ? '-' : (estadisticas?.activos || 0)}
+            icono={Truck}
+            color="emerald"
+            activo={filtroEstado === 'activo'}
+            onClick={() => handleFiltro('activo')}
+          />
+          <StatPill
+            label="Finalizados"
+            valor={loadingStats ? '-' : (estadisticas?.finalizados || 0)}
+            icono={CheckCircle}
+            color="blue"
+            activo={filtroEstado === 'finalizado'}
+            onClick={() => handleFiltro('finalizado')}
+          />
+          <StatPill
+            label="Cancelados"
+            valor={loadingStats ? '-' : (estadisticas?.cancelados || 0)}
+            icono={XCircle}
+            color="red"
+            activo={filtroEstado === 'cancelado'}
+            onClick={() => handleFiltro('cancelado')}
+          />
+        </div>
       </div>
 
-      {/* Lista de alquileres */}
+      {/* Active filter indicator */}
+      {filtroEstado && (
+        <div className="mb-4 flex items-center gap-2">
+          <span className="text-xs text-slate-500">Filtro:</span>
+          <button
+            onClick={() => setFiltroEstado('')}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium bg-orange-50 text-orange-700 border border-orange-200 rounded-full hover:bg-orange-100 transition-colors"
+          >
+            {filtroEstado.charAt(0).toUpperCase() + filtroEstado.slice(1)}
+            <X className="w-3 h-3" />
+          </button>
+        </div>
+      )}
+
+      {/* Lista */}
       {isLoading ? (
-        <div className="flex justify-center py-12">
+        <div className="flex justify-center py-16">
           <Spinner size="lg" />
         </div>
       ) : alquileresOrdenados.length === 0 ? (
-        <div className="bg-white rounded-xl border border-slate-200 p-12 text-center">
-          <Package className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-slate-900 mb-2">
+        <div className="bg-white rounded-2xl border border-dashed border-slate-300 p-16 text-center">
+          <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <Package className="w-8 h-8 text-slate-400" />
+          </div>
+          <h3 className="text-lg font-semibold text-slate-900 mb-1">
             No hay alquileres
           </h3>
-          <p className="text-slate-500 mb-6">
+          <p className="text-sm text-slate-500 mb-6 max-w-sm mx-auto">
             {busqueda || filtroEstado
-              ? 'No se encontraron alquileres con los filtros seleccionados'
-              : 'Los alquileres aparecerán aquí cuando se aprueben cotizaciones'}
+              ? 'No se encontraron resultados con los filtros actuales'
+              : 'Aparecerán aquí cuando se aprueben cotizaciones'}
           </p>
           {(busqueda || filtroEstado) && (
             <Button
               variant="secondary"
-              onClick={() => {
-                setFiltroEstado('')
-                setBusqueda('')
-              }}
+              onClick={() => { setFiltroEstado(''); setBusqueda('') }}
             >
               Limpiar filtros
             </Button>
@@ -312,24 +277,21 @@ export default function AlquileresPage() {
         </div>
       ) : (
         <>
-          {/* Contador de resultados */}
-          <div className="mb-4 text-sm text-slate-500">
-            Mostrando {alquileresOrdenados.length} alquiler{alquileresOrdenados.length !== 1 ? 'es' : ''}
+          <div className="mb-3 text-xs text-slate-400 font-medium uppercase tracking-wide">
+            {alquileresOrdenados.length} alquiler{alquileresOrdenados.length !== 1 ? 'es' : ''}
           </div>
 
-          {/* Grid de alquileres */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {alquileresOrdenados.map(alquiler => (
               <AlquilerCard
                 key={alquiler.id}
                 alquiler={alquiler}
-                onVerDetalle={handleVerDetalle}
+                onVerDetalle={(id) => navigate(`/alquileres/gestion/${id}`)}
               />
             ))}
           </div>
         </>
       )}
-
     </div>
   )
 }
