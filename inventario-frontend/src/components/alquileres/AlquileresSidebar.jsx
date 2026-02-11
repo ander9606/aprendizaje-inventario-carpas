@@ -100,7 +100,7 @@ const AlquileresSidebar = () => {
   `
 
   return (
-    <aside className="w-64 bg-white border-r border-slate-200 min-h-[calc(100vh-4rem)] flex-shrink-0">
+    <aside className="w-64 bg-slate-50 border-r border-slate-200 min-h-[calc(100vh-4rem)] flex-shrink-0">
       <div className="p-4">
         {/* Volver a Módulos */}
         <button
