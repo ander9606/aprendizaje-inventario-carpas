@@ -4,7 +4,7 @@
 // ============================================
 
 import { useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, Link } from 'react-router-dom'
 import {
     Truck,
     Package,
@@ -22,12 +22,11 @@ import {
     FileText,
     RefreshCw,
     User,
-    ChevronDown,
-    ChevronUp,
     LogOut,
     RotateCcw,
     Box,
-    Bell
+    Bell,
+    ExternalLink
 } from 'lucide-react'
 import {
     useGetOrden,
@@ -71,7 +70,6 @@ export default function OrdenDetallePage() {
     const [showModalRetorno, setShowModalRetorno] = useState(false)
     const [showModalInventario, setShowModalInventario] = useState(false)
     const [showModalOrdenCargue, setShowModalOrdenCargue] = useState(false)
-    const [expandElementos, setExpandElementos] = useState(true)
     const [ejecutandoSalida, setEjecutandoSalida] = useState(false)
 
     // ============================================
@@ -224,16 +222,6 @@ export default function OrdenDetallePage() {
             : { color: 'bg-orange-100 text-orange-700', icon: Truck, label: 'Desmontaje' }
     }
 
-    const getPrioridadConfig = (prioridad) => {
-        const config = {
-            baja: { color: 'bg-slate-100 text-slate-600', label: 'Baja' },
-            normal: { color: 'bg-blue-100 text-blue-600', label: 'Normal' },
-            alta: { color: 'bg-orange-100 text-orange-600', label: 'Alta' },
-            urgente: { color: 'bg-red-100 text-red-600', label: 'Urgente' }
-        }
-        return config[prioridad] || config.normal
-    }
-
     const formatFecha = (fecha) => {
         if (!fecha) return 'Sin fecha'
         return new Date(fecha).toLocaleDateString('es-CO', {
@@ -278,7 +266,6 @@ export default function OrdenDetallePage() {
 
     const estadoConfig = getEstadoConfig(orden.estado)
     const tipoConfig = getTipoConfig(orden.tipo)
-    const prioridadConfig = getPrioridadConfig(orden.prioridad)
     const EstadoIcon = estadoConfig.icon
     const TipoIcon = tipoConfig.icon
 
@@ -313,6 +300,11 @@ export default function OrdenDetallePage() {
     const pasoActualIndex = pasos.findIndex(p => p.key === orden.estado)
     const esCancelado = orden.estado === 'cancelado'
     const esCompletado = orden.estado === 'completado'
+
+    // Desmontaje: montaje aún no completado
+    const montajeNoCompletado = orden.tipo === 'desmontaje' && orden.montaje_estado && orden.montaje_estado !== 'completado'
+    // Bloquear avance si el desmontaje ya está confirmado y el montaje no terminó
+    const montajePendiente = montajeNoCompletado && orden.estado === 'confirmado'
 
     // Detectar elementos sin inventario asignado
     const elementosPendientesInv = (elementos || []).filter(
@@ -528,6 +520,163 @@ export default function OrdenDetallePage() {
                 </div>
             )}
 
+            {/* BANNER: SIGUIENTE ACCIÓN */}
+            {canManage && !esCompletado && !esCancelado && (
+                <div className={`mb-6 rounded-xl border overflow-hidden ${
+                    montajePendiente
+                        ? 'bg-slate-50 border-slate-300'
+                        : orden.estado === 'en_preparacion' && orden.tipo === 'montaje' && hayElementosSinInventario
+                        ? 'bg-amber-50 border-amber-200'
+                        : orden.estado === 'en_preparacion' && orden.tipo === 'montaje' && !todosElementosCargados
+                        ? 'bg-blue-50 border-blue-200'
+                        : orden.estado === 'en_preparacion' && orden.tipo === 'montaje' && todosElementosCargados
+                        ? 'bg-green-50 border-green-200'
+                        : 'bg-white border-slate-200'
+                }`}>
+                    <div className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div className="flex-1 min-w-0">
+                            {montajePendiente ? (
+                                <>
+                                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-1">Esperando montaje</p>
+                                    <p className="text-sm text-slate-700">
+                                        El desmontaje no puede avanzar hasta que la orden de montaje esté completada.
+                                    </p>
+                                    <Link
+                                        to={`/operaciones/ordenes/${orden.montaje_id}`}
+                                        className="mt-2 inline-flex items-center gap-1.5 text-xs text-orange-600 hover:text-orange-700 font-medium"
+                                    >
+                                        <Package className="w-3.5 h-3.5" />
+                                        Ver montaje #{orden.montaje_id} — {getEstadoConfig(orden.montaje_estado).label}
+                                        <ExternalLink className="w-3 h-3" />
+                                    </Link>
+                                </>
+                            ) : (
+                                <>
+                                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-1">Siguiente paso</p>
+                                    <p className="text-sm text-slate-700">{getDescripcionEstado()}</p>
+                                    {!tieneResponsable && ['pendiente', 'confirmado'].includes(orden.estado) && (
+                                        <button
+                                            onClick={() => setShowModalResponsable(true)}
+                                            className="mt-2 inline-flex items-center gap-1.5 text-xs text-amber-600 hover:text-amber-700 font-medium"
+                                        >
+                                            <AlertTriangle className="w-3.5 h-3.5" />
+                                            Sin responsable — Asignar ahora
+                                        </button>
+                                    )}
+                                    {orden.estado === 'en_preparacion' && orden.tipo === 'montaje' && (
+                                        hayElementosSinInventario ? (
+                                            <p className="text-xs text-amber-600 mt-1 font-medium">{elementosPendientesInv.length} elemento(s) sin inventario asignado</p>
+                                        ) : !todosElementosCargados ? (
+                                            <p className="text-xs text-blue-600 mt-1 font-medium">{elementosPendientesCargue.length} de {elementos?.length} elemento(s) sin confirmar cargue</p>
+                                        ) : (
+                                            <p className="text-xs text-green-600 mt-1 font-medium">{elementos?.length} elemento(s) cargados y verificados</p>
+                                        )
+                                    )}
+                                    {montajeNoCompletado && orden.estado === 'pendiente' && (
+                                        <Link
+                                            to={`/operaciones/ordenes/${orden.montaje_id}`}
+                                            className="mt-2 inline-flex items-center gap-1.5 text-xs text-slate-500 hover:text-orange-600 font-medium"
+                                        >
+                                            <Package className="w-3.5 h-3.5" />
+                                            Montaje #{orden.montaje_id} aún en {getEstadoConfig(orden.montaje_estado).label.toLowerCase()}
+                                        </Link>
+                                    )}
+                                </>
+                            )}
+                        </div>
+                        {!montajePendiente && (
+                        <div className="shrink-0 flex items-center gap-2">
+                            {orden.estado === 'pendiente' && (
+                                <Button
+                                    color="blue" icon={CheckCircle}
+                                    onClick={() => {
+                                        if (!tieneResponsable && !confirm('No hay responsable asignado. ¿Confirmar de todas formas?')) return
+                                        handleCambiarEstado('confirmado')
+                                    }}
+                                    disabled={cambiarEstado.isPending}
+                                >
+                                    Confirmar Orden
+                                </Button>
+                            )}
+                            {orden.estado === 'confirmado' && (
+                                <Button
+                                    color="blue" icon={Package}
+                                    onClick={() => handleCambiarEstado('en_preparacion')}
+                                    disabled={cambiarEstado.isPending}
+                                >
+                                    Iniciar Preparación
+                                </Button>
+                            )}
+                            {orden.estado === 'en_preparacion' && orden.tipo === 'montaje' && (
+                                hayElementosSinInventario ? (
+                                    <Button color="orange" icon={Box} onClick={() => setShowModalInventario(true)}>
+                                        Asignar Inventario
+                                    </Button>
+                                ) : !todosElementosCargados ? (
+                                    <Button color="blue" icon={Truck} onClick={() => setShowModalOrdenCargue(true)}>
+                                        Confirmar Cargue
+                                    </Button>
+                                ) : (
+                                    <Button
+                                        color="green" icon={LogOut}
+                                        onClick={handleEjecutarSalida}
+                                        disabled={ejecutandoSalida}
+                                    >
+                                        {ejecutandoSalida ? 'Ejecutando...' : 'Ejecutar Salida'}
+                                    </Button>
+                                )
+                            )}
+                            {orden.estado === 'en_preparacion' && orden.tipo === 'desmontaje' && (
+                                <Button color="blue" icon={Truck}
+                                    onClick={() => handleCambiarEstado('en_ruta')}
+                                    disabled={cambiarEstado.isPending}
+                                >Enviar en Ruta</Button>
+                            )}
+                            {orden.estado === 'en_ruta' && (
+                                <Button color="blue" icon={MapPin}
+                                    onClick={() => handleCambiarEstado('en_sitio')}
+                                    disabled={cambiarEstado.isPending}
+                                >Llegó al Sitio</Button>
+                            )}
+                            {orden.estado === 'en_sitio' && orden.tipo === 'montaje' && (
+                                <Button color="blue" icon={Play}
+                                    onClick={() => handleCambiarEstado('en_proceso')}
+                                    disabled={cambiarEstado.isPending}
+                                >Iniciar Montaje</Button>
+                            )}
+                            {orden.estado === 'en_sitio' && orden.tipo === 'desmontaje' && (
+                                <Button color="orange" icon={RotateCcw}
+                                    onClick={() => setShowModalRetorno(true)}
+                                >Registrar Retorno</Button>
+                            )}
+                            {orden.estado === 'en_proceso' && orden.tipo === 'montaje' && (
+                                <Button color="green" icon={CheckCircle}
+                                    onClick={() => { if (!confirm('¿Marcar como completada?')) return; handleCambiarEstado('completado') }}
+                                    disabled={cambiarEstado.isPending}
+                                >Completar</Button>
+                            )}
+                            {orden.estado === 'en_proceso' && orden.tipo === 'desmontaje' && (
+                                <Button color="orange" icon={RotateCcw}
+                                    onClick={() => setShowModalRetorno(true)}
+                                >Registrar Retorno</Button>
+                            )}
+                        </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {/* ESTADO COMPLETADO - Banner */}
+            {esCompletado && (
+                <div className="mb-6 bg-green-50 border border-green-200 rounded-xl p-4 flex items-center gap-3">
+                    <CheckCircle className="w-5 h-5 text-green-500 shrink-0" />
+                    <div>
+                        <p className="font-semibold text-green-800">Orden Completada</p>
+                        <p className="text-sm text-green-600">Esta orden fue completada exitosamente</p>
+                    </div>
+                </div>
+            )}
+
             {/* CONTENIDO */}
             <div>
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -535,120 +684,106 @@ export default function OrdenDetallePage() {
                     {/* COLUMNA PRINCIPAL */}
                     <div className="lg:col-span-2 space-y-6">
 
-                        {/* INFO DEL EVENTO */}
-                        <div className="bg-white rounded-xl border border-slate-200 p-6">
-                            <h2 className="text-lg font-semibold text-slate-900 mb-4">
-                                Información del Evento
-                            </h2>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="flex items-start gap-3">
-                                    <Calendar className="w-5 h-5 text-slate-400 mt-0.5" />
-                                    <div>
-                                        <p className="text-sm text-slate-500">Fecha Programada</p>
-                                        <p className="font-medium text-slate-900">
-                                            {formatFecha(orden.fecha_programada)}
+                        {/* INFO RÁPIDA: Evento + Cliente unificados */}
+                        <div className="bg-white rounded-xl border border-slate-200 p-5">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-slate-100 rounded-lg shrink-0">
+                                        <Calendar className="w-4 h-4 text-slate-500" />
+                                    </div>
+                                    <div className="min-w-0">
+                                        <p className="text-[11px] text-slate-400 uppercase tracking-wide">Fecha</p>
+                                        <p className="text-sm font-medium text-slate-900 truncate">
+                                            {orden.fecha_programada
+                                                ? new Date(orden.fecha_programada).toLocaleDateString('es-CO', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+                                                : 'Sin fecha'}
                                         </p>
                                     </div>
                                 </div>
-                                <div className="flex items-start gap-3">
-                                    <MapPin className="w-5 h-5 text-slate-400 mt-0.5" />
-                                    <div>
-                                        <p className="text-sm text-slate-500">Ubicación</p>
-                                        <p className="font-medium text-slate-900">
-                                            {orden.direccion_evento || 'Sin dirección'}
-                                        </p>
-                                        <p className="text-sm text-slate-600">
-                                            {orden.ciudad_evento || 'Sin ciudad'}
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-slate-100 rounded-lg shrink-0">
+                                        <MapPin className="w-4 h-4 text-slate-500" />
+                                    </div>
+                                    <div className="min-w-0">
+                                        <p className="text-[11px] text-slate-400 uppercase tracking-wide">Ubicación</p>
+                                        <p className="text-sm font-medium text-slate-900 truncate">
+                                            {orden.direccion_evento || orden.ciudad_evento || 'Sin ubicación'}
                                         </p>
                                     </div>
                                 </div>
-                                <div className="flex items-start gap-3">
-                                    <AlertTriangle className="w-5 h-5 text-slate-400 mt-0.5" />
-                                    <div>
-                                        <p className="text-sm text-slate-500">Prioridad</p>
-                                        <span className={`inline-block px-2 py-0.5 rounded text-sm font-medium ${prioridadConfig.color}`}>
-                                            {prioridadConfig.label}
-                                        </span>
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-slate-100 rounded-lg shrink-0">
+                                        <User className="w-4 h-4 text-slate-500" />
+                                    </div>
+                                    <div className="min-w-0">
+                                        <p className="text-[11px] text-slate-400 uppercase tracking-wide">Cliente</p>
+                                        <p className="text-sm font-medium text-slate-900 truncate">{orden.cliente_nombre || '-'}</p>
                                     </div>
                                 </div>
-                                {orden.alquiler_id && (
-                                    <div className="flex items-start gap-3">
-                                        <FileText className="w-5 h-5 text-slate-400 mt-0.5" />
-                                        <div>
-                                            <p className="text-sm text-slate-500">Alquiler</p>
-                                            <p className="font-medium text-slate-900">
-                                                #{orden.alquiler_id}
-                                            </p>
+                                {orden.cliente_telefono && (
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-2 bg-slate-100 rounded-lg shrink-0">
+                                            <Phone className="w-4 h-4 text-slate-500" />
+                                        </div>
+                                        <div className="min-w-0">
+                                            <p className="text-[11px] text-slate-400 uppercase tracking-wide">Teléfono</p>
+                                            <a href={`tel:${orden.cliente_telefono}`} className="text-sm font-medium text-orange-600 hover:text-orange-700 hover:underline">
+                                                {orden.cliente_telefono}
+                                            </a>
                                         </div>
                                     </div>
                                 )}
                             </div>
+
+                            {/* Referencias + notas */}
+                            {(orden.alquiler_id || orden.cotizacion_id || orden.cliente_email) && (
+                                <div className="mt-4 pt-3 border-t border-slate-100 flex flex-wrap items-center gap-2">
+                                    {orden.alquiler_id && (
+                                        <Link
+                                            to={`/alquileres/gestion/${orden.alquiler_id}`}
+                                            className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 hover:bg-slate-200 rounded-lg text-xs text-slate-600 font-medium transition-colors"
+                                        >
+                                            <FileText className="w-3 h-3" />
+                                            Alquiler #{orden.alquiler_id}
+                                            <ExternalLink className="w-3 h-3" />
+                                        </Link>
+                                    )}
+                                    {orden.cotizacion_id && (
+                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 rounded-lg text-xs text-slate-600 font-medium">
+                                            <FileText className="w-3 h-3" />
+                                            Cotización #{orden.cotizacion_id}
+                                        </span>
+                                    )}
+                                    {orden.cliente_email && (
+                                        <a href={`mailto:${orden.cliente_email}`} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 hover:bg-slate-200 rounded-lg text-xs text-slate-600 font-medium transition-colors">
+                                            <Mail className="w-3 h-3" />
+                                            {orden.cliente_email}
+                                        </a>
+                                    )}
+                                </div>
+                            )}
                             {orden.notas && (
-                                <div className="mt-4 pt-4 border-t border-slate-100">
-                                    <p className="text-sm text-slate-500 mb-1">Notas</p>
-                                    <p className="text-slate-700">{orden.notas}</p>
+                                <div className="mt-3 p-3 bg-slate-50 rounded-lg">
+                                    <p className="text-[11px] text-slate-400 uppercase tracking-wide mb-0.5">Notas</p>
+                                    <p className="text-sm text-slate-700">{orden.notas}</p>
                                 </div>
                             )}
                         </div>
 
-                        {/* INFO DEL CLIENTE */}
-                        {orden.cliente_nombre && (
-                            <div className="bg-white rounded-xl border border-slate-200 p-6">
-                                <h2 className="text-lg font-semibold text-slate-900 mb-4">
-                                    Cliente
-                                </h2>
-                                <div className="flex items-center gap-4">
-                                    <div className="p-3 bg-slate-100 rounded-full">
-                                        <User className="w-6 h-6 text-slate-600" />
-                                    </div>
-                                    <div className="flex-1">
-                                        <p className="font-semibold text-slate-900">
-                                            {orden.cliente_nombre}
-                                        </p>
-                                        <div className="flex items-center gap-4 mt-1 text-sm text-slate-600">
-                                            {orden.cliente_telefono && (
-                                                <span className="flex items-center gap-1">
-                                                    <Phone className="w-4 h-4" />
-                                                    {orden.cliente_telefono}
-                                                </span>
-                                            )}
-                                            {orden.cliente_email && (
-                                                <span className="flex items-center gap-1">
-                                                    <Mail className="w-4 h-4" />
-                                                    {orden.cliente_email}
-                                                </span>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
                         {/* PRODUCTOS DE LA ORDEN */}
                         <div className="bg-white rounded-xl border border-slate-200">
-                            <button
-                                onClick={() => setExpandElementos(!expandElementos)}
-                                className="w-full p-6 flex items-center justify-between text-left"
-                            >
-                                <div className="flex items-center gap-3">
-                                    <Package className="w-5 h-5 text-slate-400" />
-                                    <div>
-                                        <h2 className="text-lg font-semibold text-slate-900">
-                                            Productos ({productosConEstado?.length || 0})
-                                        </h2>
-                                        <p className="text-sm text-slate-500">
-                                            {elementos?.length || 0} elementos en total
-                                        </p>
-                                    </div>
+                            <div className="p-6 pb-4 flex items-center gap-3 border-b border-slate-100">
+                                <Package className="w-5 h-5 text-slate-400" />
+                                <div>
+                                    <h2 className="text-lg font-semibold text-slate-900">
+                                        Productos ({productosConEstado?.length || 0})
+                                    </h2>
+                                    <p className="text-sm text-slate-500">
+                                        {elementos?.length || 0} elementos en total
+                                    </p>
                                 </div>
-                                {expandElementos ? (
-                                    <ChevronUp className="w-5 h-5 text-slate-400" />
-                                ) : (
-                                    <ChevronDown className="w-5 h-5 text-slate-400" />
-                                )}
-                            </button>
-                            {expandElementos && (
-                                <div className="px-6 pb-6">
+                            </div>
+                                <div className="px-6 pb-6 pt-4">
                                     {loadingElementos ? (
                                         <div className="py-4 text-center">
                                             <Spinner size="sm" />
@@ -795,258 +930,11 @@ export default function OrdenDetallePage() {
                                         </div>
                                     )}
                                 </div>
-                            )}
                         </div>
                     </div>
 
                     {/* COLUMNA LATERAL */}
                     <div className="space-y-6">
-
-                        {/* SIGUIENTE PASO + ACCIONES */}
-                        {canManage && !esCompletado && !esCancelado && (
-                            <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-                                {/* Descripción del estado actual */}
-                                <div className="px-6 py-4 bg-slate-50 border-b border-slate-200">
-                                    <p className="text-sm text-slate-600">
-                                        {getDescripcionEstado()}
-                                    </p>
-                                </div>
-
-                                <div className="p-6 space-y-3">
-                                    {/* Advertencia sin responsable */}
-                                    {!tieneResponsable && ['pendiente', 'confirmado'].includes(orden.estado) && (
-                                        <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                                            <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
-                                            <div>
-                                                <p className="text-sm text-amber-700 font-medium">Sin responsable</p>
-                                                <button
-                                                    onClick={() => setShowModalResponsable(true)}
-                                                    className="text-xs text-amber-600 hover:text-amber-700 underline"
-                                                >
-                                                    Asignar ahora
-                                                </button>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* === ACCIÓN PRINCIPAL por estado === */}
-
-                                    {orden.estado === 'pendiente' && (
-                                        <Button
-                                            color="blue"
-                                            icon={CheckCircle}
-                                            className="w-full"
-                                            onClick={() => {
-                                                if (!tieneResponsable) {
-                                                    if (!confirm('No hay responsable asignado. ¿Deseas confirmar la orden de todas formas?')) return
-                                                }
-                                                handleCambiarEstado('confirmado')
-                                            }}
-                                            disabled={cambiarEstado.isPending}
-                                        >
-                                            Confirmar Orden
-                                        </Button>
-                                    )}
-
-                                    {orden.estado === 'confirmado' && (
-                                        <Button
-                                            color="blue"
-                                            icon={Package}
-                                            className="w-full"
-                                            onClick={() => handleCambiarEstado('en_preparacion')}
-                                            disabled={cambiarEstado.isPending}
-                                        >
-                                            Iniciar Preparación
-                                        </Button>
-                                    )}
-
-                                    {orden.estado === 'en_preparacion' && orden.tipo === 'montaje' && (
-                                        <>
-                                            {/* Paso 1: Asignar inventario */}
-                                            {hayElementosSinInventario ? (
-                                                <div className="space-y-2">
-                                                    <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                                                        <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
-                                                        <div>
-                                                            <p className="text-sm text-amber-700 font-medium">
-                                                                Paso 1: Asignar inventario
-                                                            </p>
-                                                            <p className="text-xs text-amber-600 mt-0.5">
-                                                                {elementosPendientesInv.length} elemento(s) sin inventario del almacen
-                                                            </p>
-                                                        </div>
-                                                    </div>
-                                                    <Button
-                                                        color="orange"
-                                                        icon={Box}
-                                                        className="w-full"
-                                                        onClick={() => setShowModalInventario(true)}
-                                                    >
-                                                        Asignar Inventario
-                                                    </Button>
-                                                </div>
-                                            ) : !todosElementosCargados ? (
-                                                /* Paso 2: Confirmar cargue */
-                                                <div className="space-y-2">
-                                                    <div className="flex items-start gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                                                        <Truck className="w-4 h-4 text-blue-500 mt-0.5 shrink-0" />
-                                                        <div>
-                                                            <p className="text-sm text-blue-700 font-medium">
-                                                                Paso 2: Confirmar cargue
-                                                            </p>
-                                                            <p className="text-xs text-blue-600 mt-0.5">
-                                                                {elementosPendientesCargue.length} de {elementos?.length} elemento(s) sin confirmar
-                                                            </p>
-                                                        </div>
-                                                    </div>
-                                                    <Button
-                                                        color="blue"
-                                                        icon={Truck}
-                                                        className="w-full"
-                                                        onClick={() => setShowModalOrdenCargue(true)}
-                                                    >
-                                                        Confirmar Cargue
-                                                    </Button>
-                                                </div>
-                                            ) : (
-                                                /* Paso 3: Ejecutar salida */
-                                                <div className="space-y-2">
-                                                    <div className="flex items-start gap-2 p-3 bg-green-50 border border-green-200 rounded-lg">
-                                                        <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 shrink-0" />
-                                                        <div>
-                                                            <p className="text-sm text-green-700 font-medium">
-                                                                Listo para salida
-                                                            </p>
-                                                            <p className="text-xs text-green-600 mt-0.5">
-                                                                {elementos?.length} elemento(s) cargados y verificados
-                                                            </p>
-                                                        </div>
-                                                    </div>
-                                                    <Button
-                                                        color="green"
-                                                        icon={LogOut}
-                                                        className="w-full"
-                                                        onClick={handleEjecutarSalida}
-                                                        disabled={ejecutandoSalida}
-                                                    >
-                                                        {ejecutandoSalida ? 'Ejecutando...' : 'Ejecutar Salida'}
-                                                    </Button>
-                                                </div>
-                                            )}
-                                            {!elementos?.length && !hayElementosSinInventario && (
-                                                <div className="flex items-center gap-2 p-2 bg-amber-50 border border-amber-200 rounded-lg">
-                                                    <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
-                                                    <p className="text-xs text-amber-700">
-                                                        Asigna elementos antes de ejecutar la salida
-                                                    </p>
-                                                </div>
-                                            )}
-                                        </>
-                                    )}
-
-                                    {orden.estado === 'en_preparacion' && orden.tipo === 'desmontaje' && (
-                                        <Button
-                                            color="blue"
-                                            icon={Truck}
-                                            className="w-full"
-                                            onClick={() => handleCambiarEstado('en_ruta')}
-                                            disabled={cambiarEstado.isPending}
-                                        >
-                                            Enviar en Ruta
-                                        </Button>
-                                    )}
-
-                                    {orden.estado === 'en_ruta' && (
-                                        <Button
-                                            color="blue"
-                                            icon={MapPin}
-                                            className="w-full"
-                                            onClick={() => handleCambiarEstado('en_sitio')}
-                                            disabled={cambiarEstado.isPending}
-                                        >
-                                            Llegó al Sitio
-                                        </Button>
-                                    )}
-
-                                    {orden.estado === 'en_sitio' && orden.tipo === 'montaje' && (
-                                        <Button
-                                            color="blue"
-                                            icon={Play}
-                                            className="w-full"
-                                            onClick={() => handleCambiarEstado('en_proceso')}
-                                            disabled={cambiarEstado.isPending}
-                                        >
-                                            Iniciar Montaje
-                                        </Button>
-                                    )}
-
-                                    {orden.estado === 'en_sitio' && orden.tipo === 'desmontaje' && (
-                                        <Button
-                                            color="orange"
-                                            icon={RotateCcw}
-                                            className="w-full"
-                                            onClick={() => setShowModalRetorno(true)}
-                                        >
-                                            Registrar Retorno
-                                        </Button>
-                                    )}
-
-                                    {orden.estado === 'en_proceso' && orden.tipo === 'montaje' && (
-                                        <Button
-                                            color="green"
-                                            icon={CheckCircle}
-                                            className="w-full"
-                                            onClick={() => {
-                                                if (!confirm('¿Marcar esta orden como completada?')) return
-                                                handleCambiarEstado('completado')
-                                            }}
-                                            disabled={cambiarEstado.isPending}
-                                        >
-                                            Marcar Completado
-                                        </Button>
-                                    )}
-
-                                    {orden.estado === 'en_proceso' && orden.tipo === 'desmontaje' && (
-                                        <Button
-                                            color="orange"
-                                            icon={RotateCcw}
-                                            className="w-full"
-                                            onClick={() => setShowModalRetorno(true)}
-                                        >
-                                            Registrar Retorno
-                                        </Button>
-                                    )}
-
-                                    {/* Separador antes de cancelar */}
-                                    <div className="border-t border-slate-200 pt-3">
-                                        <Button
-                                            color="red"
-                                            icon={XCircle}
-                                            variant="outline"
-                                            className="w-full"
-                                            onClick={() => {
-                                                if (!confirm('¿Estás seguro de cancelar esta orden? Esta acción no se puede deshacer.')) return
-                                                handleCambiarEstado('cancelado')
-                                            }}
-                                            disabled={cambiarEstado.isPending}
-                                        >
-                                            Cancelar Orden
-                                        </Button>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* ESTADO COMPLETADO */}
-                        {esCompletado && (
-                            <div className="bg-green-50 border border-green-200 rounded-xl p-6 text-center">
-                                <CheckCircle className="w-10 h-10 text-green-500 mx-auto mb-2" />
-                                <p className="font-semibold text-green-800">Orden Completada</p>
-                                <p className="text-sm text-green-600 mt-1">
-                                    Esta orden fue completada exitosamente
-                                </p>
-                            </div>
-                        )}
 
                         {/* RESPONSABLE ASIGNADO */}
                         <div className="bg-white rounded-xl border border-slate-200 p-6">
@@ -1100,6 +988,21 @@ export default function OrdenDetallePage() {
                                 </div>
                             )}
                         </div>
+
+                        {/* CANCELAR ORDEN */}
+                        {canManage && !esCompletado && !esCancelado && (
+                            <button
+                                onClick={() => {
+                                    if (!confirm('¿Estás seguro de cancelar esta orden? Esta acción no se puede deshacer.')) return
+                                    handleCambiarEstado('cancelado')
+                                }}
+                                disabled={cambiarEstado.isPending}
+                                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 border border-red-200 rounded-xl transition-colors"
+                            >
+                                <XCircle className="w-4 h-4" />
+                                Cancelar Orden
+                            </button>
+                        )}
                     </div>
                 </div>
             </div>

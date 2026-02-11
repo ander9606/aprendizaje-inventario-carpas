@@ -12,6 +12,7 @@ class OrdenTrabajoModel {
         const {
             page = 1,
             limit = 20,
+            buscar = null,
             tipo = null,
             estado = null,
             excluir_finalizados = false,
@@ -27,6 +28,24 @@ class OrdenTrabajoModel {
         const offset = (page - 1) * limit;
         const params = [];
         let whereClause = 'WHERE 1=1';
+
+        // Búsqueda de texto: cliente, evento, producto, notas, ciudad
+        if (buscar) {
+            const termino = `%${buscar}%`;
+            whereClause += ` AND (
+                c.nombre LIKE ?
+                OR cot.evento_nombre LIKE ?
+                OR ot.notas LIKE ?
+                OR ot.ciudad_evento LIKE ?
+                OR cot.evento_ciudad LIKE ?
+                OR EXISTS (
+                    SELECT 1 FROM cotizacion_productos cp2
+                    INNER JOIN elementos_compuestos ec2 ON cp2.compuesto_id = ec2.id
+                    WHERE cp2.cotizacion_id = cot.id AND ec2.nombre LIKE ?
+                )
+            )`;
+            params.push(termino, termino, termino, termino, termino, termino);
+        }
 
         if (tipo) {
             whereClause += ` AND ot.tipo = ?`;
@@ -117,7 +136,7 @@ class OrdenTrabajoModel {
             ) equipo_count ON equipo_count.orden_id = ot.id
             LEFT JOIN (
                 SELECT cotizacion_id, COUNT(*) as total
-                FROM cotizacion_compuestos
+                FROM cotizacion_productos
                 GROUP BY cotizacion_id
             ) prod_count ON prod_count.cotizacion_id = cot.id
             ${whereClause}
@@ -252,6 +271,18 @@ class OrdenTrabajoModel {
         orden.elementos = elementosResult[0];
         orden.cambiosFecha = cambiosFechaResult[0];
 
+        // Si es desmontaje, incluir estado del montaje relacionado
+        if (orden.tipo === 'desmontaje' && orden.alquiler_id) {
+            const [montajeRows] = await pool.query(
+                `SELECT id, estado FROM ordenes_trabajo WHERE alquiler_id = ? AND tipo = 'montaje' AND estado != 'cancelado' LIMIT 1`,
+                [orden.alquiler_id]
+            );
+            if (montajeRows.length > 0) {
+                orden.montaje_id = montajeRows[0].id;
+                orden.montaje_estado = montajeRows[0].estado;
+            }
+        }
+
         return orden;
     }
 
@@ -279,7 +310,7 @@ class OrdenTrabajoModel {
         }
 
         // Ejecutar queries adicionales en paralelo
-        const [productosResult, transporteResult, alquilerElementosResult, ordenElementosResult] = await Promise.all([
+        const [productosResult, transporteResult, alquilerElementosResult, ordenElementosResult, componentesResult] = await Promise.all([
             // Productos de la cotización
             pool.query(`
                 SELECT
@@ -357,7 +388,15 @@ class OrdenTrabajoModel {
                 LEFT JOIN lotes l ON ote.lote_id = l.id
                 WHERE ote.orden_id = ?
                 ORDER BY e.nombre
-            `, [id])
+            `, [id]),
+            // Mapa de elemento_id → compuesto_id para vincular elementos con productos
+            orden.cotizacion_id ? pool.query(`
+                SELECT DISTINCT cc.elemento_id, cc.compuesto_id
+                FROM compuesto_componentes cc
+                WHERE cc.compuesto_id IN (
+                    SELECT cp.compuesto_id FROM cotizacion_productos cp WHERE cp.cotizacion_id = ?
+                )
+            `, [orden.cotizacion_id]) : Promise.resolve([[]])
         ]);
 
         // Calcular resúmenes
@@ -365,6 +404,24 @@ class OrdenTrabajoModel {
         const transporte = transporteResult[0];
         const alquilerElementos = alquilerElementosResult[0];
         const ordenElementos = ordenElementosResult[0];
+        const componentesMap = (componentesResult || [[]])[0];
+
+        // Crear mapa elemento_id → compuesto_id para vincular elementos con productos
+        const elementoToCompuesto = {};
+        if (componentesMap) {
+            componentesMap.forEach(c => {
+                elementoToCompuesto[c.elemento_id] = c.compuesto_id;
+            });
+        }
+
+        // Agregar compuesto_id a cada elemento
+        const tagElementos = (elems) => elems.map(e => ({
+            ...e,
+            compuesto_id: elementoToCompuesto[e.elemento_id] || null
+        }));
+
+        const alquilerElementosTagged = tagElementos(alquilerElementos);
+        const ordenElementosTagged = tagElementos(ordenElementos);
 
         const subtotalProductos = productos.reduce((sum, p) => sum + parseFloat(p.subtotal || 0), 0);
         const subtotalTransporte = transporte.reduce((sum, t) => sum + parseFloat(t.subtotal || 0), 0);
@@ -372,14 +429,14 @@ class OrdenTrabajoModel {
 
         // Usar orden_elementos para el resumen de cargue (antes de salida)
         // y alquiler_elementos para retornos (después de salida)
-        const elementosParaCargue = ordenElementos.length > 0 ? ordenElementos : alquilerElementos;
+        const elementosParaCargue = ordenElementosTagged.length > 0 ? ordenElementosTagged : alquilerElementosTagged;
 
         return {
             ...orden,
             productos,
             transporte,
-            alquiler_elementos: alquilerElementos,
-            orden_elementos: ordenElementos, // Elementos asignados a la orden (para cargue)
+            alquiler_elementos: alquilerElementosTagged,
+            orden_elementos: ordenElementosTagged, // Elementos asignados a la orden (para cargue)
             elementos_cargue: elementosParaCargue, // Elementos para mostrar en modal de cargue
             resumen_cotizacion: {
                 subtotal_productos: subtotalProductos,
@@ -390,10 +447,10 @@ class OrdenTrabajoModel {
             },
             resumen_elementos: {
                 total: elementosParaCargue.length,
-                retornados: alquilerElementos.filter(e => e.estado_retorno).length,
-                pendientes: alquilerElementos.filter(e => !e.estado_retorno).length,
-                danados: alquilerElementos.filter(e => e.estado_retorno === 'dañado').length,
-                perdidos: alquilerElementos.filter(e => e.estado_retorno === 'perdido').length
+                retornados: alquilerElementosTagged.filter(e => e.estado_retorno).length,
+                pendientes: alquilerElementosTagged.filter(e => !e.estado_retorno).length,
+                danados: alquilerElementosTagged.filter(e => e.estado_retorno === 'dañado').length,
+                perdidos: alquilerElementosTagged.filter(e => e.estado_retorno === 'perdido').length
             }
         };
     }

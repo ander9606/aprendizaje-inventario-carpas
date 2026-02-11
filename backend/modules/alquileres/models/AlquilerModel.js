@@ -97,7 +97,11 @@ class AlquilerModel {
         cl.telefono AS cliente_telefono,
         cl.email AS cliente_email,
         cl.tipo_documento AS cliente_tipo_documento,
-        cl.numero_documento AS cliente_numero_documento
+        cl.numero_documento AS cliente_numero_documento,
+        (SELECT ot.id FROM ordenes_trabajo ot WHERE ot.alquiler_id = a.id AND ot.tipo = 'montaje' LIMIT 1) AS orden_montaje_id,
+        (SELECT ot.estado FROM ordenes_trabajo ot WHERE ot.alquiler_id = a.id AND ot.tipo = 'montaje' LIMIT 1) AS orden_montaje_estado,
+        (SELECT ot.id FROM ordenes_trabajo ot WHERE ot.alquiler_id = a.id AND ot.tipo = 'desmontaje' LIMIT 1) AS orden_desmontaje_id,
+        (SELECT ot.estado FROM ordenes_trabajo ot WHERE ot.alquiler_id = a.id AND ot.tipo = 'desmontaje' LIMIT 1) AS orden_desmontaje_estado
       FROM alquileres a
       INNER JOIN cotizaciones cot ON a.cotizacion_id = cot.id
       INNER JOIN clientes cl ON cot.cliente_id = cl.id

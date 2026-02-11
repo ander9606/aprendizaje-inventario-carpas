@@ -27,7 +27,8 @@ import {
     ArrowRightLeft,
     ClipboardCheck,
     ClipboardList,
-    Boxes
+    Boxes,
+    ExternalLink,
 } from 'lucide-react'
 import { useGetOrdenes, useCrearOrdenManual } from '../hooks/useOrdenesTrabajo'
 import { useAuth } from '../hooks/auth/useAuth'
@@ -219,7 +220,7 @@ const OrdenRow = ({ orden, tipo, navigate }) => {
                         </span>
                     )}
                 </div>
-                {/* Barra de progreso */}
+                {/* Barra de progreso + conteo elementos */}
                 <div className="flex items-center gap-2">
                     <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
                         <div
@@ -228,6 +229,11 @@ const OrdenRow = ({ orden, tipo, navigate }) => {
                         />
                     </div>
                     <span className="text-[10px] text-slate-400 w-7 text-right">{progreso}%</span>
+                    {(orden.total_elementos > 0) && (
+                        <span className="text-[10px] text-slate-400">
+                            {orden.total_elementos} elem.
+                        </span>
+                    )}
                 </div>
             </div>
 
@@ -289,17 +295,31 @@ const EventoCard = ({ evento, navigate }) => {
                                 <CheckCircle className="w-4 h-4 text-green-500 shrink-0" />
                             )}
                         </div>
-                        {evento.evento_nombre && evento.cliente_nombre && (
-                            <p className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
-                                <User className="w-3 h-3" />
-                                {evento.cliente_nombre}
-                            </p>
-                        )}
+                        <div className="flex items-center gap-2 mt-0.5">
+                            {evento.evento_nombre && evento.cliente_nombre && (
+                                <p className="text-xs text-slate-500 flex items-center gap-1">
+                                    <User className="w-3 h-3" />
+                                    {evento.cliente_nombre}
+                                </p>
+                            )}
+                            {evento.alquiler_id && (
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation()
+                                        navigate(`/alquileres/gestion/${evento.alquiler_id}`)
+                                    }}
+                                    className="text-[11px] text-orange-500 hover:text-orange-700 hover:underline flex items-center gap-0.5"
+                                >
+                                    Alquiler #{evento.alquiler_id}
+                                    <ExternalLink className="w-3 h-3" />
+                                </button>
+                            )}
+                        </div>
                     </div>
                     {montaje && (
                         <div className="text-right shrink-0 ml-3">
-                            <p className="text-[11px] text-slate-400">Elementos</p>
-                            <p className="text-sm font-semibold text-slate-700">{montaje.total_elementos || 0}</p>
+                            <p className="text-[11px] text-slate-400">Productos</p>
+                            <p className="text-sm font-semibold text-slate-700">{montaje.total_productos || 0}</p>
                         </div>
                     )}
                 </div>
@@ -608,8 +628,6 @@ export default function OrdenesTrabajoPage() {
     })
     const [showFiltros, setShowFiltros] = useState(false)
     const [showModalNuevaOrden, setShowModalNuevaOrden] = useState(false)
-    const [mostrarFinalizados, setMostrarFinalizados] = useState(false)
-
     const debouncedBusqueda = useDebounce(busqueda, 500)
 
     // ============================================
@@ -634,19 +652,12 @@ export default function OrdenesTrabajoPage() {
 
     // Separar eventos activos de finalizados
     const eventosActivos = useMemo(() => eventos.filter(e => !esEventoFinalizado(e)), [eventos])
-    const eventosFinalizados = useMemo(() => eventos.filter(e => esEventoFinalizado(e)), [eventos])
 
     // Separar manuales activos de finalizados
     const manualesActivos = useMemo(() =>
         manuales.filter(o => !['completado', 'cancelado'].includes(o.estado)),
         [manuales]
     )
-    const manualesFinalizados = useMemo(() =>
-        manuales.filter(o => ['completado', 'cancelado'].includes(o.estado)),
-        [manuales]
-    )
-
-    const totalFinalizados = eventosFinalizados.length + manualesFinalizados.length
 
     // ============================================
     // HANDLERS
@@ -720,10 +731,10 @@ export default function OrdenesTrabajoPage() {
             <div className="bg-white rounded-xl border border-slate-200 p-4 mb-6">
                 <div className="flex flex-col md:flex-row gap-4">
                     <div className="flex-1 flex items-center gap-3">
-                        <Search className="w-5 h-5 text-slate-400" />
+                        <Search className="w-5 h-5 text-slate-400 shrink-0" />
                         <input
                             type="text"
-                            placeholder="Buscar por cliente o ubicación..."
+                            placeholder="Buscar por cliente, producto, evento o ciudad..."
                             value={busqueda}
                             onChange={(e) => setBusqueda(e.target.value)}
                             className="flex-1 border-0 focus:ring-0 text-sm placeholder:text-slate-400 outline-none"
@@ -731,9 +742,9 @@ export default function OrdenesTrabajoPage() {
                         {busqueda && (
                             <button
                                 onClick={() => setBusqueda('')}
-                                className="text-sm text-blue-600 hover:underline"
+                                className="p-1 hover:bg-slate-100 rounded shrink-0"
                             >
-                                Limpiar
+                                <X className="w-4 h-4 text-slate-400" />
                             </button>
                         )}
                     </div>
@@ -839,11 +850,8 @@ export default function OrdenesTrabajoPage() {
                 {manualesActivos.length > 0 && (
                     <span>{manualesActivos.length} orden{manualesActivos.length !== 1 ? 'es' : ''} manual{manualesActivos.length !== 1 ? 'es' : ''}</span>
                 )}
-                {eventosActivos.length === 0 && manualesActivos.length === 0 && totalFinalizados === 0 && (
+                {eventosActivos.length === 0 && manualesActivos.length === 0 && (
                     <span>0 órdenes</span>
-                )}
-                {totalFinalizados > 0 && (
-                    <span className="text-green-600"> · {totalFinalizados} finalizado{totalFinalizados !== 1 ? 's' : ''}</span>
                 )}
             </div>
 
@@ -885,73 +893,8 @@ export default function OrdenesTrabajoPage() {
                 </div>
             )}
 
-            {/* SECCIÓN FINALIZADOS (COLAPSABLE) */}
-            {totalFinalizados > 0 && (
-                <div className="mb-8 border-t border-slate-200 pt-6">
-                    <button
-                        onClick={() => setMostrarFinalizados(!mostrarFinalizados)}
-                        className="flex items-center gap-2 text-slate-600 hover:text-slate-800 transition-colors mb-4"
-                    >
-                        {mostrarFinalizados ? (
-                            <ChevronDown className="w-4 h-4" />
-                        ) : (
-                            <ChevronRight className="w-4 h-4" />
-                        )}
-                        <History className="w-4 h-4" />
-                        <span className="text-sm font-medium">
-                            Órdenes finalizadas
-                        </span>
-                        <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded-full">
-                            {totalFinalizados}
-                        </span>
-                    </button>
-
-                    {mostrarFinalizados && (
-                        <div className="space-y-6 opacity-75">
-                            {/* Eventos finalizados */}
-                            {eventosFinalizados.length > 0 && (
-                                <div>
-                                    <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-2">
-                                        Eventos completados ({eventosFinalizados.length})
-                                    </p>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                        {eventosFinalizados.map((evento, idx) => (
-                                            <EventoCard
-                                                key={evento.alquiler_id || `fin-${idx}`}
-                                                evento={evento}
-                                                navigate={navigate}
-                                            />
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Manuales finalizados */}
-                            {manualesFinalizados.length > 0 && (
-                                <div>
-                                    <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-2">
-                                        Órdenes manuales completadas ({manualesFinalizados.length})
-                                    </p>
-                                    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-                                        <div className="divide-y divide-slate-100">
-                                            {manualesFinalizados.map((orden) => (
-                                                <OrdenManualRow
-                                                    key={orden.id}
-                                                    orden={orden}
-                                                    navigate={navigate}
-                                                />
-                                            ))}
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    )}
-                </div>
-            )}
-
             {/* ESTADO VACÍO */}
-            {eventosActivos.length === 0 && manualesActivos.length === 0 && totalFinalizados === 0 && (
+            {eventosActivos.length === 0 && manualesActivos.length === 0 && (
                 <div className="bg-white rounded-xl border border-slate-200 p-12 text-center">
                     <Truck className="w-12 h-12 text-slate-300 mx-auto mb-4" />
                     <h3 className="text-lg font-medium text-slate-900 mb-2">

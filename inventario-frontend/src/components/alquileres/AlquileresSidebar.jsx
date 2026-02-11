@@ -17,7 +17,8 @@ import {
   ChevronRight,
   Building,
   BarChart3,
-  ArrowLeft
+  ArrowLeft,
+  Archive
 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -59,6 +60,11 @@ const AlquileresSidebar = () => {
       to: '/alquileres/reportes',
       icon: BarChart3,
       label: 'Reportes'
+    },
+    {
+      to: '/alquileres/historial',
+      icon: Archive,
+      label: 'Historial'
     }
   ]
 
@@ -94,7 +100,7 @@ const AlquileresSidebar = () => {
   `
 
   return (
-    <aside className="w-64 bg-white border-r border-slate-200 min-h-[calc(100vh-4rem)] flex-shrink-0">
+    <aside className="w-64 bg-slate-50 border-r border-slate-200 min-h-[calc(100vh-4rem)] flex-shrink-0">
       <div className="p-4">
         {/* Volver a Módulos */}
         <button

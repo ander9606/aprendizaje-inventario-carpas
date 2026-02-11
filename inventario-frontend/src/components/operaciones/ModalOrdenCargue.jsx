@@ -141,6 +141,173 @@ const EstadoBadge = ({ estado }) => {
 }
 
 // ============================================
+// HELPER: Generar HTML imprimible para checklist
+// ============================================
+const generarChecklistImprimible = ({ ordenId, ordenInfo, productos, elementosCargue }) => {
+    const fecha = ordenInfo?.fecha_programada
+        ? new Date(ordenInfo.fecha_programada).toLocaleDateString('es-CO', {
+            weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+        })
+        : '-'
+
+    // Agrupar elementos por producto usando compuesto_id
+    const productosConElementos = productos.map(p => ({
+        ...p,
+        elementos: elementosCargue.filter(e => e.compuesto_id === p.compuesto_id)
+    }))
+
+    // Elementos sin producto asignado (por si alguno no tiene compuesto_id)
+    const elementosSinProducto = elementosCargue.filter(e =>
+        !e.compuesto_id || !productos.some(p => p.compuesto_id === e.compuesto_id)
+    )
+
+    const totalElementos = elementosCargue.length
+
+    // Generar secciones HTML por producto
+    const seccionesProductos = productosConElementos.map((prod) => {
+        const elemRows = prod.elementos.length > 0
+            ? prod.elementos.map(elem => `
+                <tr>
+                    <td class="elem-indent">${elem.elemento_nombre}</td>
+                    <td>${elem.serie_codigo || '-'}</td>
+                    <td class="center">${elem.cantidad_lote || elem.cantidad || 1}</td>
+                    <td class="center"><span class="check-box"></span></td>
+                    <td></td>
+                </tr>`).join('')
+            : `<tr><td class="elem-indent no-elem" colspan="4">Sin elementos asignados</td><td></td></tr>`
+
+        return `
+            <tr class="producto-header">
+                <td colspan="5">${prod.cantidad}x ${prod.producto_nombre} <span class="cat-label">${prod.categoria_nombre || ''}</span> <span class="elem-count">${prod.elementos.length} elem.</span></td>
+            </tr>
+            ${elemRows}`
+    }).join('')
+
+    // Elementos sin producto
+    const seccionSinProducto = elementosSinProducto.length > 0 ? `
+        <tr class="producto-header">
+            <td colspan="5">Otros elementos <span class="elem-count">${elementosSinProducto.length} elem.</span></td>
+        </tr>
+        ${elementosSinProducto.map(elem => `
+            <tr>
+                <td class="elem-indent">${elem.elemento_nombre}</td>
+                <td>${elem.serie_codigo || '-'}</td>
+                <td class="center">${elem.cantidad_lote || elem.cantidad || 1}</td>
+                <td class="center"><span class="check-box"></span></td>
+                <td></td>
+            </tr>`).join('')}` : ''
+
+    return `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Orden de Cargue #${ordenId}</title>
+<style>
+    @page { margin: 15mm; size: letter; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: Arial, Helvetica, sans-serif; font-size: 11px; color: #1a1a1a; }
+    .header { border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 12px; }
+    .header h1 { font-size: 18px; font-weight: bold; }
+    .header .subtitle { font-size: 12px; color: #555; margin-top: 2px; }
+    .info-grid { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 14px; padding: 8px 12px; background: #f5f5f5; border-radius: 4px; }
+    .info-item { display: flex; align-items: center; gap: 4px; }
+    .info-label { font-weight: bold; font-size: 10px; text-transform: uppercase; color: #666; }
+    .info-value { font-size: 11px; }
+    .resumen { display: flex; gap: 16px; margin-bottom: 14px; }
+    .resumen-item { padding: 6px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 11px; }
+    .resumen-item strong { font-size: 13px; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
+    th { background: #333; color: #fff; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; padding: 7px 8px; text-align: left; }
+    th.center { text-align: center; }
+    td { padding: 5px 8px; border-bottom: 1px solid #ddd; font-size: 11px; vertical-align: middle; }
+    td.center { text-align: center; }
+    tr.producto-header td { background: #e8e8e8; font-weight: bold; font-size: 12px; border-bottom: 2px solid #999; padding: 8px; }
+    .cat-label { font-weight: normal; font-size: 10px; color: #666; }
+    .elem-count { font-weight: normal; font-size: 10px; color: #888; float: right; }
+    .elem-indent { padding-left: 24px; }
+    .no-elem { color: #999; font-style: italic; }
+    .check-box { width: 16px; height: 16px; border: 2px solid #333; display: inline-block; vertical-align: middle; border-radius: 2px; }
+    .footer { margin-top: 24px; padding-top: 12px; border-top: 1px solid #ccc; }
+    .firma-grid { display: flex; gap: 40px; margin-top: 30px; }
+    .firma-item { flex: 1; text-align: center; }
+    .firma-linea { border-bottom: 1px solid #333; margin-bottom: 4px; height: 30px; }
+    .firma-label { font-size: 10px; color: #666; text-transform: uppercase; }
+    .notas { margin-top: 16px; }
+    .notas-box { border: 1px solid #ccc; border-radius: 4px; min-height: 50px; padding: 6px; }
+    .notas-label { font-size: 10px; font-weight: bold; text-transform: uppercase; color: #666; margin-bottom: 4px; }
+    .print-date { font-size: 9px; color: #999; text-align: right; margin-top: 8px; }
+</style>
+</head>
+<body>
+    <div class="header">
+        <h1>ORDEN DE CARGUE #${ordenId}</h1>
+        <div class="subtitle">${ordenInfo?.tipo === 'montaje' ? 'Montaje' : 'Desmontaje'} — ${ordenInfo?.evento_nombre || ''}</div>
+    </div>
+
+    <div class="info-grid">
+        <div class="info-item">
+            <span class="info-label">Cliente:</span>
+            <span class="info-value">${ordenInfo?.cliente_nombre || '-'}</span>
+        </div>
+        <div class="info-item">
+            <span class="info-label">Fecha:</span>
+            <span class="info-value">${fecha}</span>
+        </div>
+        <div class="info-item">
+            <span class="info-label">Ubicación:</span>
+            <span class="info-value">${ordenInfo?.ciudad_evento || ''} ${ordenInfo?.direccion_evento ? '- ' + ordenInfo.direccion_evento : ''}</span>
+        </div>
+    </div>
+
+    <div class="resumen">
+        <div class="resumen-item"><strong>${productos.length}</strong> productos</div>
+        <div class="resumen-item"><strong>${totalElementos}</strong> elementos</div>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th style="width:35%">Elemento</th>
+                <th style="width:22%">Serie</th>
+                <th class="center" style="width:10%">Cant.</th>
+                <th class="center" style="width:13%">Cargado</th>
+                <th style="width:20%">Obs.</th>
+            </tr>
+        </thead>
+        <tbody>
+            ${seccionesProductos}
+            ${seccionSinProducto}
+        </tbody>
+    </table>
+
+    <div class="notas">
+        <div class="notas-label">Observaciones generales</div>
+        <div class="notas-box"></div>
+    </div>
+
+    <div class="footer">
+        <div class="firma-grid">
+            <div class="firma-item">
+                <div class="firma-linea"></div>
+                <div class="firma-label">Preparó</div>
+            </div>
+            <div class="firma-item">
+                <div class="firma-linea"></div>
+                <div class="firma-label">Verificó</div>
+            </div>
+            <div class="firma-item">
+                <div class="firma-linea"></div>
+                <div class="firma-label">Despachó</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="print-date">Impreso: ${new Date().toLocaleString('es-CO')}</div>
+</body>
+</html>`
+}
+
+// ============================================
 // COMPONENTE PRINCIPAL: ModalOrdenCargue
 // Props:
 //   - ordenId: ID de la orden
@@ -176,6 +343,23 @@ const ModalOrdenCargue = ({ isOpen, onClose, ordenId, ordenInfo, elementos, onCo
             onClose()
         } catch (error) {
             toast.error(error?.response?.data?.message || 'Error al confirmar cargue')
+        }
+    }
+
+    // Handler para imprimir checklist
+    const handleImprimir = () => {
+        const html = generarChecklistImprimible({
+            ordenId,
+            ordenInfo,
+            productos,
+            elementosCargue
+        })
+        const ventana = window.open('', '_blank', 'width=800,height=600')
+        if (ventana) {
+            ventana.document.write(html)
+            ventana.document.close()
+            ventana.focus()
+            setTimeout(() => ventana.print(), 300)
         }
     }
 
@@ -354,11 +538,11 @@ const ModalOrdenCargue = ({ isOpen, onClose, ordenId, ordenInfo, elementos, onCo
                     {/* Botones de acción */}
                     <div className="flex items-center justify-between pt-4 border-t border-slate-200">
                         <button
-                            onClick={() => window.print()}
+                            onClick={handleImprimir}
                             className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"
                         >
                             <Printer className="w-4 h-4" />
-                            Imprimir
+                            Imprimir Checklist
                         </button>
                         <div className="flex items-center gap-3">
                             <Button
