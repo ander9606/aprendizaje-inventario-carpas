@@ -12,8 +12,6 @@ import {
   Truck,
   AlertTriangle,
   X,
-  ChevronDown,
-  Archive
 } from 'lucide-react'
 import {
   useGetAlquileres,
@@ -71,7 +69,6 @@ export default function AlquileresPage() {
 
   const [busqueda, setBusqueda] = useState('')
   const [filtroEstado, setFiltroEstado] = useState('')
-  const [showHistorial, setShowHistorial] = useState(false)
 
   const { alquileres, isLoading } = useGetAlquileres()
   const { estadisticas, isLoading: loadingStats } = useGetEstadisticasAlquileres()
@@ -134,29 +131,14 @@ export default function AlquileresPage() {
     })
   }, [alquileresFiltrados])
 
-  // Separar en trabajo activo e historial
-  const { trabajoActivo, historial } = useMemo(() => {
-    const trabajo = []
-    const hist = []
-    for (const a of alquileresOrdenados) {
-      if (a.estado === 'finalizado' || a.estado === 'cancelado') {
-        hist.push(a)
-      } else {
-        trabajo.push(a)
-      }
-    }
-    return { trabajoActivo: trabajo, historial: hist }
-  }, [alquileresOrdenados])
+  // Filtrar solo trabajo activo (no finalizados/cancelados - esos van al historial)
+  const trabajoActivo = useMemo(() =>
+    alquileresOrdenados.filter(a => a.estado !== 'finalizado' && a.estado !== 'cancelado'),
+    [alquileresOrdenados]
+  )
 
   const handleFiltro = (estado) => {
-    if (filtroEstado === estado) {
-      setFiltroEstado('')
-    } else {
-      setFiltroEstado(estado)
-      if (estado === 'finalizado' || estado === 'cancelado') {
-        setShowHistorial(true)
-      }
-    }
+    setFiltroEstado(filtroEstado === estado ? '' : estado)
   }
 
   return (
@@ -258,7 +240,7 @@ export default function AlquileresPage() {
       ) : (
         <>
           {/* Sección principal: Programados + Activos */}
-          {trabajoActivo.length === 0 && !(filtroEstado === 'finalizado' || filtroEstado === 'cancelado') ? (
+          {trabajoActivo.length === 0 ? (
             <div className="bg-white rounded-2xl border border-dashed border-slate-300 p-16 text-center">
               <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
                 <Package className="w-8 h-8 text-slate-400" />
@@ -295,39 +277,6 @@ export default function AlquileresPage() {
                 ))}
               </div>
             </>
-          )}
-
-          {/* Sección historial: Finalizados + Cancelados */}
-          {historial.length > 0 && (
-            <div className="mt-8">
-              <button
-                onClick={() => setShowHistorial(!showHistorial)}
-                className="w-full flex items-center justify-between px-4 py-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl transition-colors group"
-              >
-                <div className="flex items-center gap-2.5">
-                  <Archive className="w-4 h-4 text-slate-400" />
-                  <span className="text-sm font-medium text-slate-600">
-                    Historial
-                  </span>
-                  <span className="text-xs text-slate-400 bg-slate-200/60 px-2 py-0.5 rounded-full">
-                    {historial.length}
-                  </span>
-                </div>
-                <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${showHistorial ? 'rotate-180' : ''}`} />
-              </button>
-
-              {showHistorial && (
-                <div className="mt-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                  {historial.map(alquiler => (
-                    <AlquilerCard
-                      key={alquiler.id}
-                      alquiler={alquiler}
-                      onVerDetalle={(id) => navigate(`/alquileres/gestion/${id}`)}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
           )}
         </>
       )}

@@ -17,7 +17,8 @@ import {
   ChevronRight,
   Building,
   BarChart3,
-  ArrowLeft
+  ArrowLeft,
+  Archive
 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -59,6 +60,11 @@ const AlquileresSidebar = () => {
       to: '/alquileres/reportes',
       icon: BarChart3,
       label: 'Reportes'
+    },
+    {
+      to: '/alquileres/historial',
+      icon: Archive,
+      label: 'Historial'
     }
   ]
 

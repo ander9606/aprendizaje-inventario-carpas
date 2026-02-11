@@ -48,6 +48,8 @@ import OrdenesTrabajoPage from './pages/OrdenesTrabajoPage'
 import OrdenDetallePage from './pages/OrdenDetallePage'
 import CalendarioOperaciones from './pages/CalendarioOperaciones'
 import AlertasPage from './pages/AlertasPage'
+import HistorialOrdenesPage from './pages/HistorialOrdenesPage'
+import HistorialAlquileresPage from './pages/HistorialAlquileresPage'
 
 /**
  * COMPONENTE: App
@@ -151,6 +153,7 @@ function App() {
                   <Route path="descuentos" element={<DescuentosPage />} />
                   <Route path="gestion" element={<AlquileresPage />} />
                   <Route path="gestion/:id" element={<AlquilerDetallePage />} />
+                  <Route path="historial" element={<HistorialAlquileresPage />} />
                   <Route path="transporte" element={<TransportePage />} />
                   <Route path="reportes" element={<ReportesAlquileresPage />} />
                   <Route path="configuracion" element={<ConfiguracionAlquileresPage />} />
@@ -177,6 +180,7 @@ function App() {
                   <Route path="ordenes/:id" element={<OrdenDetallePage />} />
                   <Route path="calendario" element={<CalendarioOperaciones />} />
                   <Route path="alertas" element={<AlertasPage />} />
+                  <Route path="historial" element={<HistorialOrdenesPage />} />
                 </Route>
 
             </Route>

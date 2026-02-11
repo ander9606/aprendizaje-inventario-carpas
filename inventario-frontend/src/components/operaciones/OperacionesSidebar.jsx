@@ -10,7 +10,8 @@ import {
   Calendar,
   AlertTriangle,
   ArrowLeft,
-  LayoutDashboard
+  LayoutDashboard,
+  Archive
 } from 'lucide-react'
 
 const OperacionesSidebar = () => {
@@ -37,6 +38,11 @@ const OperacionesSidebar = () => {
       to: '/operaciones/alertas',
       icon: AlertTriangle,
       label: 'Alertas'
+    },
+    {
+      to: '/operaciones/historial',
+      icon: Archive,
+      label: 'Historial'
     }
   ]
 
