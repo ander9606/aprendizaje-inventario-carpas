@@ -12,6 +12,7 @@ const {
     validateNombre,
     validateDescripcion,
     validateCantidad,
+    validatePrecio,
     validateBoolean,
     validateId,
     validateEstado,
@@ -225,6 +226,12 @@ exports.crear = async (req, res, next) => {
             nombre: validateNombre(body.nombre, ENTIDADES.ELEMENTO),
             descripcion: validateDescripcion(body.descripcion),
             cantidad: validateCantidad(body.cantidad, 'Cantidad', false),
+            stock_minimo: body.stock_minimo !== undefined && body.stock_minimo !== null
+                ? validateCantidad(body.stock_minimo, 'Stock mínimo', false)
+                : 0,
+            costo_adquisicion: body.costo_adquisicion !== undefined && body.costo_adquisicion !== null && body.costo_adquisicion !== ''
+                ? validatePrecio(body.costo_adquisicion, 'Costo de adquisición', false)
+                : null,
             requiere_series: validateBoolean(body.requiere_series, 'requiere_series', false),
             estado: validateEstado(body.estado, false) || 'bueno',
             ubicacion: body.ubicacion?.trim() || null,
@@ -304,35 +311,43 @@ exports.actualizar = async (req, res, next) => {
 
         // VALIDACIONES - Usar valores existentes como fallback si no se envían
         const data = {
-            nombre: body.nombre !== undefined 
-                ? validateNombre(body.nombre, ENTIDADES.ELEMENTO) 
+            nombre: body.nombre !== undefined
+                ? validateNombre(body.nombre, ENTIDADES.ELEMENTO)
                 : existente.nombre,
-            descripcion: body.descripcion !== undefined 
-                ? validateDescripcion(body.descripcion) 
+            descripcion: body.descripcion !== undefined
+                ? validateDescripcion(body.descripcion)
                 : existente.descripcion,
-            cantidad: body.cantidad !== undefined 
-                ? validateCantidad(body.cantidad, 'Cantidad', false) 
+            cantidad: body.cantidad !== undefined
+                ? validateCantidad(body.cantidad, 'Cantidad', false)
                 : existente.cantidad,
-            requiere_series: body.requiere_series !== undefined 
-                ? validateBoolean(body.requiere_series, 'requiere_series', false) 
+            stock_minimo: body.stock_minimo !== undefined
+                ? validateCantidad(body.stock_minimo, 'Stock mínimo', false)
+                : existente.stock_minimo,
+            costo_adquisicion: body.costo_adquisicion !== undefined
+                ? (body.costo_adquisicion !== null && body.costo_adquisicion !== ''
+                    ? validatePrecio(body.costo_adquisicion, 'Costo de adquisición', false)
+                    : null)
+                : existente.costo_adquisicion,
+            requiere_series: body.requiere_series !== undefined
+                ? validateBoolean(body.requiere_series, 'requiere_series', false)
                 : existente.requiere_series,
-            estado: body.estado !== undefined 
-                ? (validateEstado(body.estado, false) || 'bueno') 
+            estado: body.estado !== undefined
+                ? (validateEstado(body.estado, false) || 'bueno')
                 : existente.estado,
-            ubicacion: body.ubicacion !== undefined 
-                ? (body.ubicacion?.trim() || null) 
+            ubicacion: body.ubicacion !== undefined
+                ? (body.ubicacion?.trim() || null)
                 : existente.ubicacion,
-            fecha_ingreso: body.fecha_ingreso !== undefined 
-                ? body.fecha_ingreso 
+            fecha_ingreso: body.fecha_ingreso !== undefined
+                ? body.fecha_ingreso
                 : existente.fecha_ingreso,
-            categoria_id: body.categoria_id !== undefined 
-                ? (body.categoria_id ? validateId(body.categoria_id, 'categoria_id') : null) 
+            categoria_id: body.categoria_id !== undefined
+                ? (body.categoria_id ? validateId(body.categoria_id, 'categoria_id') : null)
                 : existente.categoria_id,
-            material_id: body.material_id !== undefined 
-                ? (body.material_id ? validateId(body.material_id, 'material_id') : null) 
+            material_id: body.material_id !== undefined
+                ? (body.material_id ? validateId(body.material_id, 'material_id') : null)
                 : existente.material_id,
-            unidad_id: body.unidad_id !== undefined 
-                ? (body.unidad_id ? validateId(body.unidad_id, 'unidad_id') : null) 
+            unidad_id: body.unidad_id !== undefined
+                ? (body.unidad_id ? validateId(body.unidad_id, 'unidad_id') : null)
                 : existente.unidad_id
         };
 
@@ -391,6 +406,57 @@ exports.eliminar = async (req, res, next) => {
 
     } catch (error) {
         logger.error('elementoController.eliminar', error);
+        next(error);
+    }
+};
+
+// ============================================
+// ALERTAS DE STOCK BAJO
+// ============================================
+
+exports.obtenerAlertasStock = async (_req, res, next) => {
+    try {
+        const alertas = await ElementoModel.obtenerConStockBajo();
+
+        res.json({
+            success: true,
+            data: alertas,
+            total: alertas.length
+        });
+
+    } catch (error) {
+        logger.error('elementoController.obtenerAlertasStock', error);
+        next(error);
+    }
+};
+
+// ============================================
+// ESTADISTICAS DE INVENTARIO (Dashboard)
+// ============================================
+
+exports.obtenerEstadisticasInventario = async (_req, res, next) => {
+    try {
+        const [generales, distribucionEstado, topCategorias, distribucionUbicacion, alertasStock] = await Promise.all([
+            ElementoModel.obtenerEstadisticasGenerales(),
+            ElementoModel.obtenerDistribucionPorEstado(),
+            ElementoModel.obtenerTopCategorias(10),
+            ElementoModel.obtenerDistribucionPorUbicacion(),
+            ElementoModel.obtenerConStockBajo()
+        ]);
+
+        res.json({
+            success: true,
+            data: {
+                generales,
+                distribucionEstado,
+                topCategorias,
+                distribucionUbicacion,
+                alertasStock
+            }
+        });
+
+    } catch (error) {
+        logger.error('elementoController.obtenerEstadisticasInventario', error);
         next(error);
     }
 };

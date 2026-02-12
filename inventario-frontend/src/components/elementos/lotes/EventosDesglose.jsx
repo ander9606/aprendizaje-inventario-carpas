@@ -4,18 +4,7 @@
 // ============================================
 
 import { Calendar, User, MapPin, Clock, Package } from 'lucide-react'
-
-/**
- * Formatea una fecha para mostrar
- */
-const formatDate = (dateStr) => {
-  if (!dateStr) return null
-  const date = new Date(dateStr)
-  return date.toLocaleDateString('es-CO', {
-    day: 'numeric',
-    month: 'short'
-  })
-}
+import { formatearFechaCorta } from '../../../utils/helpers'
 
 /**
  * Componente EventosDesglose - Muestra cantidades en eventos
@@ -160,9 +149,9 @@ const EventoItem = ({ evento }) => {
           <div className="flex items-center gap-2 text-sm text-orange-700">
             <Clock className="w-3.5 h-3.5 flex-shrink-0" />
             <span>
-              {formatDate(fecha_evento)}
+              {formatearFechaCorta(fecha_evento)}
               {fecha_desmontaje && (
-                <> - Desmontaje: {formatDate(fecha_desmontaje)}</>
+                <> - Desmontaje: {formatearFechaCorta(fecha_desmontaje)}</>
               )}
             </span>
           </div>

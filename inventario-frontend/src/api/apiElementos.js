@@ -249,6 +249,24 @@ const elementosAPI = {
     const response = await api.get(`/elementos/${elementoId}/estadisticas`)
     return response.data
   },
+
+  // ============================================
+  // ALERTAS DE STOCK BAJO
+  // ============================================
+
+  obtenerAlertasStock: async () => {
+    const response = await api.get('/elementos/alertas-stock')
+    return response.data
+  },
+
+  // ============================================
+  // ESTADISTICAS DE INVENTARIO (Dashboard)
+  // ============================================
+
+  obtenerEstadisticasInventario: async () => {
+    const response = await api.get('/elementos/estadisticas-inventario')
+    return response.data
+  },
 }
 
 export default elementosAPI

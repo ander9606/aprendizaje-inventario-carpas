@@ -1,38 +1,25 @@
 // ============================================
 // COMPONENTE: LOTE UBICACION GROUP
-// Agrupa cantidades de un lote por ubicación
+// Agrupa cantidades de un lote por ubicacion
 // ============================================
 
 import UbicacionBadge from '../../common/UbicacionBadge'
 import { EstadoBadge } from '../../common/Badge'
-import { MoreVertical, Trash2, ArrowRight, Package, RotateCcw } from 'lucide-react'
+import DropdownMenu from '../../common/DropdownMenu'
+import { Trash2, ArrowRight, Package, RotateCcw } from 'lucide-react'
 import { useState } from 'react'
 
 /**
- * Componente LoteUbicacionGroup - Grupo de lotes por ubicación
+ * Componente LoteUbicacionGroup - Grupo de lotes por ubicacion
  *
- * @param {object} ubicacion - Datos de la ubicación
- * @param {string} ubicacion.nombre - Nombre de la ubicación
- * @param {array} ubicacion.lotes - Array de lotes en esta ubicación
- * @param {number} ubicacion.cantidad_total - Cantidad total en esta ubicación
+ * @param {object} ubicacion - Datos de la ubicacion
+ * @param {string} ubicacion.nombre - Nombre de la ubicacion
+ * @param {array} ubicacion.lotes - Array de lotes en esta ubicacion
+ * @param {number} ubicacion.cantidad_total - Cantidad total en esta ubicacion
  * @param {function} onDevolverBodega - Callback para devolver a bodega principal
  * @param {function} onMoveLote - Callback para mover cantidad
  * @param {function} onDeleteLote - Callback para eliminar un lote
  * @param {boolean} compact - Vista compacta
- *
- * @example
- * <LoteUbicacionGroup
- *   ubicacion={{
- *     nombre: "Bodega A",
- *     cantidad_total: 50,
- *     lotes: [
- *       { estado: "nuevo", cantidad: 20 },
- *       { estado: "bueno", cantidad: 30 }
- *     ]
- *   }}
- *   onDevolverBodega={handleDevolver}
- *   onMoveLote={handleMove}
- * />
  */
 export const LoteUbicacionGroup = ({
   ubicacion,
@@ -52,7 +39,7 @@ export const LoteUbicacionGroup = ({
   } = ubicacion
 
   // ============================================
-  // VISTA COMPACTA (resumen por ubicación)
+  // VISTA COMPACTA (resumen por ubicacion)
   // ============================================
   if (compact) {
     return (
@@ -65,7 +52,7 @@ export const LoteUbicacionGroup = ({
         `}
         {...props}
       >
-        {/* Ubicación */}
+        {/* Ubicacion */}
         <UbicacionBadge ubicacion={nombre} size="md" />
 
         {/* Cantidad total */}
@@ -101,14 +88,14 @@ export const LoteUbicacionGroup = ({
       `}
       {...props}
     >
-      {/* Header: Ubicación + Cantidad total */}
+      {/* Header: Ubicacion + Cantidad total */}
       <div
         className={`flex items-center justify-between p-4 bg-slate-50 cursor-pointer ${
           expandido ? 'border-b border-slate-200 rounded-t-lg' : 'rounded-lg'
         }`}
         onClick={() => setExpandido(!expandido)}
       >
-        {/* Ubicación */}
+        {/* Ubicacion */}
         <UbicacionBadge ubicacion={nombre} size="md" />
 
         {/* Cantidad total */}
@@ -123,7 +110,7 @@ export const LoteUbicacionGroup = ({
             </span>
           </div>
 
-          {/* Botón expandir */}
+          {/* Boton expandir */}
           <button className="text-slate-400 hover:text-slate-600 transition-colors">
             <svg
               className={`w-5 h-5 transition-transform ${expandido ? 'rotate-180' : ''}`}
@@ -142,7 +129,7 @@ export const LoteUbicacionGroup = ({
         <div className="p-4 space-y-2 rounded-b-lg">
           {lotes.length === 0 ? (
             <p className="text-sm text-slate-500 text-center py-4">
-              No hay lotes en esta ubicación
+              No hay lotes en esta ubicacion
             </p>
           ) : (
             lotes.map((lote, idx) => (
@@ -173,20 +160,18 @@ const LoteItem = ({
   onMove,
   onDelete
 }) => {
-  const [menuOpen, setMenuOpen] = useState(false)
-
-  // Solo mostrar "Devolver a Bodega A" si NO está en Bodega A
-  const esBodegaA = ubicacion === 'Bodega A'
+  // Solo mostrar "Devolver a Bodega Principal" si NO esta en Bodega Principal
+  const esBodegaPrincipal = ubicacion === 'Bodega Principal' || ubicacion === 'Bodega A'
 
   const menuOptions = [
     {
-      label: 'Devolver a Bodega A',
+      label: 'Devolver a Bodega Principal',
       icon: RotateCcw,
       onClick: () => onDevolverBodega && onDevolverBodega(lote, ubicacion),
-      show: !!onDevolverBodega && !esBodegaA // Solo mostrar si NO está en Bodega A
+      show: !!onDevolverBodega && !esBodegaPrincipal
     },
     {
-      label: 'Mover a otra ubicación',
+      label: 'Mover a otra ubicacion',
       icon: ArrowRight,
       onClick: () => onMove && onMove(lote, ubicacion),
       show: !!onMove
@@ -198,7 +183,7 @@ const LoteItem = ({
       danger: true,
       show: !!onDelete
     }
-  ].filter(option => option.show)
+  ]
 
   return (
     <div className="flex items-center justify-between gap-3 p-3 bg-slate-50 rounded-lg">
@@ -215,57 +200,8 @@ const LoteItem = ({
         </span>
       </div>
 
-      {/* Menú de opciones */}
-      {menuOptions.length > 0 && (
-        <div className="relative flex-shrink-0">
-          <button
-            onClick={(e) => {
-              e.stopPropagation()
-              setMenuOpen(!menuOpen)
-            }}
-            className="p-1 hover:bg-slate-200 rounded transition-colors"
-            aria-label="Opciones"
-          >
-            <MoreVertical className="w-4 h-4 text-slate-600" />
-          </button>
-
-          {menuOpen && (
-            <>
-              <div
-                className="fixed inset-0 z-40"
-                onClick={() => setMenuOpen(false)}
-              />
-              <div className="absolute right-0 mt-2 w-56 bg-white shadow-xl rounded-lg border border-slate-200 py-2 z-50">
-                {menuOptions.map((option, idx) => {
-                  const IconComp = option.icon
-                  return (
-                    <button
-                      key={idx}
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setMenuOpen(false)
-                        option.onClick()
-                      }}
-                      className={`
-                        w-full text-left px-4 py-2 text-sm
-                        flex items-center gap-2
-                        transition-colors
-                        ${option.danger
-                          ? 'text-red-600 hover:bg-red-50'
-                          : 'text-slate-700 hover:bg-slate-50'
-                        }
-                      `}
-                    >
-                      <IconComp className="w-4 h-4" />
-                      {option.label}
-                    </button>
-                  )
-                })}
-              </div>
-            </>
-          )}
-        </div>
-      )}
+      {/* Menu de opciones */}
+      <DropdownMenu options={menuOptions} menuClassName="w-56" />
     </div>
   )
 }

@@ -5,7 +5,7 @@
  */
 
 const AppError = require('./AppError');
-const { LIMITES, ESTADOS_VALIDOS, TIPOS_UBICACION_VALIDOS, MENSAJES_ERROR } = require('../config/constants');
+const { LIMITES, ESTADOS_VALIDOS, TIPOS_UBICACION_VALIDOS, TIPOS_UNIDAD_VALIDOS, MENSAJES_ERROR } = require('../config/constants');
 
 // ============================================
 // VALIDADORES DE CAMPOS BÁSICOS
@@ -260,6 +260,32 @@ const validateTipoUbicacion = (tipo, required = true) => {
 };
 
 /**
+ * Valida un tipo de unidad (longitud, peso, volumen, cantidad)
+ * @param {string} tipo - Tipo a validar
+ * @param {boolean} required - Si es obligatorio (default: false)
+ * @throws {AppError} Si el tipo no es válido
+ * @returns {string|null} Tipo validado o null
+ */
+const validateTipoUnidad = (tipo, required = false) => {
+  if (!required && !tipo) {
+    return null;
+  }
+
+  if (required) {
+    validateRequired(tipo, 'Tipo de unidad');
+  }
+
+  if (!TIPOS_UNIDAD_VALIDOS.includes(tipo)) {
+    throw new AppError(
+      `Tipo de unidad inválido. Valores permitidos: ${TIPOS_UNIDAD_VALIDOS.join(', ')}`,
+      400
+    );
+  }
+
+  return tipo;
+};
+
+/**
  * Valida un valor dentro de una lista de valores permitidos
  * @param {*} value - Valor a validar
  * @param {Array} allowedValues - Valores permitidos
@@ -378,6 +404,7 @@ module.exports = {
   // Enumeraciones
   validateEstado,
   validateTipoUbicacion,
+  validateTipoUnidad,
   validateEnum,
 
   // Booleanos

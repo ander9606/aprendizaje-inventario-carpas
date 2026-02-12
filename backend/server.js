@@ -19,6 +19,7 @@ const lotesRoutes = require('./modules/inventario/routes/lotes');
 const materialesRoutes = require('./modules/inventario/routes/materiales');
 const unidadesRoutes = require('./modules/inventario/routes/unidades');
 const ubicacionesRoutes = require('./modules/inventario/routes/ubicaciones');
+const inventarioExportRoutes = require('./modules/inventario/routes/export');
 
 // Importar rutas - Productos (Plantillas/Elementos Compuestos)
 const categoriasProductosRoutes = require('./modules/productos/routes/categoriasProductos');
@@ -113,7 +114,8 @@ app.get('/', (req, res) => {
                 '/api/lotes',
                 '/api/ubicaciones',
                 '/api/materiales',
-                '/api/unidades'
+                '/api/unidades',
+                '/api/inventario/export/excel'
             ],
             productos: [
                 '/api/categorias-productos',
@@ -160,6 +162,7 @@ app.use('/api/lotes', lotesRoutes);
 app.use('/api/ubicaciones', ubicacionesRoutes);
 app.use('/api/materiales', materialesRoutes);
 app.use('/api/unidades', unidadesRoutes);
+app.use('/api/inventario', inventarioExportRoutes);
 
 // Registrar rutas - Productos (Plantillas)
 app.use('/api/categorias-productos', categoriasProductosRoutes);

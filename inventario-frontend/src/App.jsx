@@ -19,6 +19,7 @@ import Subcategorias from './pages/Subcategorias'
 import ElementosPage from './pages/ElementosPage'
 import ElementoDetallePage from './pages/ElementoDetallePage'
 import UbicacionesPage from './pages/UbicacionesPage'
+import InventarioDashboard from './pages/InventarioDashboard'
 
 // Importar páginas - Productos de Alquiler
 import ProductosPage from './pages/ProductosPage'
@@ -101,6 +102,7 @@ function App() {
                     ============================================ */}
 
                 <Route path="/inventario" element={<Dashboard />} />
+                <Route path="/inventario/dashboard" element={<InventarioDashboard />} />
 
                 <Route
                     path="/inventario/categorias/:categoriaId"
