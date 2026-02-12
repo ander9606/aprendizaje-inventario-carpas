@@ -53,13 +53,15 @@ function ElementoFormModal({
     descripcion: "",
     requiere_series: true,
 
-    // nuevos campos necesarios
+    // campos de configuracion
     material_id: "",
     unidad_id: "",
     estado: ESTADOS.BUENO,
     ubicacion: "",
     fecha_ingreso: "",
     cantidad: 0,
+    stock_minimo: 0,
+    costo_adquisicion: "",
   });
 
   const [errors, setErrors] = useState({});
@@ -81,26 +83,29 @@ function ElementoFormModal({
         descripcion: elemento.descripcion || "",
         requiere_series: elemento.requiere_series ?? true,
 
-        // nuevos campos necesarios
+        // campos de configuracion
         material_id: elemento.material_id ?? "",
         unidad_id: elemento.unidad_id ?? "",
         estado: elemento.estado ?? ESTADOS.BUENO,
         ubicacion: elemento.ubicacion ?? "",
         fecha_ingreso: elemento.fecha_ingreso ?? "",
         cantidad: elemento.cantidad ?? 0,
+        stock_minimo: elemento.stock_minimo ?? 0,
+        costo_adquisicion: elemento.costo_adquisicion ?? "",
       });
     } else if (isOpen && !isEditMode) {
       setFormData({
         nombre: "",
         descripcion: "",
         requiere_series: true,
-        // nuevos campos necesarios
         material_id: "",
         unidad_id: "",
         estado: ESTADOS.BUENO,
         ubicacion: "",
         fecha_ingreso: "",
         cantidad: 0,
+        stock_minimo: 0,
+        costo_adquisicion: "",
       });
     }
     setErrors({});
@@ -175,7 +180,9 @@ function ElementoFormModal({
       requiere_series: formData.requiere_series,
       material_id: formData.material_id || null,
       unidad_id: formData.unidad_id || null,
-      cantidad: formData.cantidad || 0, // Siempre enviar cantidad
+      cantidad: formData.cantidad || 0,
+      stock_minimo: formData.stock_minimo || 0,
+      costo_adquisicion: formData.costo_adquisicion || null,
     };
 
     if (!isEditMode) {
@@ -476,6 +483,60 @@ function ElementoFormModal({
               ? "Cantidad total de unidades (se crearán series después)"
               : "Número de unidades del primer lote"}
           </p>
+        </div>
+
+        {/* ============================================
+            CAMPOS: Stock minimo y Costo (fila de 2 columnas)
+            ============================================ */}
+        <div className="mb-4 grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Stock minimo (opcional)
+            </label>
+            <input
+              type="number"
+              name="stock_minimo"
+              value={formData.stock_minimo}
+              onChange={(e) => {
+                const value = e.target.value;
+                setFormData((prev) => ({
+                  ...prev,
+                  stock_minimo: value === "" ? 0 : parseInt(value, 10) || 0,
+                }));
+              }}
+              min="0"
+              placeholder="0"
+              className="
+                w-full px-4 py-2 border border-slate-300 rounded-lg
+                focus:outline-none focus:ring-2 focus:ring-blue-500
+              "
+            />
+            <p className="mt-1 text-xs text-slate-500">
+              Alerta cuando el stock baje de este valor
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Costo unitario (opcional)
+            </label>
+            <input
+              type="number"
+              name="costo_adquisicion"
+              value={formData.costo_adquisicion}
+              onChange={handleInputChange}
+              min="0"
+              step="0.01"
+              placeholder="$ 0.00"
+              className="
+                w-full px-4 py-2 border border-slate-300 rounded-lg
+                focus:outline-none focus:ring-2 focus:ring-blue-500
+              "
+            />
+            <p className="mt-1 text-xs text-slate-500">
+              Costo de adquisicion por unidad
+            </p>
+          </div>
         </div>
 
         {/* ============================================

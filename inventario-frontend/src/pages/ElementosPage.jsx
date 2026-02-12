@@ -5,7 +5,9 @@
 
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Plus, ArrowLeft } from 'lucide-react'
+import { Plus, ArrowLeft, FileSpreadsheet } from 'lucide-react'
+import { toast } from 'sonner'
+import { exportarInventarioExcel } from '../api/apiExport'
 
 // Hooks personalizados
 import { useGetElementos, useDeleteElemento } from '../hooks/Useelementos'
@@ -86,6 +88,9 @@ function ElementosPage() {
    */
   const [serieParaEditar, setSerieParaEditar] = useState(null)
 
+  // Estado para descarga Excel
+  const [isExporting, setIsExporting] = useState(false)
+
   // ============================================
   // HOOKS DE DATOS
   // ============================================
@@ -116,6 +121,22 @@ function ElementosPage() {
   // HANDLERS - Navegación
   // ============================================
   const handleGoBack = () => navigate(-1)
+
+  // ============================================
+  // HANDLER - Exportar Excel
+  // ============================================
+  const handleExportExcel = async () => {
+    setIsExporting(true)
+    try {
+      await exportarInventarioExcel()
+      toast.success('Inventario exportado a Excel exitosamente')
+    } catch (error) {
+      console.error('Error al exportar:', error)
+      toast.error('Error al exportar el inventario')
+    } finally {
+      setIsExporting(false)
+    }
+  }
 
   // ============================================
   // HANDLERS - Modal Elemento
@@ -310,14 +331,24 @@ function ElementosPage() {
             </div>
           </div>
 
-          <Button
-            variant="primary"
-            icon={<Plus className="w-5 h-5" />}
-            onClick={handleOpenCreateModal}
-            disabled={isDeleting || isDeletingLote || isDeletingSerie}
-          >
-            Nuevo Elemento
-          </Button>
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              icon={<FileSpreadsheet className="w-5 h-5" />}
+              onClick={handleExportExcel}
+              disabled={isExporting}
+            >
+              {isExporting ? 'Exportando...' : 'Descargar Excel'}
+            </Button>
+            <Button
+              variant="primary"
+              icon={<Plus className="w-5 h-5" />}
+              onClick={handleOpenCreateModal}
+              disabled={isDeleting || isDeletingLote || isDeletingSerie}
+            >
+              Nuevo Elemento
+            </Button>
+          </div>
         </div>
       </div>
 

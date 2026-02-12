@@ -10,6 +10,20 @@ import { ESTADO_COLORS, ESTADO_LABELS } from './constants'
 // ============================================
 
 /**
+ * Formatea una fecha en formato corto (día + mes abreviado)
+ * @param {string|Date} dateStr - Fecha a formatear
+ * @returns {string|null} - Fecha formateada o null
+ */
+export const formatearFechaCorta = (dateStr) => {
+  if (!dateStr) return null
+  const date = new Date(dateStr)
+  return date.toLocaleDateString('es-CO', {
+    day: 'numeric',
+    month: 'short'
+  })
+}
+
+/**
  * Formatea una fecha al formato DD/MM/YYYY
  * @param {string|Date} fecha - Fecha a formatear
  * @returns {string} - Fecha formateada

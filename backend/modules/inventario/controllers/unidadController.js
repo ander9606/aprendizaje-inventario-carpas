@@ -1,80 +1,87 @@
 // ============================================
-// CONTROLLER: unidadController
-// Responsabilidad: Lógica de negocio de unidades
+// CONTROLADOR: UNIDADES
+// Refactorizado: logger, validadores,
+// constantes, paginación, next(error)
 // ============================================
 
 const UnidadModel = require('../models/UnidadModel');
+const AppError = require('../../../utils/AppError');
+const logger = require('../../../utils/logger');
+const { validateNombre, validateId, validateTipoUnidad } = require('../../../utils/validators');
+const { MENSAJES_ERROR, MENSAJES_EXITO, ENTIDADES } = require('../../../config/constants');
+const { getPaginationParams, getPaginatedResponse, shouldPaginate, getSortParams } = require('../../../utils/pagination');
 
 // ============================================
-// OBTENER TODAS LAS UNIDADES
+// LISTAR UNIDADES (con y sin paginación)
 // ============================================
-exports.obtenerTodas = async (req, res) => {
+
+exports.obtenerTodas = async (req, res, next) => {
     try {
+        const paginar = shouldPaginate(req.query) && (req.query.page || req.query.limit);
+
+        if (paginar) {
+            const { page, limit, offset } = getPaginationParams(req.query);
+            const { sortBy, order } = getSortParams(req.query, 'nombre');
+            const search = req.query.search || null;
+
+            logger.debug('unidadController.obtenerTodas', 'Listando con paginación', {
+                page, limit, offset, sortBy, order, search
+            });
+
+            const [unidades, total] = await Promise.all([
+                UnidadModel.obtenerConPaginacion({ limit, offset, sortBy, order, search }),
+                UnidadModel.contarTodas(search)
+            ]);
+
+            return res.json(getPaginatedResponse(unidades, page, limit, total));
+        }
+
         const unidades = await UnidadModel.obtenerTodas();
-        
+
         res.json({
             success: true,
             data: unidades,
             total: unidades.length
         });
     } catch (error) {
-        console.error('Error en obtenerTodas:', error);
-        res.status(500).json({
-            success: false,
-            mensaje: 'Error al obtener unidades',
-            error: error.message
-        });
+        logger.error('unidadController.obtenerTodas', error);
+        next(error);
     }
 };
 
 // ============================================
-// OBTENER UNIDAD POR ID
+// OBTENER POR ID
 // ============================================
-exports.obtenerPorId = async (req, res) => {
+
+exports.obtenerPorId = async (req, res, next) => {
     try {
         const { id } = req.params;
+        validateId(id, 'ID de unidad');
+
         const unidad = await UnidadModel.obtenerPorId(id);
-        
+
         if (!unidad) {
-            return res.status(404).json({
-                success: false,
-                mensaje: 'Unidad no encontrada'
-            });
+            throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO(ENTIDADES.UNIDAD), 404);
         }
-        
-        res.json({
-            success: true,
-            data: unidad
-        });
+
+        res.json({ success: true, data: unidad });
     } catch (error) {
-        console.error('Error en obtenerPorId:', error);
-        res.status(500).json({
-            success: false,
-            mensaje: 'Error al obtener unidad',
-            error: error.message
-        });
+        logger.error('unidadController.obtenerPorId', error);
+        next(error);
     }
 };
 
 // ============================================
-// OBTENER UNIDADES POR TIPO
+// OBTENER POR TIPO
 // ============================================
-exports.obtenerPorTipo = async (req, res) => {
+
+exports.obtenerPorTipo = async (req, res, next) => {
     try {
         const { tipo } = req.params;
-        
-        // Validar tipo
-        const tiposValidos = ['longitud', 'peso', 'volumen', 'cantidad'];
-        if (!tiposValidos.includes(tipo)) {
-            return res.status(400).json({
-                success: false,
-                mensaje: 'Tipo inválido',
-                tiposValidos
-            });
-        }
-        
+        validateTipoUnidad(tipo, true);
+
         const unidades = await UnidadModel.obtenerPorTipo(tipo);
-        
+
         res.json({
             success: true,
             tipo,
@@ -82,194 +89,145 @@ exports.obtenerPorTipo = async (req, res) => {
             total: unidades.length
         });
     } catch (error) {
-        console.error('Error en obtenerPorTipo:', error);
-        res.status(500).json({
-            success: false,
-            mensaje: 'Error al obtener unidades por tipo',
-            error: error.message
-        });
+        logger.error('unidadController.obtenerPorTipo', error);
+        next(error);
     }
 };
 
 // ============================================
-// OBTENER UNIDADES MÁS USADAS
+// OBTENER MÁS USADAS
 // ============================================
-exports.obtenerMasUsadas = async (req, res) => {
+
+exports.obtenerMasUsadas = async (req, res, next) => {
     try {
         const unidades = await UnidadModel.obtenerMasUsadas();
-        
+
         res.json({
             success: true,
             data: unidades,
             total: unidades.length
         });
     } catch (error) {
-        console.error('Error en obtenerMasUsadas:', error);
-        res.status(500).json({
-            success: false,
-            mensaje: 'Error al obtener unidades más usadas',
-            error: error.message
-        });
+        logger.error('unidadController.obtenerMasUsadas', error);
+        next(error);
     }
 };
 
 // ============================================
 // CREAR UNIDAD
 // ============================================
-exports.crear = async (req, res) => {
+
+exports.crear = async (req, res, next) => {
     try {
         const { nombre, abreviatura, tipo } = req.body;
-        
-        // Validación
-        if (!nombre || nombre.trim() === '') {
-            return res.status(400).json({
-                success: false,
-                mensaje: 'El nombre es obligatorio'
-            });
-        }
-        
-        // Validar tipo si se proporciona
+        logger.info('unidadController.crear', 'Creando unidad', { nombre });
+
+        validateNombre(nombre, ENTIDADES.UNIDAD);
+
         if (tipo) {
-            const tiposValidos = ['longitud', 'peso', 'volumen', 'cantidad'];
-            if (!tiposValidos.includes(tipo)) {
-                return res.status(400).json({
-                    success: false,
-                    mensaje: 'Tipo inválido',
-                    tiposValidos
-                });
-            }
+            validateTipoUnidad(tipo, false);
         }
-        
-        // Verificar que no exista
-        const unidadExistente = await UnidadModel.obtenerPorNombre(nombre);
-        if (unidadExistente) {
-            return res.status(400).json({
-                success: false,
-                mensaje: 'Ya existe una unidad con ese nombre'
-            });
+
+        // Verificar duplicados
+        const existente = await UnidadModel.obtenerPorNombre(nombre);
+        if (existente) {
+            throw new AppError('Ya existe una unidad con ese nombre', 400);
         }
-        
-        // Crear
+
         const nuevoId = await UnidadModel.crear({ nombre, abreviatura, tipo });
-        
-        // Obtener la unidad creada
         const nuevaUnidad = await UnidadModel.obtenerPorId(nuevoId);
-        
+
+        logger.info('unidadController.crear', 'Unidad creada exitosamente', { id: nuevoId });
+
         res.status(201).json({
             success: true,
-            mensaje: 'Unidad creada exitosamente',
+            mensaje: MENSAJES_EXITO.CREADO(ENTIDADES.UNIDAD),
             data: nuevaUnidad
         });
     } catch (error) {
-        console.error('Error en crear:', error);
-        res.status(500).json({
-            success: false,
-            mensaje: 'Error al crear unidad',
-            error: error.message
-        });
+        logger.error('unidadController.crear', error);
+        next(error);
     }
 };
 
 // ============================================
 // ACTUALIZAR UNIDAD
 // ============================================
-exports.actualizar = async (req, res) => {
+
+exports.actualizar = async (req, res, next) => {
     try {
         const { id } = req.params;
         const { nombre, abreviatura, tipo } = req.body;
-        
-        // Validación
-        if (!nombre || nombre.trim() === '') {
-            return res.status(400).json({
-                success: false,
-                mensaje: 'El nombre es obligatorio'
-            });
-        }
-        
-        // Validar tipo si se proporciona
+
+        logger.info('unidadController.actualizar', 'Actualizando unidad', { id });
+
+        validateId(id, 'ID de unidad');
+        validateNombre(nombre, ENTIDADES.UNIDAD);
+
         if (tipo) {
-            const tiposValidos = ['longitud', 'peso', 'volumen', 'cantidad'];
-            if (!tiposValidos.includes(tipo)) {
-                return res.status(400).json({
-                    success: false,
-                    mensaje: 'Tipo inválido',
-                    tiposValidos
-                });
-            }
+            validateTipoUnidad(tipo, false);
         }
-        
-        // Verificar que el nombre no esté en uso por otra unidad
-        const unidadExistente = await UnidadModel.obtenerPorNombre(nombre);
-        if (unidadExistente && unidadExistente.id != id) {
-            return res.status(400).json({
-                success: false,
-                mensaje: 'Ya existe otra unidad con ese nombre'
-            });
+
+        // Verificar duplicados (excluyendo la actual)
+        const existente = await UnidadModel.obtenerPorNombre(nombre);
+        if (existente && existente.id != id) {
+            throw new AppError('Ya existe otra unidad con ese nombre', 400);
         }
-        
-        // Actualizar
+
         const filasAfectadas = await UnidadModel.actualizar(id, { nombre, abreviatura, tipo });
-        
+
         if (filasAfectadas === 0) {
-            return res.status(404).json({
-                success: false,
-                mensaje: 'Unidad no encontrada'
-            });
+            throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO(ENTIDADES.UNIDAD), 404);
         }
-        
-        // Obtener la unidad actualizada
+
         const unidadActualizada = await UnidadModel.obtenerPorId(id);
-        
+
+        logger.info('unidadController.actualizar', 'Unidad actualizada exitosamente', { id });
+
         res.json({
             success: true,
-            mensaje: 'Unidad actualizada exitosamente',
+            mensaje: MENSAJES_EXITO.ACTUALIZADO(ENTIDADES.UNIDAD),
             data: unidadActualizada
         });
     } catch (error) {
-        console.error('Error en actualizar:', error);
-        res.status(500).json({
-            success: false,
-            mensaje: 'Error al actualizar unidad',
-            error: error.message
-        });
+        logger.error('unidadController.actualizar', error);
+        next(error);
     }
 };
 
 // ============================================
 // ELIMINAR UNIDAD
 // ============================================
-exports.eliminar = async (req, res) => {
+
+exports.eliminar = async (req, res, next) => {
     try {
         const { id } = req.params;
-        
-        const filasAfectadas = await UnidadModel.eliminar(id);
-        
-        if (filasAfectadas === 0) {
-            return res.status(404).json({
-                success: false,
-                mensaje: 'Unidad no encontrada'
-            });
+
+        logger.info('unidadController.eliminar', 'Eliminando unidad', { id });
+
+        validateId(id, 'ID de unidad');
+
+        const existe = await UnidadModel.obtenerPorId(id);
+        if (!existe) {
+            throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO(ENTIDADES.UNIDAD), 404);
         }
-        
+
+        await UnidadModel.eliminar(id);
+
+        logger.info('unidadController.eliminar', 'Unidad eliminada exitosamente', { id });
+
         res.json({
             success: true,
-            mensaje: 'Unidad eliminada exitosamente'
+            mensaje: MENSAJES_EXITO.ELIMINADO(ENTIDADES.UNIDAD)
         });
     } catch (error) {
-        console.error('Error en eliminar:', error);
-        
-        // Si hay error de foreign key
         if (error.code === 'ER_ROW_IS_REFERENCED_2') {
-            return res.status(400).json({
-                success: false,
-                mensaje: 'No se puede eliminar la unidad porque está en uso por elementos'
-            });
+            return next(new AppError(
+                'No se puede eliminar la unidad porque está en uso por elementos',
+                400
+            ));
         }
-        
-        res.status(500).json({
-            success: false,
-            mensaje: 'Error al eliminar unidad',
-            error: error.message
-        });
+        logger.error('unidadController.eliminar', error);
+        next(error);
     }
 };

@@ -2,23 +2,23 @@
 // RUTAS: MATERIALES
 // ============================================
 
-const express = require('express')
-const router = express.Router()
-const MaterialController = require('../controllers/materialController')
+const express = require('express');
+const router = express.Router();
+const materialController = require('../controllers/materialController');
 
 // Obtener todos los materiales
-router.get('/', MaterialController.obtenerTodos)
+router.get('/', materialController.obtenerTodos);
 
 // Obtener un material por ID
-router.get('/:id', MaterialController.obtenerPorId)
+router.get('/:id', materialController.obtenerPorId);
 
 // Crear material
-router.post('/', MaterialController.crear)
+router.post('/', materialController.crear);
 
 // Actualizar material
-router.put('/:id', MaterialController.actualizar)
+router.put('/:id', materialController.actualizar);
 
 // Eliminar material
-router.delete('/:id', MaterialController.eliminar)
+router.delete('/:id', materialController.eliminar);
 
-module.exports = router
+module.exports = router;

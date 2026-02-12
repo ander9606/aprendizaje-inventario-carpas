@@ -1,55 +1,30 @@
 // ============================================
 // COMPONENTE: SERIE ITEM
-// Item individual de una serie (elemento con número de serie)
-// Incluye contexto de eventos (actual y próximo)
+// Item individual de una serie (elemento con numero de serie)
+// Incluye contexto de eventos (actual y proximo)
 // ============================================
 
 import { EstadoBadge } from '../../common/Badge'
 import UbicacionBadge from '../../common/UbicacionBadge'
-import { MoreVertical, Edit2, Trash2, MapPin, Package, RotateCcw, Calendar, User, Clock, ArrowRight } from 'lucide-react'
-import { useState } from 'react'
+import DropdownMenu from '../../common/DropdownMenu'
+import { Edit2, Trash2, MapPin, Package, RotateCcw, Calendar, User, Clock, ArrowRight } from 'lucide-react'
+import { formatearFechaCorta } from '../../../utils/helpers'
 
 /**
- * Formatea una fecha para mostrar
- */
-const formatDate = (dateStr) => {
-  if (!dateStr) return null
-  const date = new Date(dateStr)
-  return date.toLocaleDateString('es-CO', {
-    day: 'numeric',
-    month: 'short'
-  })
-}
-
-/**
- * Componente SerieItem - Representa un elemento individual con número de serie
+ * Componente SerieItem - Representa un elemento individual con numero de serie
  *
  * @param {object} serie - Datos de la serie
- * @param {string} serie.numero_serie - Número de serie único
+ * @param {string} serie.numero_serie - Numero de serie unico
  * @param {string} serie.estado - Estado del elemento
- * @param {string} serie.ubicacion - Ubicación actual
- * @param {boolean} serie.con_alquiler - Si está alquilado
+ * @param {string} serie.ubicacion - Ubicacion actual
+ * @param {boolean} serie.con_alquiler - Si esta alquilado
  * @param {object} serie.alquiler - Datos del alquiler (opcional)
  * @param {function} onDevolverBodega - Callback para devolver a bodega principal
  * @param {function} onEdit - Callback para editar
  * @param {function} onDelete - Callback para eliminar
- * @param {function} onMove - Callback para mover de ubicación
+ * @param {function} onMove - Callback para mover de ubicacion
  * @param {function} onClick - Callback al hacer click en el item
  * @param {boolean} compact - Vista compacta
- *
- * @example
- * <SerieItem
- *   serie={{
- *     numero_serie: "SN-001",
- *     estado: "disponible",
- *     ubicacion: "Bodega A",
- *     con_alquiler: false
- *   }}
- *   onDevolverBodega={handleDevolver}
- *   onEdit={handleEdit}
- *   onDelete={handleDelete}
- *   onMove={handleMove}
- * />
  */
 export const SerieItem = ({
   serie,
@@ -62,20 +37,18 @@ export const SerieItem = ({
   className = '',
   ...props
 }) => {
-  const [menuOpen, setMenuOpen] = useState(false)
-
-  // Solo mostrar "Devolver a Bodega A" si NO está en Bodega A
-  const esBodegaA = serie.ubicacion === 'Bodega A'
+  // Solo mostrar "Devolver a Bodega Principal" si NO esta en Bodega Principal
+  const esBodegaPrincipal = serie.ubicacion === 'Bodega Principal' || serie.ubicacion === 'Bodega A'
 
   // ============================================
-  // OPCIONES DEL MENÚ
+  // OPCIONES DEL MENU
   // ============================================
   const menuOptions = [
     {
-      label: 'Devolver a Bodega A',
+      label: 'Devolver a Bodega Principal',
       icon: RotateCcw,
       onClick: () => onDevolverBodega && onDevolverBodega(serie),
-      show: !!onDevolverBodega && !esBodegaA // Solo mostrar si NO está en Bodega A
+      show: !!onDevolverBodega && !esBodegaPrincipal
     },
     {
       label: 'Editar estado',
@@ -84,7 +57,7 @@ export const SerieItem = ({
       show: !!onEdit
     },
     {
-      label: 'Mover ubicación',
+      label: 'Mover ubicacion',
       icon: MapPin,
       onClick: () => onMove && onMove(serie),
       show: !!onMove
@@ -96,7 +69,7 @@ export const SerieItem = ({
       danger: true,
       show: !!onDelete
     }
-  ].filter(option => option.show)
+  ]
 
   // ============================================
   // VISTA COMPACTA
@@ -114,7 +87,7 @@ export const SerieItem = ({
         onClick={onClick}
         {...props}
       >
-        {/* Número de serie */}
+        {/* Numero de serie */}
         <div className="flex items-center gap-2 flex-1 min-w-0">
           <Package className="w-4 h-4 text-slate-400 flex-shrink-0" />
           <span className="font-mono text-sm text-slate-700 truncate">
@@ -125,60 +98,11 @@ export const SerieItem = ({
         {/* Estado */}
         <EstadoBadge estado={serie.estado} size="sm" />
 
-        {/* Ubicación */}
+        {/* Ubicacion */}
         <UbicacionBadge ubicacion={serie.ubicacion} size="sm" showIcon={false} />
 
-        {/* Menú (si hay opciones) */}
-        {menuOptions.length > 0 && (
-          <div className="relative flex-shrink-0">
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                setMenuOpen(!menuOpen)
-              }}
-              className="p-1 hover:bg-slate-100 rounded transition-colors"
-              aria-label="Opciones"
-            >
-              <MoreVertical className="w-4 h-4 text-slate-600" />
-            </button>
-
-            {menuOpen && (
-              <>
-                <div
-                  className="fixed inset-0 z-40"
-                  onClick={() => setMenuOpen(false)}
-                />
-                <div className="absolute right-0 mt-2 w-48 bg-white shadow-xl rounded-lg border border-slate-200 py-2 z-50">
-                  {menuOptions.map((option, idx) => {
-                    const IconComp = option.icon
-                    return (
-                      <button
-                        key={idx}
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setMenuOpen(false)
-                          option.onClick()
-                        }}
-                        className={`
-                          w-full text-left px-4 py-2 text-sm
-                          flex items-center gap-2
-                          transition-colors
-                          ${option.danger
-                            ? 'text-red-600 hover:bg-red-50'
-                            : 'text-slate-700 hover:bg-slate-50'
-                          }
-                        `}
-                      >
-                        <IconComp className="w-4 h-4" />
-                        {option.label}
-                      </button>
-                    )
-                  })}
-                </div>
-              </>
-            )}
-          </div>
-        )}
+        {/* Menu */}
+        <DropdownMenu options={menuOptions} />
       </div>
     )
   }
@@ -197,9 +121,9 @@ export const SerieItem = ({
       onClick={onClick}
       {...props}
     >
-      {/* Header: Número de serie + Menú */}
+      {/* Header: Numero de serie + Menu */}
       <div className="flex items-start justify-between gap-3 mb-3">
-        {/* Número de serie */}
+        {/* Numero de serie */}
         <div className="flex items-center gap-2 flex-1 min-w-0">
           <Package className="w-5 h-5 text-slate-400 flex-shrink-0" />
           <span className="font-mono text-base font-semibold text-slate-900 truncate">
@@ -207,73 +131,20 @@ export const SerieItem = ({
           </span>
         </div>
 
-        {/* Menú */}
-        {menuOptions.length > 0 && (
-          <div className="relative flex-shrink-0">
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                setMenuOpen(!menuOpen)
-              }}
-              className="p-1 hover:bg-slate-100 rounded transition-colors"
-              aria-label="Opciones"
-            >
-              <MoreVertical className="w-5 h-5 text-slate-600" />
-            </button>
-
-            {menuOpen && (
-              <>
-                <div
-                  className="fixed inset-0 z-40"
-                  onClick={() => setMenuOpen(false)}
-                />
-                <div className="absolute right-0 mt-2 w-48 bg-white shadow-xl rounded-lg border border-slate-200 py-2 z-50">
-                  {menuOptions.map((option, idx) => {
-                    const IconComp = option.icon
-                    return (
-                      <button
-                        key={idx}
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setMenuOpen(false)
-                          option.onClick()
-                        }}
-                        className={`
-                          w-full text-left px-4 py-2 text-sm
-                          flex items-center gap-2
-                          transition-colors
-                          ${option.danger
-                            ? 'text-red-600 hover:bg-red-50'
-                            : 'text-slate-700 hover:bg-slate-50'
-                          }
-                        `}
-                      >
-                        <IconComp className="w-4 h-4" />
-                        {option.label}
-                      </button>
-                    )
-                  })}
-                </div>
-              </>
-            )}
-          </div>
-        )}
+        {/* Menu */}
+        <DropdownMenu options={menuOptions} iconSize="w-5 h-5" />
       </div>
 
-      {/* Contenido: Estado + Ubicación */}
+      {/* Contenido: Estado + Ubicacion */}
       <div className="flex flex-wrap items-center gap-2">
-        {/* Estado */}
         <EstadoBadge estado={serie.estado} size="md" />
-
-        {/* Ubicación */}
         <UbicacionBadge ubicacion={serie.ubicacion} size="md" />
       </div>
 
-      {/* Información de evento actual (si está en alquiler) */}
+      {/* Informacion de evento actual (si esta en alquiler) */}
       {serie.en_alquiler && serie.evento_actual && (
         <div className="mt-3 pt-3 border-t border-slate-200">
           <div className="bg-orange-50 rounded-lg p-3 space-y-2">
-            {/* Nombre del evento */}
             <div className="flex items-center gap-2">
               <Calendar className="w-4 h-4 text-orange-600 flex-shrink-0" />
               <span className="font-medium text-orange-900 text-sm">
@@ -281,13 +152,11 @@ export const SerieItem = ({
               </span>
             </div>
 
-            {/* Cliente */}
             <div className="flex items-center gap-2 text-sm text-orange-800">
               <User className="w-3.5 h-3.5 flex-shrink-0" />
               <span>{serie.evento_actual.cliente}</span>
             </div>
 
-            {/* Ubicación del evento */}
             {serie.evento_actual.ubicacion && (
               <div className="flex items-center gap-2 text-sm text-orange-800">
                 <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
@@ -298,13 +167,12 @@ export const SerieItem = ({
               </div>
             )}
 
-            {/* Fechas */}
             <div className="flex items-center gap-2 text-sm text-orange-800">
               <Clock className="w-3.5 h-3.5 flex-shrink-0" />
               <span>
-                {formatDate(serie.evento_actual.fecha_inicio)}
+                {formatearFechaCorta(serie.evento_actual.fecha_inicio)}
                 {serie.evento_actual.fecha_fin && (
-                  <> - {formatDate(serie.evento_actual.fecha_fin)}</>
+                  <> - {formatearFechaCorta(serie.evento_actual.fecha_fin)}</>
                 )}
               </span>
             </div>
@@ -312,7 +180,7 @@ export const SerieItem = ({
         </div>
       )}
 
-      {/* Información de alquiler antiguo (fallback para compatibilidad) */}
+      {/* Informacion de alquiler antiguo (fallback para compatibilidad) */}
       {!serie.en_alquiler && serie.con_alquiler && serie.alquiler && (
         <div className="mt-3 pt-3 border-t border-slate-200">
           <div className="flex items-center gap-2 text-sm text-slate-600">
@@ -321,20 +189,20 @@ export const SerieItem = ({
           </div>
           {serie.alquiler.fecha_devolucion && (
             <div className="flex items-center gap-2 text-sm text-slate-600 mt-1">
-              <span className="font-medium">Devolución:</span>
+              <span className="font-medium">Devolucion:</span>
               <span>{new Date(serie.alquiler.fecha_devolucion).toLocaleDateString()}</span>
             </div>
           )}
         </div>
       )}
 
-      {/* Próximo evento (si está reservada) */}
+      {/* Proximo evento (si esta reservada) */}
       {serie.proximo_evento && !serie.en_alquiler && (
         <div className="mt-3 pt-3 border-t border-slate-200">
           <div className="bg-blue-50 rounded-lg p-3">
             <div className="flex items-center gap-2 text-xs text-blue-600 font-medium mb-1">
               <ArrowRight className="w-3 h-3" />
-              PRÓXIMO COMPROMISO
+              PROXIMO COMPROMISO
             </div>
             <div className="flex items-center gap-2 text-sm text-blue-900">
               <Calendar className="w-3.5 h-3.5 flex-shrink-0" />
@@ -342,7 +210,7 @@ export const SerieItem = ({
             </div>
             <div className="flex items-center gap-2 text-sm text-blue-800 mt-1">
               <Clock className="w-3.5 h-3.5 flex-shrink-0" />
-              <span>Montaje: {formatDate(serie.proximo_evento.fecha_montaje)}</span>
+              <span>Montaje: {formatearFechaCorta(serie.proximo_evento.fecha_montaje)}</span>
             </div>
             {serie.proximo_evento.cliente_nombre && (
               <div className="flex items-center gap-2 text-sm text-blue-800 mt-1">

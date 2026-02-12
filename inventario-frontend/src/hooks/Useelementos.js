@@ -517,6 +517,39 @@ export const useDeleteElemento = () => {
  * ============================================
  */
 
+/**
+ * Hook: Obtener estadisticas de inventario (Dashboard)
+ */
+export const useGetEstadisticasInventario = () => {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['elementos', 'estadisticas-inventario'],
+    queryFn: () => elementosAPI.obtenerEstadisticasInventario()
+  })
+
+  return {
+    estadisticas: data?.data || null,
+    isLoading,
+    error
+  }
+}
+
+/**
+ * Hook: Obtener alertas de stock bajo
+ */
+export const useGetAlertasStock = () => {
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ['elementos', 'alertas-stock'],
+    queryFn: () => elementosAPI.obtenerAlertasStock()
+  })
+
+  return {
+    alertas: data?.data || [],
+    isLoading,
+    error,
+    refetch
+  }
+}
+
 // Export por defecto (alias de useGetElementos)
 const useElementos = useGetElementos
 export default useElementos

@@ -1,37 +1,41 @@
 // ============================================
-// CONTROLLER: Ubicaciones
-// Responsabilidad: Lógica de negocio de ubicaciones
+// CONTROLADOR: UBICACIONES
+// Refactorizado: logger, validadores,
+// constantes, paginación, next(error)
 // ============================================
 
 const UbicacionModel = require('../models/UbicacionModel');
+const AppError = require('../../../utils/AppError');
+const logger = require('../../../utils/logger');
+const { validateNombre, validateId, validateTipoUbicacion } = require('../../../utils/validators');
+const { MENSAJES_ERROR, MENSAJES_EXITO, ENTIDADES } = require('../../../config/constants');
+const { getPaginationParams, getPaginatedResponse, shouldPaginate, getSortParams } = require('../../../utils/pagination');
 
 // ============================================
-// TIPOS DE UBICACIÓN VÁLIDOS
+// LISTAR UBICACIONES (con y sin paginación)
 // ============================================
-const TIPOS_VALIDOS = [
-    // Almacenamiento
-    'bodega',
-    'taller',
-    'transito',
-    // Lugares de eventos
-    'finca',
-    'hacienda',
-    'jardin',
-    'club',
-    'hotel',
-    'playa',
-    'parque',
-    'residencia',
-    'evento',
-    // Otros
-    'otro'
-];
 
-// ============================================
-// OBTENER TODAS LAS UBICACIONES
-// ============================================
-exports.obtenerTodas = async (req, res) => {
+exports.obtenerTodas = async (req, res, next) => {
     try {
+        const paginar = shouldPaginate(req.query) && (req.query.page || req.query.limit);
+
+        if (paginar) {
+            const { page, limit, offset } = getPaginationParams(req.query);
+            const { sortBy, order } = getSortParams(req.query, 'nombre');
+            const search = req.query.search || null;
+
+            logger.debug('ubicacionController.obtenerTodas', 'Listando con paginación', {
+                page, limit, offset, sortBy, order, search
+            });
+
+            const [ubicaciones, total] = await Promise.all([
+                UbicacionModel.obtenerConPaginacion({ limit, offset, sortBy, order, search }),
+                UbicacionModel.contarTodas(search)
+            ]);
+
+            return res.json(getPaginatedResponse(ubicaciones, page, limit, total));
+        }
+
         const ubicaciones = await UbicacionModel.obtenerTodas();
 
         res.json({
@@ -39,19 +43,16 @@ exports.obtenerTodas = async (req, res) => {
             data: ubicaciones
         });
     } catch (error) {
-        console.error('❌ Error al obtener ubicaciones:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Error al obtener ubicaciones',
-            error: error.message
-        });
+        logger.error('ubicacionController.obtenerTodas', error);
+        next(error);
     }
 };
 
 // ============================================
 // OBTENER SOLO UBICACIONES ACTIVAS
 // ============================================
-exports.obtenerActivas = async (req, res) => {
+
+exports.obtenerActivas = async (req, res, next) => {
     try {
         const ubicaciones = await UbicacionModel.obtenerActivas();
 
@@ -60,27 +61,21 @@ exports.obtenerActivas = async (req, res) => {
             data: ubicaciones
         });
     } catch (error) {
-        console.error('❌ Error al obtener ubicaciones activas:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Error al obtener ubicaciones activas',
-            error: error.message
-        });
+        logger.error('ubicacionController.obtenerActivas', error);
+        next(error);
     }
 };
 
 // ============================================
 // OBTENER UBICACIÓN PRINCIPAL
 // ============================================
-exports.obtenerPrincipal = async (req, res) => {
+
+exports.obtenerPrincipal = async (req, res, next) => {
     try {
         const ubicacion = await UbicacionModel.obtenerPrincipal();
 
         if (!ubicacion) {
-            return res.status(404).json({
-                success: false,
-                message: 'No hay ubicación principal configurada'
-            });
+            throw new AppError('No hay ubicación principal configurada', 404);
         }
 
         res.json({
@@ -88,58 +83,41 @@ exports.obtenerPrincipal = async (req, res) => {
             data: ubicacion
         });
     } catch (error) {
-        console.error('❌ Error al obtener ubicación principal:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Error al obtener ubicación principal',
-            error: error.message
-        });
+        logger.error('ubicacionController.obtenerPrincipal', error);
+        next(error);
     }
 };
 
 // ============================================
-// OBTENER UBICACIÓN POR ID
+// OBTENER POR ID
 // ============================================
-exports.obtenerPorId = async (req, res) => {
+
+exports.obtenerPorId = async (req, res, next) => {
     try {
         const { id } = req.params;
+        validateId(id, 'ID de ubicación');
+
         const ubicacion = await UbicacionModel.obtenerPorId(id);
 
         if (!ubicacion) {
-            return res.status(404).json({
-                success: false,
-                message: 'Ubicación no encontrada'
-            });
+            throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO(ENTIDADES.UBICACION), 404);
         }
 
-        res.json({
-            success: true,
-            data: ubicacion
-        });
+        res.json({ success: true, data: ubicacion });
     } catch (error) {
-        console.error('❌ Error al obtener ubicación:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Error al obtener ubicación',
-            error: error.message
-        });
+        logger.error('ubicacionController.obtenerPorId', error);
+        next(error);
     }
 };
 
 // ============================================
-// OBTENER UBICACIONES POR TIPO
+// OBTENER POR TIPO
 // ============================================
-exports.obtenerPorTipo = async (req, res) => {
+
+exports.obtenerPorTipo = async (req, res, next) => {
     try {
         const { tipo } = req.params;
-
-        // Validar tipo
-        if (!TIPOS_VALIDOS.includes(tipo)) {
-            return res.status(400).json({
-                success: false,
-                message: `Tipo no válido. Debe ser uno de: ${TIPOS_VALIDOS.join(', ')}`
-            });
-        }
+        validateTipoUbicacion(tipo, true);
 
         const ubicaciones = await UbicacionModel.obtenerPorTipo(tipo);
 
@@ -148,19 +126,16 @@ exports.obtenerPorTipo = async (req, res) => {
             data: ubicaciones
         });
     } catch (error) {
-        console.error('❌ Error al obtener ubicaciones por tipo:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Error al obtener ubicaciones por tipo',
-            error: error.message
-        });
+        logger.error('ubicacionController.obtenerPorTipo', error);
+        next(error);
     }
 };
 
 // ============================================
 // OBTENER UBICACIONES CON INVENTARIO
 // ============================================
-exports.obtenerConInventario = async (req, res) => {
+
+exports.obtenerConInventario = async (req, res, next) => {
     try {
         const ubicaciones = await UbicacionModel.obtenerConInventario();
 
@@ -169,29 +144,23 @@ exports.obtenerConInventario = async (req, res) => {
             data: ubicaciones
         });
     } catch (error) {
-        console.error('❌ Error al obtener ubicaciones con inventario:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Error al obtener ubicaciones con inventario',
-            error: error.message
-        });
+        logger.error('ubicacionController.obtenerConInventario', error);
+        next(error);
     }
 };
 
 // ============================================
 // OBTENER DETALLE DE INVENTARIO DE UNA UBICACIÓN
 // ============================================
-exports.obtenerDetalleInventario = async (req, res) => {
+
+exports.obtenerDetalleInventario = async (req, res, next) => {
     try {
         const { id } = req.params;
+        validateId(id, 'ID de ubicación');
 
-        // Verificar que la ubicación existe
         const ubicacion = await UbicacionModel.obtenerPorId(id);
         if (!ubicacion) {
-            return res.status(404).json({
-                success: false,
-                message: 'Ubicación no encontrada'
-            });
+            throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO(ENTIDADES.UBICACION), 404);
         }
 
         const detalle = await UbicacionModel.obtenerDetalleInventario(id);
@@ -208,149 +177,111 @@ exports.obtenerDetalleInventario = async (req, res) => {
             }
         });
     } catch (error) {
-        console.error('❌ Error al obtener detalle de inventario:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Error al obtener detalle de inventario',
-            error: error.message
-        });
+        logger.error('ubicacionController.obtenerDetalleInventario', error);
+        next(error);
     }
 };
 
 // ============================================
 // CREAR NUEVA UBICACIÓN
 // ============================================
-exports.crear = async (req, res) => {
+
+exports.crear = async (req, res, next) => {
     try {
-        const { nombre, tipo } = req.body;
+        const body = req.body;
+        logger.info('ubicacionController.crear', 'Creando ubicación', { nombre: body.nombre });
 
-        // Validaciones
-        if (!nombre || nombre.trim() === '') {
-            return res.status(400).json({
-                success: false,
-                message: 'El nombre es obligatorio'
-            });
+        validateNombre(body.nombre, ENTIDADES.UBICACION);
+
+        if (body.tipo) {
+            validateTipoUbicacion(body.tipo, false);
         }
 
-        // Verificar que el nombre no exista
-        const nombreExiste = await UbicacionModel.nombreExiste(nombre);
+        // Verificar duplicados
+        const nombreExiste = await UbicacionModel.nombreExiste(body.nombre);
         if (nombreExiste) {
-            return res.status(400).json({
-                success: false,
-                message: 'Ya existe una ubicación con ese nombre'
-            });
+            throw new AppError('Ya existe una ubicación con ese nombre', 400);
         }
 
-        // Validar tipo si viene
-        if (tipo && !TIPOS_VALIDOS.includes(tipo)) {
-            return res.status(400).json({
-                success: false,
-                message: `Tipo no válido. Debe ser uno de: ${TIPOS_VALIDOS.join(', ')}`
-            });
-        }
-
-        const nuevoId = await UbicacionModel.crear(req.body);
+        const nuevoId = await UbicacionModel.crear(body);
         const ubicacion = await UbicacionModel.obtenerPorId(nuevoId);
+
+        logger.info('ubicacionController.crear', 'Ubicación creada exitosamente', { id: nuevoId });
 
         res.status(201).json({
             success: true,
-            message: 'Ubicación creada exitosamente',
+            mensaje: MENSAJES_EXITO.CREADO(ENTIDADES.UBICACION),
             data: ubicacion
         });
     } catch (error) {
-        console.error('❌ Error al crear ubicación:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Error al crear ubicación',
-            error: error.message
-        });
+        logger.error('ubicacionController.crear', error);
+        next(error);
     }
 };
 
 // ============================================
 // ACTUALIZAR UBICACIÓN
 // ============================================
-exports.actualizar = async (req, res) => {
+
+exports.actualizar = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const { nombre, tipo } = req.body;
+        const body = req.body;
 
-        // Verificar que la ubicación existe
+        logger.info('ubicacionController.actualizar', 'Actualizando ubicación', { id });
+
+        validateId(id, 'ID de ubicación');
+
         const ubicacionExiste = await UbicacionModel.obtenerPorId(id);
         if (!ubicacionExiste) {
-            return res.status(404).json({
-                success: false,
-                message: 'Ubicación no encontrada'
-            });
+            throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO(ENTIDADES.UBICACION), 404);
         }
 
-        // Validaciones
-        if (nombre && nombre.trim() === '') {
-            return res.status(400).json({
-                success: false,
-                message: 'El nombre no puede estar vacío'
-            });
-        }
+        if (body.nombre && body.nombre.trim() !== '') {
+            validateNombre(body.nombre, ENTIDADES.UBICACION);
 
-        // Verificar que el nombre no exista (excluyendo la ubicación actual)
-        if (nombre) {
-            const nombreExiste = await UbicacionModel.nombreExiste(nombre, id);
+            const nombreExiste = await UbicacionModel.nombreExiste(body.nombre, id);
             if (nombreExiste) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Ya existe otra ubicación con ese nombre'
-                });
+                throw new AppError('Ya existe otra ubicación con ese nombre', 400);
             }
         }
 
-        // Validar tipo si viene
-        if (tipo && !TIPOS_VALIDOS.includes(tipo)) {
-            return res.status(400).json({
-                success: false,
-                message: `Tipo no válido. Debe ser uno de: ${TIPOS_VALIDOS.join(', ')}`
-            });
+        if (body.tipo) {
+            validateTipoUbicacion(body.tipo, false);
         }
 
-        await UbicacionModel.actualizar(id, req.body);
+        await UbicacionModel.actualizar(id, body);
         const ubicacionActualizada = await UbicacionModel.obtenerPorId(id);
+
+        logger.info('ubicacionController.actualizar', 'Ubicación actualizada exitosamente', { id });
 
         res.json({
             success: true,
-            message: 'Ubicación actualizada exitosamente',
+            mensaje: MENSAJES_EXITO.ACTUALIZADO(ENTIDADES.UBICACION),
             data: ubicacionActualizada
         });
     } catch (error) {
-        console.error('❌ Error al actualizar ubicación:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Error al actualizar ubicación',
-            error: error.message
-        });
+        logger.error('ubicacionController.actualizar', error);
+        next(error);
     }
 };
 
 // ============================================
 // MARCAR COMO PRINCIPAL
 // ============================================
-exports.marcarComoPrincipal = async (req, res) => {
+
+exports.marcarComoPrincipal = async (req, res, next) => {
     try {
         const { id } = req.params;
+        validateId(id, 'ID de ubicación');
 
-        // Verificar que la ubicación existe
         const ubicacion = await UbicacionModel.obtenerPorId(id);
         if (!ubicacion) {
-            return res.status(404).json({
-                success: false,
-                message: 'Ubicación no encontrada'
-            });
+            throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO(ENTIDADES.UBICACION), 404);
         }
 
-        // Verificar que esté activa
         if (!ubicacion.activo) {
-            return res.status(400).json({
-                success: false,
-                message: 'No se puede marcar como principal una ubicación inactiva'
-            });
+            throw new AppError('No se puede marcar como principal una ubicación inactiva', 400);
         }
 
         await UbicacionModel.marcarComoPrincipal(id);
@@ -358,131 +289,89 @@ exports.marcarComoPrincipal = async (req, res) => {
 
         res.json({
             success: true,
-            message: 'Ubicación marcada como principal exitosamente',
+            mensaje: 'Ubicación marcada como principal exitosamente',
             data: ubicacionActualizada
         });
     } catch (error) {
-        console.error('❌ Error al marcar como principal:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Error al marcar como principal',
-            error: error.message
-        });
+        logger.error('ubicacionController.marcarComoPrincipal', error);
+        next(error);
     }
 };
 
 // ============================================
 // DESACTIVAR UBICACIÓN (Soft Delete)
 // ============================================
-exports.desactivar = async (req, res) => {
+
+exports.desactivar = async (req, res, next) => {
     try {
         const { id } = req.params;
+        validateId(id, 'ID de ubicación');
 
-        // Verificar que la ubicación existe
         const ubicacion = await UbicacionModel.obtenerPorId(id);
         if (!ubicacion) {
-            return res.status(404).json({
-                success: false,
-                message: 'Ubicación no encontrada'
-            });
+            throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO(ENTIDADES.UBICACION), 404);
         }
 
         await UbicacionModel.desactivar(id);
 
         res.json({
             success: true,
-            message: 'Ubicación desactivada exitosamente'
+            mensaje: 'Ubicación desactivada exitosamente'
         });
     } catch (error) {
-        console.error('❌ Error al desactivar ubicación:', error);
-
-        // Si es error de ubicación principal
-        if (error.message.includes('ubicación principal')) {
-            return res.status(400).json({
-                success: false,
-                message: error.message
-            });
-        }
-
-        res.status(500).json({
-            success: false,
-            message: 'Error al desactivar ubicación',
-            error: error.message
-        });
+        logger.error('ubicacionController.desactivar', error);
+        next(error);
     }
 };
 
 // ============================================
 // ACTIVAR UBICACIÓN
 // ============================================
-exports.activar = async (req, res) => {
+
+exports.activar = async (req, res, next) => {
     try {
         const { id } = req.params;
+        validateId(id, 'ID de ubicación');
 
-        // Verificar que la ubicación existe
         const ubicacion = await UbicacionModel.obtenerPorId(id);
         if (!ubicacion) {
-            return res.status(404).json({
-                success: false,
-                message: 'Ubicación no encontrada'
-            });
+            throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO(ENTIDADES.UBICACION), 404);
         }
 
         await UbicacionModel.activar(id);
 
         res.json({
             success: true,
-            message: 'Ubicación activada exitosamente'
+            mensaje: 'Ubicación activada exitosamente'
         });
     } catch (error) {
-        console.error('❌ Error al activar ubicación:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Error al activar ubicación',
-            error: error.message
-        });
+        logger.error('ubicacionController.activar', error);
+        next(error);
     }
 };
 
 // ============================================
 // ELIMINAR UBICACIÓN (Hard Delete)
-// Solo si no tiene inventario
 // ============================================
-exports.eliminar = async (req, res) => {
+
+exports.eliminar = async (req, res, next) => {
     try {
         const { id } = req.params;
+        validateId(id, 'ID de ubicación');
 
-        // Verificar que la ubicación existe
         const ubicacion = await UbicacionModel.obtenerPorId(id);
         if (!ubicacion) {
-            return res.status(404).json({
-                success: false,
-                message: 'Ubicación no encontrada'
-            });
+            throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO(ENTIDADES.UBICACION), 404);
         }
 
-        // El modelo ya verifica que no tenga inventario
         await UbicacionModel.eliminar(id);
 
         res.json({
             success: true,
-            message: 'Ubicación eliminada exitosamente'
+            mensaje: MENSAJES_EXITO.ELIMINADO(ENTIDADES.UBICACION)
         });
     } catch (error) {
-        console.error('❌ Error al eliminar ubicación:', error);
-
-        // Error específico si tiene inventario o es principal
-        if (error.message.includes('inventario asociado') || error.message.includes('ubicación principal')) {
-            return res.status(400).json({
-                success: false,
-                message: error.message
-            });
-        }
-
-        res.status(500).json({
-            success: false,
-            message: 'Error al eliminar ubicación',
-            error: error.message
-        });
+        logger.error('ubicacionController.eliminar', error);
+        next(error);
     }
 };

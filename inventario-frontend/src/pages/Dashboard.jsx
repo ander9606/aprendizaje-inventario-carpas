@@ -4,7 +4,7 @@
 // ============================================
 
 import { useState, useMemo } from 'react'
-import { Plus, Package, MapPin, ArrowLeft, Search, X, Layers, ChevronRight } from 'lucide-react'
+import { Plus, Package, MapPin, ArrowLeft, Search, X, Layers, ChevronRight, BarChart3 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useNavigation } from '../hooks/UseNavigation'  
 import {
@@ -257,6 +257,15 @@ export default function Dashboard() {
 
             {/* Botones de acciones */}
             <div className="flex gap-3">
+              {/* Botón: Dashboard de inventario */}
+              <Button
+                variant="secondary"
+                icon={<BarChart3 />}
+                onClick={() => navigate('/inventario/dashboard')}
+              >
+                Dashboard
+              </Button>
+
               {/* Botón: Gestionar ubicaciones */}
               <Button
                 variant="secondary"

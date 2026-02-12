@@ -26,6 +26,12 @@ router.get('/categoria/:categoriaId', elementoController.obtenerPorCategoria);
 // GET /api/elementos/subcategoria/:subcategoriaId (alias para mejor semántica)
 router.get('/subcategoria/:subcategoriaId', elementoController.obtenerPorCategoria);
 
+// GET /api/elementos/alertas-stock - Alertas de stock bajo
+router.get('/alertas-stock', elementoController.obtenerAlertasStock);
+
+// GET /api/elementos/estadisticas-inventario - Estadisticas para dashboard
+router.get('/estadisticas-inventario', elementoController.obtenerEstadisticasInventario);
+
 // ============================================
 // RUTAS CRUD ESTÁNDAR
 // ============================================

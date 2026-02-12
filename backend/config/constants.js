@@ -45,6 +45,19 @@ const TIPOS_UBICACION = {
 const TIPOS_UBICACION_VALIDOS = Object.values(TIPOS_UBICACION);
 
 // ============================================
+// TIPOS DE UNIDAD
+// ============================================
+
+const TIPOS_UNIDAD = {
+  LONGITUD: 'longitud',
+  PESO: 'peso',
+  VOLUMEN: 'volumen',
+  CANTIDAD: 'cantidad'
+};
+
+const TIPOS_UNIDAD_VALIDOS = Object.values(TIPOS_UNIDAD);
+
+// ============================================
 // LÍMITES DE VALIDACIÓN
 // ============================================
 
@@ -99,6 +112,7 @@ const MENSAJES_ERROR = {
 
   ESTADO_INVALIDO: `Estado inválido. Valores permitidos: ${ESTADOS_VALIDOS.join(', ')}`,
   UBICACION_TIPO_INVALIDO: `Tipo de ubicación inválido. Valores permitidos: ${TIPOS_UBICACION_VALIDOS.join(', ')}`,
+  UNIDAD_TIPO_INVALIDO: `Tipo de unidad inválido. Valores permitidos: ${TIPOS_UNIDAD_VALIDOS.join(', ')}`,
 
   // Operaciones
   NO_SE_PUEDE_ELIMINAR_CON_HIJOS: (entidad) => `No se puede eliminar ${entidad} que tiene registros relacionados`,
@@ -177,6 +191,8 @@ module.exports = {
   ESTADOS_VALIDOS,
   TIPOS_UBICACION,
   TIPOS_UBICACION_VALIDOS,
+  TIPOS_UNIDAD,
+  TIPOS_UNIDAD_VALIDOS,
   LIMITES,
   MENSAJES_ERROR,
   MENSAJES_EXITO,
