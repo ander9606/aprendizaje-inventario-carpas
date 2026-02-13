@@ -3,20 +3,19 @@
 // Dashboard para gestión de datos maestros
 // ============================================
 
-import { useNavigation } from '../hooks/UseNavigation'
 import { useNavigate } from 'react-router-dom'
 import {
   Settings,
   MapPin,
-  ArrowLeft,
   ArrowRight,
   Shield,
   Building
 } from 'lucide-react'
 import { useAuth } from '../hooks/auth/useAuth'
+import PageHeader from '../components/common/PageHeader'
+import InfoBox from '../components/common/InfoBox'
 
 export default function ConfiguracionPage() {
-  const { volverAModulos } = useNavigation()
   const navigate = useNavigate()
   const { hasRole } = useAuth()
 
@@ -90,32 +89,14 @@ export default function ConfiguracionPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100">
-      {/* Header */}
-      <div className="bg-white/80 backdrop-blur-sm border-b border-slate-200/60">
-        <div className="max-w-6xl mx-auto px-6 py-6">
-          <button
-            onClick={volverAModulos}
-            className="flex items-center gap-2 text-slate-500 hover:text-slate-900 mb-4 transition-colors text-sm"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>Volver a Módulos</span>
-          </button>
-
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-slate-500 flex items-center justify-center shadow-sm">
-              <Settings className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-slate-900">
-                Configuración
-              </h1>
-              <p className="text-slate-500">
-                Gestiona los datos maestros del sistema
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        icon={Settings}
+        iconColor="bg-slate-500"
+        title="Configuración"
+        subtitle="Gestiona los datos maestros del sistema"
+        backTo="/"
+        backLabel="Volver a Módulos"
+      />
 
       {/* Contenido */}
       <main className="max-w-6xl mx-auto px-6 py-10">
@@ -185,12 +166,12 @@ export default function ConfiguracionPage() {
         </div>
 
         {/* Info */}
-        <div className="mt-8 p-4 bg-amber-50 border border-amber-200 rounded-lg">
-          <p className="text-sm text-amber-800">
+        <div className="mt-8">
+          <InfoBox variant="warning">
             <strong>Flujo recomendado:</strong> Primero crea las ciudades con
             sus tarifas de transporte, y luego crea las ubicaciones
             seleccionando una ciudad del catálogo.
-          </p>
+          </InfoBox>
         </div>
       </main>
     </div>

@@ -68,8 +68,8 @@ const OperacionesSidebar = () => {
 
         {/* Título del módulo */}
         <div className="flex items-center gap-3 px-2 mb-4">
-          <div className="p-2 bg-orange-100 rounded-lg">
-            <Truck className="w-5 h-5 text-orange-600" />
+          <div className="w-9 h-9 rounded-lg bg-orange-500 flex items-center justify-center shadow-sm">
+            <Truck className="w-4 h-4 text-white" />
           </div>
           <h2 className="text-sm font-semibold text-slate-900">
             Operaciones
