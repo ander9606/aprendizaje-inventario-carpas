@@ -454,6 +454,29 @@ export const useGetAlertasOrden = (ordenId) => {
 }
 
 // ============================================
+// HOOKS: INVENTARIO CLIENTE
+// ============================================
+
+/**
+ * Hook: useGetInventarioCliente
+ * Obtiene datos de inventario para compartir con el cliente
+ */
+export const useGetInventarioCliente = (ordenId, options = {}) => {
+    const { data, isLoading, error, refetch } = useQuery({
+        queryKey: ['ordenes', ordenId, 'inventario-cliente'],
+        queryFn: () => ordenesAPI.obtenerInventarioCliente(ordenId),
+        enabled: !!ordenId && (options.enabled !== false)
+    })
+
+    return {
+        inventario: data?.data || null,
+        isLoading,
+        error,
+        refetch
+    }
+}
+
+// ============================================
 // HOOKS: DURACIONES
 // ============================================
 

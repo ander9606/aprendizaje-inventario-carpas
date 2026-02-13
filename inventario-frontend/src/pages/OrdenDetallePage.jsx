@@ -28,7 +28,8 @@ import {
     Bell,
     ExternalLink,
     ClipboardCheck,
-    Timer
+    Timer,
+    Share2
 } from 'lucide-react'
 import {
     useGetOrden,
@@ -52,7 +53,8 @@ import {
     ModalAsignarResponsable,
     ModalEditarOrden,
     ModalAsignarInventario,
-    ChecklistCargueDescargue
+    ChecklistCargueDescargue,
+    ModalInventarioCliente
 } from '../components/operaciones'
 import { toast } from 'sonner'
 
@@ -76,6 +78,7 @@ export default function OrdenDetallePage() {
     const [showModalOrdenCargue, setShowModalOrdenCargue] = useState(false)
     const [showChecklistCargue, setShowChecklistCargue] = useState(false)
     const [showChecklistDescargue, setShowChecklistDescargue] = useState(false)
+    const [showInventarioCliente, setShowInventarioCliente] = useState(false)
     const [ejecutandoSalida, setEjecutandoSalida] = useState(false)
 
     // ============================================
@@ -694,12 +697,23 @@ export default function OrdenDetallePage() {
 
             {/* ESTADO COMPLETADO - Banner */}
             {esCompletado && (
-                <div className="mb-6 bg-green-50 border border-green-200 rounded-xl p-4 flex items-center gap-3">
-                    <CheckCircle className="w-5 h-5 text-green-500 shrink-0" />
-                    <div>
-                        <p className="font-semibold text-green-800">Orden Completada</p>
-                        <p className="text-sm text-green-600">Esta orden fue completada exitosamente</p>
+                <div className="mb-6 bg-green-50 border border-green-200 rounded-xl p-4 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                        <CheckCircle className="w-5 h-5 text-green-500 shrink-0" />
+                        <div>
+                            <p className="font-semibold text-green-800">Orden Completada</p>
+                            <p className="text-sm text-green-600">Esta orden fue completada exitosamente</p>
+                        </div>
                     </div>
+                    {orden.tipo === 'montaje' && (
+                        <button
+                            onClick={() => setShowInventarioCliente(true)}
+                            className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-orange-500 hover:bg-orange-600 rounded-lg transition-colors shadow-sm shrink-0"
+                        >
+                            <Share2 className="w-4 h-4" />
+                            Compartir Inventario
+                        </button>
+                    )}
                 </div>
             )}
 
@@ -1223,6 +1237,12 @@ export default function OrdenDetallePage() {
                     ordenInfo={orden}
                     modo="descargue"
                     onCompleto={refetch}
+                />
+            )}
+            {showInventarioCliente && (
+                <ModalInventarioCliente
+                    ordenId={orden.id}
+                    onClose={() => setShowInventarioCliente(false)}
                 />
             )}
         </div>

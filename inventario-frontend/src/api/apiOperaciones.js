@@ -202,6 +202,20 @@ const ordenesAPI = {
     },
 
     // ============================================
+    // INVENTARIO CLIENTE
+    // ============================================
+
+    /**
+     * Obtener inventario para el cliente (montaje completado)
+     * @param {number} id - ID de la orden de montaje
+     * @returns {Object} - Datos del inventario con productos desglosados
+     */
+    obtenerInventarioCliente: async (id) => {
+        const response = await api.get(`/operaciones/ordenes/${id}/inventario-cliente`)
+        return response.data
+    },
+
+    // ============================================
     // DURACIONES
     // ============================================
 

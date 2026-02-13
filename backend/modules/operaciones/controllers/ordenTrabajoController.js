@@ -1019,6 +1019,28 @@ const getAlertasPorOrden = async (req, res, next) => {
 };
 
 // ============================================
+// INVENTARIO CLIENTE
+// ============================================
+
+/**
+ * GET /api/operaciones/ordenes/:id/inventario-cliente
+ * Generar documento de inventario para el cliente después de montaje completado
+ */
+const getInventarioCliente = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const inventario = await OrdenTrabajoModel.generarInventarioCliente(parseInt(id));
+
+        res.json({
+            success: true,
+            data: inventario
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// ============================================
 // DURACIONES Y HISTORIAL DE ESTADOS
 // ============================================
 
@@ -1145,6 +1167,9 @@ module.exports = {
     cambiarEstadoElementosMasivo,
     reportarIncidencia,
     subirFotoElemento,
+
+    // Inventario Cliente
+    getInventarioCliente,
 
     // Duraciones
     getDuracionesOrden,

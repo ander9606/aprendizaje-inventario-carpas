@@ -171,6 +171,17 @@ router.get(
 );
 
 // ============================================
+// RUTAS DE INVENTARIO CLIENTE
+// ============================================
+
+// Generar inventario para el cliente (montaje completado)
+router.get(
+    '/ordenes/:id/inventario-cliente',
+    verificarRol(['admin', 'gerente', 'operaciones']),
+    ordenTrabajoController.getInventarioCliente
+);
+
+// ============================================
 // RUTAS DE DURACIONES
 // ============================================
 

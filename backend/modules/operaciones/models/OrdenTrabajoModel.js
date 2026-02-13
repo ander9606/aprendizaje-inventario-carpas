@@ -819,6 +819,119 @@ class OrdenTrabajoModel {
     }
 
     // ============================================
+    // INVENTARIO CLIENTE
+    // ============================================
+
+    /**
+     * Generar datos de inventario para el cliente después de montaje completado.
+     * Incluye: productos con desglose de componentes, estado de cada elemento,
+     * info del evento y fecha de desmontaje programada.
+     * @param {number} ordenId
+     * @returns {Promise<Object>}
+     */
+    static async generarInventarioCliente(ordenId) {
+        const orden = await this.obtenerOrdenCompleta(ordenId);
+        if (!orden) {
+            throw new AppError('Orden de trabajo no encontrada', 404);
+        }
+
+        if (orden.tipo !== 'montaje') {
+            throw new AppError('Solo se puede generar inventario desde una orden de montaje', 400);
+        }
+
+        if (orden.estado !== 'completado') {
+            throw new AppError('El montaje debe estar completado para generar el inventario', 400);
+        }
+
+        // Obtener desglose de componentes por producto
+        const productosConDesglose = [];
+        for (const producto of (orden.productos || [])) {
+            const [componentesResult] = await pool.query(`
+                SELECT
+                    cc.id,
+                    cc.elemento_id,
+                    cc.cantidad,
+                    cc.tipo,
+                    cc.grupo,
+                    cc.es_default,
+                    e.nombre as elemento_nombre
+                FROM compuesto_componentes cc
+                INNER JOIN elementos e ON cc.elemento_id = e.id
+                WHERE cc.compuesto_id = ?
+                ORDER BY cc.orden ASC, e.nombre ASC
+            `, [producto.compuesto_id]);
+
+            // Vincular cada componente con los elementos físicos asignados
+            const componentesConEstado = componentesResult.map(comp => {
+                // Buscar elementos físicos que correspondan a este componente
+                const elementosFisicos = (orden.alquiler_elementos || []).filter(
+                    ae => ae.elemento_id === comp.elemento_id
+                );
+
+                return {
+                    ...comp,
+                    elementos_asignados: elementosFisicos.map(ef => ({
+                        id: ef.id,
+                        serie_codigo: ef.serie_codigo || null,
+                        lote_codigo: ef.lote_codigo || null,
+                        cantidad_lote: ef.cantidad_lote || null,
+                        estado_salida: ef.estado_salida || 'bueno'
+                    }))
+                };
+            });
+
+            productosConDesglose.push({
+                id: producto.id,
+                nombre: producto.producto_nombre,
+                codigo: producto.producto_codigo,
+                cantidad: producto.cantidad,
+                categoria: producto.categoria_nombre,
+                categoria_emoji: producto.categoria_emoji,
+                componentes: componentesConEstado
+            });
+        }
+
+        // Obtener fecha desmontaje programada
+        let fechaDesmontaje = orden.fecha_desmontaje || null;
+        if (orden.alquiler_id) {
+            const [desmontajeRows] = await pool.query(
+                `SELECT fecha_programada FROM ordenes_trabajo WHERE alquiler_id = ? AND tipo = 'desmontaje' AND estado != 'cancelado' LIMIT 1`,
+                [orden.alquiler_id]
+            );
+            if (desmontajeRows.length > 0) {
+                fechaDesmontaje = desmontajeRows[0].fecha_programada;
+            }
+        }
+
+        return {
+            orden_id: orden.id,
+            fecha_montaje_completado: orden.updated_at || new Date(),
+            evento: {
+                nombre: orden.evento_nombre || null,
+                direccion: orden.direccion_evento || orden.cotizacion_direccion || null,
+                ciudad: orden.ciudad_evento || orden.cotizacion_ciudad || null,
+                fecha_evento: orden.fecha_evento || null,
+                fecha_desmontaje: fechaDesmontaje
+            },
+            cliente: {
+                nombre: orden.cliente_nombre || null,
+                telefono: orden.cliente_telefono || null,
+                email: orden.cliente_email || null,
+                tipo_documento: orden.cliente_tipo_documento || null,
+                numero_documento: orden.cliente_numero_documento || null
+            },
+            productos: productosConDesglose,
+            total_elementos: (orden.alquiler_elementos || []).length,
+            resumen: {
+                total_productos: productosConDesglose.length,
+                total_componentes: productosConDesglose.reduce(
+                    (sum, p) => sum + p.componentes.length, 0
+                )
+            }
+        };
+    }
+
+    // ============================================
     // HISTORIAL DE ESTADOS Y DURACIONES
     // ============================================
 
