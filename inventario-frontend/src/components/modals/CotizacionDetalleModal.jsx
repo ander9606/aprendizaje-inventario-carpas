@@ -4,11 +4,11 @@
 // ============================================
 
 import { useState } from 'react'
-import { Calendar, User, MapPin, Phone, Mail, Truck, FileText, Edit, CheckCircle, XCircle, Ban, Download, FileEdit, CalendarCheck } from 'lucide-react'
+import { Calendar, User, MapPin, Phone, Mail, Truck, FileText, Edit, CheckCircle, XCircle, Ban, Download, FileEdit, CalendarCheck, MessageSquare, Clock } from 'lucide-react'
 import Modal from '../common/Modal'
 import Button from '../common/Button'
 import Spinner from '../common/Spinner'
-import { useGetCotizacionCompleta, useConfirmarFechasCotizacion } from '../../hooks/cotizaciones'
+import { useGetCotizacionCompleta, useConfirmarFechasCotizacion, useRegistrarSeguimiento } from '../../hooks/cotizaciones'
 import { useCancelarAlquiler } from '../../hooks/useAlquileres'
 import { apiCotizaciones } from '../../api/apiCotizaciones'
 
@@ -27,9 +27,12 @@ const CotizacionDetalleModal = ({
   const [descargandoPDF, setDescargandoPDF] = useState(false)
   const [showConfirmarFechas, setShowConfirmarFechas] = useState(false)
   const [fechasConfirmar, setFechasConfirmar] = useState({ fecha_montaje: '', fecha_evento: '', fecha_desmontaje: '' })
+  const [showSeguimiento, setShowSeguimiento] = useState(false)
+  const [notasSeguimiento, setNotasSeguimiento] = useState('')
 
   const cancelarMutation = useCancelarAlquiler()
   const confirmarFechasMutation = useConfirmarFechasCotizacion()
+  const seguimientoMutation = useRegistrarSeguimiento()
 
   // Cargar cotización completa con productos y transporte
   const { cotizacion, isLoading } = useGetCotizacionCompleta(isOpen ? cotizacionId : null)
@@ -80,6 +83,19 @@ const CotizacionDetalleModal = ({
       setShowConfirmarFechas(false)
     } catch (error) {
       alert('Error al confirmar fechas: ' + (error.response?.data?.message || error.message))
+    }
+  }
+
+  const handleRegistrarSeguimiento = async () => {
+    try {
+      await seguimientoMutation.mutateAsync({
+        id: cotizacionId,
+        notas: notasSeguimiento
+      })
+      setNotasSeguimiento('')
+      setShowSeguimiento(false)
+    } catch (error) {
+      alert('Error al registrar seguimiento: ' + (error.response?.data?.message || error.message))
     }
   }
 
@@ -392,6 +408,82 @@ const CotizacionDetalleModal = ({
               <p className="mt-1">Cotización sujeta a disponibilidad. Solo se reserva con anticipo.</p>
             </div>
           </div>
+
+          {/* SEGUIMIENTO - Solo para pendientes y borradores */}
+          {['pendiente', 'borrador'].includes(cotizacion.estado) && (
+            <div className="mt-6 print:hidden">
+              <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="font-semibold text-slate-700 flex items-center gap-2">
+                    <MessageSquare className="w-4 h-4" />
+                    Seguimiento
+                  </h4>
+                  {!showSeguimiento && (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      icon={<MessageSquare className="w-3 h-3" />}
+                      onClick={() => setShowSeguimiento(true)}
+                    >
+                      Registrar contacto
+                    </Button>
+                  )}
+                </div>
+
+                {/* Info de último seguimiento */}
+                {cotizacion.ultimo_seguimiento ? (
+                  <div className="text-sm text-slate-600 space-y-1">
+                    <p className="flex items-center gap-2">
+                      <Clock className="w-3 h-3" />
+                      Ultimo contacto: {formatearFecha(cotizacion.ultimo_seguimiento)}
+                    </p>
+                    {cotizacion.notas_seguimiento && (
+                      <p className="text-slate-500 italic pl-5">
+                        {cotizacion.notas_seguimiento}
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-sm text-slate-400 italic">Sin seguimiento registrado</p>
+                )}
+
+                {/* Formulario de seguimiento */}
+                {showSeguimiento && (
+                  <div className="mt-3 pt-3 border-t border-slate-200">
+                    <textarea
+                      value={notasSeguimiento}
+                      onChange={(e) => setNotasSeguimiento(e.target.value)}
+                      rows={2}
+                      placeholder="Notas del seguimiento: que se hablo con el cliente, resultado..."
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 resize-none"
+                    />
+                    <div className="flex gap-2 justify-end mt-2">
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => {
+                          setShowSeguimiento(false)
+                          setNotasSeguimiento('')
+                        }}
+                      >
+                        Cancelar
+                      </Button>
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        icon={<CheckCircle className="w-3 h-3" />}
+                        onClick={handleRegistrarSeguimiento}
+                        loading={seguimientoMutation.isPending}
+                        disabled={seguimientoMutation.isPending}
+                      >
+                        Registrar
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* BANNER BORRADOR */}
           {cotizacion.estado === 'borrador' && (

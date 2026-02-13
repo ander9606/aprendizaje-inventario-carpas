@@ -10,7 +10,8 @@ import {
   Bell,
   ChevronDown,
   ChevronUp,
-  RefreshCw
+  RefreshCw,
+  Info
 } from 'lucide-react'
 import AlertaItem from './AlertaItem'
 import Button from '../common/Button'
@@ -42,6 +43,7 @@ const AlertasPanel = ({
   // Separar por severidad
   const criticas = alertas.filter(a => a.severidad === 'critico')
   const advertencias = alertas.filter(a => a.severidad === 'advertencia')
+  const informativas = alertas.filter(a => a.severidad === 'info')
 
   // Si no hay alertas, no mostrar nada
   if (!isLoading && alertas.length === 0) {
@@ -152,6 +154,28 @@ const AlertasPanel = ({
               </div>
               <div className="space-y-2">
                 {advertencias.map((alerta, idx) => (
+                  <AlertaItem
+                    key={`${alerta.tipo}-${alerta.referencia_id}-${idx}`}
+                    alerta={alerta}
+                    onIgnorar={onIgnorar}
+                    isIgnorando={isIgnorando}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Alertas informativas (seguimiento) */}
+          {informativas.length > 0 && (
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <Info className="w-4 h-4 text-blue-500" />
+                <span className="text-sm font-medium text-blue-700">
+                  Seguimiento ({informativas.length})
+                </span>
+              </div>
+              <div className="space-y-2">
+                {informativas.map((alerta, idx) => (
                   <AlertaItem
                     key={`${alerta.tipo}-${alerta.referencia_id}-${idx}`}
                     alerta={alerta}

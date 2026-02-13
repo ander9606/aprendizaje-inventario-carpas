@@ -40,7 +40,12 @@ const TIPOS_ALERTA = {
   ALQUILER_NO_INICIADO: 'ALQUILER_NO_INICIADO',
   RETORNO_PROXIMO: 'RETORNO_PROXIMO',
   SALIDA_PROXIMA: 'SALIDA_PROXIMA',
-  DESMONTAJE_PROXIMO: 'DESMONTAJE_PROXIMO'
+  DESMONTAJE_PROXIMO: 'DESMONTAJE_PROXIMO',
+  // Seguimiento de cotizaciones
+  COTIZACION_VENCIDA: 'COTIZACION_VENCIDA',
+  COTIZACION_POR_VENCER: 'COTIZACION_POR_VENCER',
+  BORRADOR_ANTIGUO: 'BORRADOR_ANTIGUO',
+  COTIZACION_SIN_SEGUIMIENTO: 'COTIZACION_SIN_SEGUIMIENTO'
 };
 
 const SEVERIDAD = {
@@ -94,6 +99,15 @@ class AlertasAlquilerService {
     alertas.push(...alquileresNoIniciados);
 
     // -----------------------------------------------------------------
+    // ALERTAS DE COTIZACIONES (seguimiento)
+    // -----------------------------------------------------------------
+    const configSeguimiento = await this.obtenerConfigSeguimiento();
+    if (configSeguimiento.habilitar_seguimiento_cotizaciones) {
+      const cotizacionesVencidas = await this.getAlertasCotizacionVencida();
+      alertas.push(...cotizacionesVencidas);
+    }
+
+    // -----------------------------------------------------------------
     // ALERTAS DE ADVERTENCIA (solo si no se piden solo críticas)
     // -----------------------------------------------------------------
     if (!solo_criticas) {
@@ -104,6 +118,23 @@ class AlertasAlquilerService {
       alertas.push(...retornosProximos);
       alertas.push(...salidasProximas);
       alertas.push(...desmontajesProximos);
+
+      // Cotizaciones por vencer, borradores antiguos y sin seguimiento
+      if (configSeguimiento.habilitar_seguimiento_cotizaciones) {
+        const cotizacionesPorVencer = await this.getAlertasCotizacionPorVencer(
+          configSeguimiento.dias_advertencia_vencimiento_cotizacion
+        );
+        const borradoresAntiguos = await this.getAlertasBorradorAntiguo(
+          configSeguimiento.dias_seguimiento_borrador
+        );
+        const sinSeguimiento = await this.getAlertasCotizacionSinSeguimiento(
+          configSeguimiento.dias_seguimiento_pendiente
+        );
+
+        alertas.push(...cotizacionesPorVencer);
+        alertas.push(...borradoresAntiguos);
+        alertas.push(...sinSeguimiento);
+      }
     }
 
     // -----------------------------------------------------------------
@@ -480,6 +511,265 @@ class AlertasAlquilerService {
   }
 
   // ==========================================================================
+  // ALERTAS DE COTIZACIONES (SEGUIMIENTO)
+  // ==========================================================================
+
+  /**
+   * Obtiene la configuración de seguimiento desde la BD.
+   * @returns {Promise<Object>} Configuración con valores o defaults
+   */
+  static async obtenerConfigSeguimiento() {
+    try {
+      const query = `
+        SELECT clave, valor, tipo
+        FROM configuracion_alquileres
+        WHERE clave IN (
+          'dias_advertencia_vencimiento_cotizacion',
+          'dias_seguimiento_borrador',
+          'dias_seguimiento_pendiente',
+          'habilitar_seguimiento_cotizaciones'
+        )
+      `;
+      const [rows] = await pool.query(query);
+
+      const config = {
+        dias_advertencia_vencimiento_cotizacion: 3,
+        dias_seguimiento_borrador: 7,
+        dias_seguimiento_pendiente: 5,
+        habilitar_seguimiento_cotizaciones: true
+      };
+
+      for (const row of rows) {
+        if (row.tipo === 'numero') {
+          config[row.clave] = parseInt(row.valor, 10);
+        } else if (row.tipo === 'booleano') {
+          config[row.clave] = row.valor === 'true' || row.valor === '1';
+        } else {
+          config[row.clave] = row.valor;
+        }
+      }
+
+      return config;
+    } catch (error) {
+      logger.warn('[AlertasAlquilerService] Error obteniendo config seguimiento, usando defaults');
+      return {
+        dias_advertencia_vencimiento_cotizacion: 3,
+        dias_seguimiento_borrador: 7,
+        dias_seguimiento_pendiente: 5,
+        habilitar_seguimiento_cotizaciones: true
+      };
+    }
+  }
+
+  /**
+   * Cotizaciones pendientes cuya vigencia ya venció.
+   * Condición: estado='pendiente' AND (created_at + vigencia_dias) < HOY
+   */
+  static async getAlertasCotizacionVencida() {
+    const query = `
+      SELECT
+        cot.id,
+        cot.evento_nombre,
+        cot.total,
+        cot.vigencia_dias,
+        cot.created_at,
+        cot.ultimo_seguimiento,
+        cl.nombre AS cliente_nombre,
+        cl.telefono AS cliente_telefono,
+        DATEDIFF(CURDATE(), DATE(DATE_ADD(cot.created_at, INTERVAL cot.vigencia_dias DAY))) AS dias_vencida
+      FROM cotizaciones cot
+      INNER JOIN clientes cl ON cot.cliente_id = cl.id
+      WHERE cot.estado = 'pendiente'
+        AND DATE(DATE_ADD(cot.created_at, INTERVAL cot.vigencia_dias DAY)) < CURDATE()
+      ORDER BY cot.created_at ASC
+    `;
+
+    const [rows] = await pool.query(query);
+
+    return rows.map(row => ({
+      tipo: TIPOS_ALERTA.COTIZACION_VENCIDA,
+      severidad: SEVERIDAD.CRITICO,
+      referencia_tipo: 'cotizacion',
+      referencia_id: row.id,
+      titulo: 'Cotizacion vencida',
+      mensaje: `Cotizacion #${row.id} - "${row.evento_nombre}" vencio hace ${row.dias_vencida} dia(s)`,
+      fecha: row.created_at,
+      datos: {
+        cotizacion_id: row.id,
+        evento_nombre: row.evento_nombre,
+        cliente_nombre: row.cliente_nombre,
+        cliente_telefono: row.cliente_telefono,
+        total: row.total,
+        dias_vencida: row.dias_vencida,
+        vigencia_dias: row.vigencia_dias,
+        ultimo_seguimiento: row.ultimo_seguimiento
+      },
+      acciones: [
+        { label: 'Ver cotizacion', url: `/cotizaciones/${row.id}` },
+        { label: 'Contactar cliente', telefono: row.cliente_telefono }
+      ]
+    }));
+  }
+
+  /**
+   * Cotizaciones pendientes que están por vencer.
+   * Condición: estado='pendiente' AND vigencia expira dentro de N días
+   * @param {number} diasAnticipacion - Días antes del vencimiento para alertar
+   */
+  static async getAlertasCotizacionPorVencer(diasAnticipacion = 3) {
+    const query = `
+      SELECT
+        cot.id,
+        cot.evento_nombre,
+        cot.total,
+        cot.vigencia_dias,
+        cot.created_at,
+        cot.ultimo_seguimiento,
+        cl.nombre AS cliente_nombre,
+        cl.telefono AS cliente_telefono,
+        DATEDIFF(DATE(DATE_ADD(cot.created_at, INTERVAL cot.vigencia_dias DAY)), CURDATE()) AS dias_restantes
+      FROM cotizaciones cot
+      INNER JOIN clientes cl ON cot.cliente_id = cl.id
+      WHERE cot.estado = 'pendiente'
+        AND DATE(DATE_ADD(cot.created_at, INTERVAL cot.vigencia_dias DAY)) BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL ? DAY)
+      ORDER BY dias_restantes ASC
+    `;
+
+    const [rows] = await pool.query(query, [diasAnticipacion]);
+
+    return rows.map(row => ({
+      tipo: TIPOS_ALERTA.COTIZACION_POR_VENCER,
+      severidad: SEVERIDAD.ADVERTENCIA,
+      referencia_tipo: 'cotizacion',
+      referencia_id: row.id,
+      titulo: row.dias_restantes === 0
+        ? 'Cotizacion vence HOY'
+        : row.dias_restantes === 1
+          ? 'Cotizacion vence manana'
+          : `Cotizacion vence en ${row.dias_restantes} dias`,
+      mensaje: `Cotizacion #${row.id} - "${row.evento_nombre}" para ${row.cliente_nombre}`,
+      fecha: new Date(new Date(row.created_at).getTime() + row.vigencia_dias * 86400000),
+      datos: {
+        cotizacion_id: row.id,
+        evento_nombre: row.evento_nombre,
+        cliente_nombre: row.cliente_nombre,
+        cliente_telefono: row.cliente_telefono,
+        total: row.total,
+        dias_restantes: row.dias_restantes,
+        ultimo_seguimiento: row.ultimo_seguimiento
+      },
+      acciones: [
+        { label: 'Ver cotizacion', url: `/cotizaciones/${row.id}` },
+        { label: 'Contactar cliente', telefono: row.cliente_telefono }
+      ]
+    }));
+  }
+
+  /**
+   * Borradores antiguos sin actividad.
+   * Condición: estado='borrador' AND (ultimo_seguimiento o created_at) > N días
+   * @param {number} diasSinActividad - Días sin actividad para alertar
+   */
+  static async getAlertasBorradorAntiguo(diasSinActividad = 7) {
+    const query = `
+      SELECT
+        cot.id,
+        cot.evento_nombre,
+        cot.total,
+        cot.created_at,
+        cot.updated_at,
+        cot.ultimo_seguimiento,
+        cl.nombre AS cliente_nombre,
+        cl.telefono AS cliente_telefono,
+        DATEDIFF(CURDATE(), DATE(COALESCE(cot.ultimo_seguimiento, cot.updated_at, cot.created_at))) AS dias_sin_actividad
+      FROM cotizaciones cot
+      INNER JOIN clientes cl ON cot.cliente_id = cl.id
+      WHERE cot.estado = 'borrador'
+        AND DATEDIFF(CURDATE(), DATE(COALESCE(cot.ultimo_seguimiento, cot.updated_at, cot.created_at))) >= ?
+      ORDER BY dias_sin_actividad DESC
+    `;
+
+    const [rows] = await pool.query(query, [diasSinActividad]);
+
+    return rows.map(row => ({
+      tipo: TIPOS_ALERTA.BORRADOR_ANTIGUO,
+      severidad: SEVERIDAD.ADVERTENCIA,
+      referencia_tipo: 'cotizacion',
+      referencia_id: row.id,
+      titulo: 'Borrador sin actividad',
+      mensaje: `Cotizacion #${row.id} - "${row.evento_nombre}" lleva ${row.dias_sin_actividad} dia(s) como borrador`,
+      fecha: row.created_at,
+      datos: {
+        cotizacion_id: row.id,
+        evento_nombre: row.evento_nombre,
+        cliente_nombre: row.cliente_nombre,
+        cliente_telefono: row.cliente_telefono,
+        total: row.total,
+        dias_sin_actividad: row.dias_sin_actividad,
+        ultimo_seguimiento: row.ultimo_seguimiento
+      },
+      acciones: [
+        { label: 'Ver cotizacion', url: `/cotizaciones/${row.id}` },
+        { label: 'Contactar cliente', telefono: row.cliente_telefono }
+      ]
+    }));
+  }
+
+  /**
+   * Cotizaciones pendientes sin seguimiento reciente.
+   * Condición: estado='pendiente' AND no se ha contactado al cliente en N días
+   * @param {number} diasSinSeguimiento - Días sin seguimiento para alertar
+   */
+  static async getAlertasCotizacionSinSeguimiento(diasSinSeguimiento = 5) {
+    const query = `
+      SELECT
+        cot.id,
+        cot.evento_nombre,
+        cot.total,
+        cot.created_at,
+        cot.ultimo_seguimiento,
+        cot.vigencia_dias,
+        cl.nombre AS cliente_nombre,
+        cl.telefono AS cliente_telefono,
+        DATEDIFF(CURDATE(), DATE(COALESCE(cot.ultimo_seguimiento, cot.created_at))) AS dias_sin_seguimiento,
+        DATEDIFF(DATE(DATE_ADD(cot.created_at, INTERVAL cot.vigencia_dias DAY)), CURDATE()) AS dias_para_vencer
+      FROM cotizaciones cot
+      INNER JOIN clientes cl ON cot.cliente_id = cl.id
+      WHERE cot.estado = 'pendiente'
+        AND DATEDIFF(CURDATE(), DATE(COALESCE(cot.ultimo_seguimiento, cot.created_at))) >= ?
+        -- Excluir las que ya están vencidas (esas tienen su propia alerta)
+        AND DATE(DATE_ADD(cot.created_at, INTERVAL cot.vigencia_dias DAY)) >= CURDATE()
+      ORDER BY dias_sin_seguimiento DESC
+    `;
+
+    const [rows] = await pool.query(query, [diasSinSeguimiento]);
+
+    return rows.map(row => ({
+      tipo: TIPOS_ALERTA.COTIZACION_SIN_SEGUIMIENTO,
+      severidad: SEVERIDAD.INFO,
+      referencia_tipo: 'cotizacion',
+      referencia_id: row.id,
+      titulo: 'Seguimiento pendiente',
+      mensaje: `Cotizacion #${row.id} - "${row.evento_nombre}" sin contacto hace ${row.dias_sin_seguimiento} dia(s)`,
+      fecha: row.ultimo_seguimiento || row.created_at,
+      datos: {
+        cotizacion_id: row.id,
+        evento_nombre: row.evento_nombre,
+        cliente_nombre: row.cliente_nombre,
+        cliente_telefono: row.cliente_telefono,
+        total: row.total,
+        dias_sin_seguimiento: row.dias_sin_seguimiento,
+        dias_para_vencer: row.dias_para_vencer,
+        ultimo_seguimiento: row.ultimo_seguimiento
+      },
+      acciones: [
+        { label: 'Ver cotizacion', url: `/cotizaciones/${row.id}` },
+        { label: 'Contactar cliente', telefono: row.cliente_telefono }
+      ]
+    }));
+  }
+
+  // ==========================================================================
   // RESUMEN DE ALERTAS
   // ==========================================================================
 
@@ -494,6 +784,7 @@ class AlertasAlquilerService {
       total: alertas.length,
       criticas: alertas.filter(a => a.severidad === SEVERIDAD.CRITICO).length,
       advertencias: alertas.filter(a => a.severidad === SEVERIDAD.ADVERTENCIA).length,
+      informativas: alertas.filter(a => a.severidad === SEVERIDAD.INFO).length,
       por_tipo: {}
     };
 

@@ -658,6 +658,56 @@ class CotizacionModel {
 
     return nuevaCotizacionId;
   }
+
+  // ============================================
+  // SEGUIMIENTO DE COTIZACIONES
+  // ============================================
+
+  /**
+   * Registrar seguimiento de una cotización.
+   * Actualiza la fecha y notas de último seguimiento.
+   * @param {number} id - ID de la cotización
+   * @param {string} notas - Notas del seguimiento (qué se habló con el cliente)
+   */
+  static async registrarSeguimiento(id, notas = '') {
+    const query = `
+      UPDATE cotizaciones
+      SET ultimo_seguimiento = NOW(),
+          notas_seguimiento = ?
+      WHERE id = ?
+    `;
+    const [result] = await pool.query(query, [notas, id]);
+
+    if (result.affectedRows === 0) {
+      throw new Error(`Cotización ${id} no encontrada`);
+    }
+
+    return { id, ultimo_seguimiento: new Date(), notas_seguimiento: notas };
+  }
+
+  /**
+   * Obtener historial de seguimiento de una cotización.
+   * Retorna los datos de seguimiento de la cotización.
+   * @param {number} id - ID de la cotización
+   */
+  static async obtenerSeguimiento(id) {
+    const query = `
+      SELECT
+        id,
+        estado,
+        ultimo_seguimiento,
+        notas_seguimiento,
+        created_at,
+        vigencia_dias,
+        DATEDIFF(CURDATE(), DATE(COALESCE(ultimo_seguimiento, created_at))) AS dias_sin_seguimiento,
+        DATE(DATE_ADD(created_at, INTERVAL vigencia_dias DAY)) AS fecha_vencimiento,
+        DATEDIFF(DATE(DATE_ADD(created_at, INTERVAL vigencia_dias DAY)), CURDATE()) AS dias_para_vencer
+      FROM cotizaciones
+      WHERE id = ?
+    `;
+    const [rows] = await pool.query(query, [id]);
+    return rows[0] || null;
+  }
 }
 
 module.exports = CotizacionModel;

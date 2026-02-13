@@ -75,6 +75,16 @@ router.delete('/:id/transporte/:transporteId', validateId(), cotizacionControlle
 router.post('/:id/duplicar', validateId(), cotizacionController.duplicar);
 
 // ============================================
+// SEGUIMIENTO
+// ============================================
+
+// GET /api/cotizaciones/:id/seguimiento - Obtener datos de seguimiento
+router.get('/:id/seguimiento', validateId(), cotizacionController.obtenerSeguimiento);
+
+// POST /api/cotizaciones/:id/seguimiento - Registrar seguimiento
+router.post('/:id/seguimiento', validateId(), cotizacionController.registrarSeguimiento);
+
+// ============================================
 // DESCUENTOS
 // ============================================
 

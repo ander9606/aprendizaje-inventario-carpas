@@ -114,3 +114,21 @@ export const useDeleteCotizacion = () => {
     }
   })
 }
+
+/**
+ * Hook para registrar seguimiento de una cotizacion
+ */
+export const useRegistrarSeguimiento = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id, notas }) => apiCotizaciones.registrarSeguimiento(id, notas),
+    retry: 0,
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries(['cotizaciones'])
+      queryClient.invalidateQueries(['cotizaciones', variables.id, 'completa'])
+      queryClient.invalidateQueries(['alertas-alquileres'])
+      queryClient.invalidateQueries(['alertas-resumen'])
+    }
+  })
+}

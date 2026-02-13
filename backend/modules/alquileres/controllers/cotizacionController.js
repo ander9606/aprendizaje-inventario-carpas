@@ -1155,3 +1155,63 @@ exports.asignarEvento = async (req, res, next) => {
     next(error);
   }
 };
+
+// ============================================
+// SEGUIMIENTO DE COTIZACIONES
+// ============================================
+
+/**
+ * POST /cotizaciones/:id/seguimiento
+ * Registrar seguimiento (contacto con cliente)
+ */
+exports.registrarSeguimiento = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { notas } = req.body;
+
+    const cotizacion = await CotizacionModel.obtenerPorId(id);
+    if (!cotizacion) {
+      throw new AppError('Cotización no encontrada', 404);
+    }
+
+    if (!['pendiente', 'borrador'].includes(cotizacion.estado)) {
+      throw new AppError('Solo se puede registrar seguimiento en cotizaciones pendientes o borradores', 400);
+    }
+
+    const resultado = await CotizacionModel.registrarSeguimiento(id, notas || '');
+
+    logger.info('cotizacionController.registrarSeguimiento', `Seguimiento registrado para cotización #${id}`);
+
+    res.json({
+      success: true,
+      mensaje: 'Seguimiento registrado correctamente',
+      data: resultado
+    });
+  } catch (error) {
+    logger.error('cotizacionController.registrarSeguimiento', error);
+    next(error);
+  }
+};
+
+/**
+ * GET /cotizaciones/:id/seguimiento
+ * Obtener datos de seguimiento de una cotización
+ */
+exports.obtenerSeguimiento = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const seguimiento = await CotizacionModel.obtenerSeguimiento(id);
+    if (!seguimiento) {
+      throw new AppError('Cotización no encontrada', 404);
+    }
+
+    res.json({
+      success: true,
+      data: seguimiento
+    });
+  } catch (error) {
+    logger.error('cotizacionController.obtenerSeguimiento', error);
+    next(error);
+  }
+};

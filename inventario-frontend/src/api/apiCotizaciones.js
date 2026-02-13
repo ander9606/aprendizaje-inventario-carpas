@@ -84,6 +84,17 @@ export const apiCotizaciones = {
     return response.data;
   },
 
+  // Seguimiento
+  obtenerSeguimiento: async (id) => {
+    const response = await api.get(`/cotizaciones/${id}/seguimiento`);
+    return response.data;
+  },
+
+  registrarSeguimiento: async (id, notas) => {
+    const response = await api.post(`/cotizaciones/${id}/seguimiento`, { notas });
+    return response.data;
+  },
+
   eliminar: async (id) => {
     const response = await api.delete(`/cotizaciones/${id}`);
     return response.data;
