@@ -84,10 +84,21 @@ const seriesAPI = {
     return response.data
   },
 
+  /**
+   * Obtener siguiente número de serie secuencial
+   *
+   * @param {number} elementoId - ID del elemento
+   * @returns {Promise} - Siguiente número sugerido (ej: "DOITE-006")
+   */
+  obtenerSiguienteNumero: async (elementoId) => {
+    const response = await api.get(`/series/siguiente-numero/${elementoId}`)
+    return response.data
+  },
+
   // ============================================
   // CREAR SERIE
   // ============================================
-  
+
   /**
    * Agregar una nueva serie a un elemento
    * 

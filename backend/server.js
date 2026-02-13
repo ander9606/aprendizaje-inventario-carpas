@@ -18,7 +18,6 @@ const seriesRoutes = require('./modules/inventario/routes/series');
 const lotesRoutes = require('./modules/inventario/routes/lotes');
 const materialesRoutes = require('./modules/inventario/routes/materiales');
 const unidadesRoutes = require('./modules/inventario/routes/unidades');
-const ubicacionesRoutes = require('./modules/inventario/routes/ubicaciones');
 const inventarioExportRoutes = require('./modules/inventario/routes/export');
 
 // Importar rutas - Productos (Plantillas/Elementos Compuestos)
@@ -40,6 +39,7 @@ const alertasAlquileresRoutes = require('./modules/alquileres/routes/alertas');
 const ciudadesRoutes = require('./modules/configuracion/routes/ciudades');
 const empleadosRoutes = require('./modules/configuracion/routes/empleados');
 const vehiculosRoutes = require('./modules/configuracion/routes/vehiculos');
+const ubicacionesRoutes = require('./modules/configuracion/routes/ubicaciones');
 
 // Importar rutas - Autenticación
 const authRoutes = require('./modules/auth/routes/auth');
@@ -112,7 +112,6 @@ app.get('/', (req, res) => {
                 '/api/elementos',
                 '/api/series',
                 '/api/lotes',
-                '/api/ubicaciones',
                 '/api/materiales',
                 '/api/unidades',
                 '/api/inventario/export/excel'
@@ -135,7 +134,8 @@ app.get('/', (req, res) => {
             configuracion: [
                 '/api/ciudades',
                 '/api/empleados',
-                '/api/vehiculos'
+                '/api/vehiculos',
+                '/api/ubicaciones'
             ],
             auth: [
                 '/api/auth/login',
@@ -159,7 +159,6 @@ app.use('/api/categorias', categoriasRoutes);
 app.use('/api/elementos', elementosRoutes);
 app.use('/api/series', seriesRoutes);
 app.use('/api/lotes', lotesRoutes);
-app.use('/api/ubicaciones', ubicacionesRoutes);
 app.use('/api/materiales', materialesRoutes);
 app.use('/api/unidades', unidadesRoutes);
 app.use('/api/inventario', inventarioExportRoutes);
@@ -183,6 +182,7 @@ app.use('/api/alertas/alquileres', alertasAlquileresRoutes);
 app.use('/api/ciudades', ciudadesRoutes);
 app.use('/api/empleados', empleadosRoutes);
 app.use('/api/vehiculos', vehiculosRoutes);
+app.use('/api/ubicaciones', ubicacionesRoutes);
 
 // Registrar rutas - Autenticación
 app.use('/api/auth', authRoutes);
@@ -208,10 +208,10 @@ const startServer = async () => {
         app.listen(PORT, () => {
             console.log('\n✅ Servidor iniciado');
             console.log(`🌐 http://localhost:${PORT}`);
-            console.log(`📦 Inventario: Categorías, Elementos, Series, Lotes, Ubicaciones`);
+            console.log(`📦 Inventario: Categorías, Elementos, Series, Lotes`);
             console.log(`🏗️  Productos: Categorías Productos, Elementos Compuestos`);
             console.log(`🏷️  Alquileres: Clientes, Cotizaciones, Alquileres, Descuentos`);
-            console.log(`⚙️  Configuración: Ciudades, Empleados, Vehículos`);
+            console.log(`⚙️  Configuración: Ciudades, Empleados, Vehículos, Ubicaciones`);
             console.log(`🔐 Auth: Login, Logout, Refresh, Me`);
             console.log(`🔧 Operaciones: Órdenes, Calendario, Alertas\n`);
         });

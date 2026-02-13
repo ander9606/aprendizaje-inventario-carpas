@@ -23,7 +23,9 @@ class ExportModel {
                 s.estado,
                 COALESCE(ub.nombre, 'Sin ubicación') AS ubicacion,
                 COUNT(*) AS cantidad,
+                e.stock_minimo,
                 e.costo_adquisicion,
+                e.precio_unitario,
                 'serie' AS tipo_tracking
             FROM series s
             INNER JOIN elementos e ON s.id_elemento = e.id
@@ -49,7 +51,9 @@ class ExportModel {
                 l.estado,
                 COALESCE(ub.nombre, 'Sin ubicación') AS ubicacion,
                 SUM(l.cantidad) AS cantidad,
+                e.stock_minimo,
                 e.costo_adquisicion,
+                e.precio_unitario,
                 'lote' AS tipo_tracking
             FROM lotes l
             INNER JOIN elementos e ON l.elemento_id = e.id
@@ -133,6 +137,44 @@ class ExportModel {
             WHERE ub.activo = TRUE
               AND (COALESCE(s_count.total_series, 0) + COALESCE(l_count.total_lotes, 0)) > 0
             ORDER BY total DESC
+        `;
+
+        const [rows] = await pool.query(query);
+        return rows;
+    }
+
+    /**
+     * Elementos con stock disponible por debajo del mínimo
+     */
+    static async obtenerAlertasStockBajo() {
+        const query = `
+            SELECT
+                e.nombre AS elemento,
+                COALESCE(cp.nombre, c.nombre, 'Sin categoría') AS categoria,
+                e.stock_minimo,
+                COALESCE(e.costo_adquisicion, 0) AS costo_adquisicion,
+                COALESCE(series_disp.total, 0) AS series_disponibles,
+                COALESCE(lotes_disp.total, 0) AS lotes_disponibles,
+                COALESCE(series_disp.total, 0) + COALESCE(lotes_disp.total, 0) AS stock_disponible,
+                e.stock_minimo - (COALESCE(series_disp.total, 0) + COALESCE(lotes_disp.total, 0)) AS deficit
+            FROM elementos e
+            LEFT JOIN categorias c ON e.categoria_id = c.id
+            LEFT JOIN categorias cp ON c.padre_id = cp.id
+            LEFT JOIN (
+                SELECT id_elemento, COUNT(*) AS total
+                FROM series
+                WHERE estado IN ('disponible', 'bueno', 'nuevo')
+                GROUP BY id_elemento
+            ) series_disp ON e.id = series_disp.id_elemento
+            LEFT JOIN (
+                SELECT elemento_id, SUM(cantidad) AS total
+                FROM lotes
+                WHERE estado IN ('disponible', 'bueno', 'nuevo')
+                GROUP BY elemento_id
+            ) lotes_disp ON e.id = lotes_disp.elemento_id
+            WHERE e.stock_minimo > 0
+            HAVING stock_disponible < e.stock_minimo
+            ORDER BY deficit DESC
         `;
 
         const [rows] = await pool.query(query);

@@ -13,6 +13,7 @@ import UbicacionBadge from '../common/UbicacionBadge'
 import UbicacionSelector from '../common/UbicacionSelector'
 import { ESTADOS, SUCCESS_MESSAGES } from "../../utils/constants";
 import { useMoverCantidad } from '../../hooks/Uselotes'
+import lotesAPI from '../../api/apiLotes'
 
 /**
  * ============================================
@@ -124,17 +125,20 @@ function LoteFormModal({
    * para mostrar mensaje de consolidación
    */
   useEffect(() => {
-    if (formData.ubicacion_destino && formData.estado_destino) {
-      // TODO: Consultar API si existe lote con misma ubicación+estado
-      // const existe = await lotesAPI.verificarExiste(elemento.id, ubicacion, estado)
-      // setPreviewConsolidacion(existe)
-
-      // Placeholder: random
-      setPreviewConsolidacion(Math.random() > 0.5)
+    if (formData.ubicacion_destino && formData.estado_destino && elemento?.id) {
+      let cancelado = false
+      lotesAPI.verificarExiste(elemento.id, formData.ubicacion_destino, formData.estado_destino)
+        .then(res => {
+          if (!cancelado) setPreviewConsolidacion(res.data?.existe || false)
+        })
+        .catch(() => {
+          if (!cancelado) setPreviewConsolidacion(false)
+        })
+      return () => { cancelado = true }
     } else {
       setPreviewConsolidacion(false)
     }
-  }, [formData.ubicacion_destino, formData.estado_destino])
+  }, [formData.ubicacion_destino, formData.estado_destino, elemento?.id])
 
   // ============================================
   // 5. FUNCIONES DE VALIDACIÓN

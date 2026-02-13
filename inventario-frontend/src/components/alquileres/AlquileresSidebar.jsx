@@ -15,12 +15,13 @@ import {
   Calendar,
   ChevronDown,
   ChevronRight,
-  Building,
   BarChart3,
   ArrowLeft,
   Archive
 } from 'lucide-react'
 import { useState } from 'react'
+
+const ACTIVE_CLASS = 'bg-purple-50 text-purple-700 font-medium'
 
 const AlquileresSidebar = () => {
   const location = useLocation()
@@ -83,18 +84,13 @@ const AlquileresSidebar = () => {
       to: '/alquileres/configuracion/dias-extra',
       icon: Calendar,
       label: 'Días Extra'
-    },
-    {
-      to: '/alquileres/configuracion/empresa',
-      icon: Building,
-      label: 'Datos Empresa'
     }
   ]
 
   const getLinkClass = (isActive) => `
     flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors
     ${isActive
-      ? 'bg-blue-100 text-blue-700 font-medium'
+      ? ACTIVE_CLASS
       : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
     }
   `
@@ -111,9 +107,14 @@ const AlquileresSidebar = () => {
           <span>Volver a Módulos</span>
         </button>
 
-        <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">
-          Módulo de Alquileres
-        </h2>
+        <div className="flex items-center gap-3 px-2 mb-4">
+          <div className="w-9 h-9 rounded-lg bg-purple-500 flex items-center justify-center shadow-sm">
+            <Calendar className="w-4 h-4 text-white" />
+          </div>
+          <h2 className="text-sm font-semibold text-slate-900">
+            Alquileres
+          </h2>
+        </div>
 
         {/* Navegación principal */}
         <nav className="space-y-1">

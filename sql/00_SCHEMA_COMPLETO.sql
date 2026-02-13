@@ -84,6 +84,9 @@ CREATE TABLE elementos (
     nombre VARCHAR(200) NOT NULL,
     descripcion TEXT,
     cantidad INT DEFAULT 0,
+    stock_minimo INT DEFAULT 0,
+    costo_adquisicion DECIMAL(12,2) DEFAULT NULL,
+    precio_unitario DECIMAL(12,2) DEFAULT NULL,
     requiere_series BOOLEAN DEFAULT FALSE,
     
     -- Foreign Keys (columnas que apuntan a otras tablas)

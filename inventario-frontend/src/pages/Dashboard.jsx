@@ -4,7 +4,7 @@
 // ============================================
 
 import { useState, useMemo } from 'react'
-import { Plus, Package, MapPin, ArrowLeft, Search, X, Layers, ChevronRight, BarChart3 } from 'lucide-react'
+import { Plus, Package, ArrowLeft, Search, X, Layers, ChevronRight, BarChart3, FileSpreadsheet } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useNavigation } from '../hooks/UseNavigation'  
 import {
@@ -19,6 +19,8 @@ import Button from '../components/common/Button'
 import Spinner from '../components/common/Spinner'
 import EmptyState from '../components/common/EmptyState'
 import { IconoCategoria } from '../components/common/IconoCategoria'
+import { exportarInventarioExcel } from '../api/apiExport'
+import { toast } from 'sonner'
 
 
 /**
@@ -79,6 +81,9 @@ export default function Dashboard() {
   // ID de categoría padre para crear subcategoría
   const [parentCategoriaId, setParentCategoriaId] = useState(null)
 
+  // Estado para exportar Excel
+  const [isExporting, setIsExporting] = useState(false)
+
   // ============================================
   // BÚSQUEDA: Filtrar categorías y elementos
   // ============================================
@@ -132,6 +137,21 @@ export default function Dashboard() {
     setShowSearchResults(false)
   }
   
+  // ============================================
+  // HANDLER: Exportar Excel
+  // ============================================
+  const handleExportExcel = async () => {
+    try {
+      setIsExporting(true)
+      await exportarInventarioExcel()
+      toast.success('Inventario exportado a Excel exitosamente')
+    } catch (error) {
+      toast.error('Error al exportar: ' + (error.message || 'Intenta de nuevo'))
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
   // ============================================
   // HANDLERS: Acciones de categorías
   // ============================================
@@ -257,6 +277,16 @@ export default function Dashboard() {
 
             {/* Botones de acciones */}
             <div className="flex gap-3">
+              {/* Botón: Exportar Excel */}
+              <Button
+                variant="secondary"
+                icon={<FileSpreadsheet />}
+                onClick={handleExportExcel}
+                disabled={isExporting}
+              >
+                {isExporting ? 'Exportando...' : 'Excel'}
+              </Button>
+
               {/* Botón: Dashboard de inventario */}
               <Button
                 variant="secondary"
@@ -264,15 +294,6 @@ export default function Dashboard() {
                 onClick={() => navigate('/inventario/dashboard')}
               >
                 Dashboard
-              </Button>
-
-              {/* Botón: Gestionar ubicaciones */}
-              <Button
-                variant="secondary"
-                icon={<MapPin />}
-                onClick={() => navigate('/inventario/ubicaciones')}
-              >
-                Ubicaciones
               </Button>
 
               {/* Botón: Crear categoría */}

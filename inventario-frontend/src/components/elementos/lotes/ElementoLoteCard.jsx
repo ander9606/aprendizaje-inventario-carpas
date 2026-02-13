@@ -1,43 +1,21 @@
 // ============================================
-// COMPONENTE: ELEMENTO LOTE CARD (MEJORADO)
+// COMPONENTE: ELEMENTO LOTE CARD (PROFESIONAL)
 // Card para elementos gestionados por lotes
-// Ahora carga sus propios lotes usando useGetLotes
 // ============================================
 
 import { useState } from 'react'
-import Card from '../../common/Card'
-import StatCard from '../../common/StatCard'
 import LoteUbicacionGroup from './LoteUbicacionGroup'
 import EmptyState from '../../common/EmptyState'
-import AlertaBanner from '../../common/AlertaBanner'
 import Button from '../../common/Button'
 import Spinner from '../../common/Spinner'
 import Modal from '../../common/Modal'
 import { EstadoBadge } from '../../common/Badge'
 import UbicacionBadge from '../../common/UbicacionBadge'
-import { Plus, Package, MapPin, ArrowRightLeft, ArrowRight } from 'lucide-react'
+import { Plus, Package, MapPin, ArrowRightLeft, ArrowRight, Layers, Ruler, AlertTriangle, DollarSign, TrendingUp } from 'lucide-react'
+import { formatearMoneda } from '../../../utils/helpers'
 
-// Hook para cargar lotes
 import { useGetLotes } from '../../../hooks/Uselotes'
 
-/**
- * Componente ElementoLoteCard - Card para elemento con gestión por lotes
- *
- * MEJORA: Ahora carga automáticamente los lotes del elemento
- * usando el hook useGetLotes, en lugar de esperar que vengan
- * desde el componente padre.
- *
- * @param {object} elemento - Datos básicos del elemento
- * @param {number} elemento.id - ID del elemento (REQUERIDO para cargar lotes)
- * @param {string} elemento.nombre - Nombre del elemento
- * @param {string} elemento.icono - Emoji del elemento
- * @param {function} onEdit - Callback para editar elemento
- * @param {function} onDelete - Callback para eliminar elemento
- * @param {function} onAddLote - Callback para agregar nuevo lote
- * @param {function} onDevolverBodega - Callback para devolver lote a bodega principal
- * @param {function} onMoveLote - Callback para mover lote
- * @param {function} onDeleteLote - Callback para eliminar un lote
- */
 export const ElementoLoteCard = ({
   elemento,
   onEdit,
@@ -50,11 +28,16 @@ export const ElementoLoteCard = ({
   disabled = false,
   ...props
 }) => {
-  // Extraer datos básicos del elemento
   const {
     id: elementoId,
     nombre,
     icono = '📦',
+    descripcion,
+    material,
+    unidad,
+    unidad_abrev,
+    stock_minimo = 0,
+    costo_adquisicion,
     alertas = []
   } = elemento
 
@@ -69,7 +52,6 @@ export const ElementoLoteCard = ({
   const {
     lotes,
     estadisticas,
-    //lotes_por_ubicacion,
     cantidad_total,
     cantidad_disponible,
     isLoading: isLoadingLotes,
@@ -77,13 +59,24 @@ export const ElementoLoteCard = ({
   } = useGetLotes(elementoId)
 
   // ============================================
-  // TRANSFORMAR LOTES A FORMATO DE UBICACIONES
+  // TRANSFORMAR LOTES A UBICACIONES
   // ============================================
-  // Las cards esperan un array de ubicaciones con sus lotes agrupados
   const ubicaciones = transformarLotesAUbicaciones(lotes)
 
   // ============================================
-  // OPCIONES DEL MENÚ DEL CARD
+  // CÁLCULOS
+  // ============================================
+  const alquilados = estadisticas.alquilado || 0
+  const enMantenimiento = estadisticas.mantenimiento || 0
+  const dañados = estadisticas.malo || estadisticas.dañado || estadisticas.danado || 0
+  const pctDisponible = cantidad_total > 0 ? Math.round((cantidad_disponible / cantidad_total) * 100) : 0
+  const pctAlquilado = cantidad_total > 0 ? Math.round((alquilados / cantidad_total) * 100) : 0
+  const pctOtros = cantidad_total > 0 ? Math.round(((enMantenimiento + dañados) / cantidad_total) * 100) : 0
+  const stockBajo = stock_minimo > 0 && cantidad_disponible < stock_minimo && !isLoadingLotes
+  const valorTotal = costo_adquisicion && cantidad_total ? costo_adquisicion * cantidad_total : null
+
+  // ============================================
+  // MENÚ DE OPCIONES
   // ============================================
   const menuOptions = [
     {
@@ -103,99 +96,140 @@ export const ElementoLoteCard = ({
   // RENDERIZADO
   // ============================================
   return (
-    <Card
-      title={nombre}
-      subtitle={
-        isLoadingLotes 
-          ? 'Cargando...' 
-          : `${cantidad_total} unidades en ${ubicaciones.length} ${ubicaciones.length === 1 ? 'ubicación' : 'ubicaciones'}`
-      }
-      icon={icono}
-      menuOptions={menuOptions}
-      variant="outlined"
-      className={className}
+    <div
+      className={`bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow ${className}`}
       {...props}
     >
-      <Card.Content>
-        {/* ============================================
-            ALERTAS (si existen)
-            ============================================ */}
-        {alertas.length > 0 && (
-          <div className="space-y-2 mb-4">
-            {alertas.map((alerta, idx) => (
-              <AlertaBanner
-                key={idx}
-                tipo={alerta.tipo}
-                mensaje={alerta.mensaje}
-                detalles={alerta.detalles}
-                dismissible
-              />
-            ))}
-          </div>
-        )}
+      {/* ============================================
+          ACENTO SUPERIOR + HEADER
+          ============================================ */}
+      <div className="border-b border-slate-200">
+        {/* Barra de acento esmeralda */}
+        <div className="h-1 bg-gradient-to-r from-emerald-500 to-teal-500" />
 
-        {/* ============================================
-            ERROR AL CARGAR LOTES
-            ============================================ */}
-        {errorLotes && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-            Error al cargar lotes: {errorLotes.message}
-          </div>
-        )}
+        <div className="px-6 py-4">
+          <div className="flex items-start justify-between">
+            {/* Lado izquierdo: icono + info */}
+            <div className="flex items-start gap-3 flex-1 min-w-0">
+              <span className="text-3xl flex-shrink-0 mt-0.5">{icono}</span>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="text-lg font-bold text-slate-900 truncate">{nombre}</h3>
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
+                    <Layers className="w-3 h-3" />
+                    Lotes
+                  </span>
+                </div>
 
-        {/* ============================================
-            ESTADÍSTICAS POR ESTADO
-            ============================================ */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-4">
-          <StatCard
-            label="Total"
-            value={isLoadingLotes ? '-' : cantidad_total}
-            color="gray"
-            size="sm"
-          />
-          <StatCard
-            label="Nuevo"
-            value={isLoadingLotes ? '-' : (estadisticas.nuevo || 0)}
-            color="purple"
-            size="sm"
-          />
-          <StatCard
-            label="Bueno"
-            value={isLoadingLotes ? '-' : (estadisticas.bueno || 0)}
-            color="green"
-            size="sm"
-          />
-          <StatCard
-            label="Alquilado"
-            value={isLoadingLotes ? '-' : (estadisticas.alquilado || 0)}
-            color="blue"
-            size="sm"
-          />
-          <StatCard
-            label="Mantenimiento"
-            value={isLoadingLotes ? '-' : (estadisticas.mantenimiento || 0)}
-            color="yellow"
-            size="sm"
-          />
-          <StatCard
-            label="Dañado"
-            value={isLoadingLotes ? '-' : (estadisticas.malo || estadisticas.dañado || estadisticas.danado || 0)}
-            color="red"
-            size="sm"
-          />
+                {descripcion && (
+                  <p className="text-sm text-slate-500 mt-0.5 line-clamp-1">{descripcion}</p>
+                )}
+
+                {/* Badges de material y unidad */}
+                {(material || unidad) && (
+                  <div className="flex items-center gap-2 mt-2">
+                    {material && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs bg-slate-100 text-slate-600">
+                        <Ruler className="w-3 h-3" />
+                        {material}
+                      </span>
+                    )}
+                    {unidad && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs bg-slate-100 text-slate-600">
+                        {unidad_abrev || unidad}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Menú */}
+            {menuOptions.length > 0 && (
+              <MenuButton options={menuOptions} />
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* ============================================
+          ALERTAS
+          ============================================ */}
+      {(stockBajo || alertas.length > 0) && (
+        <div className="px-6 pt-4 space-y-2">
+          {stockBajo && (
+            <div className="flex items-center gap-2 p-2.5 bg-amber-50 border border-amber-200 rounded-lg">
+              <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0" />
+              <span className="text-sm text-amber-700">
+                <strong>Stock bajo:</strong> {cantidad_disponible} disponible{cantidad_disponible !== 1 ? 's' : ''} de {stock_minimo} mínimo
+              </span>
+            </div>
+          )}
+          {alertas.map((alerta, idx) => (
+            <div key={idx} className="flex items-center gap-2 p-2.5 bg-red-50 border border-red-200 rounded-lg">
+              <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0" />
+              <span className="text-sm text-red-700">{alerta.mensaje}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ============================================
+          ERROR AL CARGAR
+          ============================================ */}
+      {errorLotes && (
+        <div className="mx-6 mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+          Error al cargar lotes: {errorLotes.message}
+        </div>
+      )}
+
+      {/* ============================================
+          ESTADÍSTICAS + BARRA DE DISPONIBILIDAD
+          ============================================ */}
+      <div className="px-6 pt-4">
+        {/* Stats en grid */}
+        <div className="grid grid-cols-3 md:grid-cols-6 gap-2 mb-3">
+          <StatMini label="Total" value={isLoadingLotes ? '-' : cantidad_total} color="slate" />
+          <StatMini label="Nuevo" value={isLoadingLotes ? '-' : (estadisticas.nuevo || 0)} color="purple" />
+          <StatMini label="Bueno" value={isLoadingLotes ? '-' : (estadisticas.bueno || 0)} color="green" />
+          <StatMini label="Alquilado" value={isLoadingLotes ? '-' : alquilados} color="blue" />
+          <StatMini label="Mant." value={isLoadingLotes ? '-' : enMantenimiento} color="amber" />
+          <StatMini label="Dañado" value={isLoadingLotes ? '-' : dañados} color="red" />
         </div>
 
-        {/* ============================================
-            HEADER: Título de sección + Botones de acción
-            ============================================ */}
+        {/* Barra de disponibilidad */}
+        {!isLoadingLotes && cantidad_total > 0 && (
+          <div className="mb-4">
+            <div className="flex items-center justify-between text-xs text-slate-500 mb-1">
+              <span>Disponibilidad</span>
+              <span className="font-medium">{pctDisponible}%</span>
+            </div>
+            <div className="h-2 bg-slate-100 rounded-full overflow-hidden flex">
+              {pctDisponible > 0 && (
+                <div className="bg-emerald-500 transition-all duration-500" style={{ width: `${pctDisponible}%` }} />
+              )}
+              {pctAlquilado > 0 && (
+                <div className="bg-blue-500 transition-all duration-500" style={{ width: `${pctAlquilado}%` }} />
+              )}
+              {pctOtros > 0 && (
+                <div className="bg-amber-500 transition-all duration-500" style={{ width: `${pctOtros}%` }} />
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ============================================
+          GRUPOS POR UBICACIÓN
+          ============================================ */}
+      <div className="px-6 pb-4">
+        {/* Header: sección + botones */}
         <div className="flex items-center justify-between mb-3">
           <h4 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
             <MapPin className="w-4 h-4" />
             Por ubicación
           </h4>
-
           <div className="flex items-center gap-2">
-            {/* Botón: Mover entre lotes */}
             {onMoveLote && lotes.length > 0 && (
               <Button
                 variant="outline"
@@ -205,11 +239,9 @@ export const ElementoLoteCard = ({
                 disabled={disabled}
                 title="Mover cantidad entre ubicaciones/estados"
               >
-                Mover lotes
+                Mover
               </Button>
             )}
-
-            {/* Botón: Agregar inventario nuevo */}
             {onAddLote && (
               <Button
                 variant="outline"
@@ -217,17 +249,13 @@ export const ElementoLoteCard = ({
                 icon={<Plus className="w-4 h-4" />}
                 onClick={() => onAddLote(elemento)}
                 disabled={disabled}
-                title="Agregar inventario nuevo (compras, donaciones)"
               >
-                Agregar inventario
+                Agregar
               </Button>
             )}
           </div>
         </div>
 
-        {/* ============================================
-            GRUPOS POR UBICACIÓN
-            ============================================ */}
         {isLoadingLotes ? (
           <div className="flex items-center justify-center py-8">
             <Spinner size="md" />
@@ -255,45 +283,42 @@ export const ElementoLoteCard = ({
                 onDeleteLote={onDeleteLote}
               />
             ))}
+          </div>
+        )}
+      </div>
 
-            {/* Ayuda: Cómo mover entre lotes */}
-            <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-              <p className="text-xs text-blue-700 flex items-center gap-2">
-                <span className="text-base">💡</span>
-                <span>
-                  <strong>Dos formas de mover:</strong> Usa el botón "Mover lotes" arriba para acceso rápido, o expande una ubicación y usa el menú ⋮ de cada lote
+      {/* ============================================
+          FOOTER: RESUMEN + COSTO
+          ============================================ */}
+      {!isLoadingLotes && cantidad_total > 0 && (
+        <div className="px-6 py-3 bg-slate-50 border-t border-slate-200">
+          <div className="flex items-center justify-between text-sm">
+            {/* Resumen */}
+            <div className="flex items-center gap-4 text-slate-600">
+              <span>{ubicaciones.length} ubicacion{ubicaciones.length !== 1 ? 'es' : ''}</span>
+              <span className="text-slate-300">|</span>
+              <span>{cantidad_total} {cantidad_total === 1 ? 'unidad' : 'unidades'}</span>
+              <span className="text-slate-300">|</span>
+              <span className="text-emerald-600 font-medium">{cantidad_disponible} disponible{cantidad_disponible !== 1 ? 's' : ''}</span>
+            </div>
+            {/* Costo */}
+            <div className="flex items-center gap-4">
+              {costo_adquisicion && (
+                <span className="flex items-center gap-1 text-slate-600">
+                  <DollarSign className="w-3.5 h-3.5" />
+                  Unit.: <strong className="text-slate-900">{formatearMoneda(costo_adquisicion)}</strong>
                 </span>
-              </p>
+              )}
+              {valorTotal && (
+                <span className="flex items-center gap-1 text-slate-600">
+                  <TrendingUp className="w-3.5 h-3.5" />
+                  Total: <strong className="text-emerald-700">{formatearMoneda(valorTotal)}</strong>
+                </span>
+              )}
             </div>
           </div>
-        )}
-
-        {/* ============================================
-            INFORMACIÓN ADICIONAL
-            ============================================ */}
-        {!isLoadingLotes && ubicaciones.length > 0 && (
-          <div className="mt-4 pt-4 border-t border-slate-200">
-            <div className="flex items-center justify-between text-sm text-slate-600">
-              <span>Total de ubicaciones:</span>
-              <span className="font-semibold text-slate-900">
-                {ubicaciones.length}
-              </span>
-            </div>
-            <div className="flex items-center justify-between text-sm text-slate-600 mt-1">
-              <span>Cantidad total:</span>
-              <span className="font-semibold text-slate-900">
-                {cantidad_total} {cantidad_total === 1 ? 'unidad' : 'unidades'}
-              </span>
-            </div>
-            <div className="flex items-center justify-between text-sm text-slate-600 mt-1">
-              <span>Disponible para alquilar:</span>
-              <span className="font-semibold text-green-600">
-                {cantidad_disponible} {cantidad_disponible === 1 ? 'unidad' : 'unidades'}
-              </span>
-            </div>
-          </div>
-        )}
-      </Card.Content>
+        </div>
+      )}
 
       {/* ============================================
           MODAL: SELECTOR DE LOTES PARA MOVER
@@ -321,108 +346,115 @@ export const ElementoLoteCard = ({
                   className="w-full p-4 bg-white border-2 border-slate-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all text-left group"
                 >
                   <div className="flex items-center justify-between gap-3">
-                    {/* Ubicación y Estado */}
                     <div className="flex items-center gap-3 flex-1">
                       <UbicacionBadge ubicacion={lote.ubicacion || 'Sin ubicación'} />
                       <EstadoBadge estado={lote.estado} />
                     </div>
-
-                    {/* Cantidad */}
                     <div className="flex items-center gap-3">
                       <div className="text-right">
-                        <div className="text-2xl font-bold text-slate-900">
-                          {lote.cantidad}
-                        </div>
+                        <div className="text-2xl font-bold text-slate-900">{lote.cantidad}</div>
                         <div className="text-xs text-slate-500">
                           {lote.cantidad === 1 ? 'unidad' : 'unidades'}
                         </div>
                       </div>
-
-                      {/* Icono */}
                       <ArrowRight className="w-5 h-5 text-slate-400 group-hover:text-blue-600 transition-colors" />
                     </div>
                   </div>
-
-                  {/* Número de lote */}
                   {lote.lote_numero && (
-                    <div className="mt-2 text-xs text-slate-500">
-                      Lote: {lote.lote_numero}
-                    </div>
+                    <div className="mt-2 text-xs text-slate-500">Lote: {lote.lote_numero}</div>
                   )}
                 </button>
               ))
             )}
           </div>
-
           <Modal.Footer>
-            <Button
-              variant="ghost"
-              onClick={() => setMostrarSelectorLotes(false)}
-            >
+            <Button variant="ghost" onClick={() => setMostrarSelectorLotes(false)}>
               Cancelar
             </Button>
           </Modal.Footer>
         </Modal>
       )}
-    </Card>
+    </div>
   )
 }
 
-/**
- * Función auxiliar: Transformar array de lotes a array de ubicaciones
- * 
- * ENTRADA (lotes del backend):
- * [
- *   { id: 1, cantidad: 50, estado: "nuevo", ubicacion: "Bodega A" },
- *   { id: 2, cantidad: 30, estado: "bueno", ubicacion: "Bodega A" },
- *   { id: 3, cantidad: 20, estado: "bueno", ubicacion: "Bodega B" }
- * ]
- * 
- * SALIDA (formato para LoteUbicacionGroup):
- * [
- *   {
- *     nombre: "Bodega A",
- *     cantidad_total: 80,
- *     lotes: [
- *       { id: 1, cantidad: 50, estado: "nuevo" },
- *       { id: 2, cantidad: 30, estado: "bueno" }
- *     ]
- *   },
- *   {
- *     nombre: "Bodega B",
- *     cantidad_total: 20,
- *     lotes: [
- *       { id: 3, cantidad: 20, estado: "bueno" }
- *     ]
- *   }
- * ]
- */
-function transformarLotesAUbicaciones(lotes) {
-  if (!Array.isArray(lotes) || lotes.length === 0) {
-    return []
+// ============================================
+// SUB-COMPONENTE: STAT MINI
+// ============================================
+function StatMini({ label, value, color }) {
+  const colorMap = {
+    slate: 'bg-slate-50 text-slate-900 border-slate-200',
+    green: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    blue: 'bg-blue-50 text-blue-700 border-blue-200',
+    amber: 'bg-amber-50 text-amber-700 border-amber-200',
+    red: 'bg-red-50 text-red-700 border-red-200',
+    purple: 'bg-purple-50 text-purple-700 border-purple-200',
   }
 
-  // Agrupar lotes por ubicación
+  return (
+    <div className={`rounded-lg border p-2 text-center ${colorMap[color]}`}>
+      <p className="text-xs text-slate-500 font-medium mb-0.5">{label}</p>
+      <p className="text-lg font-bold">{typeof value === 'number' ? value.toLocaleString() : value}</p>
+    </div>
+  )
+}
+
+// ============================================
+// SUB-COMPONENTE: MENU BUTTON
+// ============================================
+function MenuButton({ options }) {
+  const [open, setOpen] = useState(false)
+
+  return (
+    <div className="relative flex-shrink-0">
+      <button
+        onClick={(e) => { e.stopPropagation(); setOpen(!open) }}
+        className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors"
+        aria-label="Opciones"
+      >
+        <svg className="w-5 h-5 text-slate-500" fill="currentColor" viewBox="0 0 20 20">
+          <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+        </svg>
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+          <div className="absolute right-0 mt-1 w-48 bg-white shadow-lg rounded-lg border border-slate-200 py-1 z-20">
+            {options.map((opt, idx) => (
+              <button
+                key={idx}
+                onClick={(e) => { e.stopPropagation(); setOpen(false); opt.onClick() }}
+                className={`w-full text-left px-4 py-2 text-sm transition-colors ${
+                  opt.danger ? 'text-red-600 hover:bg-red-50' : 'text-slate-700 hover:bg-slate-50'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+// ============================================
+// FUNCIÓN: TRANSFORMAR LOTES A UBICACIONES
+// ============================================
+function transformarLotesAUbicaciones(lotes) {
+  if (!Array.isArray(lotes) || lotes.length === 0) return []
+
   const ubicacionesMap = lotes.reduce((acc, lote) => {
     const nombreUbicacion = lote.ubicacion || 'Sin ubicación'
-    
     if (!acc[nombreUbicacion]) {
-      acc[nombreUbicacion] = {
-        nombre: nombreUbicacion,
-        cantidad_total: 0,
-        lotes: []
-      }
+      acc[nombreUbicacion] = { nombre: nombreUbicacion, cantidad_total: 0, lotes: [] }
     }
-    
     acc[nombreUbicacion].cantidad_total += (lote.cantidad || 0)
     acc[nombreUbicacion].lotes.push(lote)
-    
     return acc
   }, {})
 
-  // Convertir a array y ordenar por nombre
   return Object.values(ubicacionesMap).sort((a, b) => {
-    // "Sin ubicación" siempre al final
     if (a.nombre === 'Sin ubicación') return 1
     if (b.nombre === 'Sin ubicación') return -1
     return a.nombre.localeCompare(b.nombre)

@@ -6,8 +6,11 @@
 import { useGetEstadisticasInventario } from '../hooks/Useelementos'
 import { formatearMoneda, formatearNumero } from '../utils/helpers'
 import Spinner from '../components/common/Spinner'
-import { Package, Boxes, DollarSign, AlertTriangle, BarChart3, ArrowLeft } from 'lucide-react'
+import { Package, Boxes, DollarSign, AlertTriangle, BarChart3, ArrowLeft, FileSpreadsheet } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import { useState } from 'react'
+import { exportarInventarioExcel } from '../api/apiExport'
+import { toast } from 'sonner'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend
@@ -35,6 +38,19 @@ const capitalizar = (texto) => {
 const InventarioDashboard = () => {
   const { estadisticas, isLoading, error } = useGetEstadisticasInventario()
   const navigate = useNavigate()
+  const [isExporting, setIsExporting] = useState(false)
+
+  const handleExportExcel = async () => {
+    try {
+      setIsExporting(true)
+      await exportarInventarioExcel()
+      toast.success('Inventario exportado a Excel exitosamente')
+    } catch (err) {
+      toast.error('Error al exportar: ' + (err.message || 'Intenta de nuevo'))
+    } finally {
+      setIsExporting(false)
+    }
+  }
 
   if (isLoading) {
     return (
@@ -106,6 +122,14 @@ const InventarioDashboard = () => {
               </p>
             </div>
           </div>
+          <button
+            onClick={handleExportExcel}
+            disabled={isExporting}
+            className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+          >
+            <FileSpreadsheet className="w-4 h-4" />
+            {isExporting ? 'Exportando...' : 'Exportar Excel'}
+          </button>
         </div>
       </div>
 
@@ -135,8 +159,8 @@ const InventarioDashboard = () => {
           {/* Valor del Inventario */}
           <KPICard
             titulo="Valor del Inventario"
-            valor={formatearMoneda(generales?.valor_total || 0)}
-            subtitulo="costo de adquisicion total"
+            valor={formatearMoneda(generales?.valor_precio_unitario || generales?.valor_total || 0)}
+            subtitulo={Number(generales?.valor_precio_unitario) > 0 ? "valor a precio unitario" : "costo de adquisicion total"}
             icono={DollarSign}
             color="purple"
           />

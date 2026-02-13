@@ -548,6 +548,43 @@ exports.eliminar = async (req, res, next) => {
 };
 
 // ============================================
+// OBTENER SIGUIENTE NÚMERO DE SERIE
+// ============================================
+
+/**
+ * GET /api/series/siguiente-numero/:elementoId
+ *
+ * Genera el siguiente número de serie secuencial para un elemento.
+ * Formato: PREFI-001, PREFI-002, etc.
+ */
+exports.obtenerSiguienteNumero = async (req, res, next) => {
+    try {
+        const { elementoId } = req.params;
+
+        validateId(elementoId, 'ID de elemento');
+
+        const elemento = await ElementoModel.obtenerPorId(elementoId);
+        if (!elemento) {
+            throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO(ENTIDADES.ELEMENTO), 404);
+        }
+
+        if (!elemento.requiere_series) {
+            throw new AppError('Este elemento no requiere números de serie', 400);
+        }
+
+        const numero = await SerieModel.obtenerSiguienteNumero(elementoId);
+
+        res.json({
+            success: true,
+            data: { numero }
+        });
+    } catch (error) {
+        logger.error('serieController.obtenerSiguienteNumero', error);
+        next(error);
+    }
+};
+
+// ============================================
 // OBTENER SERIES CON CONTEXTO DE ALQUILER ✨ NUEVO
 // ============================================
 

@@ -26,6 +26,9 @@ router.get('/elemento/:elementoId', serieController.obtenerPorElemento);
 // GET /api/series/elemento/:elementoId/contexto - Series con info de eventos ✨ NUEVO
 router.get('/elemento/:elementoId/contexto', serieController.obtenerPorElementoConContexto);
 
+// GET /api/series/siguiente-numero/:elementoId - Obtener siguiente número secuencial
+router.get('/siguiente-numero/:elementoId', serieController.obtenerSiguienteNumero);
+
 // GET /api/series/numero/:numeroSerie
 router.get('/numero/:numeroSerie', serieController.obtenerPorNumeroSerie);
 

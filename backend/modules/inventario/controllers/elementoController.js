@@ -232,6 +232,9 @@ exports.crear = async (req, res, next) => {
             costo_adquisicion: body.costo_adquisicion !== undefined && body.costo_adquisicion !== null && body.costo_adquisicion !== ''
                 ? validatePrecio(body.costo_adquisicion, 'Costo de adquisición', false)
                 : null,
+            precio_unitario: body.precio_unitario !== undefined && body.precio_unitario !== null && body.precio_unitario !== ''
+                ? validatePrecio(body.precio_unitario, 'Precio unitario', false)
+                : null,
             requiere_series: validateBoolean(body.requiere_series, 'requiere_series', false),
             estado: validateEstado(body.estado, false) || 'bueno',
             ubicacion: body.ubicacion?.trim() || null,
@@ -328,6 +331,11 @@ exports.actualizar = async (req, res, next) => {
                     ? validatePrecio(body.costo_adquisicion, 'Costo de adquisición', false)
                     : null)
                 : existente.costo_adquisicion,
+            precio_unitario: body.precio_unitario !== undefined
+                ? (body.precio_unitario !== null && body.precio_unitario !== ''
+                    ? validatePrecio(body.precio_unitario, 'Precio unitario', false)
+                    : null)
+                : existente.precio_unitario,
             requiere_series: body.requiere_series !== undefined
                 ? validateBoolean(body.requiere_series, 'requiere_series', false)
                 : existente.requiere_series,

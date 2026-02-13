@@ -98,6 +98,21 @@ const lotesAPI = {
     return response.data
   },
 
+  /**
+   * Verificar si existe un lote con misma ubicación y estado
+   *
+   * @param {number} elementoId - ID del elemento
+   * @param {string} ubicacion - Ubicación a verificar
+   * @param {string} estado - Estado a verificar
+   * @returns {Promise} - { existe: boolean, lote: { id, cantidad } | null }
+   */
+  verificarExiste: async (elementoId, ubicacion, estado) => {
+    const response = await api.get('/lotes/verificar-existe', {
+      params: { elementoId, ubicacion, estado }
+    })
+    return response.data
+  },
+
   // ============================================
   // CREAR LOTE
   // ============================================

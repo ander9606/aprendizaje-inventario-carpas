@@ -10,7 +10,8 @@ const { pool } = require('../../../config/database');
 // ============================================
 
 const SELECT_FULL = `
-    e.id, e.nombre, e.descripcion, e.cantidad, e.stock_minimo, e.costo_adquisicion,
+    e.id, e.nombre, e.descripcion, e.cantidad, e.stock_minimo,
+    e.costo_adquisicion, e.precio_unitario,
     e.requiere_series, e.estado, e.ubicacion, e.fecha_ingreso, e.categoria_id,
     c.nombre AS categoria_nombre, c.emoji AS categoria_emoji,
     c.padre_id AS categoria_padre_id,
@@ -20,7 +21,8 @@ const SELECT_FULL = `
 `;
 
 const SELECT_DETAIL = `
-    e.id, e.nombre, e.descripcion, e.cantidad, e.stock_minimo, e.costo_adquisicion,
+    e.id, e.nombre, e.descripcion, e.cantidad, e.stock_minimo,
+    e.costo_adquisicion, e.precio_unitario,
     e.requiere_series, e.estado, e.ubicacion, e.fecha_ingreso,
     e.categoria_id, e.material_id, e.unidad_id,
     c.nombre AS categoria_nombre, c.emoji AS categoria_emoji,
@@ -238,16 +240,16 @@ class ElementoModel {
     static async crear(datos) {
         const {
             nombre, descripcion, cantidad, stock_minimo, costo_adquisicion,
-            requiere_series, categoria_id, material_id, unidad_id,
+            precio_unitario, requiere_series, categoria_id, material_id, unidad_id,
             estado, ubicacion, fecha_ingreso
         } = datos;
 
         const query = `
             INSERT INTO elementos
             (nombre, descripcion, cantidad, stock_minimo, costo_adquisicion,
-             requiere_series, categoria_id, material_id, unidad_id,
+             precio_unitario, requiere_series, categoria_id, material_id, unidad_id,
              estado, ubicacion, fecha_ingreso)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `;
 
         const valores = [
@@ -256,6 +258,7 @@ class ElementoModel {
             cantidad !== undefined && cantidad !== null ? Number(cantidad) : 0,
             stock_minimo !== undefined && stock_minimo !== null ? Number(stock_minimo) : 0,
             costo_adquisicion !== undefined && costo_adquisicion !== null && costo_adquisicion !== '' ? Number(costo_adquisicion) : null,
+            precio_unitario !== undefined && precio_unitario !== null && precio_unitario !== '' ? Number(precio_unitario) : null,
             requiere_series === true || requiere_series === 1 || requiere_series === '1',
             categoria_id !== undefined && categoria_id !== null && categoria_id !== '' ? Number(categoria_id) : null,
             material_id !== undefined && material_id !== null && material_id !== '' ? Number(material_id) : null,
@@ -275,14 +278,14 @@ class ElementoModel {
     static async actualizar(id, datos) {
         const {
             nombre, descripcion, cantidad, stock_minimo, costo_adquisicion,
-            requiere_series, categoria_id, material_id, unidad_id,
+            precio_unitario, requiere_series, categoria_id, material_id, unidad_id,
             estado, ubicacion, fecha_ingreso
         } = datos;
 
         const query = `
             UPDATE elementos
             SET nombre = ?, descripcion = ?, cantidad = ?,
-                stock_minimo = ?, costo_adquisicion = ?,
+                stock_minimo = ?, costo_adquisicion = ?, precio_unitario = ?,
                 requiere_series = ?, categoria_id = ?, material_id = ?,
                 unidad_id = ?, estado = ?, ubicacion = ?, fecha_ingreso = ?
             WHERE id = ?
@@ -294,6 +297,7 @@ class ElementoModel {
             cantidad !== undefined && cantidad !== null ? Number(cantidad) : 0,
             stock_minimo !== undefined && stock_minimo !== null ? Number(stock_minimo) : 0,
             costo_adquisicion !== undefined && costo_adquisicion !== null && costo_adquisicion !== '' ? Number(costo_adquisicion) : null,
+            precio_unitario !== undefined && precio_unitario !== null && precio_unitario !== '' ? Number(precio_unitario) : null,
             requiere_series === true || requiere_series === 1 || requiere_series === '1',
             categoria_id !== undefined && categoria_id !== null && categoria_id !== '' ? Number(categoria_id) : null,
             material_id !== undefined && material_id !== null && material_id !== '' ? Number(material_id) : null,
@@ -369,7 +373,8 @@ class ElementoModel {
     static async obtenerConStockBajo() {
         const query = `
             SELECT
-                e.id, e.nombre, e.cantidad, e.stock_minimo, e.costo_adquisicion,
+                e.id, e.nombre, e.cantidad, e.stock_minimo,
+                e.costo_adquisicion, e.precio_unitario,
                 e.requiere_series, e.estado,
                 c.nombre AS categoria_nombre, c.emoji AS categoria_emoji,
                 CASE
@@ -402,7 +407,8 @@ class ElementoModel {
                 COUNT(*) AS total_elementos,
                 SUM(CASE WHEN requiere_series = TRUE THEN 1 ELSE 0 END) AS elementos_con_series,
                 SUM(CASE WHEN requiere_series = FALSE THEN 1 ELSE 0 END) AS elementos_con_lotes,
-                COALESCE(SUM(costo_adquisicion * cantidad), 0) AS valor_total
+                COALESCE(SUM(costo_adquisicion * cantidad), 0) AS valor_total,
+                COALESCE(SUM(precio_unitario * cantidad), 0) AS valor_precio_unitario
             FROM elementos
         `;
         const [rows] = await pool.query(query);
