@@ -995,6 +995,90 @@ const getAlertasPorOrden = async (req, res, next) => {
     }
 };
 
+// ============================================
+// CHECKLIST DE CARGUE / DESCARGUE
+// ============================================
+
+/**
+ * GET /api/operaciones/ordenes/:id/checklist
+ * Obtener estado del checklist de la orden
+ */
+const getChecklistOrden = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const checklist = await OrdenElementoModel.obtenerChecklistOrden(parseInt(id));
+
+        res.json({
+            success: true,
+            data: checklist
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * PUT /api/operaciones/ordenes/:id/elementos/:elemId/verificar-cargue
+ * Toggle verificación de cargue de un elemento individual
+ */
+const verificarElementoCargue = async (req, res, next) => {
+    try {
+        const { id, elemId } = req.params;
+        const { verificado, notas } = req.body;
+
+        if (typeof verificado !== 'boolean') {
+            throw new AppError('El campo "verificado" (boolean) es requerido', 400);
+        }
+
+        const elemento = await OrdenElementoModel.toggleVerificacionCargue(
+            parseInt(elemId),
+            verificado,
+            notas || null
+        );
+
+        logger.info('operaciones', `Elemento ${elemId} ${verificado ? 'verificado' : 'desverificado'} para cargue en orden ${id} por ${req.usuario.email}`);
+
+        res.json({
+            success: true,
+            message: verificado ? 'Elemento marcado como cargado' : 'Verificación de cargue removida',
+            data: elemento
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * PUT /api/operaciones/ordenes/:id/elementos/:elemId/verificar-descargue
+ * Toggle verificación de descargue de un elemento individual
+ */
+const verificarElementoDescargue = async (req, res, next) => {
+    try {
+        const { id, elemId } = req.params;
+        const { verificado, notas } = req.body;
+
+        if (typeof verificado !== 'boolean') {
+            throw new AppError('El campo "verificado" (boolean) es requerido', 400);
+        }
+
+        const elemento = await OrdenElementoModel.toggleVerificacionDescargue(
+            parseInt(elemId),
+            verificado,
+            notas || null
+        );
+
+        logger.info('operaciones', `Elemento ${elemId} ${verificado ? 'verificado' : 'desverificado'} para descargue en orden ${id} por ${req.usuario.email}`);
+
+        res.json({
+            success: true,
+            message: verificado ? 'Elemento marcado como descargado' : 'Verificación de descargue removida',
+            data: elemento
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 module.exports = {
     // Órdenes
     getOrdenes,
@@ -1016,6 +1100,11 @@ module.exports = {
     cambiarEstadoElementosMasivo,
     reportarIncidencia,
     subirFotoElemento,
+
+    // Checklist
+    getChecklistOrden,
+    verificarElementoCargue,
+    verificarElementoDescargue,
 
     // Alertas
     getAlertas,

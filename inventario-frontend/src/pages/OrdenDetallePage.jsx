@@ -26,7 +26,8 @@ import {
     RotateCcw,
     Box,
     Bell,
-    ExternalLink
+    ExternalLink,
+    ClipboardCheck
 } from 'lucide-react'
 import {
     useGetOrden,
@@ -48,7 +49,8 @@ import {
     ModalOrdenCargue,
     ModalAsignarResponsable,
     ModalEditarOrden,
-    ModalAsignarInventario
+    ModalAsignarInventario,
+    ChecklistCargueDescargue
 } from '../components/operaciones'
 import { toast } from 'sonner'
 
@@ -70,6 +72,8 @@ export default function OrdenDetallePage() {
     const [showModalRetorno, setShowModalRetorno] = useState(false)
     const [showModalInventario, setShowModalInventario] = useState(false)
     const [showModalOrdenCargue, setShowModalOrdenCargue] = useState(false)
+    const [showChecklistCargue, setShowChecklistCargue] = useState(false)
+    const [showChecklistDescargue, setShowChecklistDescargue] = useState(false)
     const [ejecutandoSalida, setEjecutandoSalida] = useState(false)
 
     // ============================================
@@ -903,6 +907,60 @@ export default function OrdenDetallePage() {
                                         </div>
                                     )}
 
+                                    {/* Botón Checklist de Cargue - Verificación paso a paso */}
+                                    {orden.estado === 'en_preparacion' && orden.tipo === 'montaje' && !hayElementosSinInventario && elementos?.length > 0 && canManage && (
+                                        <div className="mt-4 p-4 bg-indigo-50 border border-indigo-200 rounded-lg">
+                                            <div className="flex items-center justify-between gap-3">
+                                                <div className="flex items-center gap-2">
+                                                    <ClipboardCheck className="w-5 h-5 text-indigo-600 shrink-0" />
+                                                    <div>
+                                                        <p className="text-sm font-medium text-indigo-800">
+                                                            Checklist de Cargue
+                                                        </p>
+                                                        <p className="text-xs text-indigo-600">
+                                                            Verifica cada elemento paso a paso antes del despacho
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <Button
+                                                    color="blue"
+                                                    icon={ClipboardCheck}
+                                                    size="sm"
+                                                    onClick={() => setShowChecklistCargue(true)}
+                                                >
+                                                    Abrir Checklist
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Botón Checklist de Descargue - para desmontaje en sitio */}
+                                    {['en_ruta', 'en_sitio'].includes(orden.estado) && orden.tipo === 'desmontaje' && elementos?.length > 0 && canManage && (
+                                        <div className="mt-4 p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                                            <div className="flex items-center justify-between gap-3">
+                                                <div className="flex items-center gap-2">
+                                                    <ClipboardCheck className="w-5 h-5 text-orange-600 shrink-0" />
+                                                    <div>
+                                                        <p className="text-sm font-medium text-orange-800">
+                                                            Checklist de Descargue
+                                                        </p>
+                                                        <p className="text-xs text-orange-600">
+                                                            Verifica cada elemento al recoger del sitio del evento
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <Button
+                                                    color="orange"
+                                                    icon={ClipboardCheck}
+                                                    size="sm"
+                                                    onClick={() => setShowChecklistDescargue(true)}
+                                                >
+                                                    Abrir Checklist
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    )}
+
                                     {/* Botón asignar inventario si hay elementos pendientes */}
                                     {hayElementosSinInventario && canManage && !esCompletado && !esCancelado && (
                                         <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
@@ -1049,6 +1107,26 @@ export default function OrdenDetallePage() {
                     ordenInfo={orden}
                     elementos={elementos}
                     onConfirmado={refetch}
+                />
+            )}
+            {showChecklistCargue && (
+                <ChecklistCargueDescargue
+                    isOpen={showChecklistCargue}
+                    onClose={() => setShowChecklistCargue(false)}
+                    ordenId={orden.id}
+                    ordenInfo={orden}
+                    modo="cargue"
+                    onCompleto={refetch}
+                />
+            )}
+            {showChecklistDescargue && (
+                <ChecklistCargueDescargue
+                    isOpen={showChecklistDescargue}
+                    onClose={() => setShowChecklistDescargue(false)}
+                    ordenId={orden.id}
+                    ordenInfo={orden}
+                    modo="descargue"
+                    onCompleto={refetch}
                 />
             )}
         </div>
