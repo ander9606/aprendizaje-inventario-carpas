@@ -259,16 +259,12 @@ export default function ModalInventarioCliente({ ordenId, onClose }) {
                                                             <th className="text-left px-4 py-2 text-xs font-semibold text-slate-500">Elemento</th>
                                                             <th className="text-center px-4 py-2 text-xs font-semibold text-slate-500">Cantidad</th>
                                                             <th className="text-center px-4 py-2 text-xs font-semibold text-slate-500">Estado</th>
-                                                            <th className="text-center px-4 py-2 text-xs font-semibold text-slate-500">Identificador</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody>
                                                         {producto.componentes.map((comp) => {
                                                             const cantTotal = comp.cantidad * producto.cantidad
                                                             const estadoPrincipal = comp.elementos_asignados?.[0]?.estado_salida || 'bueno'
-                                                            const identificadores = comp.elementos_asignados
-                                                                ?.map(ea => ea.serie_codigo || ea.lote_codigo)
-                                                                .filter(Boolean)
 
                                                             return (
                                                                 <tr key={comp.id} className="border-t border-slate-100">
@@ -282,12 +278,6 @@ export default function ModalInventarioCliente({ ordenId, onClose }) {
                                                                         <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${ESTADO_COLORS[estadoPrincipal] || 'bg-slate-100 text-slate-600'}`}>
                                                                             {ESTADO_LABELS[estadoPrincipal] || estadoPrincipal}
                                                                         </span>
-                                                                    </td>
-                                                                    <td className="px-4 py-2.5 text-center text-xs text-slate-400 font-mono">
-                                                                        {identificadores?.length > 0
-                                                                            ? identificadores.join(', ')
-                                                                            : '-'
-                                                                        }
                                                                     </td>
                                                                 </tr>
                                                             )
