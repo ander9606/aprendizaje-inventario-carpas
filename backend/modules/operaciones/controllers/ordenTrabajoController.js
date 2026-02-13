@@ -248,6 +248,11 @@ const cambiarEstadoOrden = async (req, res, next) => {
 
         const orden = await OrdenTrabajoModel.cambiarEstado(parseInt(id), estado);
 
+        // Registrar en historial de estados para conteo de tiempos
+        await OrdenTrabajoModel.registrarCambioEstado(
+            parseInt(id), estadoAnterior, estado, req.usuario.id
+        );
+
         // ========================================
         // SINCRONIZACIÓN BIDIRECCIONAL
         // Actualizar estado del alquiler si corresponde
@@ -878,9 +883,18 @@ const ejecutarSalida = async (req, res, next) => {
         const { id } = req.params;
         const datos = req.body;
 
+        // Obtener estado anterior para historial
+        const ordenAntes = await OrdenTrabajoModel.obtenerPorId(parseInt(id));
+        const estadoAnterior = ordenAntes?.estado;
+
         const resultado = await SincronizacionAlquilerService.ejecutarSalida(
             parseInt(id),
             datos
+        );
+
+        // Registrar transición de estado (salida → en_ruta)
+        await OrdenTrabajoModel.registrarCambioEstado(
+            parseInt(id), estadoAnterior, 'en_ruta', req.usuario.id
         );
 
         logger.info('operaciones', `Salida ejecutada - Orden ${id} por ${req.usuario.email}`);
@@ -908,9 +922,18 @@ const ejecutarRetorno = async (req, res, next) => {
             throw new AppError('Debe proporcionar el estado de retorno de los elementos', 400);
         }
 
+        // Obtener estado anterior para historial
+        const ordenAntes = await OrdenTrabajoModel.obtenerPorId(parseInt(id));
+        const estadoAnterior = ordenAntes?.estado;
+
         const resultado = await SincronizacionAlquilerService.ejecutarRetorno(
             parseInt(id),
             retornos
+        );
+
+        // Registrar transición de estado (retorno → completado)
+        await OrdenTrabajoModel.registrarCambioEstado(
+            parseInt(id), estadoAnterior, 'completado', req.usuario.id
         );
 
         logger.info('operaciones', `Retorno ejecutado - Orden ${id} por ${req.usuario.email}`);
@@ -989,6 +1012,28 @@ const getAlertasPorOrden = async (req, res, next) => {
         res.json({
             success: true,
             data: alertas
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// ============================================
+// DURACIONES Y HISTORIAL DE ESTADOS
+// ============================================
+
+/**
+ * GET /api/operaciones/ordenes/:id/duraciones
+ * Obtener historial de estados y duraciones calculadas
+ */
+const getDuracionesOrden = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const resultado = await OrdenTrabajoModel.calcularDuraciones(parseInt(id));
+
+        res.json({
+            success: true,
+            data: resultado
         });
     } catch (error) {
         next(error);
@@ -1100,6 +1145,9 @@ module.exports = {
     cambiarEstadoElementosMasivo,
     reportarIncidencia,
     subirFotoElemento,
+
+    // Duraciones
+    getDuracionesOrden,
 
     // Checklist
     getChecklistOrden,

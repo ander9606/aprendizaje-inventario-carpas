@@ -27,7 +27,8 @@ import {
     Box,
     Bell,
     ExternalLink,
-    ClipboardCheck
+    ClipboardCheck,
+    Timer
 } from 'lucide-react'
 import {
     useGetOrden,
@@ -39,7 +40,8 @@ import {
     useAsignarEquipo,
     useUpdateOrden,
     useEjecutarSalida,
-    useEjecutarRetorno
+    useEjecutarRetorno,
+    useGetDuracionesOrden
 } from '../hooks/useOrdenesTrabajo'
 import { useAuth } from '../hooks/auth/useAuth'
 import Button from '../components/common/Button'
@@ -87,6 +89,11 @@ export default function OrdenDetallePage() {
     // Se carga siempre para mostrar productos y validar estado de cargue
     const { productos, alquilerElementos, elementosCargue, resumenCotizacion } = useGetOrdenCompleta(id)
 
+    // Duraciones: solo cargar en estados avanzados o completado
+    const { historial: historialEstados, duraciones } = useGetDuracionesOrden(id, {
+        enabled: !!orden && ['en_ruta', 'en_sitio', 'en_proceso', 'completado'].includes(orden?.estado)
+    })
+
     // ============================================
     // HOOKS: Mutaciones
     // ============================================
@@ -96,6 +103,21 @@ export default function OrdenDetallePage() {
     const prepararElementos = usePrepararElementos()
     const ejecutarSalida = useEjecutarSalida()
     const ejecutarRetorno = useEjecutarRetorno()
+
+    // ============================================
+    // HELPERS
+    // ============================================
+    const formatDuration = (ms) => {
+        if (ms == null) return '-'
+        const totalMinutos = Math.floor(ms / 60000)
+        if (totalMinutos < 60) return `${totalMinutos} min`
+        const horas = Math.floor(totalMinutos / 60)
+        const minutos = totalMinutos % 60
+        if (horas < 24) return `${horas}h ${minutos}m`
+        const dias = Math.floor(horas / 24)
+        const horasRest = horas % 24
+        return `${dias}d ${horasRest}h`
+    }
 
     // ============================================
     // HANDLERS
@@ -1046,6 +1068,80 @@ export default function OrdenDetallePage() {
                                 </div>
                             )}
                         </div>
+
+                        {/* TIEMPOS DE OPERACIÓN */}
+                        {duraciones && (
+                            <div className="bg-white rounded-xl border border-slate-200 p-6">
+                                <div className="flex items-center gap-2 mb-4">
+                                    <Timer className="w-5 h-5 text-slate-600" />
+                                    <h3 className="text-lg font-semibold text-slate-900">
+                                        Tiempos
+                                    </h3>
+                                </div>
+                                <div className="space-y-3">
+                                    {duraciones.preparacion_ms != null && (
+                                        <div className="flex items-center justify-between text-sm">
+                                            <span className="text-slate-500">Preparación</span>
+                                            <span className="font-medium text-slate-900">
+                                                {formatDuration(duraciones.preparacion_ms)}
+                                            </span>
+                                        </div>
+                                    )}
+                                    {duraciones.desplazamiento_ms != null && (
+                                        <div className="flex items-center justify-between text-sm">
+                                            <span className="text-slate-500">Desplazamiento</span>
+                                            <span className="font-medium text-slate-900">
+                                                {formatDuration(duraciones.desplazamiento_ms)}
+                                            </span>
+                                        </div>
+                                    )}
+                                    {orden.tipo === 'montaje' && duraciones.trabajo_montaje_ms != null && (
+                                        <div className="flex items-center justify-between text-sm">
+                                            <span className="text-slate-500">Montaje en sitio</span>
+                                            <span className="font-bold text-green-700">
+                                                {formatDuration(duraciones.trabajo_montaje_ms)}
+                                            </span>
+                                        </div>
+                                    )}
+                                    {orden.tipo === 'desmontaje' && duraciones.trabajo_desmontaje_ms != null && (
+                                        <div className="flex items-center justify-between text-sm">
+                                            <span className="text-slate-500">Desmontaje en sitio</span>
+                                            <span className="font-bold text-green-700">
+                                                {formatDuration(duraciones.trabajo_desmontaje_ms)}
+                                            </span>
+                                        </div>
+                                    )}
+                                    {duraciones.total_ms != null && (
+                                        <>
+                                            <div className="border-t border-slate-200 pt-2 flex items-center justify-between text-sm">
+                                                <span className="font-medium text-slate-700">Total operación</span>
+                                                <span className="font-bold text-blue-700">
+                                                    {formatDuration(duraciones.total_ms)}
+                                                </span>
+                                            </div>
+                                        </>
+                                    )}
+                                    {historialEstados.length > 0 && (
+                                        <div className="pt-2 border-t border-slate-100">
+                                            <p className="text-xs text-slate-400 mb-2">Historial</p>
+                                            <div className="space-y-1.5">
+                                                {historialEstados.map((h, i) => (
+                                                    <div key={h.id || i} className="flex items-center gap-2 text-xs">
+                                                        <span className="text-slate-400 w-14 shrink-0 text-right">
+                                                            {new Date(h.created_at).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}
+                                                        </span>
+                                                        <div className="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0" />
+                                                        <span className="text-slate-600">
+                                                            {h.estado_nuevo.replace(/_/g, ' ')}
+                                                        </span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
 
                         {/* CANCELAR ORDEN */}
                         {canManage && !esCompletado && !esCancelado && (

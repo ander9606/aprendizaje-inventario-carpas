@@ -171,6 +171,17 @@ router.get(
 );
 
 // ============================================
+// RUTAS DE DURACIONES
+// ============================================
+
+// Obtener historial de estados y duraciones de una orden
+router.get(
+    '/ordenes/:id/duraciones',
+    verificarRol(['admin', 'gerente', 'operaciones']),
+    ordenTrabajoController.getDuracionesOrden
+);
+
+// ============================================
 // RUTAS DE CHECKLIST CARGUE / DESCARGUE
 // ============================================
 

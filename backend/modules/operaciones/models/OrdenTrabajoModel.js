@@ -818,6 +818,117 @@ class OrdenTrabajoModel {
         };
     }
 
+    // ============================================
+    // HISTORIAL DE ESTADOS Y DURACIONES
+    // ============================================
+
+    /**
+     * Registrar cambio de estado en historial
+     * @param {number} ordenId
+     * @param {string} estadoAnterior
+     * @param {string} estadoNuevo
+     * @param {number|null} cambiadoPor - ID del empleado
+     */
+    static async registrarCambioEstado(ordenId, estadoAnterior, estadoNuevo, cambiadoPor = null) {
+        try {
+            await pool.query(`
+                INSERT INTO orden_trabajo_historial_estados
+                (orden_id, estado_anterior, estado_nuevo, cambiado_por)
+                VALUES (?, ?, ?, ?)
+            `, [ordenId, estadoAnterior || null, estadoNuevo, cambiadoPor]);
+        } catch (error) {
+            // Si la tabla no existe aún, no bloquear la operación principal
+            if (error.code === 'ER_NO_SUCH_TABLE') return;
+            throw error;
+        }
+    }
+
+    /**
+     * Obtener historial de estados de una orden
+     * @param {number} ordenId
+     * @returns {Promise<Array>}
+     */
+    static async obtenerHistorialEstados(ordenId) {
+        try {
+            const [rows] = await pool.query(`
+                SELECT
+                    h.id,
+                    h.estado_anterior,
+                    h.estado_nuevo,
+                    h.created_at,
+                    e.nombre as cambiado_por_nombre,
+                    e.apellido as cambiado_por_apellido
+                FROM orden_trabajo_historial_estados h
+                LEFT JOIN empleados e ON h.cambiado_por = e.id
+                WHERE h.orden_id = ?
+                ORDER BY h.created_at ASC
+            `, [ordenId]);
+
+            return rows;
+        } catch (error) {
+            if (error.code === 'ER_NO_SUCH_TABLE') return [];
+            throw error;
+        }
+    }
+
+    /**
+     * Calcular duraciones de una orden basado en historial de estados
+     * Montaje: mide en_proceso → completado (trabajo en sitio)
+     * Desmontaje: mide en_sitio → completado (desmontaje en sitio)
+     * También: en_preparacion → en_ruta (preparación)
+     *          en_ruta → en_sitio (desplazamiento)
+     *          total: primer registro → completado
+     * @param {number} ordenId
+     * @returns {Promise<Object>}
+     */
+    static async calcularDuraciones(ordenId) {
+        const historial = await this.obtenerHistorialEstados(ordenId);
+
+        if (historial.length === 0) {
+            return { historial: [], duraciones: null };
+        }
+
+        // Extraer primer timestamp por cada estado
+        const timestamps = {};
+        historial.forEach(h => {
+            if (!timestamps[h.estado_nuevo]) {
+                timestamps[h.estado_nuevo] = h.created_at;
+            }
+        });
+
+        const calcDiff = (desde, hasta) => {
+            if (!timestamps[desde] || !timestamps[hasta]) return null;
+            const ms = new Date(timestamps[hasta]) - new Date(timestamps[desde]);
+            if (ms < 0) return null;
+            return ms;
+        };
+
+        const duraciones = {
+            preparacion_ms: calcDiff('en_preparacion', 'en_ruta'),
+            desplazamiento_ms: calcDiff('en_ruta', 'en_sitio'),
+            trabajo_montaje_ms: calcDiff('en_proceso', 'completado'),
+            trabajo_desmontaje_ms: calcDiff('en_sitio', 'completado'),
+            total_ms: null
+        };
+
+        // Total: primer registro → completado
+        const primerTimestamp = historial[0]?.created_at;
+        if (primerTimestamp && timestamps['completado']) {
+            duraciones.total_ms = new Date(timestamps['completado']) - new Date(primerTimestamp);
+        }
+
+        duraciones.timestamps = {
+            inicio: primerTimestamp || null,
+            en_preparacion: timestamps['en_preparacion'] || null,
+            en_ruta: timestamps['en_ruta'] || null,
+            en_sitio: timestamps['en_sitio'] || null,
+            en_proceso: timestamps['en_proceso'] || null,
+            completado: timestamps['completado'] || null
+        };
+
+        return { historial, duraciones };
+    }
+
     /**
      * Obtener estadísticas de órdenes
      * @param {Date} desde

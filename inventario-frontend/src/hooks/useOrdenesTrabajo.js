@@ -454,6 +454,30 @@ export const useGetAlertasOrden = (ordenId) => {
 }
 
 // ============================================
+// HOOKS: DURACIONES
+// ============================================
+
+/**
+ * Hook: useGetDuracionesOrden
+ * Obtiene historial de estados y duraciones de una orden
+ */
+export const useGetDuracionesOrden = (ordenId, options = {}) => {
+    const { data, isLoading, error, refetch } = useQuery({
+        queryKey: ['ordenes', ordenId, 'duraciones'],
+        queryFn: () => ordenesAPI.obtenerDuraciones(ordenId),
+        enabled: !!ordenId && (options.enabled !== false)
+    })
+
+    return {
+        historial: data?.data?.historial || [],
+        duraciones: data?.data?.duraciones || null,
+        isLoading,
+        error,
+        refetch
+    }
+}
+
+// ============================================
 // HOOKS: CHECKLIST CARGUE / DESCARGUE
 // ============================================
 

@@ -202,6 +202,20 @@ const ordenesAPI = {
     },
 
     // ============================================
+    // DURACIONES
+    // ============================================
+
+    /**
+     * Obtener historial de estados y duraciones de una orden
+     * @param {number} id - ID de la orden
+     * @returns {Object} - { historial, duraciones }
+     */
+    obtenerDuraciones: async (id) => {
+        const response = await api.get(`/operaciones/ordenes/${id}/duraciones`)
+        return response.data
+    },
+
+    // ============================================
     // CHECKLIST CARGUE / DESCARGUE
     // ============================================
 
