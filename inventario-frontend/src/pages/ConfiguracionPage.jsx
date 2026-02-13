@@ -10,7 +10,8 @@ import {
   MapPin,
   ArrowLeft,
   ArrowRight,
-  Shield
+  Shield,
+  Building
 } from 'lucide-react'
 import { useAuth } from '../hooks/auth/useAuth'
 
@@ -48,6 +49,14 @@ export default function ConfiguracionPage() {
       icon: MapPin,
       color: 'blue',
       ruta: '/configuracion/ubicaciones'
+    },
+    {
+      id: 'empresa',
+      nombre: 'Datos Empresa',
+      descripcion: 'Logo, nombre, NIT, dirección y datos de contacto que aparecen en documentos.',
+      icon: Building,
+      color: 'orange',
+      ruta: '/configuracion/empresa'
     },
     // Solo mostrar si tiene permisos
     ...(canSeeEmpleados ? [{
@@ -138,7 +147,7 @@ export default function ConfiguracionPage() {
         </div>
 
         {/* Grid de opciones */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {opciones.map((opcion) => {
             const Icon = opcion.icon;
             const colors = getColorClasses(opcion.color);

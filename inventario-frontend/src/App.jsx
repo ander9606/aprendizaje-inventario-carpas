@@ -166,6 +166,7 @@ function App() {
                 <Route path="/configuracion" element={<ConfiguracionPage />} />
                 <Route path="/configuracion/ciudades" element={<CiudadesPage />} />
                 <Route path="/configuracion/ubicaciones" element={<UbicacionesPage />} />
+                <Route path="/configuracion/empresa" element={<ConfiguracionAlquileresPage />} />
 
                 {/* ============================================
                     OPERACIONES (con sidebar)

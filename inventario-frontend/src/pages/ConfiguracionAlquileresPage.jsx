@@ -4,8 +4,8 @@
 // ============================================
 
 import { useState, useEffect, useRef } from 'react'
-import { useSearchParams } from 'react-router-dom'
-import { Settings, Percent, Calendar, Building, Save, RotateCcw, Upload, Trash2, ImageIcon } from 'lucide-react'
+import { useSearchParams, useLocation, useNavigate } from 'react-router-dom'
+import { Settings, Percent, Calendar, Building, Save, RotateCcw, Upload, Trash2, ImageIcon, ArrowLeft } from 'lucide-react'
 import Button from '../components/common/Button'
 import Spinner from '../components/common/Spinner'
 import { useGetConfiguraciones, useUpdateConfiguraciones, useSubirLogo, useEliminarLogo } from '../hooks'
@@ -15,7 +15,12 @@ const BACKEND_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
 
 const ConfiguracionPage = () => {
   const [searchParams] = useSearchParams()
-  const categoriaParam = searchParams.get('categoria') || 'impuestos'
+  const location = useLocation()
+  const navigate = useNavigate()
+
+  // Detectar si estamos en /configuracion/empresa (modo standalone)
+  const isStandalone = location.pathname.startsWith('/configuracion/empresa')
+  const categoriaParam = isStandalone ? 'empresa' : (searchParams.get('categoria') || 'impuestos')
 
   const [categoriaActiva, setCategoriaActiva] = useState(categoriaParam)
   const [valores, setValores] = useState({})
@@ -278,20 +283,36 @@ const ConfiguracionPage = () => {
     )
   }
 
+  // En modo standalone, solo mostrar la categoría empresa
+  const categoriasVisibles = isStandalone
+    ? { empresa: categorias.empresa }
+    : categorias
+
   return (
     <div className="p-6">
+      {/* Botón volver (solo en modo standalone) */}
+      {isStandalone && (
+        <button
+          onClick={() => navigate('/configuracion')}
+          className="flex items-center gap-2 text-slate-600 hover:text-slate-900 mb-4 transition-colors text-sm"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span>Volver a Configuración</span>
+        </button>
+      )}
+
       {/* Header */}
       <div className="mb-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-3">
               <div className="p-2 bg-slate-100 rounded-lg">
-                <Settings className="w-6 h-6 text-slate-600" />
+                {isStandalone ? <Building className="w-6 h-6 text-slate-600" /> : <Settings className="w-6 h-6 text-slate-600" />}
               </div>
-              Configuración
+              {isStandalone ? 'Datos de la Empresa' : 'Configuración'}
             </h1>
             <p className="text-slate-500 mt-1">
-              Ajusta los parámetros del sistema de alquileres
+              {isStandalone ? 'Logo, nombre y datos de contacto para documentos' : 'Ajusta los parámetros del sistema de alquileres'}
             </p>
           </div>
 
@@ -318,9 +339,10 @@ const ConfiguracionPage = () => {
         </div>
       </div>
 
-      {/* Tabs de categorías */}
+      {/* Tabs de categorías (ocultar si solo hay una) */}
+      {!isStandalone && (
       <div className="flex gap-2 mb-6 border-b border-slate-200">
-        {Object.entries(categorias).map(([key, cat]) => {
+        {Object.entries(categoriasVisibles).map(([key, cat]) => {
           const Icon = cat.icon
           return (
             <button
@@ -340,6 +362,7 @@ const ConfiguracionPage = () => {
           )
         })}
       </div>
+      )}
 
       {/* Contenido */}
       {isLoading ? (

@@ -15,7 +15,6 @@ import {
   Calendar,
   ChevronDown,
   ChevronRight,
-  Building,
   BarChart3,
   ArrowLeft,
   Archive
@@ -83,11 +82,6 @@ const AlquileresSidebar = () => {
       to: '/alquileres/configuracion/dias-extra',
       icon: Calendar,
       label: 'Días Extra'
-    },
-    {
-      to: '/alquileres/configuracion/empresa',
-      icon: Building,
-      label: 'Datos Empresa'
     }
   ]
 

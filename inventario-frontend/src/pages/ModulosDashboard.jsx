@@ -9,237 +9,250 @@ import {
   Tent,
   Calendar,
   ArrowRight,
-  Boxes,
-  ClipboardList,
   Settings,
-  Truck
+  Truck,
+  LogOut
 } from 'lucide-react'
+import { useGetConfiguracionCompleta } from '../hooks/useConfiguracion'
+import { useAuth } from '../hooks/auth/useAuth'
 
-/**
- * ModulosDashboard
- *
- * Página de inicio que muestra los módulos disponibles del sistema:
- * - Inventario Individual: Gestión de elementos del inventario
- * - Productos de Alquiler: Plantillas de productos para cotizar
- * - Alquileres: Gestión de contratos y reservas (próximamente)
- */
+// URL base del backend (sin /api)
+const BACKEND_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api').replace('/api', '')
+
 export default function ModulosDashboard() {
   const navigate = useNavigate()
+  const { data: config, isLoading } = useGetConfiguracionCompleta()
+  const { usuario, logout } = useAuth()
+
+  const empresaNombre = config?.empresa_nombre || 'Sistema de Gestión'
+  const empresaLogo = config?.empresa_logo || ''
 
   const modulos = [
     {
       id: 'inventario',
-      nombre: 'Inventario Individual',
-      descripcion: 'Gestiona los elementos físicos del inventario. Carpas, mesas, sillas, accesorios y más.',
+      nombre: 'Inventario',
+      descripcion: 'Elementos físicos del inventario: carpas, mesas, sillas, accesorios.',
       icon: Package,
       color: 'blue',
       ruta: '/inventario',
       estado: 'activo',
-      stats: [
-        { label: 'Categorías', icon: Boxes },
-        { label: 'Elementos', icon: ClipboardList }
-      ]
+      tags: ['Categorías', 'Series', 'Lotes']
     },
     {
       id: 'productos',
-      nombre: 'Productos de Alquiler',
-      descripcion: 'Crea plantillas de productos combinando elementos del inventario para cotizar fácilmente.',
+      nombre: 'Productos',
+      descripcion: 'Plantillas de productos combinando elementos para cotizar.',
       icon: Tent,
       color: 'emerald',
       ruta: '/productos/alquiler',
       estado: 'activo',
-      stats: [
-        { label: 'Plantillas', icon: ClipboardList },
-        { label: 'Categorías', icon: Boxes }
-      ]
+      tags: ['Plantillas', 'Combos']
     },
     {
       id: 'alquileres',
       nombre: 'Alquileres',
-      descripcion: 'Gestiona clientes, cotizaciones y alquileres de productos.',
+      descripcion: 'Cotizaciones, contratos y gestión de alquileres.',
       icon: Calendar,
       color: 'purple',
       ruta: '/alquileres',
       estado: 'activo',
-      stats: [
-        { label: 'Cotizaciones', icon: ClipboardList },
-        { label: 'Clientes', icon: Calendar }
-      ]
+      tags: ['Cotizaciones', 'Clientes']
     },
     {
       id: 'operaciones',
       nombre: 'Operaciones',
-      descripcion: 'Gestiona montajes, desmontajes, órdenes de trabajo y equipos de operaciones.',
+      descripcion: 'Montajes, desmontajes, órdenes de trabajo y equipos.',
       icon: Truck,
       color: 'orange',
       ruta: '/operaciones',
       estado: 'activo',
-      stats: [
-        { label: 'Órdenes', icon: ClipboardList },
-        { label: 'Calendario', icon: Calendar }
-      ]
+      tags: ['Órdenes', 'Calendario']
     },
     {
       id: 'configuracion',
       nombre: 'Configuración',
-      descripcion: 'Gestiona ubicaciones, tarifas de transporte y otros datos maestros del sistema.',
+      descripcion: 'Datos maestros: ubicaciones, tarifas, empresa y empleados.',
       icon: Settings,
-      color: 'amber',
+      color: 'slate',
       ruta: '/configuracion',
       estado: 'activo',
-      stats: [
-        { label: 'Ubicaciones', icon: Boxes },
-        { label: 'Tarifas', icon: ClipboardList }
-      ]
+      tags: ['Ubicaciones', 'Empresa']
     }
   ]
 
-  const getColorClasses = (color, estado) => {
-    if (estado === 'proximamente') {
-      return {
-        bg: 'bg-slate-100',
-        border: 'border-slate-200',
-        icon: 'bg-slate-200 text-slate-400',
-        text: 'text-slate-400',
-        hover: ''
-      }
+  const colorConfig = {
+    blue: {
+      card: 'border-blue-200/60 hover:border-blue-400 hover:shadow-blue-100/50',
+      iconBg: 'bg-blue-500',
+      tag: 'bg-blue-50 text-blue-700',
+      arrow: 'text-blue-500 group-hover:translate-x-1'
+    },
+    emerald: {
+      card: 'border-emerald-200/60 hover:border-emerald-400 hover:shadow-emerald-100/50',
+      iconBg: 'bg-emerald-500',
+      tag: 'bg-emerald-50 text-emerald-700',
+      arrow: 'text-emerald-500 group-hover:translate-x-1'
+    },
+    purple: {
+      card: 'border-purple-200/60 hover:border-purple-400 hover:shadow-purple-100/50',
+      iconBg: 'bg-purple-500',
+      tag: 'bg-purple-50 text-purple-700',
+      arrow: 'text-purple-500 group-hover:translate-x-1'
+    },
+    orange: {
+      card: 'border-orange-200/60 hover:border-orange-400 hover:shadow-orange-100/50',
+      iconBg: 'bg-orange-500',
+      tag: 'bg-orange-50 text-orange-700',
+      arrow: 'text-orange-500 group-hover:translate-x-1'
+    },
+    slate: {
+      card: 'border-slate-200/60 hover:border-slate-400 hover:shadow-slate-100/50',
+      iconBg: 'bg-slate-500',
+      tag: 'bg-slate-100 text-slate-700',
+      arrow: 'text-slate-500 group-hover:translate-x-1'
     }
-
-    const colors = {
-      blue: {
-        bg: 'bg-blue-50',
-        border: 'border-blue-200 hover:border-blue-400',
-        icon: 'bg-blue-100 text-blue-600',
-        text: 'text-blue-600',
-        hover: 'hover:shadow-lg hover:shadow-blue-100'
-      },
-      emerald: {
-        bg: 'bg-emerald-50',
-        border: 'border-emerald-200 hover:border-emerald-400',
-        icon: 'bg-emerald-100 text-emerald-600',
-        text: 'text-emerald-600',
-        hover: 'hover:shadow-lg hover:shadow-emerald-100'
-      },
-      purple: {
-        bg: 'bg-purple-50',
-        border: 'border-purple-200 hover:border-purple-400',
-        icon: 'bg-purple-100 text-purple-600',
-        text: 'text-purple-600',
-        hover: 'hover:shadow-lg hover:shadow-purple-100'
-      },
-      amber: {
-        bg: 'bg-amber-50',
-        border: 'border-amber-200 hover:border-amber-400',
-        icon: 'bg-amber-100 text-amber-600',
-        text: 'text-amber-600',
-        hover: 'hover:shadow-lg hover:shadow-amber-100'
-      },
-      orange: {
-        bg: 'bg-orange-50',
-        border: 'border-orange-200 hover:border-orange-400',
-        icon: 'bg-orange-100 text-orange-600',
-        text: 'text-orange-600',
-        hover: 'hover:shadow-lg hover:shadow-orange-100'
-      }
-    }
-
-    return colors[color] || colors.blue
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-      {/* Header */}
-      <div className="bg-white border-b border-slate-200 shadow-sm">
-        <div className="container mx-auto px-6 py-8">
-          <div className="text-center">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-500 to-emerald-500 rounded-2xl mb-4 shadow-lg">
-              <Tent className="w-8 h-8 text-white" />
-            </div>
-            <h1 className="text-3xl font-bold text-slate-900 mb-2">
-              VENTO SAS
-            </h1>
-            <p className="text-lg text-slate-600">
-              Sistema de Gestión de Inventario y Alquileres
-            </p>
-          </div>
-        </div>
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100">
+      {/* ============================================
+          HEADER CON LOGO DE EMPRESA
+          ============================================ */}
+      <header className="bg-white/80 backdrop-blur-sm border-b border-slate-200/60 sticky top-0 z-10">
+        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            {/* Logo */}
+            {isLoading ? (
+              <div className="w-11 h-11 rounded-xl bg-slate-100 animate-pulse" />
+            ) : empresaLogo ? (
+              <img
+                src={`${BACKEND_URL}${empresaLogo}`}
+                alt={empresaNombre}
+                className="w-11 h-11 rounded-xl object-contain border border-slate-200 bg-white p-0.5"
+                onError={(e) => {
+                  e.target.style.display = 'none'
+                  e.target.nextSibling.style.display = 'flex'
+                }}
+              />
+            ) : null}
+            {/* Fallback si no hay logo o falla la carga */}
+            {!empresaLogo && !isLoading && (
+              <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-blue-500 to-emerald-500 flex items-center justify-center shadow-sm">
+                <Tent className="w-6 h-6 text-white" />
+              </div>
+            )}
+            {empresaLogo && (
+              <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-blue-500 to-emerald-500 items-center justify-center shadow-sm hidden">
+                <Tent className="w-6 h-6 text-white" />
+              </div>
+            )}
 
-      {/* Contenido principal */}
-      <div className="container mx-auto px-6 py-12">
+            <div>
+              <h1 className="text-lg font-bold text-slate-900 leading-tight">
+                {isLoading ? <span className="inline-block w-32 h-5 bg-slate-100 rounded animate-pulse" /> : empresaNombre}
+              </h1>
+              <p className="text-xs text-slate-500">
+                Sistema de Gestión
+              </p>
+            </div>
+          </div>
+
+          {/* Usuario y logout */}
+          {usuario && (
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-slate-600 hidden sm:inline">
+                {usuario.nombre || usuario.email}
+              </span>
+              <button
+                onClick={logout}
+                className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                title="Cerrar sesión"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+        </div>
+      </header>
+
+      {/* ============================================
+          CONTENIDO PRINCIPAL
+          ============================================ */}
+      <main className="max-w-6xl mx-auto px-6 py-10">
         <div className="mb-8">
-          <h2 className="text-xl font-semibold text-slate-900 mb-2">
-            Módulos del Sistema
+          <h2 className="text-2xl font-bold text-slate-900 mb-1">
+            Módulos
           </h2>
-          <p className="text-slate-600">
-            Selecciona un módulo para comenzar
+          <p className="text-slate-500">
+            Selecciona un módulo para comenzar a trabajar
           </p>
         </div>
 
-        {/* Grid de módulos */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* ============================================
+            GRID DE MÓDULOS
+            ============================================ */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {modulos.map((modulo) => {
             const Icon = modulo.icon
-            const colors = getColorClasses(modulo.color, modulo.estado)
-            const isDisabled = modulo.estado === 'proximamente'
+            const colors = colorConfig[modulo.color] || colorConfig.blue
 
             return (
               <div
                 key={modulo.id}
-                onClick={() => !isDisabled && navigate(modulo.ruta)}
+                onClick={() => navigate(modulo.ruta)}
                 className={`
-                  relative rounded-2xl border-2 p-6 transition-all duration-300
-                  ${colors.border} ${colors.hover}
-                  ${isDisabled ? 'cursor-not-allowed opacity-75' : 'cursor-pointer'}
+                  group relative bg-white rounded-2xl border p-6
+                  cursor-pointer transition-all duration-200
+                  hover:shadow-lg ${colors.card}
                 `}
               >
-                {/* Badge de próximamente */}
-                {isDisabled && (
-                  <div className="absolute top-4 right-4">
-                    <span className="px-3 py-1 bg-slate-200 text-slate-600 text-xs font-medium rounded-full">
-                      Próximamente
-                    </span>
-                  </div>
-                )}
-
                 {/* Icono */}
                 <div className={`
-                  inline-flex items-center justify-center w-14 h-14 rounded-xl mb-4
-                  ${colors.icon}
+                  w-12 h-12 rounded-xl ${colors.iconBg}
+                  flex items-center justify-center mb-4 shadow-sm
                 `}>
-                  <Icon className="w-7 h-7" />
+                  <Icon className="w-6 h-6 text-white" />
                 </div>
 
                 {/* Contenido */}
-                <h3 className="text-xl font-bold text-slate-900 mb-2">
+                <h3 className="text-lg font-semibold text-slate-900 mb-1.5">
                   {modulo.nombre}
                 </h3>
-                <p className="text-slate-600 text-sm mb-4 leading-relaxed">
+                <p className="text-sm text-slate-500 leading-relaxed mb-4">
                   {modulo.descripcion}
                 </p>
 
-                {/* Footer con acción */}
-                {!isDisabled && (
-                  <div className={`
-                    flex items-center gap-2 font-medium text-sm
-                    ${colors.text}
-                  `}>
-                    <span>Ir al módulo</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </div>
-                )}
+                {/* Tags */}
+                <div className="flex flex-wrap gap-1.5 mb-4">
+                  {modulo.tags.map(tag => (
+                    <span
+                      key={tag}
+                      className={`text-xs px-2 py-0.5 rounded-full font-medium ${colors.tag}`}
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+
+                {/* Arrow indicator */}
+                <div className="flex items-center gap-1.5">
+                  <ArrowRight className={`w-4 h-4 transition-transform duration-200 ${colors.arrow}`} />
+                  <span className={`text-sm font-medium ${colors.arrow.split(' ')[0]}`}>
+                    Abrir
+                  </span>
+                </div>
               </div>
             )
           })}
         </div>
+      </main>
 
-        {/* Info adicional */}
-        <div className="mt-12 text-center">
-          <p className="text-sm text-slate-500">
-            Sistema desarrollado para la gestión integral de alquiler de carpas y eventos
-          </p>
-        </div>
-      </div>
+      {/* Footer */}
+      <footer className="max-w-6xl mx-auto px-6 pb-8 pt-4">
+        <p className="text-center text-xs text-slate-400">
+          Sistema de gestión integral de alquiler de carpas y eventos
+        </p>
+      </footer>
     </div>
   )
 }
