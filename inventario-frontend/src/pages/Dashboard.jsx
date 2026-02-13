@@ -4,7 +4,7 @@
 // ============================================
 
 import { useState, useMemo } from 'react'
-import { Plus, Package, MapPin, ArrowLeft, Search, X, Layers, ChevronRight, BarChart3, FileSpreadsheet } from 'lucide-react'
+import { Plus, Package, ArrowLeft, Search, X, Layers, ChevronRight, BarChart3, FileSpreadsheet } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useNavigation } from '../hooks/UseNavigation'  
 import {
@@ -294,15 +294,6 @@ export default function Dashboard() {
                 onClick={() => navigate('/inventario/dashboard')}
               >
                 Dashboard
-              </Button>
-
-              {/* Botón: Gestionar ubicaciones */}
-              <Button
-                variant="secondary"
-                icon={<MapPin />}
-                onClick={() => navigate('/inventario/ubicaciones')}
-              >
-                Ubicaciones
               </Button>
 
               {/* Botón: Crear categoría */}

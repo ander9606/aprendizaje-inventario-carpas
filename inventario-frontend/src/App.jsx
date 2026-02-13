@@ -68,7 +68,6 @@ import HistorialAlquileresPage from './pages/HistorialAlquileresPage'
  * /inventario/categorias/:categoriaId                                                   → Subcategorias
  * /inventario/categorias/:categoriaId/subcategorias/:subcategoriaId/elementos           → Elementos
  * /inventario/categorias/:categoriaId/subcategorias/:subcategoriaId/elementos/:id       → Detalle
- * /inventario/ubicaciones                                                               → Ubicaciones
  *
  * RUTAS PRODUCTOS DE ALQUILER:
  * /productos                                                                            → Navegación
@@ -119,8 +118,6 @@ function App() {
                     element={<ElementoDetallePage />}
                 />
 
-                <Route path="/inventario/ubicaciones" element={<UbicacionesPage />} />
-
                 {/* Rutas antiguas - Compatibilidad */}
                 <Route
                     path="/categorias/:categoriaId"
@@ -134,8 +131,6 @@ function App() {
                     path="/categorias/:categoriaId/subcategorias/:subcategoriaId/elementos/:elementoId"
                     element={<ElementoDetallePage />}
                 />
-                <Route path="/ubicaciones" element={<UbicacionesPage />} />
-
                 {/* ============================================
                     PRODUCTOS DE ALQUILER
                     ============================================ */}
