@@ -62,6 +62,7 @@ function ElementoFormModal({
     cantidad: 0,
     stock_minimo: 0,
     costo_adquisicion: "",
+    precio_unitario: "",
   });
 
   const [errors, setErrors] = useState({});
@@ -92,6 +93,7 @@ function ElementoFormModal({
         cantidad: elemento.cantidad ?? 0,
         stock_minimo: elemento.stock_minimo ?? 0,
         costo_adquisicion: elemento.costo_adquisicion ?? "",
+        precio_unitario: elemento.precio_unitario ?? "",
       });
     } else if (isOpen && !isEditMode) {
       setFormData({
@@ -106,6 +108,7 @@ function ElementoFormModal({
         cantidad: 0,
         stock_minimo: 0,
         costo_adquisicion: "",
+        precio_unitario: "",
       });
     }
     setErrors({});
@@ -183,6 +186,7 @@ function ElementoFormModal({
       cantidad: formData.cantidad || 0,
       stock_minimo: formData.stock_minimo || 0,
       costo_adquisicion: formData.costo_adquisicion || null,
+      precio_unitario: formData.precio_unitario || null,
     };
 
     if (!isEditMode) {
@@ -486,9 +490,9 @@ function ElementoFormModal({
         </div>
 
         {/* ============================================
-            CAMPOS: Stock minimo y Costo (fila de 2 columnas)
+            CAMPOS: Stock minimo, Costo y Precio (fila de 3 columnas)
             ============================================ */}
-        <div className="mb-4 grid grid-cols-2 gap-4">
+        <div className="mb-4 grid grid-cols-3 gap-4">
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
               Stock minimo (opcional)
@@ -512,13 +516,13 @@ function ElementoFormModal({
               "
             />
             <p className="mt-1 text-xs text-slate-500">
-              Alerta cuando el stock baje de este valor
+              Alerta cuando el stock baje
             </p>
           </div>
 
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
-              Costo unitario (opcional)
+              Costo adquisicion (opcional)
             </label>
             <input
               type="number"
@@ -534,7 +538,29 @@ function ElementoFormModal({
               "
             />
             <p className="mt-1 text-xs text-slate-500">
-              Costo de adquisicion por unidad
+              Lo que se pago por unidad
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Precio unitario (opcional)
+            </label>
+            <input
+              type="number"
+              name="precio_unitario"
+              value={formData.precio_unitario}
+              onChange={handleInputChange}
+              min="0"
+              step="0.01"
+              placeholder="$ 0.00"
+              className="
+                w-full px-4 py-2 border border-slate-300 rounded-lg
+                focus:outline-none focus:ring-2 focus:ring-blue-500
+              "
+            />
+            <p className="mt-1 text-xs text-slate-500">
+              Precio de venta/alquiler
             </p>
           </div>
         </div>

@@ -20,6 +20,9 @@ router.get('/resumen', loteController.obtenerResumenDisponibilidad);
 // GET /api/lotes/estado/:estado - Obtener lotes por estado
 router.get('/estado/:estado', loteController.obtenerPorEstado);
 
+// GET /api/lotes/verificar-existe - Verificar si existe lote con misma ubicación+estado
+router.get('/verificar-existe', loteController.verificarExistencia);
+
 // GET /api/lotes/elemento/:elementoId - Obtener lotes de un elemento
 router.get('/elemento/:elementoId', loteController.obtenerPorElemento);
 

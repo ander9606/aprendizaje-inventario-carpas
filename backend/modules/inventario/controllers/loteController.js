@@ -621,6 +621,47 @@ exports.obtenerPorElementoConContexto = async (req, res, next) => {
  *
  * Retorna el desglose de en qué eventos están las cantidades alquiladas
  */
+exports.verificarExistencia = async (req, res, next) => {
+    try {
+        const { elementoId, ubicacion, estado } = req.query;
+
+        validateId(elementoId, 'ID de elemento');
+
+        if (!estado) {
+            throw new AppError('El estado es requerido', 400);
+        }
+
+        const loteExistente = await LoteModel.buscarLoteEspecifico(
+            elementoId,
+            estado,
+            ubicacion || null
+        );
+
+        res.json({
+            success: true,
+            data: {
+                existe: !!loteExistente,
+                lote: loteExistente ? {
+                    id: loteExistente.id,
+                    cantidad: loteExistente.cantidad
+                } : null
+            }
+        });
+    } catch (error) {
+        logger.error('loteController.verificarExistencia', error);
+        next(error);
+    }
+};
+
+// ============================================
+// OBTENER DESGLOSE DE ALQUILERES ✨ NUEVO
+// ============================================
+
+/**
+ * GET /api/lotes/elemento/:elementoId/alquileres
+ *
+ * Retorna el desglose de en qué eventos están las cantidades alquiladas
+ */
 exports.obtenerDesgloseAlquileres = async (req, res, next) => {
     try {
         const { elementoId } = req.params;

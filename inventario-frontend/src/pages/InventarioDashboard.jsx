@@ -159,8 +159,8 @@ const InventarioDashboard = () => {
           {/* Valor del Inventario */}
           <KPICard
             titulo="Valor del Inventario"
-            valor={formatearMoneda(generales?.valor_total || 0)}
-            subtitulo="costo de adquisicion total"
+            valor={formatearMoneda(generales?.valor_precio_unitario || generales?.valor_total || 0)}
+            subtitulo={Number(generales?.valor_precio_unitario) > 0 ? "valor a precio unitario" : "costo de adquisicion total"}
             icono={DollarSign}
             color="purple"
           />

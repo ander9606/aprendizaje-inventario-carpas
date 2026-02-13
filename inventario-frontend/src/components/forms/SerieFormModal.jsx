@@ -14,6 +14,7 @@ import { ESTADOS, ESTADO_LABELS } from '../../utils/constants'
 
 import { useCreateSerie, useUpdateSerie } from '../../hooks/Useseries'
 import { useGetUbicacionesActivas } from '../../hooks/Useubicaciones'
+import seriesAPI from '../../api/apiSeries'
 
 /**
  * ============================================
@@ -276,14 +277,8 @@ function SerieFormModal({
     setIsGeneratingNumber(true)
 
     try {
-      // TODO: Llamar a API para obtener siguiente número
-      // const response = await seriesAPI.obtenerSiguienteNumero(elemento.id)
-      // const siguienteNumero = response.data.numero
-
-      // Placeholder mientras implementamos
-      const prefijo = elemento.nombre.substring(0, 5).toUpperCase()
-      const numero = Math.floor(Math.random() * 1000) + 1
-      const siguienteNumero = `${prefijo}-${String(numero).padStart(3, '0')}`
+      const response = await seriesAPI.obtenerSiguienteNumero(elemento.id)
+      const siguienteNumero = response.data.numero
 
       setFormData(prev => ({
         ...prev,

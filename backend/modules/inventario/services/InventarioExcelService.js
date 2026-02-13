@@ -50,10 +50,10 @@ class InventarioExcelService {
             views: [{ state: 'frozen', ySplit: 3 }]
         });
 
-        const totalCols = 12;
+        const totalCols = 13;
 
         // Título
-        ws.mergeCells('A1:L1');
+        ws.mergeCells('A1:M1');
         const tituloCell = ws.getCell('A1');
         tituloCell.value = 'INVENTARIO DETALLADO';
         tituloCell.font = { bold: true, size: 14, color: { argb: COLORES.BLANCO } };
@@ -62,7 +62,7 @@ class InventarioExcelService {
         ws.getRow(1).height = 30;
 
         // Fecha
-        ws.mergeCells('A2:L2');
+        ws.mergeCells('A2:M2');
         const fechaCell = ws.getCell('A2');
         fechaCell.value = `Generado: ${new Date().toLocaleDateString('es-CO', {
             year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
@@ -73,7 +73,7 @@ class InventarioExcelService {
         // Encabezados
         const headers = [
             'Elemento', 'Tipo', 'Categoría', 'Subcategoría', 'Material', 'Unidad',
-            'Estado', 'Ubicación', 'Cantidad', 'Stock Mín.', 'Costo Unit.', 'Valor Total'
+            'Estado', 'Ubicación', 'Cantidad', 'Stock Mín.', 'Costo Unit.', 'Precio Unit.', 'Valor Total'
         ];
         const headerRow = ws.addRow(headers);
         headerRow.eachCell((cell) => {
@@ -91,7 +91,8 @@ class InventarioExcelService {
         inventario.forEach((item, index) => {
             const cantidad = Number(item.cantidad);
             const costo = item.costo_adquisicion ? Number(item.costo_adquisicion) : null;
-            const valor = costo ? cantidad * costo : null;
+            const precio = item.precio_unitario ? Number(item.precio_unitario) : null;
+            const valor = (precio || costo) ? cantidad * (precio || costo) : null;
             const stockMin = item.stock_minimo ? Number(item.stock_minimo) : null;
 
             totalCantidad += cantidad;
@@ -109,6 +110,7 @@ class InventarioExcelService {
                 cantidad,
                 stockMin || '-',
                 costo || '-',
+                precio || '-',
                 valor || '-'
             ]);
 

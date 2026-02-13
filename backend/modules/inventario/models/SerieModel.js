@@ -690,6 +690,50 @@ class SerieModel {
     }
 
     // ============================================
+    // OBTENER SIGUIENTE NÚMERO DE SERIE
+    // ============================================
+    static async obtenerSiguienteNumero(elementoId) {
+        try {
+            // Obtener nombre del elemento para el prefijo
+            const [elemRows] = await pool.query(
+                'SELECT nombre FROM elementos WHERE id = ?',
+                [elementoId]
+            );
+
+            if (!elemRows[0]) return null;
+
+            const prefijo = elemRows[0].nombre
+                .substring(0, 5)
+                .toUpperCase()
+                .replace(/\s+/g, '');
+
+            // Buscar el número más alto usado para este elemento
+            const query = `
+                SELECT numero_serie FROM series
+                WHERE id_elemento = ?
+                  AND numero_serie LIKE ?
+                ORDER BY CAST(SUBSTRING_INDEX(numero_serie, '-', -1) AS UNSIGNED) DESC
+                LIMIT 1
+            `;
+
+            const [rows] = await pool.query(query, [elementoId, `${prefijo}-%`]);
+
+            let siguienteNumero = 1;
+            if (rows.length > 0) {
+                const partes = rows[0].numero_serie.split('-');
+                const ultimoNumero = parseInt(partes[partes.length - 1], 10);
+                if (!isNaN(ultimoNumero)) {
+                    siguienteNumero = ultimoNumero + 1;
+                }
+            }
+
+            return `${prefijo}-${String(siguienteNumero).padStart(3, '0')}`;
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    // ============================================
     // OBTENER SERIE POR ID CON CONTEXTO ✨ NUEVO
     // ============================================
     static async obtenerPorIdConContexto(id) {

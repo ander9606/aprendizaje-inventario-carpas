@@ -25,6 +25,7 @@ class ExportModel {
                 COUNT(*) AS cantidad,
                 e.stock_minimo,
                 e.costo_adquisicion,
+                e.precio_unitario,
                 'serie' AS tipo_tracking
             FROM series s
             INNER JOIN elementos e ON s.id_elemento = e.id
@@ -52,6 +53,7 @@ class ExportModel {
                 SUM(l.cantidad) AS cantidad,
                 e.stock_minimo,
                 e.costo_adquisicion,
+                e.precio_unitario,
                 'lote' AS tipo_tracking
             FROM lotes l
             INNER JOIN elementos e ON l.elemento_id = e.id
