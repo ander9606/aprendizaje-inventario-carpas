@@ -462,6 +462,92 @@ class AlquilerModel {
     const [rows] = await pool.query(query, params);
     return rows;
   }
+
+  // ============================================
+  // EXTENSION DE ALQUILER
+  // ============================================
+
+  /**
+   * Extender la fecha de retorno de un alquiler.
+   * @param {number} id - ID del alquiler
+   * @param {Object} datos - Datos de la extensión
+   */
+  static async extenderFechaRetorno(id, { nueva_fecha_retorno, razon, costo_extension = 0, registrado_por = null }) {
+    const connection = await pool.getConnection();
+    try {
+      await connection.beginTransaction();
+
+      // Obtener alquiler actual
+      const [alquileres] = await connection.query(
+        'SELECT fecha_retorno_esperado, fecha_retorno_original, extensiones_count FROM alquileres WHERE id = ?',
+        [id]
+      );
+      const alquiler = alquileres[0];
+      if (!alquiler) throw new Error('Alquiler no encontrado');
+
+      const fechaRetornoAnterior = alquiler.fecha_retorno_esperado;
+      const diasExtension = Math.ceil(
+        (new Date(nueva_fecha_retorno) - new Date(fechaRetornoAnterior)) / (1000 * 60 * 60 * 24)
+      );
+
+      // Registrar en historial de extensiones
+      await connection.query(
+        `INSERT INTO alquiler_extensiones
+          (alquiler_id, fecha_retorno_anterior, fecha_retorno_nueva, dias_extension, razon, costo_extension, registrado_por)
+        VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [id, fechaRetornoAnterior, nueva_fecha_retorno, diasExtension, razon || null, costo_extension, registrado_por]
+      );
+
+      // Actualizar alquiler
+      await connection.query(
+        `UPDATE alquileres
+        SET fecha_retorno_esperado = ?,
+            extensiones_count = extensiones_count + 1,
+            fecha_retorno_original = COALESCE(fecha_retorno_original, ?)
+        WHERE id = ?`,
+        [nueva_fecha_retorno, fechaRetornoAnterior, id]
+      );
+
+      await connection.commit();
+
+      return {
+        alquiler_id: id,
+        fecha_retorno_anterior: fechaRetornoAnterior,
+        fecha_retorno_nueva: nueva_fecha_retorno,
+        dias_extension: diasExtension,
+        costo_extension,
+        extensiones_count: (alquiler.extensiones_count || 0) + 1
+      };
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
+  }
+
+  /**
+   * Obtener historial de extensiones de un alquiler.
+   * @param {number} alquilerId - ID del alquiler
+   */
+  static async obtenerExtensiones(alquilerId) {
+    const query = `
+      SELECT
+        id,
+        fecha_retorno_anterior,
+        fecha_retorno_nueva,
+        dias_extension,
+        razon,
+        costo_extension,
+        registrado_por,
+        created_at
+      FROM alquiler_extensiones
+      WHERE alquiler_id = ?
+      ORDER BY created_at ASC
+    `;
+    const [rows] = await pool.query(query, [alquilerId]);
+    return rows;
+  }
 }
 
 module.exports = AlquilerModel;

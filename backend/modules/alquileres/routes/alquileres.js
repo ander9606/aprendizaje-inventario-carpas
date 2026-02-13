@@ -47,6 +47,16 @@ router.post('/:id/retorno', validateId(), alquilerController.marcarRetorno);
 router.post('/:id/cancelar', validateId(), alquilerController.cancelar);
 
 // ============================================
+// EXTENSIONES
+// ============================================
+
+// POST /api/alquileres/:id/extender - Extender fecha de retorno
+router.post('/:id/extender', validateId(), alquilerController.extenderFechaRetorno);
+
+// GET /api/alquileres/:id/extensiones - Historial de extensiones
+router.get('/:id/extensiones', validateId(), alquilerController.obtenerExtensiones);
+
+// ============================================
 // ELEMENTOS (Series/Lotes)
 // ============================================
 

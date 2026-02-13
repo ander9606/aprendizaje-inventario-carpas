@@ -218,3 +218,22 @@ export const useAsignarElementosAlquiler = () => {
     }
   })
 }
+
+/**
+ * Extender fecha de retorno de un alquiler
+ */
+export const useExtenderAlquiler = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id, nueva_fecha_retorno, razon, costo_extension }) =>
+      apiAlquileres.extenderAlquiler(id, { nueva_fecha_retorno, razon, costo_extension }),
+    retry: 0,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['alquileres'] })
+      queryClient.invalidateQueries({ queryKey: ['alquiler'] })
+      queryClient.invalidateQueries({ queryKey: ['alertas-alquileres'] })
+      queryClient.invalidateQueries({ queryKey: ['alertas-resumen'] })
+    }
+  })
+}
