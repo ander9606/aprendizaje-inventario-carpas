@@ -377,24 +377,18 @@ function ElementosPage() {
       ) : (
         <div className="grid grid-cols-1 gap-6">
           {elementos.map((elemento) => {
-            // Datos base que pasan a las cards
-            // Las cards cargan sus propios lotes/series usando su ID
-            const elementoBase = {
-              id: elemento.id,
-              nombre: elemento.nombre,
+            // Pasar datos completos del elemento a las cards
+            const elementoData = {
+              ...elemento,
               icono: subcategoria?.emoji || '📦',
               alertas: []
             }
 
             if (elemento.requiere_series) {
-              // ============================================
-              // ELEMENTO CON SERIES
-              // La card carga sus propias series automáticamente
-              // ============================================
               return (
                 <ElementoSerieCard
                   key={elemento.id}
-                  elemento={elementoBase}
+                  elemento={elementoData}
                   onEdit={() => handleEditElemento(elemento)}
                   onDelete={() => handleDeleteElemento(elemento)}
                   onAddSerie={() => handleAddSerie(elemento)}
@@ -406,14 +400,10 @@ function ElementosPage() {
                 />
               )
             } else {
-              // ============================================
-              // ELEMENTO CON LOTES
-              // La card carga sus propios lotes automáticamente
-              // ============================================
               return (
                 <ElementoLoteCard
                   key={elemento.id}
-                  elemento={elementoBase}
+                  elemento={elementoData}
                   onEdit={() => handleEditElemento(elemento)}
                   onDelete={() => handleDeleteElemento(elemento)}
                   onAddLote={() => handleAddLote(elemento)}
