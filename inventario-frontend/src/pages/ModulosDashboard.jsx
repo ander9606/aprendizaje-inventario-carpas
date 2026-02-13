@@ -22,7 +22,7 @@ const BACKEND_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
 export default function ModulosDashboard() {
   const navigate = useNavigate()
   const { data: config, isLoading } = useGetConfiguracionCompleta()
-  const { usuario, logout } = useAuth()
+  const { usuario, logout, getIniciales, getNombreCompleto } = useAuth()
 
   const empresaNombre = config?.empresa_nombre || 'Sistema de Gestión'
   const empresaLogo = config?.empresa_logo || ''
@@ -159,10 +159,24 @@ export default function ModulosDashboard() {
 
           {/* Usuario y logout */}
           {usuario && (
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-slate-600 hidden sm:inline">
-                {usuario.nombre || usuario.email}
-              </span>
+            <div className="flex items-center gap-2">
+              <div className="hidden sm:flex items-center gap-3 mr-1">
+                <div className="w-9 h-9 rounded-full bg-slate-900 flex items-center justify-center">
+                  <span className="text-xs font-semibold text-white leading-none">
+                    {getIniciales()}
+                  </span>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm font-medium text-slate-700 leading-tight">
+                    {getNombreCompleto() || usuario.email}
+                  </p>
+                  {usuario.rol && (
+                    <p className="text-xs text-slate-400 leading-tight capitalize">
+                      {usuario.rol}
+                    </p>
+                  )}
+                </div>
+              </div>
               <button
                 onClick={logout}
                 className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
