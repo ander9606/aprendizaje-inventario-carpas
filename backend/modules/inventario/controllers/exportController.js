@@ -15,17 +15,19 @@ exports.exportarExcel = async (req, res, next) => {
         logger.info('exportController.exportarExcel', 'Generando exportación Excel del inventario');
 
         // Obtener todos los datos en paralelo
-        const [inventario, resumenCategoria, resumenUbicacion] = await Promise.all([
+        const [inventario, resumenCategoria, resumenUbicacion, alertasStock] = await Promise.all([
             ExportModel.obtenerInventarioCompleto(),
             ExportModel.obtenerResumenPorCategoria(),
-            ExportModel.obtenerResumenPorUbicacion()
+            ExportModel.obtenerResumenPorUbicacion(),
+            ExportModel.obtenerAlertasStockBajo()
         ]);
 
         // Generar workbook
         const workbook = InventarioExcelService.generar({
             inventario,
             resumenCategoria,
-            resumenUbicacion
+            resumenUbicacion,
+            alertasStock
         });
 
         // Nombre del archivo con fecha
