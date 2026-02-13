@@ -70,6 +70,22 @@ export const useCambiarEstadoCotizacion = () => {
 }
 
 /**
+ * Hook para confirmar fechas de un borrador (borrador → pendiente)
+ */
+export const useConfirmarFechasCotizacion = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id, fechas }) => apiCotizaciones.confirmarFechas(id, fechas),
+    retry: 0,
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries(['cotizaciones'])
+      queryClient.invalidateQueries(['cotizaciones', variables.id, 'completa'])
+    }
+  })
+}
+
+/**
  * Hook para duplicar una cotizacion
  */
 export const useDuplicarCotizacion = () => {

@@ -4,11 +4,11 @@
 // ============================================
 
 import { useState } from 'react'
-import { Calendar, User, MapPin, Phone, Mail, Truck, FileText, Edit, CheckCircle, XCircle, Ban, Download } from 'lucide-react'
+import { Calendar, User, MapPin, Phone, Mail, Truck, FileText, Edit, CheckCircle, XCircle, Ban, Download, FileEdit, CalendarCheck } from 'lucide-react'
 import Modal from '../common/Modal'
 import Button from '../common/Button'
 import Spinner from '../common/Spinner'
-import { useGetCotizacionCompleta } from '../../hooks/cotizaciones'
+import { useGetCotizacionCompleta, useConfirmarFechasCotizacion } from '../../hooks/cotizaciones'
 import { useCancelarAlquiler } from '../../hooks/useAlquileres'
 import { apiCotizaciones } from '../../api/apiCotizaciones'
 
@@ -25,8 +25,11 @@ const CotizacionDetalleModal = ({
   const [showCancelarModal, setShowCancelarModal] = useState(false)
   const [notasCancelacion, setNotasCancelacion] = useState('')
   const [descargandoPDF, setDescargandoPDF] = useState(false)
+  const [showConfirmarFechas, setShowConfirmarFechas] = useState(false)
+  const [fechasConfirmar, setFechasConfirmar] = useState({ fecha_montaje: '', fecha_evento: '', fecha_desmontaje: '' })
 
   const cancelarMutation = useCancelarAlquiler()
+  const confirmarFechasMutation = useConfirmarFechasCotizacion()
 
   // Cargar cotización completa con productos y transporte
   const { cotizacion, isLoading } = useGetCotizacionCompleta(isOpen ? cotizacionId : null)
@@ -55,12 +58,29 @@ const CotizacionDetalleModal = ({
 
   const getEstadoStyle = (estado) => {
     const estilos = {
+      borrador: 'bg-amber-100 text-amber-800 border-amber-300',
       pendiente: 'bg-yellow-100 text-yellow-800 border-yellow-300',
       aprobada: 'bg-green-100 text-green-800 border-green-300',
       rechazada: 'bg-red-100 text-red-800 border-red-300',
       vencida: 'bg-gray-100 text-gray-800 border-gray-300'
     }
     return estilos[estado] || 'bg-gray-100 text-gray-800 border-gray-300'
+  }
+
+  const handleConfirmarFechas = async () => {
+    if (!fechasConfirmar.fecha_evento) {
+      alert('La fecha del evento es obligatoria')
+      return
+    }
+    try {
+      await confirmarFechasMutation.mutateAsync({
+        id: cotizacionId,
+        fechas: fechasConfirmar
+      })
+      setShowConfirmarFechas(false)
+    } catch (error) {
+      alert('Error al confirmar fechas: ' + (error.response?.data?.message || error.message))
+    }
   }
 
   const handleEditar = () => {
@@ -203,18 +223,26 @@ const CotizacionDetalleModal = ({
 
                 {/* Fechas: Montaje, Evento, Desmontaje */}
                 <div className="mt-2 space-y-1 text-sm">
-                  {cotizacion.fecha_montaje && (
-                    <p className="text-slate-600">
-                      <span className="font-medium">Montaje:</span> {formatearFecha(cotizacion.fecha_montaje)}
+                  {cotizacion.estado === 'borrador' && !cotizacion.fecha_evento ? (
+                    <p className="text-amber-600 italic font-medium">
+                      Fechas por confirmar
                     </p>
-                  )}
-                  <p className="text-slate-600">
-                    <span className="font-medium">Evento:</span> {formatearFecha(cotizacion.fecha_evento)}
-                  </p>
-                  {cotizacion.fecha_desmontaje && (
-                    <p className="text-slate-600">
-                      <span className="font-medium">Desmontaje:</span> {formatearFecha(cotizacion.fecha_desmontaje)}
-                    </p>
+                  ) : (
+                    <>
+                      {cotizacion.fecha_montaje && (
+                        <p className="text-slate-600">
+                          <span className="font-medium">Montaje:</span> {formatearFecha(cotizacion.fecha_montaje)}
+                        </p>
+                      )}
+                      <p className="text-slate-600">
+                        <span className="font-medium">Evento:</span> {formatearFecha(cotizacion.fecha_evento)}
+                      </p>
+                      {cotizacion.fecha_desmontaje && (
+                        <p className="text-slate-600">
+                          <span className="font-medium">Desmontaje:</span> {formatearFecha(cotizacion.fecha_desmontaje)}
+                        </p>
+                      )}
+                    </>
                   )}
                 </div>
 
@@ -365,6 +393,80 @@ const CotizacionDetalleModal = ({
             </div>
           </div>
 
+          {/* BANNER BORRADOR */}
+          {cotizacion.estado === 'borrador' && (
+            <div className="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-lg print:hidden">
+              <div className="flex items-start gap-3">
+                <FileEdit className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                <div className="flex-1">
+                  <h4 className="font-semibold text-amber-800">Cotizacion en borrador</h4>
+                  <p className="text-sm text-amber-700 mt-1">
+                    El precio mostrado es estimado (sin recargo por dias extra).
+                    Confirme las fechas para obtener el precio final.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* FORMULARIO CONFIRMAR FECHAS INLINE */}
+          {showConfirmarFechas && cotizacion.estado === 'borrador' && (
+            <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg print:hidden">
+              <h4 className="font-semibold text-blue-800 mb-3 flex items-center gap-2">
+                <CalendarCheck className="w-5 h-5" />
+                Confirmar Fechas del Evento
+              </h4>
+              <div className="grid grid-cols-3 gap-3 mb-4">
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 mb-1">Montaje</label>
+                  <input
+                    type="date"
+                    value={fechasConfirmar.fecha_montaje}
+                    onChange={(e) => setFechasConfirmar(prev => ({ ...prev, fecha_montaje: e.target.value }))}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 mb-1">Evento *</label>
+                  <input
+                    type="date"
+                    value={fechasConfirmar.fecha_evento}
+                    onChange={(e) => setFechasConfirmar(prev => ({ ...prev, fecha_evento: e.target.value }))}
+                    className="w-full px-3 py-2 border border-blue-400 rounded-lg text-sm ring-1 ring-blue-200"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 mb-1">Desmontaje</label>
+                  <input
+                    type="date"
+                    value={fechasConfirmar.fecha_desmontaje}
+                    onChange={(e) => setFechasConfirmar(prev => ({ ...prev, fecha_desmontaje: e.target.value }))}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"
+                  />
+                </div>
+              </div>
+              <div className="flex gap-2 justify-end">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setShowConfirmarFechas(false)}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  icon={<CalendarCheck className="w-4 h-4" />}
+                  onClick={handleConfirmarFechas}
+                  loading={confirmarFechasMutation.isPending}
+                  disabled={confirmarFechasMutation.isPending || !fechasConfirmar.fecha_evento}
+                >
+                  Confirmar Fechas
+                </Button>
+              </div>
+            </div>
+          )}
+
           {/* BOTÓN PDF - Siempre visible */}
           <div className="flex justify-center mt-6 print:hidden">
             <Button
@@ -377,6 +479,31 @@ const CotizacionDetalleModal = ({
               Descargar PDF
             </Button>
           </div>
+
+          {/* BOTONES DE ACCIÓN - Borradores */}
+          {cotizacion.estado === 'borrador' && !showConfirmarFechas && (
+            <div className="flex justify-center gap-4 mt-4 pt-6 border-t print:hidden">
+              <Button
+                variant="primary"
+                size="lg"
+                icon={<CalendarCheck className="w-5 h-5" />}
+                onClick={() => setShowConfirmarFechas(true)}
+                className="px-8"
+              >
+                Confirmar Fechas
+              </Button>
+
+              <Button
+                variant="secondary"
+                size="lg"
+                icon={<Edit className="w-5 h-5" />}
+                onClick={handleEditar}
+                className="px-8"
+              >
+                Editar
+              </Button>
+            </div>
+          )}
 
           {/* BOTONES DE ACCIÓN - Solo para cotizaciones pendientes */}
           {cotizacion.estado === 'pendiente' && (

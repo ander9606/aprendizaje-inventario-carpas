@@ -38,6 +38,9 @@ router.put('/:id', validateId(), cotizacionController.actualizar);
 // PATCH /api/cotizaciones/:id/estado - Cambiar estado
 router.patch('/:id/estado', validateId(), cotizacionController.cambiarEstado);
 
+// PATCH /api/cotizaciones/:id/confirmar-fechas - Confirmar fechas de un borrador
+router.patch('/:id/confirmar-fechas', validateId(), cotizacionController.confirmarFechas);
+
 // POST /api/cotizaciones/:id/aprobar - Aprobar y crear alquiler
 router.post('/:id/aprobar', validateId(), cotizacionController.aprobarYCrearAlquiler);
 

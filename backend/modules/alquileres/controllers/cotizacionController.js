@@ -71,7 +71,7 @@ exports.obtenerTodas = async (req, res, next) => {
 exports.obtenerPorEstado = async (req, res, next) => {
   try {
     const { estado } = req.params;
-    const estadosValidos = ['pendiente', 'aprobada', 'rechazada', 'vencida'];
+    const estadosValidos = ['borrador', 'pendiente', 'aprobada', 'rechazada', 'vencida'];
 
     if (!estadosValidos.includes(estado)) {
       throw new AppError(`Estado inválido. Valores permitidos: ${estadosValidos.join(', ')}`, 400);
@@ -191,15 +191,19 @@ exports.crear = async (req, res, next) => {
       notas,
       productos,
       transporte,
-      descuentos
+      descuentos,
+      fechas_confirmadas
     } = req.body;
+
+    // Determinar si es borrador (sin fechas)
+    const esBorrador = fechas_confirmadas === false || !fecha_evento;
 
     // Validaciones
     if (!cliente_id) {
       throw new AppError('El cliente es obligatorio', 400);
     }
-    if (!fecha_evento) {
-      throw new AppError('La fecha del evento es obligatoria', 400);
+    if (!esBorrador && !fecha_evento) {
+      throw new AppError('La fecha del evento es obligatoria (o marque como borrador)', 400);
     }
     if (!productos || productos.length === 0) {
       throw new AppError('Debe agregar al menos un producto', 400);
@@ -231,7 +235,8 @@ exports.crear = async (req, res, next) => {
     logger.info('cotizacionController.crear', 'Creando cotización', {
       cliente: cliente.nombre,
       productos: productos.length,
-      evento_id: evento_id || null
+      evento_id: evento_id || null,
+      esBorrador
     });
 
     // Crear cotización (sin totales, se calcularán después)
@@ -248,7 +253,8 @@ exports.crear = async (req, res, next) => {
       descuento: descuento || 0,
       total: 0,
       vigencia_dias,
-      notas
+      notas,
+      fechas_confirmadas: !esBorrador
     });
 
     const cotizacionId = resultado.insertId;
@@ -346,15 +352,15 @@ exports.actualizar = async (req, res, next) => {
       throw new AppError('Cotización no encontrada', 404);
     }
 
-    if (cotizacionExistente.estado !== 'pendiente') {
-      throw new AppError('Solo se pueden editar cotizaciones pendientes', 400);
+    if (!['pendiente', 'borrador'].includes(cotizacionExistente.estado)) {
+      throw new AppError('Solo se pueden editar cotizaciones pendientes o en borrador', 400);
     }
 
     // Actualizar datos generales
     await CotizacionModel.actualizar(id, {
-      fecha_montaje: fecha_montaje || cotizacionExistente.fecha_montaje,
-      fecha_evento: fecha_evento || cotizacionExistente.fecha_evento,
-      fecha_desmontaje: fecha_desmontaje || cotizacionExistente.fecha_desmontaje,
+      fecha_montaje: fecha_montaje || cotizacionExistente.fecha_montaje || null,
+      fecha_evento: fecha_evento || cotizacionExistente.fecha_evento || null,
+      fecha_desmontaje: fecha_desmontaje || cotizacionExistente.fecha_desmontaje || null,
       evento_nombre,
       evento_direccion,
       evento_ciudad,
@@ -420,8 +426,8 @@ exports.agregarProducto = async (req, res, next) => {
       throw new AppError('Cotización no encontrada', 404);
     }
 
-    if (cotizacion.estado !== 'pendiente') {
-      throw new AppError('Solo se pueden modificar cotizaciones pendientes', 400);
+    if (!['pendiente', 'borrador'].includes(cotizacion.estado)) {
+      throw new AppError('Solo se pueden modificar cotizaciones pendientes o en borrador', 400);
     }
 
     await CotizacionProductoModel.agregar({
@@ -459,8 +465,8 @@ exports.eliminarProducto = async (req, res, next) => {
       throw new AppError('Cotización no encontrada', 404);
     }
 
-    if (cotizacion.estado !== 'pendiente') {
-      throw new AppError('Solo se pueden modificar cotizaciones pendientes', 400);
+    if (!['pendiente', 'borrador'].includes(cotizacion.estado)) {
+      throw new AppError('Solo se pueden modificar cotizaciones pendientes o en borrador', 400);
     }
 
     await CotizacionProductoModel.eliminar(productoId);
@@ -491,8 +497,8 @@ exports.agregarTransporte = async (req, res, next) => {
       throw new AppError('Cotización no encontrada', 404);
     }
 
-    if (cotizacion.estado !== 'pendiente') {
-      throw new AppError('Solo se pueden modificar cotizaciones pendientes', 400);
+    if (!['pendiente', 'borrador'].includes(cotizacion.estado)) {
+      throw new AppError('Solo se pueden modificar cotizaciones pendientes o en borrador', 400);
     }
 
     // Obtener precio de la tarifa
@@ -534,8 +540,8 @@ exports.eliminarTransporte = async (req, res, next) => {
       throw new AppError('Cotización no encontrada', 404);
     }
 
-    if (cotizacion.estado !== 'pendiente') {
-      throw new AppError('Solo se pueden modificar cotizaciones pendientes', 400);
+    if (!['pendiente', 'borrador'].includes(cotizacion.estado)) {
+      throw new AppError('Solo se pueden modificar cotizaciones pendientes o en borrador', 400);
     }
 
     await CotizacionTransporteModel.eliminar(transporteId);
@@ -561,7 +567,7 @@ exports.cambiarEstado = async (req, res, next) => {
     const { id } = req.params;
     const { estado } = req.body;
 
-    const estadosValidos = ['pendiente', 'aprobada', 'rechazada', 'vencida'];
+    const estadosValidos = ['borrador', 'pendiente', 'aprobada', 'rechazada', 'vencida'];
     if (!estadosValidos.includes(estado)) {
       throw new AppError(`Estado inválido. Valores permitidos: ${estadosValidos.join(', ')}`, 400);
     }
@@ -633,6 +639,10 @@ exports.aprobarYCrearAlquiler = async (req, res, next) => {
     const cotizacion = await CotizacionModel.obtenerCompleta(id);
     if (!cotizacion) {
       throw new AppError('Cotización no encontrada', 404);
+    }
+
+    if (cotizacion.estado === 'borrador') {
+      throw new AppError('No se puede aprobar un borrador. Primero confirme las fechas del evento.', 400);
     }
 
     if (cotizacion.estado !== 'pendiente') {
@@ -878,8 +888,8 @@ exports.agregarRecargoProducto = async (req, res, next) => {
       throw new AppError('Cotización no encontrada', 404);
     }
 
-    if (cotizacion.estado !== 'pendiente') {
-      throw new AppError('Solo se pueden modificar cotizaciones pendientes', 400);
+    if (!['pendiente', 'borrador'].includes(cotizacion.estado)) {
+      throw new AppError('Solo se pueden modificar cotizaciones pendientes o en borrador', 400);
     }
 
     // Validar producto
@@ -949,8 +959,8 @@ exports.actualizarRecargoProducto = async (req, res, next) => {
       throw new AppError('Cotización no encontrada', 404);
     }
 
-    if (cotizacion.estado !== 'pendiente') {
-      throw new AppError('Solo se pueden modificar cotizaciones pendientes', 400);
+    if (!['pendiente', 'borrador'].includes(cotizacion.estado)) {
+      throw new AppError('Solo se pueden modificar cotizaciones pendientes o en borrador', 400);
     }
 
     // Validar recargo
@@ -996,8 +1006,8 @@ exports.eliminarRecargoProducto = async (req, res, next) => {
       throw new AppError('Cotización no encontrada', 404);
     }
 
-    if (cotizacion.estado !== 'pendiente') {
-      throw new AppError('Solo se pueden modificar cotizaciones pendientes', 400);
+    if (!['pendiente', 'borrador'].includes(cotizacion.estado)) {
+      throw new AppError('Solo se pueden modificar cotizaciones pendientes o en borrador', 400);
     }
 
     // Validar recargo
@@ -1058,6 +1068,52 @@ exports.obtenerRecargosProducto = async (req, res, next) => {
       total: recargos.length
     });
   } catch (error) {
+    next(error);
+  }
+};
+
+// ============================================
+// CONFIRMAR FECHAS (borrador → pendiente)
+// ============================================
+exports.confirmarFechas = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { fecha_montaje, fecha_evento, fecha_desmontaje } = req.body;
+
+    const cotizacion = await CotizacionModel.obtenerPorId(id);
+    if (!cotizacion) {
+      throw new AppError('Cotización no encontrada', 404);
+    }
+
+    if (cotizacion.estado !== 'borrador') {
+      throw new AppError('Solo se pueden confirmar fechas de cotizaciones en borrador', 400);
+    }
+
+    if (!fecha_evento) {
+      throw new AppError('La fecha del evento es obligatoria para confirmar', 400);
+    }
+
+    await CotizacionModel.confirmarFechas(id, {
+      fecha_montaje,
+      fecha_evento,
+      fecha_desmontaje
+    });
+
+    const cotizacionActualizada = await CotizacionModel.obtenerCompleta(id);
+
+    logger.info('cotizacionController.confirmarFechas', 'Fechas confirmadas, borrador → pendiente', {
+      id,
+      fecha_evento,
+      totalRecalculado: cotizacionActualizada.total
+    });
+
+    res.json({
+      success: true,
+      mensaje: 'Fechas confirmadas. La cotización ahora está pendiente de aprobación.',
+      data: cotizacionActualizada
+    });
+  } catch (error) {
+    logger.error('cotizacionController.confirmarFechas', error);
     next(error);
   }
 };
