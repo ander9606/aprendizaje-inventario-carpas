@@ -1,4 +1,5 @@
 import { useRef } from 'react'
+import { toast } from 'sonner'
 import { X, Share2, Printer, Package, Calendar, MapPin, User, CheckCircle, ClipboardList } from 'lucide-react'
 import { useGetInventarioCliente } from '../../hooks/useOrdenesTrabajo'
 import Spinner from '../common/Spinner'
@@ -119,7 +120,7 @@ export default function ModalInventarioCliente({ ordenId, onClose }) {
             }
         } else {
             await navigator.clipboard.writeText(texto)
-            alert('Inventario copiado al portapapeles')
+            toast.success('Inventario copiado al portapapeles')
         }
     }
 
