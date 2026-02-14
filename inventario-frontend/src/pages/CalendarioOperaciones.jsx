@@ -323,8 +323,19 @@ export default function CalendarioOperaciones() {
     const [selectedEvent, setSelectedEvent] = useState(null)
     const [ordenCargueModal, setOrdenCargueModal] = useState({ isOpen: false, orden: null })
 
-    // Obtener datos del calendario (amplio rango para que FullCalendar navegue)
-    const { eventos: calendario, isLoading, error, refetch } = useGetCalendario({})
+    // Rango de fechas visible del calendario
+    const [dateRange, setDateRange] = useState(() => {
+        const hoy = new Date()
+        const desde = new Date(hoy.getFullYear(), hoy.getMonth() - 1, 1)
+        const hasta = new Date(hoy.getFullYear(), hoy.getMonth() + 2, 0)
+        return {
+            desde: desde.toISOString().split('T')[0],
+            hasta: hasta.toISOString().split('T')[0]
+        }
+    })
+
+    // Obtener datos del calendario con rango de fechas
+    const { eventos: calendario, isLoading, error, refetch } = useGetCalendario(dateRange)
 
     // Transformar órdenes a formato FullCalendar
     const { events, stats, ordenesPorId } = useMemo(() => {
@@ -409,6 +420,16 @@ export default function CalendarioOperaciones() {
             setSelectedEvent(orden)
         }
     }, [ordenesPorId])
+
+    // Actualizar rango cuando el usuario navega en el calendario
+    const handleDatesSet = useCallback((dateInfo) => {
+        const desde = dateInfo.startStr.split('T')[0]
+        const hasta = dateInfo.endStr.split('T')[0]
+        setDateRange(prev => {
+            if (prev.desde === desde && prev.hasta === hasta) return prev
+            return { desde, hasta }
+        })
+    }, [])
 
     const goToToday = useCallback(() => {
         if (calendarRef.current) {
@@ -507,7 +528,8 @@ export default function CalendarioOperaciones() {
                                 events={events}
                                 options={calendarOptions}
                                 handlers={{
-                                    eventClick: handleEventClick
+                                    eventClick: handleEventClick,
+                                    datesSet: handleDatesSet
                                 }}
                             />
                         </div>
