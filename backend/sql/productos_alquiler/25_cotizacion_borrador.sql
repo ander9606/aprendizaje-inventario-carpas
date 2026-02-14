@@ -17,9 +17,11 @@ ALTER TABLE cotizaciones
 MODIFY COLUMN fecha_evento DATE NULL;
 
 -- 4. Marcar cotizaciones existentes como fechas confirmadas
+SET SQL_SAFE_UPDATES = 0;
 UPDATE cotizaciones
 SET fechas_confirmadas = 1
 WHERE fechas_confirmadas IS NULL OR id > 0;
+SET SQL_SAFE_UPDATES = 1;
 
 -- ============================================================
 -- VERIFICACIÓN
