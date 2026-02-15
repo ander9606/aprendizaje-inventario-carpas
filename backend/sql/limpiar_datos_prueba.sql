@@ -23,15 +23,13 @@ TRUNCATE TABLE cotizacion_descuentos;
 -- Transportes de cotizaciones
 TRUNCATE TABLE cotizacion_transportes;
 
--- Historial y equipo de órdenes de trabajo
-TRUNCATE TABLE orden_trabajo_historial_estados;
+-- Órdenes de trabajo (hijos)
 TRUNCATE TABLE orden_trabajo_cambios_fecha;
 TRUNCATE TABLE orden_trabajo_equipo;
 TRUNCATE TABLE orden_trabajo_elementos;
 
 -- Alertas de operaciones
 TRUNCATE TABLE alertas_operaciones;
-TRUNCATE TABLE alertas_alquiler_vistas;
 
 -- Elementos y extensiones de alquileres
 TRUNCATE TABLE alquiler_elementos;
