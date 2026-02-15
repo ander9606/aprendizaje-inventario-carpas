@@ -248,6 +248,11 @@ const cambiarEstadoOrden = async (req, res, next) => {
 
         const orden = await OrdenTrabajoModel.cambiarEstado(parseInt(id), estado);
 
+        // Registrar en historial de estados para conteo de tiempos
+        await OrdenTrabajoModel.registrarCambioEstado(
+            parseInt(id), estadoAnterior, estado, req.usuario.id
+        );
+
         // ========================================
         // SINCRONIZACIÓN BIDIRECCIONAL
         // Actualizar estado del alquiler si corresponde
@@ -878,9 +883,18 @@ const ejecutarSalida = async (req, res, next) => {
         const { id } = req.params;
         const datos = req.body;
 
+        // Obtener estado anterior para historial
+        const ordenAntes = await OrdenTrabajoModel.obtenerPorId(parseInt(id));
+        const estadoAnterior = ordenAntes?.estado;
+
         const resultado = await SincronizacionAlquilerService.ejecutarSalida(
             parseInt(id),
             datos
+        );
+
+        // Registrar transición de estado (salida → en_ruta)
+        await OrdenTrabajoModel.registrarCambioEstado(
+            parseInt(id), estadoAnterior, 'en_ruta', req.usuario.id
         );
 
         logger.info('operaciones', `Salida ejecutada - Orden ${id} por ${req.usuario.email}`);
@@ -908,9 +922,18 @@ const ejecutarRetorno = async (req, res, next) => {
             throw new AppError('Debe proporcionar el estado de retorno de los elementos', 400);
         }
 
+        // Obtener estado anterior para historial
+        const ordenAntes = await OrdenTrabajoModel.obtenerPorId(parseInt(id));
+        const estadoAnterior = ordenAntes?.estado;
+
         const resultado = await SincronizacionAlquilerService.ejecutarRetorno(
             parseInt(id),
             retornos
+        );
+
+        // Registrar transición de estado (retorno → completado)
+        await OrdenTrabajoModel.registrarCambioEstado(
+            parseInt(id), estadoAnterior, 'completado', req.usuario.id
         );
 
         logger.info('operaciones', `Retorno ejecutado - Orden ${id} por ${req.usuario.email}`);
@@ -995,6 +1018,134 @@ const getAlertasPorOrden = async (req, res, next) => {
     }
 };
 
+// ============================================
+// INVENTARIO CLIENTE
+// ============================================
+
+/**
+ * GET /api/operaciones/ordenes/:id/inventario-cliente
+ * Generar documento de inventario para el cliente después de montaje completado
+ */
+const getInventarioCliente = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const inventario = await OrdenTrabajoModel.generarInventarioCliente(parseInt(id));
+
+        res.json({
+            success: true,
+            data: inventario
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// ============================================
+// DURACIONES Y HISTORIAL DE ESTADOS
+// ============================================
+
+/**
+ * GET /api/operaciones/ordenes/:id/duraciones
+ * Obtener historial de estados y duraciones calculadas
+ */
+const getDuracionesOrden = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const resultado = await OrdenTrabajoModel.calcularDuraciones(parseInt(id));
+
+        res.json({
+            success: true,
+            data: resultado
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// ============================================
+// CHECKLIST DE CARGUE / DESCARGUE
+// ============================================
+
+/**
+ * GET /api/operaciones/ordenes/:id/checklist
+ * Obtener estado del checklist de la orden
+ */
+const getChecklistOrden = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const checklist = await OrdenElementoModel.obtenerChecklistOrden(parseInt(id));
+
+        res.json({
+            success: true,
+            data: checklist
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * PUT /api/operaciones/ordenes/:id/elementos/:elemId/verificar-cargue
+ * Toggle verificación de cargue de un elemento individual
+ */
+const verificarElementoCargue = async (req, res, next) => {
+    try {
+        const { id, elemId } = req.params;
+        const { verificado, notas } = req.body;
+
+        if (typeof verificado !== 'boolean') {
+            throw new AppError('El campo "verificado" (boolean) es requerido', 400);
+        }
+
+        const elemento = await OrdenElementoModel.toggleVerificacionCargue(
+            parseInt(elemId),
+            verificado,
+            notas || null
+        );
+
+        logger.info('operaciones', `Elemento ${elemId} ${verificado ? 'verificado' : 'desverificado'} para cargue en orden ${id} por ${req.usuario.email}`);
+
+        res.json({
+            success: true,
+            message: verificado ? 'Elemento marcado como cargado' : 'Verificación de cargue removida',
+            data: elemento
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * PUT /api/operaciones/ordenes/:id/elementos/:elemId/verificar-descargue
+ * Toggle verificación de descargue de un elemento individual
+ */
+const verificarElementoDescargue = async (req, res, next) => {
+    try {
+        const { id, elemId } = req.params;
+        const { verificado, notas } = req.body;
+
+        if (typeof verificado !== 'boolean') {
+            throw new AppError('El campo "verificado" (boolean) es requerido', 400);
+        }
+
+        const elemento = await OrdenElementoModel.toggleVerificacionDescargue(
+            parseInt(elemId),
+            verificado,
+            notas || null
+        );
+
+        logger.info('operaciones', `Elemento ${elemId} ${verificado ? 'verificado' : 'desverificado'} para descargue en orden ${id} por ${req.usuario.email}`);
+
+        res.json({
+            success: true,
+            message: verificado ? 'Elemento marcado como descargado' : 'Verificación de descargue removida',
+            data: elemento
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 module.exports = {
     // Órdenes
     getOrdenes,
@@ -1016,6 +1167,17 @@ module.exports = {
     cambiarEstadoElementosMasivo,
     reportarIncidencia,
     subirFotoElemento,
+
+    // Inventario Cliente
+    getInventarioCliente,
+
+    // Duraciones
+    getDuracionesOrden,
+
+    // Checklist
+    getChecklistOrden,
+    verificarElementoCargue,
+    verificarElementoDescargue,
 
     // Alertas
     getAlertas,

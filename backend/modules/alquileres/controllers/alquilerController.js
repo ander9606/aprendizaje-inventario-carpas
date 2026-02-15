@@ -654,3 +654,82 @@ exports.obtenerReportes = async (req, res, next) => {
     next(error);
   }
 };
+
+// ============================================
+// EXTENSION DE ALQUILER
+// ============================================
+
+/**
+ * POST /alquileres/:id/extender
+ * Extender la fecha de retorno de un alquiler activo
+ */
+exports.extenderFechaRetorno = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { nueva_fecha_retorno, razon, costo_extension } = req.body;
+
+    if (!nueva_fecha_retorno) {
+      throw new AppError('La nueva fecha de retorno es requerida', 400);
+    }
+
+    const alquiler = await AlquilerModel.obtenerPorId(id);
+    if (!alquiler) {
+      throw new AppError('Alquiler no encontrado', 404);
+    }
+
+    if (!['activo', 'programado'].includes(alquiler.estado)) {
+      throw new AppError('Solo se pueden extender alquileres activos o programados', 400);
+    }
+
+    const nuevaFecha = new Date(nueva_fecha_retorno);
+    const fechaActual = new Date(alquiler.fecha_retorno_esperado);
+
+    if (nuevaFecha <= fechaActual) {
+      throw new AppError('La nueva fecha debe ser posterior a la fecha de retorno actual', 400);
+    }
+
+    const resultado = await AlquilerModel.extenderFechaRetorno(id, {
+      nueva_fecha_retorno,
+      razon,
+      costo_extension: costo_extension || 0,
+      registrado_por: req.usuario?.email || null
+    });
+
+    logger.info('alquilerController.extenderFechaRetorno', `Alquiler #${id} extendido ${resultado.dias_extension} dias`);
+
+    res.json({
+      success: true,
+      mensaje: `Alquiler extendido ${resultado.dias_extension} dia(s)`,
+      data: resultado
+    });
+  } catch (error) {
+    logger.error('alquilerController.extenderFechaRetorno', error);
+    next(error);
+  }
+};
+
+/**
+ * GET /alquileres/:id/extensiones
+ * Obtener historial de extensiones de un alquiler
+ */
+exports.obtenerExtensiones = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const alquiler = await AlquilerModel.obtenerPorId(id);
+    if (!alquiler) {
+      throw new AppError('Alquiler no encontrado', 404);
+    }
+
+    const extensiones = await AlquilerModel.obtenerExtensiones(id);
+
+    res.json({
+      success: true,
+      data: extensiones,
+      total: extensiones.length
+    });
+  } catch (error) {
+    logger.error('alquilerController.obtenerExtensiones', error);
+    next(error);
+  }
+};

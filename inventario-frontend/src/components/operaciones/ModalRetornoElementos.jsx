@@ -473,6 +473,7 @@ const ModalRetornoElementos = ({
 }) => {
     const [retornos, setRetornos] = useState([])
     const [saving, setSaving] = useState(false)
+    const [confirmacion, setConfirmacion] = useState({ visible: false, sinMarcar: 0 })
 
     // Inicializar retornos cuando se abre el modal o cambian los elementos
     useEffect(() => {
@@ -612,20 +613,22 @@ const ModalRetornoElementos = ({
     // HANDLER: Guardar con validación
     // Advierte si hay elementos sin estado marcado
     // ============================================
-    const handleGuardar = async () => {
+    const handleGuardar = () => {
         const sinMarcar = retornos.filter(r => !r.estado_retorno).length
         if (sinMarcar > 0) {
-            const confirmar = window.confirm(
-                `Hay ${sinMarcar} elemento(s) sin estado marcado.\n\n¿Deseas continuar de todas formas?`
-            )
-            if (!confirmar) return
+            setConfirmacion({ visible: true, sinMarcar })
+            return
         }
+        ejecutarGuardado()
+    }
 
+    const ejecutarGuardado = async () => {
+        setConfirmacion({ visible: false, sinMarcar: 0 })
         setSaving(true)
         try {
             await onSave(retornos.map(r => ({
                 alquiler_elemento_id: r.alquiler_elemento_id,
-                estado_retorno: r.estado_retorno || 'bueno', // Default a bueno si no marcado
+                estado_retorno: r.estado_retorno || 'bueno',
                 costo_dano: r.costo_dano,
                 notas: r.notas
             })))
@@ -843,6 +846,41 @@ const ModalRetornoElementos = ({
                     </Button>
                 </div>
             </div>
+
+            {/* Diálogo de confirmación estilizado */}
+            {confirmacion.visible && (
+                <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-10 rounded-xl">
+                    <div className="bg-white rounded-xl shadow-xl max-w-sm mx-4 p-6 animate-in fade-in zoom-in-95">
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="p-2 bg-amber-100 rounded-full">
+                                <AlertTriangle className="w-5 h-5 text-amber-600" />
+                            </div>
+                            <h4 className="font-semibold text-slate-900">Elementos sin marcar</h4>
+                        </div>
+                        <p className="text-sm text-slate-600 mb-1">
+                            Hay <span className="font-semibold text-amber-700">{confirmacion.sinMarcar} elemento(s)</span> sin estado marcado.
+                        </p>
+                        <p className="text-sm text-slate-500 mb-6">
+                            Se guardarán como &quot;Bueno&quot; por defecto. ¿Deseas continuar?
+                        </p>
+                        <div className="flex items-center justify-end gap-3">
+                            <Button
+                                variant="secondary"
+                                onClick={() => setConfirmacion({ visible: false, sinMarcar: 0 })}
+                            >
+                                Cancelar
+                            </Button>
+                            <Button
+                                color="orange"
+                                icon={Save}
+                                onClick={ejecutarGuardado}
+                            >
+                                Sí, continuar
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </Modal>
     )
 }

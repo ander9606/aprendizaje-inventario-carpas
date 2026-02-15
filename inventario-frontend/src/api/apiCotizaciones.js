@@ -74,8 +74,24 @@ export const apiCotizaciones = {
     window.URL.revokeObjectURL(url);
   },
 
+  confirmarFechas: async (id, fechas) => {
+    const response = await api.patch(`/cotizaciones/${id}/confirmar-fechas`, fechas);
+    return response.data;
+  },
+
   duplicar: async (id) => {
     const response = await api.post(`/cotizaciones/${id}/duplicar`);
+    return response.data;
+  },
+
+  // Seguimiento
+  obtenerSeguimiento: async (id) => {
+    const response = await api.get(`/cotizaciones/${id}/seguimiento`);
+    return response.data;
+  },
+
+  registrarSeguimiento: async (id, notas) => {
+    const response = await api.post(`/cotizaciones/${id}/seguimiento`, { notas });
     return response.data;
   },
 

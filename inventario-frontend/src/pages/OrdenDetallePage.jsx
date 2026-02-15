@@ -26,7 +26,10 @@ import {
     RotateCcw,
     Box,
     Bell,
-    ExternalLink
+    ExternalLink,
+    ClipboardCheck,
+    Timer,
+    Share2
 } from 'lucide-react'
 import {
     useGetOrden,
@@ -38,7 +41,8 @@ import {
     useAsignarEquipo,
     useUpdateOrden,
     useEjecutarSalida,
-    useEjecutarRetorno
+    useEjecutarRetorno,
+    useGetDuracionesOrden
 } from '../hooks/useOrdenesTrabajo'
 import { useAuth } from '../hooks/auth/useAuth'
 import Button from '../components/common/Button'
@@ -48,7 +52,9 @@ import {
     ModalOrdenCargue,
     ModalAsignarResponsable,
     ModalEditarOrden,
-    ModalAsignarInventario
+    ModalAsignarInventario,
+    ChecklistCargueDescargue,
+    ModalInventarioCliente
 } from '../components/operaciones'
 import { toast } from 'sonner'
 
@@ -70,6 +76,9 @@ export default function OrdenDetallePage() {
     const [showModalRetorno, setShowModalRetorno] = useState(false)
     const [showModalInventario, setShowModalInventario] = useState(false)
     const [showModalOrdenCargue, setShowModalOrdenCargue] = useState(false)
+    const [showChecklistCargue, setShowChecklistCargue] = useState(false)
+    const [showChecklistDescargue, setShowChecklistDescargue] = useState(false)
+    const [showInventarioCliente, setShowInventarioCliente] = useState(false)
     const [ejecutandoSalida, setEjecutandoSalida] = useState(false)
 
     // ============================================
@@ -83,6 +92,11 @@ export default function OrdenDetallePage() {
     // Se carga siempre para mostrar productos y validar estado de cargue
     const { productos, alquilerElementos, elementosCargue, resumenCotizacion } = useGetOrdenCompleta(id)
 
+    // Duraciones: solo cargar en estados avanzados o completado
+    const { historial: historialEstados, duraciones } = useGetDuracionesOrden(id, {
+        enabled: !!orden && ['en_ruta', 'en_sitio', 'en_proceso', 'completado'].includes(orden?.estado)
+    })
+
     // ============================================
     // HOOKS: Mutaciones
     // ============================================
@@ -92,6 +106,21 @@ export default function OrdenDetallePage() {
     const prepararElementos = usePrepararElementos()
     const ejecutarSalida = useEjecutarSalida()
     const ejecutarRetorno = useEjecutarRetorno()
+
+    // ============================================
+    // HELPERS
+    // ============================================
+    const formatDuration = (ms) => {
+        if (ms == null) return '-'
+        const totalMinutos = Math.floor(ms / 60000)
+        if (totalMinutos < 60) return `${totalMinutos} min`
+        const horas = Math.floor(totalMinutos / 60)
+        const minutos = totalMinutos % 60
+        if (horas < 24) return `${horas}h ${minutos}m`
+        const dias = Math.floor(horas / 24)
+        const horasRest = horas % 24
+        return `${dias}d ${horasRest}h`
+    }
 
     // ============================================
     // HANDLERS
@@ -668,12 +697,23 @@ export default function OrdenDetallePage() {
 
             {/* ESTADO COMPLETADO - Banner */}
             {esCompletado && (
-                <div className="mb-6 bg-green-50 border border-green-200 rounded-xl p-4 flex items-center gap-3">
-                    <CheckCircle className="w-5 h-5 text-green-500 shrink-0" />
-                    <div>
-                        <p className="font-semibold text-green-800">Orden Completada</p>
-                        <p className="text-sm text-green-600">Esta orden fue completada exitosamente</p>
+                <div className="mb-6 bg-green-50 border border-green-200 rounded-xl p-4 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                        <CheckCircle className="w-5 h-5 text-green-500 shrink-0" />
+                        <div>
+                            <p className="font-semibold text-green-800">Orden Completada</p>
+                            <p className="text-sm text-green-600">Esta orden fue completada exitosamente</p>
+                        </div>
                     </div>
+                    {orden.tipo === 'montaje' && (
+                        <button
+                            onClick={() => setShowInventarioCliente(true)}
+                            className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-orange-500 hover:bg-orange-600 rounded-lg transition-colors shadow-sm shrink-0"
+                        >
+                            <Share2 className="w-4 h-4" />
+                            Compartir Inventario
+                        </button>
+                    )}
                 </div>
             )}
 
@@ -903,6 +943,60 @@ export default function OrdenDetallePage() {
                                         </div>
                                     )}
 
+                                    {/* Botón Checklist de Cargue - Verificación paso a paso */}
+                                    {orden.estado === 'en_preparacion' && orden.tipo === 'montaje' && !hayElementosSinInventario && elementos?.length > 0 && canManage && (
+                                        <div className="mt-4 p-4 bg-indigo-50 border border-indigo-200 rounded-lg">
+                                            <div className="flex items-center justify-between gap-3">
+                                                <div className="flex items-center gap-2">
+                                                    <ClipboardCheck className="w-5 h-5 text-indigo-600 shrink-0" />
+                                                    <div>
+                                                        <p className="text-sm font-medium text-indigo-800">
+                                                            Checklist de Cargue
+                                                        </p>
+                                                        <p className="text-xs text-indigo-600">
+                                                            Verifica cada elemento paso a paso antes del despacho
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <Button
+                                                    color="blue"
+                                                    icon={ClipboardCheck}
+                                                    size="sm"
+                                                    onClick={() => setShowChecklistCargue(true)}
+                                                >
+                                                    Abrir Checklist
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Botón Checklist de Descargue - para desmontaje en sitio */}
+                                    {['en_ruta', 'en_sitio'].includes(orden.estado) && orden.tipo === 'desmontaje' && elementos?.length > 0 && canManage && (
+                                        <div className="mt-4 p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                                            <div className="flex items-center justify-between gap-3">
+                                                <div className="flex items-center gap-2">
+                                                    <ClipboardCheck className="w-5 h-5 text-orange-600 shrink-0" />
+                                                    <div>
+                                                        <p className="text-sm font-medium text-orange-800">
+                                                            Checklist de Descargue
+                                                        </p>
+                                                        <p className="text-xs text-orange-600">
+                                                            Verifica cada elemento al recoger del sitio del evento
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <Button
+                                                    color="orange"
+                                                    icon={ClipboardCheck}
+                                                    size="sm"
+                                                    onClick={() => setShowChecklistDescargue(true)}
+                                                >
+                                                    Abrir Checklist
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    )}
+
                                     {/* Botón asignar inventario si hay elementos pendientes */}
                                     {hayElementosSinInventario && canManage && !esCompletado && !esCancelado && (
                                         <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
@@ -989,6 +1083,80 @@ export default function OrdenDetallePage() {
                             )}
                         </div>
 
+                        {/* TIEMPOS DE OPERACIÓN */}
+                        {duraciones && (
+                            <div className="bg-white rounded-xl border border-slate-200 p-6">
+                                <div className="flex items-center gap-2 mb-4">
+                                    <Timer className="w-5 h-5 text-slate-600" />
+                                    <h3 className="text-lg font-semibold text-slate-900">
+                                        Tiempos
+                                    </h3>
+                                </div>
+                                <div className="space-y-3">
+                                    {duraciones.preparacion_ms != null && (
+                                        <div className="flex items-center justify-between text-sm">
+                                            <span className="text-slate-500">Preparación</span>
+                                            <span className="font-medium text-slate-900">
+                                                {formatDuration(duraciones.preparacion_ms)}
+                                            </span>
+                                        </div>
+                                    )}
+                                    {duraciones.desplazamiento_ms != null && (
+                                        <div className="flex items-center justify-between text-sm">
+                                            <span className="text-slate-500">Desplazamiento</span>
+                                            <span className="font-medium text-slate-900">
+                                                {formatDuration(duraciones.desplazamiento_ms)}
+                                            </span>
+                                        </div>
+                                    )}
+                                    {orden.tipo === 'montaje' && duraciones.trabajo_montaje_ms != null && (
+                                        <div className="flex items-center justify-between text-sm">
+                                            <span className="text-slate-500">Montaje en sitio</span>
+                                            <span className="font-bold text-green-700">
+                                                {formatDuration(duraciones.trabajo_montaje_ms)}
+                                            </span>
+                                        </div>
+                                    )}
+                                    {orden.tipo === 'desmontaje' && duraciones.trabajo_desmontaje_ms != null && (
+                                        <div className="flex items-center justify-between text-sm">
+                                            <span className="text-slate-500">Desmontaje en sitio</span>
+                                            <span className="font-bold text-green-700">
+                                                {formatDuration(duraciones.trabajo_desmontaje_ms)}
+                                            </span>
+                                        </div>
+                                    )}
+                                    {duraciones.total_ms != null && (
+                                        <>
+                                            <div className="border-t border-slate-200 pt-2 flex items-center justify-between text-sm">
+                                                <span className="font-medium text-slate-700">Total operación</span>
+                                                <span className="font-bold text-blue-700">
+                                                    {formatDuration(duraciones.total_ms)}
+                                                </span>
+                                            </div>
+                                        </>
+                                    )}
+                                    {historialEstados.length > 0 && (
+                                        <div className="pt-2 border-t border-slate-100">
+                                            <p className="text-xs text-slate-400 mb-2">Historial</p>
+                                            <div className="space-y-1.5">
+                                                {historialEstados.map((h, i) => (
+                                                    <div key={h.id || i} className="flex items-center gap-2 text-xs">
+                                                        <span className="text-slate-400 w-14 shrink-0 text-right">
+                                                            {new Date(h.created_at).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}
+                                                        </span>
+                                                        <div className="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0" />
+                                                        <span className="text-slate-600">
+                                                            {h.estado_nuevo.replace(/_/g, ' ')}
+                                                        </span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
                         {/* CANCELAR ORDEN */}
                         {canManage && !esCompletado && !esCancelado && (
                             <button
@@ -1049,6 +1217,32 @@ export default function OrdenDetallePage() {
                     ordenInfo={orden}
                     elementos={elementos}
                     onConfirmado={refetch}
+                />
+            )}
+            {showChecklistCargue && (
+                <ChecklistCargueDescargue
+                    isOpen={showChecklistCargue}
+                    onClose={() => setShowChecklistCargue(false)}
+                    ordenId={orden.id}
+                    ordenInfo={orden}
+                    modo="cargue"
+                    onCompleto={refetch}
+                />
+            )}
+            {showChecklistDescargue && (
+                <ChecklistCargueDescargue
+                    isOpen={showChecklistDescargue}
+                    onClose={() => setShowChecklistDescargue(false)}
+                    ordenId={orden.id}
+                    ordenInfo={orden}
+                    modo="descargue"
+                    onCompleto={refetch}
+                />
+            )}
+            {showInventarioCliente && (
+                <ModalInventarioCliente
+                    ordenId={orden.id}
+                    onClose={() => setShowInventarioCliente(false)}
                 />
             )}
         </div>

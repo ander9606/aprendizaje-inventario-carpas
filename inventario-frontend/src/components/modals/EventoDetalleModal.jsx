@@ -23,7 +23,9 @@ import {
     Edit,
     Trash2,
     Lock,
-    Info
+    Info,
+    FileEdit,
+    CalendarCheck
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
@@ -74,6 +76,7 @@ const EventoDetalleModal = ({ isOpen, onClose, eventoId, onCrearCotizacion, onEd
 
     const getEstadoConfig = (estado) => {
         const config = {
+            borrador: { color: 'bg-amber-100 text-amber-700 border-amber-200', icon: FileEdit, label: 'Borrador' },
             pendiente: { color: 'bg-yellow-100 text-yellow-700 border-yellow-200', icon: Clock, label: 'Pendiente' },
             aprobada: { color: 'bg-green-100 text-green-700 border-green-200', icon: CheckCircle, label: 'Aprobada' },
             rechazada: { color: 'bg-red-100 text-red-700 border-red-200', icon: XCircle, label: 'Rechazada' },
@@ -348,8 +351,8 @@ const EventoDetalleModal = ({ isOpen, onClose, eventoId, onCrearCotizacion, onEd
                                         {evento.cotizaciones.map((cot) => {
                                             const estadoConfig = getEstadoConfig(cot.estado)
                                             const EstadoIcon = estadoConfig.icon
-                                            const puedeEditar = cot.estado === 'pendiente'
-                                            const puedeEliminar = cot.estado === 'pendiente' && cot.tiene_alquiler === 0
+                                            const puedeEditar = ['pendiente', 'borrador'].includes(cot.estado)
+                                            const puedeEliminar = ['pendiente', 'borrador'].includes(cot.estado) && cot.tiene_alquiler === 0
 
                                             return (
                                                 <div
@@ -380,7 +383,10 @@ const EventoDetalleModal = ({ isOpen, onClose, eventoId, onCrearCotizacion, onEd
                                                             <div className="flex items-center gap-4 text-sm text-slate-600">
                                                                 <span className="flex items-center gap-1">
                                                                     <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                                                                    {formatFecha(cot.fecha_evento)}
+                                                                    {cot.fecha_evento
+                                                                        ? formatFecha(cot.fecha_evento)
+                                                                        : <span className="text-amber-600 italic">Fecha por confirmar</span>
+                                                                    }
                                                                 </span>
                                                                 <span className="flex items-center gap-1">
                                                                     <FileText className="w-3.5 h-3.5 text-slate-400" />
@@ -393,6 +399,11 @@ const EventoDetalleModal = ({ isOpen, onClose, eventoId, onCrearCotizacion, onEd
                                                             <p className="text-lg font-bold text-slate-900">
                                                                 {formatMoneda(cot.total)}
                                                             </p>
+                                                            {cot.estado === 'borrador' && (
+                                                                <p className="text-xs text-amber-600 font-medium">
+                                                                    Precio estimado
+                                                                </p>
+                                                            )}
                                                             {cot.descuento > 0 && (
                                                                 <p className="text-xs text-emerald-600">
                                                                     -{formatMoneda(cot.descuento)} desc.

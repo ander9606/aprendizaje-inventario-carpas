@@ -453,6 +453,126 @@ export const useGetAlertasOrden = (ordenId) => {
     }
 }
 
+// ============================================
+// HOOKS: INVENTARIO CLIENTE
+// ============================================
+
+/**
+ * Hook: useGetInventarioCliente
+ * Obtiene datos de inventario para compartir con el cliente
+ */
+export const useGetInventarioCliente = (ordenId, options = {}) => {
+    const { data, isLoading, error, refetch } = useQuery({
+        queryKey: ['ordenes', ordenId, 'inventario-cliente'],
+        queryFn: () => ordenesAPI.obtenerInventarioCliente(ordenId),
+        enabled: !!ordenId && (options.enabled !== false)
+    })
+
+    return {
+        inventario: data?.data || null,
+        isLoading,
+        error,
+        refetch
+    }
+}
+
+// ============================================
+// HOOKS: DURACIONES
+// ============================================
+
+/**
+ * Hook: useGetDuracionesOrden
+ * Obtiene historial de estados y duraciones de una orden
+ */
+export const useGetDuracionesOrden = (ordenId, options = {}) => {
+    const { data, isLoading, error, refetch } = useQuery({
+        queryKey: ['ordenes', ordenId, 'duraciones'],
+        queryFn: () => ordenesAPI.obtenerDuraciones(ordenId),
+        enabled: !!ordenId && (options.enabled !== false)
+    })
+
+    return {
+        historial: data?.data?.historial || [],
+        duraciones: data?.data?.duraciones || null,
+        isLoading,
+        error,
+        refetch
+    }
+}
+
+// ============================================
+// HOOKS: CHECKLIST CARGUE / DESCARGUE
+// ============================================
+
+/**
+ * Hook: useGetChecklist
+ * Obtiene el estado del checklist de una orden
+ */
+export const useGetChecklist = (ordenId, options = {}) => {
+    const { data, isLoading, error, refetch } = useQuery({
+        queryKey: ['ordenes', ordenId, 'checklist'],
+        queryFn: () => ordenesAPI.obtenerChecklist(ordenId),
+        enabled: !!ordenId && (options.enabled !== false)
+    })
+
+    return {
+        checklist: data?.data || null,
+        elementos: data?.data?.elementos || [],
+        totalElementos: data?.data?.totalElementos || 0,
+        verificadosCargue: data?.data?.verificadosCargue || 0,
+        verificadosDescargue: data?.data?.verificadosDescargue || 0,
+        isLoading,
+        error,
+        refetch
+    }
+}
+
+/**
+ * Hook: useVerificarElementoCargue
+ * Toggle verificación de cargue de un elemento individual
+ */
+export const useVerificarElementoCargue = () => {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: ({ ordenId, elementoId, verificado, notas }) =>
+            ordenesAPI.verificarElementoCargue(ordenId, elementoId, { verificado, notas }),
+        retry: 0,
+        onSuccess: (_, variables) => {
+            const id = variables.ordenId
+            queryClient.invalidateQueries({ queryKey: ['ordenes', id, 'checklist'] })
+            queryClient.invalidateQueries({ queryKey: ['ordenes', id, 'elementos'] })
+            queryClient.invalidateQueries({ queryKey: ['ordenes', id, 'completa'] })
+            queryClient.invalidateQueries({ queryKey: ['ordenes', String(id), 'checklist'] })
+            queryClient.invalidateQueries({ queryKey: ['ordenes', String(id), 'elementos'] })
+            queryClient.invalidateQueries({ queryKey: ['ordenes', String(id), 'completa'] })
+        }
+    })
+}
+
+/**
+ * Hook: useVerificarElementoDescargue
+ * Toggle verificación de descargue de un elemento individual
+ */
+export const useVerificarElementoDescargue = () => {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: ({ ordenId, elementoId, verificado, notas }) =>
+            ordenesAPI.verificarElementoDescargue(ordenId, elementoId, { verificado, notas }),
+        retry: 0,
+        onSuccess: (_, variables) => {
+            const id = variables.ordenId
+            queryClient.invalidateQueries({ queryKey: ['ordenes', id, 'checklist'] })
+            queryClient.invalidateQueries({ queryKey: ['ordenes', id, 'elementos'] })
+            queryClient.invalidateQueries({ queryKey: ['ordenes', id, 'completa'] })
+            queryClient.invalidateQueries({ queryKey: ['ordenes', String(id), 'checklist'] })
+            queryClient.invalidateQueries({ queryKey: ['ordenes', String(id), 'elementos'] })
+            queryClient.invalidateQueries({ queryKey: ['ordenes', String(id), 'completa'] })
+        }
+    })
+}
+
 /**
  * Hook: useCrearAlertaOperaciones
  * Crea una alerta de operaciones (ej: insuficiencia de inventario)

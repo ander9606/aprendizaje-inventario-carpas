@@ -68,6 +68,7 @@ class CotizacionModel {
         cot.descuento,
         cot.total,
         cot.estado,
+        cot.fechas_confirmadas,
         cot.vigencia_dias,
         cot.created_at,
         cot.dias_montaje_extra,
@@ -101,13 +102,14 @@ class CotizacionModel {
         cot.evento_nombre,
         cot.total,
         cot.estado,
+        cot.fechas_confirmadas,
         cot.created_at,
         cl.nombre AS cliente_nombre,
         (SELECT COUNT(*) FROM cotizacion_productos WHERE cotizacion_id = cot.id) AS total_productos
       FROM cotizaciones cot
       INNER JOIN clientes cl ON cot.cliente_id = cl.id
       WHERE cot.estado = ?
-      ORDER BY cot.fecha_evento ASC
+      ORDER BY COALESCE(cot.fecha_evento, cot.created_at) ASC
     `;
     const [rows] = await pool.query(query, [estado]);
     return rows;
@@ -143,7 +145,7 @@ class CotizacionModel {
     const cotizacion = await this.obtenerPorId(id);
     if (!cotizacion) return null;
 
-    // Obtener productos
+    // Obtener productos (con recargos incluidos)
     const queryProductos = `
       SELECT
         cp.id,
@@ -153,6 +155,7 @@ class CotizacionModel {
         cp.deposito,
         cp.precio_adicionales,
         cp.subtotal,
+        COALESCE(cp.total_recargos, 0) AS total_recargos,
         cp.notas,
         ec.nombre AS producto_nombre,
         ec.codigo AS producto_codigo,
@@ -201,8 +204,8 @@ class CotizacionModel {
     `;
     const [descuentos] = await pool.query(queryDescuentos, [id]);
 
-    // Calcular totales
-    const subtotalProductos = productos.reduce((sum, p) => sum + parseFloat(p.subtotal), 0);
+    // Calcular totales (incluye recargos por adelanto/extensión)
+    const subtotalProductos = productos.reduce((sum, p) => sum + parseFloat(p.subtotal) + parseFloat(p.total_recargos || 0), 0);
     const subtotalTransporte = transporte.reduce((sum, t) => sum + parseFloat(t.subtotal), 0);
     const totalDeposito = productos.reduce((sum, p) => sum + (parseFloat(p.deposito) * p.cantidad), 0);
     const totalDescuentosAplicados = descuentos.reduce((sum, d) => sum + parseFloat(d.monto_calculado || 0), 0);
@@ -239,14 +242,19 @@ class CotizacionModel {
   // CALCULAR DÍAS EXTRA (con configuración dinámica)
   // ============================================
   static async calcularDiasExtra(fechaMontaje, fechaEvento, fechaDesmontaje, config = null) {
+    // Si no hay fecha de evento, no se pueden calcular días extra (borrador)
+    if (!fechaEvento) {
+      return { diasMontajeExtra: 0, diasDesmontajeExtra: 0, config: config || await this.obtenerConfiguracion() };
+    }
+
     // Obtener configuración si no se proporciona
     if (!config) {
       config = await this.obtenerConfiguracion();
     }
 
-    const montaje = new Date(fechaMontaje);
+    const montaje = new Date(fechaMontaje || fechaEvento);
     const evento = new Date(fechaEvento);
-    const desmontaje = new Date(fechaDesmontaje);
+    const desmontaje = new Date(fechaDesmontaje || fechaEvento);
 
     const diasGratisMontaje = config.dias_gratis_montaje || this.DIAS_GRATIS_MONTAJE;
     const diasGratisDesmontaje = config.dias_gratis_desmontaje || this.DIAS_GRATIS_DESMONTAJE;
@@ -269,13 +277,17 @@ class CotizacionModel {
     cliente_id, fecha_montaje, fecha_evento, fecha_desmontaje, evento_nombre,
     evento_direccion, evento_ciudad, subtotal, descuento, total, vigencia_dias, notas,
     dias_montaje_extra, dias_desmontaje_extra, porcentaje_dias_extra,
-    cobro_dias_extra, porcentaje_iva, valor_iva, evento_id
+    cobro_dias_extra, porcentaje_iva, valor_iva, evento_id, fechas_confirmadas
   }) {
     // Obtener configuración dinámica
     const config = await this.obtenerConfiguracion();
 
-    // Calcular días extra si no se proporcionan
-    if (dias_montaje_extra === undefined || dias_desmontaje_extra === undefined) {
+    // Determinar si es borrador (sin fechas confirmadas)
+    const esBorrador = fechas_confirmadas === false || !fecha_evento;
+    const estado = esBorrador ? 'borrador' : 'pendiente';
+
+    // Calcular días extra solo si hay fechas
+    if (fecha_evento && (dias_montaje_extra === undefined || dias_desmontaje_extra === undefined)) {
       const calculados = await this.calcularDiasExtra(
         fecha_montaje || fecha_evento,
         fecha_evento,
@@ -294,22 +306,25 @@ class CotizacionModel {
     const query = `
       INSERT INTO cotizaciones
         (cliente_id, fecha_montaje, fecha_evento, fecha_desmontaje, evento_nombre,
-         evento_direccion, evento_ciudad, subtotal, descuento, total, vigencia_dias, notas,
+         evento_direccion, evento_ciudad, subtotal, descuento, total, estado,
+         fechas_confirmadas, vigencia_dias, notas,
          dias_montaje_extra, dias_desmontaje_extra, porcentaje_dias_extra,
          cobro_dias_extra, porcentaje_iva, valor_iva, evento_id)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     const [result] = await pool.query(query, [
       cliente_id,
-      fecha_montaje || fecha_evento,
-      fecha_evento,
-      fecha_desmontaje || fecha_evento,
+      fecha_montaje || fecha_evento || null,
+      fecha_evento || null,
+      fecha_desmontaje || fecha_evento || null,
       evento_nombre || null,
       evento_direccion || null,
       evento_ciudad || null,
       subtotal || 0,
       descuento || 0,
       total || 0,
+      estado,
+      esBorrador ? 0 : 1,
       vigencia_dias || 15,
       notas || null,
       dias_montaje_extra || 0,
@@ -330,9 +345,9 @@ class CotizacionModel {
     fecha_montaje, fecha_evento, fecha_desmontaje, evento_nombre, evento_direccion,
     evento_ciudad, subtotal, descuento, total, vigencia_dias, notas,
     dias_montaje_extra, dias_desmontaje_extra, porcentaje_dias_extra,
-    cobro_dias_extra, porcentaje_iva, valor_iva
+    cobro_dias_extra, porcentaje_iva, valor_iva, fechas_confirmadas
   }) {
-    // Calcular días extra si las fechas cambian
+    // Calcular días extra si las fechas cambian y existen
     if (fecha_evento && (dias_montaje_extra === undefined || dias_desmontaje_extra === undefined)) {
       const calculados = await this.calcularDiasExtra(
         fecha_montaje || fecha_evento,
@@ -343,11 +358,18 @@ class CotizacionModel {
       dias_desmontaje_extra = dias_desmontaje_extra ?? calculados.diasDesmontajeExtra;
     }
 
+    // Sin fechas => sin días extra
+    if (!fecha_evento) {
+      dias_montaje_extra = 0;
+      dias_desmontaje_extra = 0;
+    }
+
     const query = `
       UPDATE cotizaciones
       SET fecha_montaje = ?, fecha_evento = ?, fecha_desmontaje = ?, evento_nombre = ?,
           evento_direccion = ?, evento_ciudad = ?, subtotal = ?,
           descuento = ?, total = ?, vigencia_dias = ?, notas = ?,
+          fechas_confirmadas = COALESCE(?, fechas_confirmadas),
           dias_montaje_extra = COALESCE(?, dias_montaje_extra),
           dias_desmontaje_extra = COALESCE(?, dias_desmontaje_extra),
           porcentaje_dias_extra = COALESCE(?, porcentaje_dias_extra),
@@ -357,9 +379,9 @@ class CotizacionModel {
       WHERE id = ?
     `;
     const [result] = await pool.query(query, [
-      fecha_montaje || fecha_evento,
-      fecha_evento,
-      fecha_desmontaje || fecha_evento,
+      fecha_montaje || fecha_evento || null,
+      fecha_evento || null,
+      fecha_desmontaje || fecha_evento || null,
       evento_nombre || null,
       evento_direccion || null,
       evento_ciudad || null,
@@ -368,6 +390,7 @@ class CotizacionModel {
       total || 0,
       vigencia_dias || 15,
       notas || null,
+      fechas_confirmadas !== undefined ? (fechas_confirmadas ? 1 : 0) : null,
       dias_montaje_extra,
       dias_desmontaje_extra,
       porcentaje_dias_extra,
@@ -460,9 +483,9 @@ class CotizacionModel {
   // RECALCULAR TOTALES (con IVA y días extra)
   // ============================================
   static async recalcularTotales(id) {
-    // Obtener subtotal de productos
+    // Obtener subtotal de productos (incluye recargos por adelanto/extensión)
     const [productos] = await pool.query(
-      'SELECT COALESCE(SUM(subtotal), 0) AS subtotal FROM cotizacion_productos WHERE cotizacion_id = ?',
+      'SELECT COALESCE(SUM(subtotal + COALESCE(total_recargos, 0)), 0) AS subtotal FROM cotizacion_productos WHERE cotizacion_id = ?',
       [id]
     );
 
@@ -539,6 +562,39 @@ class CotizacionModel {
   }
 
   // ============================================
+  // CONFIRMAR FECHAS (borrador → pendiente)
+  // ============================================
+  static async confirmarFechas(id, { fecha_montaje, fecha_evento, fecha_desmontaje }) {
+    // Calcular días extra con las nuevas fechas
+    const { diasMontajeExtra, diasDesmontajeExtra } = await this.calcularDiasExtra(
+      fecha_montaje || fecha_evento,
+      fecha_evento,
+      fecha_desmontaje || fecha_evento
+    );
+
+    const query = `
+      UPDATE cotizaciones
+      SET fecha_montaje = ?, fecha_evento = ?, fecha_desmontaje = ?,
+          fechas_confirmadas = 1, estado = 'pendiente',
+          dias_montaje_extra = ?, dias_desmontaje_extra = ?
+      WHERE id = ?
+    `;
+    const [result] = await pool.query(query, [
+      fecha_montaje || fecha_evento,
+      fecha_evento,
+      fecha_desmontaje || fecha_evento,
+      diasMontajeExtra,
+      diasDesmontajeExtra,
+      id
+    ]);
+
+    // Recalcular totales con las nuevas fechas y días extra
+    await this.recalcularTotales(id);
+
+    return result;
+  }
+
+  // ============================================
   // DUPLICAR COTIZACIÓN
   // ============================================
   static async duplicar(id) {
@@ -602,6 +658,56 @@ class CotizacionModel {
     }
 
     return nuevaCotizacionId;
+  }
+
+  // ============================================
+  // SEGUIMIENTO DE COTIZACIONES
+  // ============================================
+
+  /**
+   * Registrar seguimiento de una cotización.
+   * Actualiza la fecha y notas de último seguimiento.
+   * @param {number} id - ID de la cotización
+   * @param {string} notas - Notas del seguimiento (qué se habló con el cliente)
+   */
+  static async registrarSeguimiento(id, notas = '') {
+    const query = `
+      UPDATE cotizaciones
+      SET ultimo_seguimiento = NOW(),
+          notas_seguimiento = ?
+      WHERE id = ?
+    `;
+    const [result] = await pool.query(query, [notas, id]);
+
+    if (result.affectedRows === 0) {
+      throw new Error(`Cotización ${id} no encontrada`);
+    }
+
+    return { id, ultimo_seguimiento: new Date(), notas_seguimiento: notas };
+  }
+
+  /**
+   * Obtener historial de seguimiento de una cotización.
+   * Retorna los datos de seguimiento de la cotización.
+   * @param {number} id - ID de la cotización
+   */
+  static async obtenerSeguimiento(id) {
+    const query = `
+      SELECT
+        id,
+        estado,
+        ultimo_seguimiento,
+        notas_seguimiento,
+        created_at,
+        vigencia_dias,
+        DATEDIFF(CURDATE(), DATE(COALESCE(ultimo_seguimiento, created_at))) AS dias_sin_seguimiento,
+        DATE(DATE_ADD(created_at, INTERVAL vigencia_dias DAY)) AS fecha_vencimiento,
+        DATEDIFF(DATE(DATE_ADD(created_at, INTERVAL vigencia_dias DAY)), CURDATE()) AS dias_para_vencer
+      FROM cotizaciones
+      WHERE id = ?
+    `;
+    const [rows] = await pool.query(query, [id]);
+    return rows[0] || null;
   }
 }
 

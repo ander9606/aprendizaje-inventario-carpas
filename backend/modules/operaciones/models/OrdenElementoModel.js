@@ -41,7 +41,7 @@ class OrdenElementoModel {
      * @returns {Promise<Object>}
      */
     static async cambiarEstado(elementoId, estado) {
-        const estadosValidos = ['pendiente', 'preparado', 'cargado', 'instalado', 'desmontado', 'retornado', 'incidencia'];
+        const estadosValidos = ['pendiente', 'preparado', 'cargado', 'descargado', 'instalado', 'desmontado', 'retornado', 'incidencia'];
 
         if (!estadosValidos.includes(estado)) {
             throw new AppError(`Estado inválido. Valores permitidos: ${estadosValidos.join(', ')}`, 400);
@@ -89,7 +89,7 @@ class OrdenElementoModel {
      * @returns {Promise<Object>} - Cantidad de registros actualizados
      */
     static async cambiarEstadoMasivo(ordenId, elementoIds, estado) {
-        const estadosValidos = ['pendiente', 'preparado', 'cargado', 'instalado', 'desmontado', 'retornado', 'incidencia'];
+        const estadosValidos = ['pendiente', 'preparado', 'cargado', 'descargado', 'instalado', 'desmontado', 'retornado', 'incidencia'];
 
         if (!estadosValidos.includes(estado)) {
             throw new AppError(`Estado inválido. Valores permitidos: ${estadosValidos.join(', ')}`, 400);
@@ -173,6 +173,116 @@ class OrdenElementoModel {
         `, [elementoId]);
 
         return this.obtenerPorId(elementoId);
+    }
+
+    /**
+     * Toggle verificación de cargue (salida) de un elemento
+     * @param {number} elementoId
+     * @param {boolean} verificado
+     * @param {string|null} notas
+     * @returns {Promise<Object>}
+     */
+    static async toggleVerificacionCargue(elementoId, verificado, notas = null) {
+        const [existente] = await pool.query(
+            'SELECT * FROM orden_trabajo_elementos WHERE id = ?',
+            [elementoId]
+        );
+
+        if (existente.length === 0) {
+            throw new AppError('Elemento no encontrado en la orden', 404);
+        }
+
+        const nuevoEstado = verificado ? 'cargado' : 'pendiente';
+        const updateNotas = notas !== null ? ', notas = ?' : '';
+        const params = notas !== null
+            ? [verificado, nuevoEstado, notas, elementoId]
+            : [verificado, nuevoEstado, elementoId];
+
+        await pool.query(`
+            UPDATE orden_trabajo_elementos
+            SET verificado_salida = ?,
+                estado = ?
+                ${updateNotas}
+            WHERE id = ?
+        `, params);
+
+        return this.obtenerPorId(elementoId);
+    }
+
+    /**
+     * Toggle verificación de descargue (retorno al almacén) de un elemento
+     * @param {number} elementoId
+     * @param {boolean} verificado
+     * @param {string|null} notas
+     * @returns {Promise<Object>}
+     */
+    static async toggleVerificacionDescargue(elementoId, verificado, notas = null) {
+        const [existente] = await pool.query(
+            'SELECT * FROM orden_trabajo_elementos WHERE id = ?',
+            [elementoId]
+        );
+
+        if (existente.length === 0) {
+            throw new AppError('Elemento no encontrado en la orden', 404);
+        }
+
+        const nuevoEstado = verificado ? 'descargado' : 'pendiente';
+        const updateNotas = notas !== null ? ', notas = ?' : '';
+        const params = notas !== null
+            ? [verificado, nuevoEstado, notas, elementoId]
+            : [verificado, nuevoEstado, elementoId];
+
+        await pool.query(`
+            UPDATE orden_trabajo_elementos
+            SET verificado_retorno = ?,
+                estado = ?
+                ${updateNotas}
+            WHERE id = ?
+        `, params);
+
+        return this.obtenerPorId(elementoId);
+    }
+
+    /**
+     * Obtener resumen de checklist para una orden
+     * @param {number} ordenId
+     * @returns {Promise<Object>} - { elementos, totalElementos, verificadosCargue, verificadosDescargue }
+     */
+    static async obtenerChecklistOrden(ordenId) {
+        const [rows] = await pool.query(`
+            SELECT
+                ote.id,
+                ote.orden_id,
+                ote.elemento_id,
+                ote.serie_id,
+                ote.lote_id,
+                ote.cantidad,
+                ote.estado,
+                ote.verificado_salida,
+                ote.verificado_retorno,
+                ote.notas,
+                el.nombre as elemento_nombre,
+                el.compuesto_id,
+                s.numero_serie as serie_codigo,
+                l.lote_numero as lote_codigo
+            FROM orden_trabajo_elementos ote
+            INNER JOIN elementos el ON ote.elemento_id = el.id
+            LEFT JOIN series s ON ote.serie_id = s.id
+            LEFT JOIN lotes l ON ote.lote_id = l.id
+            WHERE ote.orden_id = ?
+            ORDER BY el.compuesto_id, el.nombre ASC
+        `, [ordenId]);
+
+        const totalElementos = rows.length;
+        const verificadosCargue = rows.filter(r => r.verificado_salida).length;
+        const verificadosDescargue = rows.filter(r => r.verificado_retorno).length;
+
+        return {
+            elementos: rows,
+            totalElementos,
+            verificadosCargue,
+            verificadosDescargue
+        };
     }
 
     /**

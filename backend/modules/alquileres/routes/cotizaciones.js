@@ -38,6 +38,9 @@ router.put('/:id', validateId(), cotizacionController.actualizar);
 // PATCH /api/cotizaciones/:id/estado - Cambiar estado
 router.patch('/:id/estado', validateId(), cotizacionController.cambiarEstado);
 
+// PATCH /api/cotizaciones/:id/confirmar-fechas - Confirmar fechas de un borrador
+router.patch('/:id/confirmar-fechas', validateId(), cotizacionController.confirmarFechas);
+
 // POST /api/cotizaciones/:id/aprobar - Aprobar y crear alquiler
 router.post('/:id/aprobar', validateId(), cotizacionController.aprobarYCrearAlquiler);
 
@@ -70,6 +73,16 @@ router.delete('/:id/transporte/:transporteId', validateId(), cotizacionControlle
 
 // POST /api/cotizaciones/:id/duplicar - Duplicar cotización
 router.post('/:id/duplicar', validateId(), cotizacionController.duplicar);
+
+// ============================================
+// SEGUIMIENTO
+// ============================================
+
+// GET /api/cotizaciones/:id/seguimiento - Obtener datos de seguimiento
+router.get('/:id/seguimiento', validateId(), cotizacionController.obtenerSeguimiento);
+
+// POST /api/cotizaciones/:id/seguimiento - Registrar seguimiento
+router.post('/:id/seguimiento', validateId(), cotizacionController.registrarSeguimiento);
 
 // ============================================
 // DESCUENTOS

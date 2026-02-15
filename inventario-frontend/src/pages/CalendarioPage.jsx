@@ -1,6 +1,7 @@
 // ============================================
 // PÁGINA: Calendario de Cotizaciones
 // Vista de calendario para eventos y cotizaciones
+// Usa modales (como CalendarioOperaciones)
 // ============================================
 
 import { useState, useRef, useCallback } from 'react'
@@ -10,10 +11,11 @@ import { useGetCotizaciones } from '../hooks/cotizaciones'
 import { useCalendarEvents, useCalendarConfig } from '../hooks/calendar'
 import {
   CalendarWrapper,
-  EventTooltip,
   CalendarFilters,
   CalendarLegend,
-  CalendarStats
+  CalendarStats,
+  ModalCotizacionResumen,
+  ModalDiaCotizaciones
 } from '../components/calendar'
 import CotizacionDetalleModal from '../components/modals/CotizacionDetalleModal'
 import Button from '../components/common/Button'
@@ -35,7 +37,9 @@ export default function CalendarioPage() {
     mostrarFinalizados: false
   })
 
-  const [tooltipData, setTooltipData] = useState(null)
+  // Modales
+  const [resumenModal, setResumenModal] = useState({ isOpen: false, cotizacion: null, tipo: null })
+  const [diaModal, setDiaModal] = useState({ isOpen: false, fecha: null, eventos: [] })
   const [selectedCotizacionId, setSelectedCotizacionId] = useState(null)
   const [showDetalleModal, setShowDetalleModal] = useState(false)
 
@@ -45,7 +49,7 @@ export default function CalendarioPage() {
 
   const { cotizaciones, isLoading, error, refetch } = useGetCotizaciones()
 
-  const { events, stats } = useCalendarEvents(cotizaciones, {
+  const { events, stats, findCotizacionByEventId } = useCalendarEvents(cotizaciones, {
     showMontaje: filters.showMontaje,
     showEvento: filters.showEvento,
     showDesmontaje: filters.showDesmontaje,
@@ -59,25 +63,38 @@ export default function CalendarioPage() {
   // HANDLERS
   // ============================================
 
+  // Click en evento → abre modal resumen de cotización
   const handleEventClick = useCallback((clickInfo) => {
-    const { event, jsEvent } = clickInfo
+    const { event } = clickInfo
+    const cotizacionId = event.extendedProps?.cotizacionId
+    const tipo = event.extendedProps?.tipo
 
-    // Calcular posición del tooltip
-    const x = Math.min(jsEvent.clientX, window.innerWidth - 300)
-    const y = Math.min(jsEvent.clientY, window.innerHeight - 400)
+    // Buscar la cotización completa del array
+    const cotizacion = findCotizacionByEventId(event.id)
+    if (cotizacion) {
+      setResumenModal({ isOpen: true, cotizacion, tipo })
+    }
+  }, [findCotizacionByEventId])
 
-    setTooltipData({
-      event,
-      position: { x, y }
-    })
-  }, [])
+  // Click en fecha → abre modal con cotizaciones del día
+  const handleDateClick = useCallback((info) => {
+    const fechaClick = info.dateStr.split('T')[0]
+    const eventosDia = events.filter(e => e.start === fechaClick)
+    setDiaModal({ isOpen: true, fecha: fechaClick, eventos: eventosDia })
+  }, [events])
 
-  const handleCloseTooltip = useCallback(() => {
-    setTooltipData(null)
-  }, [])
+  // Desde modal día, click en un evento → abre resumen
+  const handleClickEventoDia = useCallback((evento) => {
+    const cotizacion = findCotizacionByEventId(evento.id)
+    if (cotizacion) {
+      setDiaModal({ isOpen: false, fecha: null, eventos: [] })
+      setResumenModal({ isOpen: true, cotizacion, tipo: evento.extendedProps?.tipo })
+    }
+  }, [findCotizacionByEventId])
 
+  // Desde resumen, "Ver Cotización Completa" → abre modal detalle
   const handleVerDetalle = useCallback((cotizacionId) => {
-    setTooltipData(null)
+    setResumenModal({ isOpen: false, cotizacion: null, tipo: null })
     setSelectedCotizacionId(cotizacionId)
     setShowDetalleModal(true)
   }, [])
@@ -170,7 +187,8 @@ export default function CalendarioPage() {
               events={events}
               options={calendarOptions}
               handlers={{
-                eventClick: handleEventClick
+                eventClick: handleEventClick,
+                dateClick: handleDateClick
               }}
             />
           </div>
@@ -225,17 +243,25 @@ export default function CalendarioPage() {
         </div>
       </div>
 
-      {/* TOOLTIP DE EVENTO */}
-      {tooltipData && (
-        <EventTooltip
-          event={tooltipData.event}
-          position={tooltipData.position}
-          onClose={handleCloseTooltip}
-          onVerDetalle={handleVerDetalle}
-        />
-      )}
+      {/* MODAL: Resumen de cotización (click en evento) */}
+      <ModalCotizacionResumen
+        isOpen={resumenModal.isOpen}
+        onClose={() => setResumenModal({ isOpen: false, cotizacion: null, tipo: null })}
+        cotizacion={resumenModal.cotizacion}
+        tipoEvento={resumenModal.tipo}
+        onVerDetalle={handleVerDetalle}
+      />
 
-      {/* MODAL DE DETALLE */}
+      {/* MODAL: Cotizaciones del día (click en fecha) */}
+      <ModalDiaCotizaciones
+        isOpen={diaModal.isOpen}
+        onClose={() => setDiaModal({ isOpen: false, fecha: null, eventos: [] })}
+        fecha={diaModal.fecha}
+        eventos={diaModal.eventos}
+        onClickEvento={handleClickEventoDia}
+      />
+
+      {/* MODAL: Detalle completo de cotización */}
       <CotizacionDetalleModal
         isOpen={showDetalleModal}
         onClose={handleCloseDetalleModal}

@@ -818,6 +818,230 @@ class OrdenTrabajoModel {
         };
     }
 
+    // ============================================
+    // INVENTARIO CLIENTE
+    // ============================================
+
+    /**
+     * Generar datos de inventario para el cliente después de montaje completado.
+     * Incluye: productos con desglose de componentes, estado de cada elemento,
+     * info del evento y fecha de desmontaje programada.
+     * @param {number} ordenId
+     * @returns {Promise<Object>}
+     */
+    static async generarInventarioCliente(ordenId) {
+        const orden = await this.obtenerOrdenCompleta(ordenId);
+        if (!orden) {
+            throw new AppError('Orden de trabajo no encontrada', 404);
+        }
+
+        if (orden.tipo !== 'montaje') {
+            throw new AppError('Solo se puede generar inventario desde una orden de montaje', 400);
+        }
+
+        if (orden.estado !== 'completado') {
+            throw new AppError('El montaje debe estar completado para generar el inventario', 400);
+        }
+
+        // Obtener desglose de componentes por producto
+        const productosConDesglose = [];
+        for (const producto of (orden.productos || [])) {
+            const [componentesResult] = await pool.query(`
+                SELECT
+                    cc.id,
+                    cc.elemento_id,
+                    cc.cantidad,
+                    cc.tipo,
+                    cc.grupo,
+                    cc.es_default,
+                    e.nombre as elemento_nombre
+                FROM compuesto_componentes cc
+                INNER JOIN elementos e ON cc.elemento_id = e.id
+                WHERE cc.compuesto_id = ?
+                ORDER BY cc.orden ASC, e.nombre ASC
+            `, [producto.compuesto_id]);
+
+            // Vincular cada componente con los elementos físicos asignados
+            const componentesConEstado = componentesResult.map(comp => {
+                // Buscar elementos físicos que correspondan a este componente
+                const elementosFisicos = (orden.alquiler_elementos || []).filter(
+                    ae => ae.elemento_id === comp.elemento_id
+                );
+
+                return {
+                    ...comp,
+                    elementos_asignados: elementosFisicos.map(ef => ({
+                        id: ef.id,
+                        serie_codigo: ef.serie_codigo || null,
+                        lote_codigo: ef.lote_codigo || null,
+                        cantidad_lote: ef.cantidad_lote || null,
+                        estado_salida: ef.estado_salida || 'bueno'
+                    }))
+                };
+            });
+
+            productosConDesglose.push({
+                id: producto.id,
+                nombre: producto.producto_nombre,
+                codigo: producto.producto_codigo,
+                cantidad: producto.cantidad,
+                categoria: producto.categoria_nombre,
+                categoria_emoji: producto.categoria_emoji,
+                componentes: componentesConEstado
+            });
+        }
+
+        // Obtener fecha desmontaje programada
+        let fechaDesmontaje = orden.fecha_desmontaje || null;
+        if (orden.alquiler_id) {
+            const [desmontajeRows] = await pool.query(
+                `SELECT fecha_programada FROM ordenes_trabajo WHERE alquiler_id = ? AND tipo = 'desmontaje' AND estado != 'cancelado' LIMIT 1`,
+                [orden.alquiler_id]
+            );
+            if (desmontajeRows.length > 0) {
+                fechaDesmontaje = desmontajeRows[0].fecha_programada;
+            }
+        }
+
+        return {
+            orden_id: orden.id,
+            fecha_montaje_completado: orden.updated_at || new Date(),
+            evento: {
+                nombre: orden.evento_nombre || null,
+                direccion: orden.direccion_evento || orden.cotizacion_direccion || null,
+                ciudad: orden.ciudad_evento || orden.cotizacion_ciudad || null,
+                fecha_evento: orden.fecha_evento || null,
+                fecha_desmontaje: fechaDesmontaje
+            },
+            cliente: {
+                nombre: orden.cliente_nombre || null,
+                telefono: orden.cliente_telefono || null,
+                email: orden.cliente_email || null,
+                tipo_documento: orden.cliente_tipo_documento || null,
+                numero_documento: orden.cliente_numero_documento || null
+            },
+            productos: productosConDesglose,
+            total_elementos: (orden.alquiler_elementos || []).length,
+            resumen: {
+                total_productos: productosConDesglose.length,
+                total_componentes: productosConDesglose.reduce(
+                    (sum, p) => sum + p.componentes.length, 0
+                )
+            }
+        };
+    }
+
+    // ============================================
+    // HISTORIAL DE ESTADOS Y DURACIONES
+    // ============================================
+
+    /**
+     * Registrar cambio de estado en historial
+     * @param {number} ordenId
+     * @param {string} estadoAnterior
+     * @param {string} estadoNuevo
+     * @param {number|null} cambiadoPor - ID del empleado
+     */
+    static async registrarCambioEstado(ordenId, estadoAnterior, estadoNuevo, cambiadoPor = null) {
+        try {
+            await pool.query(`
+                INSERT INTO orden_trabajo_historial_estados
+                (orden_id, estado_anterior, estado_nuevo, cambiado_por)
+                VALUES (?, ?, ?, ?)
+            `, [ordenId, estadoAnterior || null, estadoNuevo, cambiadoPor]);
+        } catch (error) {
+            // Si la tabla no existe aún, no bloquear la operación principal
+            if (error.code === 'ER_NO_SUCH_TABLE') return;
+            throw error;
+        }
+    }
+
+    /**
+     * Obtener historial de estados de una orden
+     * @param {number} ordenId
+     * @returns {Promise<Array>}
+     */
+    static async obtenerHistorialEstados(ordenId) {
+        try {
+            const [rows] = await pool.query(`
+                SELECT
+                    h.id,
+                    h.estado_anterior,
+                    h.estado_nuevo,
+                    h.created_at,
+                    e.nombre as cambiado_por_nombre,
+                    e.apellido as cambiado_por_apellido
+                FROM orden_trabajo_historial_estados h
+                LEFT JOIN empleados e ON h.cambiado_por = e.id
+                WHERE h.orden_id = ?
+                ORDER BY h.created_at ASC
+            `, [ordenId]);
+
+            return rows;
+        } catch (error) {
+            if (error.code === 'ER_NO_SUCH_TABLE') return [];
+            throw error;
+        }
+    }
+
+    /**
+     * Calcular duraciones de una orden basado en historial de estados
+     * Montaje: mide en_proceso → completado (trabajo en sitio)
+     * Desmontaje: mide en_sitio → completado (desmontaje en sitio)
+     * También: en_preparacion → en_ruta (preparación)
+     *          en_ruta → en_sitio (desplazamiento)
+     *          total: primer registro → completado
+     * @param {number} ordenId
+     * @returns {Promise<Object>}
+     */
+    static async calcularDuraciones(ordenId) {
+        const historial = await this.obtenerHistorialEstados(ordenId);
+
+        if (historial.length === 0) {
+            return { historial: [], duraciones: null };
+        }
+
+        // Extraer primer timestamp por cada estado
+        const timestamps = {};
+        historial.forEach(h => {
+            if (!timestamps[h.estado_nuevo]) {
+                timestamps[h.estado_nuevo] = h.created_at;
+            }
+        });
+
+        const calcDiff = (desde, hasta) => {
+            if (!timestamps[desde] || !timestamps[hasta]) return null;
+            const ms = new Date(timestamps[hasta]) - new Date(timestamps[desde]);
+            if (ms < 0) return null;
+            return ms;
+        };
+
+        const duraciones = {
+            preparacion_ms: calcDiff('en_preparacion', 'en_ruta'),
+            desplazamiento_ms: calcDiff('en_ruta', 'en_sitio'),
+            trabajo_montaje_ms: calcDiff('en_proceso', 'completado'),
+            trabajo_desmontaje_ms: calcDiff('en_sitio', 'completado'),
+            total_ms: null
+        };
+
+        // Total: primer registro → completado
+        const primerTimestamp = historial[0]?.created_at;
+        if (primerTimestamp && timestamps['completado']) {
+            duraciones.total_ms = new Date(timestamps['completado']) - new Date(primerTimestamp);
+        }
+
+        duraciones.timestamps = {
+            inicio: primerTimestamp || null,
+            en_preparacion: timestamps['en_preparacion'] || null,
+            en_ruta: timestamps['en_ruta'] || null,
+            en_sitio: timestamps['en_sitio'] || null,
+            en_proceso: timestamps['en_proceso'] || null,
+            completado: timestamps['completado'] || null
+        };
+
+        return { historial, duraciones };
+    }
+
     /**
      * Obtener estadísticas de órdenes
      * @param {Date} desde

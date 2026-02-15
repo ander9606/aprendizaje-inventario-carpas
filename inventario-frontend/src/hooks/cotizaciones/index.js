@@ -22,6 +22,8 @@ export {
   useUpdateCotizacion,
   useAprobarCotizacion,
   useCambiarEstadoCotizacion,
+  useConfirmarFechasCotizacion,
   useDuplicarCotizacion,
-  useDeleteCotizacion
+  useDeleteCotizacion,
+  useRegistrarSeguimiento
 } from './useCotizacionMutations'

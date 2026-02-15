@@ -16,7 +16,12 @@ class ConfiguracionModel {
     porcentaje_dias_extra: 15,
     porcentaje_iva: 19,
     aplicar_iva: true,
-    vigencia_cotizacion_dias: 15
+    vigencia_cotizacion_dias: 15,
+    // Seguimiento de cotizaciones
+    dias_advertencia_vencimiento_cotizacion: 3,
+    dias_seguimiento_borrador: 7,
+    dias_seguimiento_pendiente: 5,
+    habilitar_seguimiento_cotizaciones: true
   };
 
   // ============================================

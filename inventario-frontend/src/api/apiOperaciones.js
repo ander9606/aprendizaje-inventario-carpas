@@ -199,6 +199,76 @@ const ordenesAPI = {
     obtenerAlertasPorOrden: async (id) => {
         const response = await api.get(`/operaciones/ordenes/${id}/alertas`)
         return response.data
+    },
+
+    // ============================================
+    // INVENTARIO CLIENTE
+    // ============================================
+
+    /**
+     * Obtener inventario para el cliente (montaje completado)
+     * @param {number} id - ID de la orden de montaje
+     * @returns {Object} - Datos del inventario con productos desglosados
+     */
+    obtenerInventarioCliente: async (id) => {
+        const response = await api.get(`/operaciones/ordenes/${id}/inventario-cliente`)
+        return response.data
+    },
+
+    // ============================================
+    // DURACIONES
+    // ============================================
+
+    /**
+     * Obtener historial de estados y duraciones de una orden
+     * @param {number} id - ID de la orden
+     * @returns {Object} - { historial, duraciones }
+     */
+    obtenerDuraciones: async (id) => {
+        const response = await api.get(`/operaciones/ordenes/${id}/duraciones`)
+        return response.data
+    },
+
+    // ============================================
+    // CHECKLIST CARGUE / DESCARGUE
+    // ============================================
+
+    /**
+     * Obtener estado del checklist de una orden
+     * @param {number} id - ID de la orden
+     * @returns {Object} - { elementos, totalElementos, verificadosCargue, verificadosDescargue }
+     */
+    obtenerChecklist: async (id) => {
+        const response = await api.get(`/operaciones/ordenes/${id}/checklist`)
+        return response.data
+    },
+
+    /**
+     * Toggle verificación de cargue de un elemento individual
+     * @param {number} ordenId - ID de la orden
+     * @param {number} elementoId - ID del elemento en orden_trabajo_elementos
+     * @param {Object} datos - { verificado: boolean, notas?: string }
+     */
+    verificarElementoCargue: async (ordenId, elementoId, datos) => {
+        const response = await api.put(
+            `/operaciones/ordenes/${ordenId}/elementos/${elementoId}/verificar-cargue`,
+            datos
+        )
+        return response.data
+    },
+
+    /**
+     * Toggle verificación de descargue de un elemento individual
+     * @param {number} ordenId - ID de la orden
+     * @param {number} elementoId - ID del elemento en orden_trabajo_elementos
+     * @param {Object} datos - { verificado: boolean, notas?: string }
+     */
+    verificarElementoDescargue: async (ordenId, elementoId, datos) => {
+        const response = await api.put(
+            `/operaciones/ordenes/${ordenId}/elementos/${elementoId}/verificar-descargue`,
+            datos
+        )
+        return response.data
     }
 }
 

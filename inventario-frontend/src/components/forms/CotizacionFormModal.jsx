@@ -4,7 +4,7 @@
 // ============================================
 
 import { useState, useEffect, useMemo } from 'react'
-import { Plus, Trash2, Package, Truck, MapPin, CalendarDays, Calendar, Clock, Percent, ChevronDown, ChevronUp, CheckCircle, User } from 'lucide-react'
+import { Plus, Trash2, Package, Truck, MapPin, CalendarDays, Calendar, Clock, Percent, ChevronDown, ChevronUp, CheckCircle, User, AlertCircle, FileEdit } from 'lucide-react'
 import Modal from '../common/Modal'
 import Button from '../common/Button'
 import ProductoSelector from '../common/ProductoSelector'
@@ -55,6 +55,7 @@ const CotizacionFormModal = ({
   const [descuentosAplicados, setDescuentosAplicados] = useState([])
   const [errors, setErrors] = useState({})
   const [mostrarSelectorProductos, setMostrarSelectorProductos] = useState(true)
+  const [fechasPorConfirmar, setFechasPorConfirmar] = useState(false)
 
   // Estado para el modal de recargos
   const [recargoModal, setRecargoModal] = useState({
@@ -101,6 +102,8 @@ const CotizacionFormModal = ({
     const datosACopiar = mode === 'editar' ? (cotizacionCompleta || cotizacion) : null
 
     if (mode === 'editar' && datosACopiar) {
+      const esBorrador = datosACopiar.estado === 'borrador' || datosACopiar.fechas_confirmadas === 0
+      setFechasPorConfirmar(esBorrador)
       setFormData({
         cliente_id: datosACopiar.cliente_id || '',
         evento_id: datosACopiar.evento_id || '',
@@ -191,6 +194,7 @@ const CotizacionFormModal = ({
       setProductosSeleccionados([])
       setTransporteSeleccionado([])
       setDescuentosAplicados([])
+      setFechasPorConfirmar(false)
     }
     setErrors({})
   }, [mode, cotizacion, cotizacionCompleta, isOpen, eventoPreseleccionado])
@@ -520,8 +524,9 @@ const CotizacionFormModal = ({
     if (!eventoPreseleccionado && !formData.cliente_id) {
       newErrors.cliente_id = 'Seleccione un cliente'
     }
-    if (!formData.fecha_evento) {
-      newErrors.fecha_evento = 'La fecha del evento es obligatoria'
+    // Fecha solo obligatoria si NO es borrador
+    if (!fechasPorConfirmar && !formData.fecha_evento) {
+      newErrors.fecha_evento = 'La fecha del evento es obligatoria (o marque "Fechas por confirmar")'
     }
     // Ciudad solo es requerida si no viene de evento preseleccionado
     if (!eventoPreseleccionado && !formData.evento_ciudad) {
@@ -550,9 +555,10 @@ const CotizacionFormModal = ({
     const dataToSend = {
       cliente_id: parseInt(formData.cliente_id),
       evento_id: formData.evento_id ? parseInt(formData.evento_id) : null,
-      fecha_montaje: formData.fecha_montaje || formData.fecha_evento,
-      fecha_evento: formData.fecha_evento,
-      fecha_desmontaje: formData.fecha_desmontaje || formData.fecha_evento,
+      fecha_montaje: formData.fecha_montaje || formData.fecha_evento || null,
+      fecha_evento: formData.fecha_evento || null,
+      fecha_desmontaje: formData.fecha_desmontaje || formData.fecha_evento || null,
+      fechas_confirmadas: !fechasPorConfirmar,
       evento_nombre: formData.evento_nombre.trim() || null,
       evento_direccion: formData.evento_direccion.trim() || null,
       evento_ciudad: formData.evento_ciudad.trim() || null,
@@ -746,63 +752,119 @@ const CotizacionFormModal = ({
           </div>
         )}
 
-        {/* FECHAS: Montaje, Evento, Desmontaje */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Fecha Montaje */}
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
-              Fecha Montaje
-            </label>
-            <input
-              type="date"
-              name="fecha_montaje"
-              value={formData.fecha_montaje}
-              onChange={handleChange}
-              disabled={isLoading}
-              className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-100"
-            />
-            <p className="mt-1 text-xs text-slate-500">Cuando se instala</p>
-          </div>
-
-          {/* Fecha Evento */}
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
-              Fecha Evento *
-            </label>
-            <input
-              type="date"
-              name="fecha_evento"
-              value={formData.fecha_evento}
-              onChange={handleChange}
-              disabled={isLoading}
+        {/* TOGGLE: Fechas por confirmar */}
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => {
+              setFechasPorConfirmar(!fechasPorConfirmar)
+              if (!fechasPorConfirmar) {
+                // Limpiar fechas al activar borrador
+                setFormData(prev => ({
+                  ...prev,
+                  fecha_montaje: '',
+                  fecha_evento: '',
+                  fecha_desmontaje: ''
+                }))
+              }
+            }}
+            className={`
+              relative inline-flex h-6 w-11 items-center rounded-full transition-colors
+              ${fechasPorConfirmar ? 'bg-amber-500' : 'bg-slate-300'}
+            `}
+          >
+            <span
               className={`
-                w-full px-4 py-2.5 border rounded-lg
-                focus:outline-none focus:ring-2 focus:ring-blue-500
-                disabled:bg-slate-100
-                ${errors.fecha_evento ? 'border-red-300' : 'border-slate-300'}
+                inline-block h-4 w-4 transform rounded-full bg-white transition-transform
+                ${fechasPorConfirmar ? 'translate-x-6' : 'translate-x-1'}
               `}
             />
-            {errors.fecha_evento && (
-              <p className="mt-1 text-sm text-red-600">{errors.fecha_evento}</p>
-            )}
-          </div>
-
-          {/* Fecha Desmontaje */}
+          </button>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
-              Fecha Desmontaje
-            </label>
-            <input
-              type="date"
-              name="fecha_desmontaje"
-              value={formData.fecha_desmontaje}
-              onChange={handleChange}
-              disabled={isLoading}
-              className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-100"
-            />
-            <p className="mt-1 text-xs text-slate-500">Cuando se recoge</p>
+            <span className="text-sm font-medium text-slate-700">
+              Fechas por confirmar
+            </span>
+            <p className="text-xs text-slate-500">
+              El cliente aun no define fecha exacta. Se crea como borrador con precio estimado.
+            </p>
           </div>
         </div>
+
+        {/* BANNER: Borrador sin fechas */}
+        {fechasPorConfirmar && (
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <FileEdit className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
+              <div>
+                <h4 className="font-medium text-amber-800">Cotizacion en borrador</h4>
+                <p className="text-sm text-amber-700 mt-1">
+                  Se guardara como borrador con precio estimado (sin dias extra).
+                  Cuando el cliente confirme las fechas, podra completar la cotizacion.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* FECHAS: Montaje, Evento, Desmontaje */}
+        {!fechasPorConfirmar && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Fecha Montaje */}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Fecha Montaje
+              </label>
+              <input
+                type="date"
+                name="fecha_montaje"
+                value={formData.fecha_montaje}
+                onChange={handleChange}
+                disabled={isLoading}
+                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-100"
+              />
+              <p className="mt-1 text-xs text-slate-500">Cuando se instala</p>
+            </div>
+
+            {/* Fecha Evento */}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Fecha Evento *
+              </label>
+              <input
+                type="date"
+                name="fecha_evento"
+                value={formData.fecha_evento}
+                onChange={handleChange}
+                disabled={isLoading}
+                className={`
+                  w-full px-4 py-2.5 border rounded-lg
+                  focus:outline-none focus:ring-2 focus:ring-blue-500
+                  disabled:bg-slate-100
+                  ${errors.fecha_evento ? 'border-red-300' : 'border-slate-300'}
+                `}
+              />
+              {errors.fecha_evento && (
+                <p className="mt-1 text-sm text-red-600">{errors.fecha_evento}</p>
+              )}
+            </div>
+
+            {/* Fecha Desmontaje */}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Fecha Desmontaje
+              </label>
+              <input
+                type="date"
+                name="fecha_desmontaje"
+                value={formData.fecha_desmontaje}
+                onChange={handleChange}
+                disabled={isLoading}
+                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-100"
+              />
+              <p className="mt-1 text-xs text-slate-500">Cuando se recoge</p>
+            </div>
+          </div>
+        )}
 
         {/* INDICADOR DE DÍAS ADICIONALES */}
         {formData.fecha_evento && (formData.fecha_montaje || formData.fecha_desmontaje) && (() => {
@@ -1412,7 +1474,10 @@ const CotizacionFormModal = ({
             disabled={isLoading}
             fullWidth
           >
-            {mode === 'crear' ? 'Crear Cotizacion' : 'Guardar Cambios'}
+            {mode === 'crear'
+              ? (fechasPorConfirmar ? 'Crear Borrador' : 'Crear Cotizacion')
+              : 'Guardar Cambios'
+            }
           </Button>
         </div>
       </form>

@@ -78,6 +78,22 @@ const apiAlquileres = {
     return response.data
   },
 
+  // Extender fecha de retorno
+  extenderAlquiler: async (id, { nueva_fecha_retorno, razon, costo_extension }) => {
+    const response = await api.post(`/alquileres/${id}/extender`, {
+      nueva_fecha_retorno,
+      razon,
+      costo_extension
+    })
+    return response.data
+  },
+
+  // Obtener historial de extensiones
+  obtenerExtensiones: async (id) => {
+    const response = await api.get(`/alquileres/${id}/extensiones`)
+    return response.data
+  },
+
   // Reportes completos (con filtro de fechas opcional)
   obtenerReportes: async ({ fechaInicio, fechaFin } = {}) => {
     const params = {}

@@ -171,6 +171,53 @@ router.get(
 );
 
 // ============================================
+// RUTAS DE INVENTARIO CLIENTE
+// ============================================
+
+// Generar inventario para el cliente (montaje completado)
+router.get(
+    '/ordenes/:id/inventario-cliente',
+    verificarRol(['admin', 'gerente', 'operaciones']),
+    ordenTrabajoController.getInventarioCliente
+);
+
+// ============================================
+// RUTAS DE DURACIONES
+// ============================================
+
+// Obtener historial de estados y duraciones de una orden
+router.get(
+    '/ordenes/:id/duraciones',
+    verificarRol(['admin', 'gerente', 'operaciones']),
+    ordenTrabajoController.getDuracionesOrden
+);
+
+// ============================================
+// RUTAS DE CHECKLIST CARGUE / DESCARGUE
+// ============================================
+
+// Obtener estado del checklist de la orden
+router.get(
+    '/ordenes/:id/checklist',
+    verificarRol(['admin', 'gerente', 'operaciones']),
+    ordenTrabajoController.getChecklistOrden
+);
+
+// Toggle verificación de cargue de un elemento
+router.put(
+    '/ordenes/:id/elementos/:elemId/verificar-cargue',
+    verificarRol(['admin', 'gerente', 'operaciones']),
+    ordenTrabajoController.verificarElementoCargue
+);
+
+// Toggle verificación de descargue de un elemento
+router.put(
+    '/ordenes/:id/elementos/:elemId/verificar-descargue',
+    verificarRol(['admin', 'gerente', 'operaciones']),
+    ordenTrabajoController.verificarElementoDescargue
+);
+
+// ============================================
 // RUTAS DE ELEMENTOS DE ÓRDENES
 // ============================================
 
