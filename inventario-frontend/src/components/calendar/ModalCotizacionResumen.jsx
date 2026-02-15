@@ -1,11 +1,10 @@
 // ============================================
 // MODAL: Resumen de Cotización (Calendario)
 // Se abre al hacer clic en un evento del calendario
-// Muestra info rápida y permite abrir detalle completo
+// Muestra info rápida con productos y permite abrir detalle completo
 // ============================================
 
 import {
-  Calendar,
   User,
   MapPin,
   DollarSign,
@@ -14,10 +13,12 @@ import {
   PackageOpen,
   ExternalLink,
   Phone,
-  FileText
+  Package
 } from 'lucide-react'
 import { Modal } from '../common/Modal'
+import Spinner from '../common/Spinner'
 import { EVENT_TYPES } from '../../constants/calendarConfig'
+import { useGetCotizacionCompleta } from '../../hooks/cotizaciones'
 
 // ============================================
 // HELPERS
@@ -57,18 +58,20 @@ const TIPO_CONFIG = {
 
 /**
  * Modal resumen de cotización desde el calendario
- * @param {boolean} isOpen
- * @param {function} onClose
- * @param {Object} cotizacion - Datos de la cotización (del array de cotizaciones)
- * @param {string} tipoEvento - Tipo de evento clickeado (montaje/evento/desmontaje)
- * @param {function} onVerDetalle - Abre el CotizacionDetalleModal completo
+ * Carga los productos vía useGetCotizacionCompleta
  */
 export default function ModalCotizacionResumen({ isOpen, onClose, cotizacion, tipoEvento, onVerDetalle }) {
+  // Cargar cotización completa (con productos) cuando el modal está abierto
+  const { cotizacion: cotizacionCompleta, isLoading } = useGetCotizacionCompleta(
+    isOpen ? cotizacion?.id : null
+  )
+
   if (!cotizacion) return null
 
   const estadoStyle = ESTADO_STYLES[cotizacion.estado] || ESTADO_STYLES.pendiente
   const tipoConfig = TIPO_CONFIG[tipoEvento] || TIPO_CONFIG[EVENT_TYPES.EVENTO]
   const TipoIcon = tipoConfig.icon
+  const productos = cotizacionCompleta?.productos || []
 
   return (
     <Modal
@@ -84,7 +87,7 @@ export default function ModalCotizacionResumen({ isOpen, onClose, cotizacion, ti
           </span>
         </div>
       }
-      size="md"
+      size="lg"
     >
       <div className="space-y-5">
         {/* Estado */}
@@ -100,34 +103,36 @@ export default function ModalCotizacionResumen({ isOpen, onClose, cotizacion, ti
           )}
         </div>
 
-        {/* Cliente */}
-        <div className="bg-slate-50 rounded-lg p-4 space-y-2">
-          <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Cliente</h4>
-          <p className="text-lg font-semibold text-slate-900">
-            {cotizacion.cliente_nombre || cotizacion.cliente?.nombre || 'Sin cliente'}
-          </p>
-          {(cotizacion.cliente_telefono || cotizacion.cliente?.telefono) && (
-            <p className="flex items-center gap-2 text-sm text-slate-600">
-              <Phone className="w-4 h-4 text-slate-400" />
-              {cotizacion.cliente_telefono || cotizacion.cliente?.telefono}
+        {/* Cliente y Evento en grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* Cliente */}
+          <div className="bg-slate-50 rounded-lg p-4 space-y-2">
+            <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Cliente</h4>
+            <p className="text-base font-semibold text-slate-900">
+              {cotizacion.cliente_nombre || cotizacion.cliente?.nombre || 'Sin cliente'}
             </p>
-          )}
-        </div>
+            {(cotizacion.cliente_telefono || cotizacion.cliente?.telefono) && (
+              <p className="flex items-center gap-2 text-sm text-slate-600">
+                <Phone className="w-4 h-4 text-slate-400" />
+                {cotizacion.cliente_telefono || cotizacion.cliente?.telefono}
+              </p>
+            )}
+          </div>
 
-        {/* Evento */}
-        {cotizacion.evento_nombre && (
+          {/* Evento */}
           <div className="bg-blue-50 rounded-lg p-4 space-y-2">
             <h4 className="text-xs font-semibold text-blue-500 uppercase tracking-wide">Evento</h4>
-            <p className="text-base font-medium text-slate-900">{cotizacion.evento_nombre}</p>
+            <p className="text-base font-medium text-slate-900">
+              {cotizacion.evento_nombre || 'Sin nombre'}
+            </p>
             {cotizacion.evento_ciudad && (
               <p className="flex items-center gap-2 text-sm text-slate-600">
                 <MapPin className="w-4 h-4 text-blue-400" />
                 {cotizacion.evento_ciudad}
-                {cotizacion.evento_direccion && ` - ${cotizacion.evento_direccion}`}
               </p>
             )}
           </div>
-        )}
+        </div>
 
         {/* Fechas */}
         <div className="bg-slate-50 rounded-lg p-4">
@@ -151,6 +156,53 @@ export default function ModalCotizacionResumen({ isOpen, onClose, cotizacion, ti
           </div>
         </div>
 
+        {/* Productos */}
+        <div>
+          <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3 flex items-center gap-2">
+            <Package className="w-4 h-4" />
+            Productos
+          </h4>
+          {isLoading ? (
+            <div className="py-4">
+              <Spinner size="sm" text="Cargando productos..." />
+            </div>
+          ) : productos.length > 0 ? (
+            <div className="border border-slate-200 rounded-lg overflow-hidden">
+              <table className="w-full">
+                <thead className="bg-slate-50">
+                  <tr>
+                    <th className="text-left px-4 py-2.5 text-xs font-semibold text-slate-600">Producto</th>
+                    <th className="text-center px-3 py-2.5 text-xs font-semibold text-slate-600 w-16">Cant.</th>
+                    <th className="text-right px-4 py-2.5 text-xs font-semibold text-slate-600 w-28">Precio</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {productos.map((producto, index) => {
+                    const precioTotal = (parseFloat(producto.precio_base || 0) + parseFloat(producto.precio_adicionales || 0)) * parseInt(producto.cantidad || 1)
+                    return (
+                      <tr key={producto.id || index} className="border-t border-slate-100">
+                        <td className="px-4 py-2.5">
+                          <p className="font-medium text-sm text-slate-900">
+                            {producto.categoria_emoji && `${producto.categoria_emoji} `}
+                            {producto.producto_nombre}
+                          </p>
+                          {producto.categoria_nombre && (
+                            <p className="text-xs text-slate-400">{producto.categoria_nombre}</p>
+                          )}
+                        </td>
+                        <td className="text-center px-3 py-2.5 text-sm text-slate-600">{producto.cantidad}</td>
+                        <td className="text-right px-4 py-2.5 text-sm font-medium text-slate-900">{formatCurrency(precioTotal)}</td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="text-sm text-slate-400 italic py-2">Sin productos</p>
+          )}
+        </div>
+
         {/* Total */}
         {cotizacion.total && (
           <div className="bg-green-50 rounded-lg p-3 flex items-center justify-between">
@@ -159,14 +211,6 @@ export default function ModalCotizacionResumen({ isOpen, onClose, cotizacion, ti
               Total cotización:
             </span>
             <span className="text-lg font-bold text-green-700">{formatCurrency(cotizacion.total)}</span>
-          </div>
-        )}
-
-        {/* Notas */}
-        {cotizacion.notas && (
-          <div className="flex items-start gap-2 text-sm text-slate-500">
-            <FileText className="w-4 h-4 mt-0.5 shrink-0" />
-            <p className="line-clamp-2">{cotizacion.notas}</p>
           </div>
         )}
       </div>
