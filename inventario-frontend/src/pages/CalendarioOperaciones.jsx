@@ -7,15 +7,9 @@
 import { useState, useMemo, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-    Truck,
     Calendar,
-    Package,
-    Clock,
-    MapPin,
-    User,
     AlertCircle,
     CheckCircle,
-    FileText,
     RefreshCw,
     Wrench,
     PackageOpen,
@@ -28,6 +22,8 @@ import { useAuth } from '../hooks/auth/useAuth'
 import CalendarWrapper from '../components/calendar/CalendarWrapper'
 import Spinner from '../components/common/Spinner'
 import { ModalOrdenCargue } from '../components/operaciones'
+import ModalOrdenDetalle from '../components/operaciones/ModalOrdenDetalle'
+import ModalDiaOrdenes from '../components/operaciones/ModalDiaOrdenes'
 
 // ============================================
 // CONSTANTES: Colores para tipos de orden
@@ -56,18 +52,6 @@ const ORDEN_COLORS_COMPLETADO = {
         borderColor: '#FBBF24',
         textColor: '#92400E'
     }
-}
-
-// Configuración de estados para badges
-const ESTADOS_CONFIG = {
-    pendiente: { label: 'Pendiente', bg: 'bg-slate-100', text: 'text-slate-700' },
-    confirmado: { label: 'Confirmado', bg: 'bg-blue-100', text: 'text-blue-700' },
-    en_preparacion: { label: 'Preparación', bg: 'bg-amber-100', text: 'text-amber-700' },
-    en_ruta: { label: 'En ruta', bg: 'bg-purple-100', text: 'text-purple-700' },
-    en_sitio: { label: 'En sitio', bg: 'bg-indigo-100', text: 'text-indigo-700' },
-    en_proceso: { label: 'En proceso', bg: 'bg-cyan-100', text: 'text-cyan-700' },
-    completado: { label: 'Completado', bg: 'bg-green-100', text: 'text-green-700' },
-    cancelado: { label: 'Cancelado', bg: 'bg-red-100', text: 'text-red-700' }
 }
 
 const formatHora = (fecha) => {
@@ -204,106 +188,6 @@ const OperacionesLegend = () => {
 }
 
 // ============================================
-// COMPONENTE: OrdenCard (sidebar)
-// ============================================
-const OrdenCard = ({ orden, onClick, onOpenCargue }) => {
-    const esMontaje = orden.tipo === 'montaje'
-    const estadoConfig = ESTADOS_CONFIG[orden.estado] || ESTADOS_CONFIG.pendiente
-    const sinResponsable = !orden.responsable_id
-    const esCompletado = orden.estado === 'completado'
-
-    const handleCargueClick = (e) => {
-        e.stopPropagation()
-        if (onOpenCargue) onOpenCargue(orden)
-    }
-
-    return (
-        <div className={`px-4 py-3 border-b border-slate-100 last:border-b-0 ${
-            esCompletado ? 'bg-green-50/30' : ''
-        }`}>
-            <div className="flex items-start gap-3">
-                <div
-                    onClick={onClick}
-                    className={`p-2 rounded-lg shrink-0 cursor-pointer ${
-                        esCompletado ? 'bg-green-100' : esMontaje ? 'bg-emerald-100' : 'bg-orange-100'
-                    }`}
-                >
-                    {esCompletado
-                        ? <CheckCircle className="w-4 h-4 text-green-600" />
-                        : esMontaje
-                            ? <Package className="w-4 h-4 text-emerald-600" />
-                            : <Truck className="w-4 h-4 text-orange-600" />
-                    }
-                </div>
-                <div className="flex-1 min-w-0">
-                    <div
-                        onClick={onClick}
-                        className="cursor-pointer hover:bg-slate-50 -mx-1 px-1 rounded transition-colors"
-                    >
-                        <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-                            <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${
-                                esMontaje
-                                    ? 'bg-emerald-100 text-emerald-700'
-                                    : 'bg-orange-100 text-orange-700'
-                            }`}>
-                                {esMontaje ? 'Montaje' : 'Desmontaje'}
-                            </span>
-                            <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${estadoConfig.bg} ${estadoConfig.text}`}>
-                                {estadoConfig.label}
-                            </span>
-                            <span className="text-xs text-slate-500">#{orden.id}</span>
-                        </div>
-                        <p className="font-medium text-slate-900 truncate">
-                            {orden.cliente_nombre || 'Cliente'}
-                        </p>
-                        {orden.nombre_evento && (
-                            <p className="text-sm text-slate-600 truncate">
-                                {orden.nombre_evento}
-                            </p>
-                        )}
-                    </div>
-                    <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 mt-1">
-                        <span className="flex items-center gap-1">
-                            <Clock className="w-3 h-3" />
-                            {formatHora(orden.fecha_programada)}
-                        </span>
-                        {(orden.ciudad_evento || orden.direccion_evento) && (
-                            <span className="flex items-center gap-1 truncate">
-                                <MapPin className="w-3 h-3" />
-                                {orden.ciudad_evento || ''}
-                                {orden.direccion_evento ? ` - ${orden.direccion_evento}` : ''}
-                            </span>
-                        )}
-                        {orden.total_equipo > 0 ? (
-                            <span className="flex items-center gap-1">
-                                <User className="w-3 h-3" />
-                                {orden.total_equipo}
-                            </span>
-                        ) : (
-                            sinResponsable && !esCompletado && (
-                                <span className="flex items-center gap-1 text-amber-600">
-                                    <AlertCircle className="w-3 h-3" />
-                                    Sin responsable
-                                </span>
-                            )
-                        )}
-                    </div>
-                    <div className="mt-2 pt-2 border-t border-slate-100">
-                        <button
-                            onClick={handleCargueClick}
-                            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md transition-colors"
-                        >
-                            <FileText className="w-3.5 h-3.5" />
-                            Orden de Cargue
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    )
-}
-
-// ============================================
 // COMPONENTE PRINCIPAL
 // ============================================
 export default function CalendarioOperaciones() {
@@ -319,8 +203,9 @@ export default function CalendarioOperaciones() {
         filtroEstado: 'todos'
     })
 
-    // Tooltip y detalle
-    const [selectedEvent, setSelectedEvent] = useState(null)
+    // Modales
+    const [ordenDetalleModal, setOrdenDetalleModal] = useState({ isOpen: false, orden: null })
+    const [diaModal, setDiaModal] = useState({ isOpen: false, fecha: null, ordenes: [] })
     const [ordenCargueModal, setOrdenCargueModal] = useState({ isOpen: false, orden: null })
 
     // Rango de fechas visible del calendario
@@ -412,14 +297,24 @@ export default function CalendarioOperaciones() {
         return { events: calEvents, stats: statsCalc, ordenesPorId: idMap }
     }, [calendario, filters])
 
-    // Handler de click en evento del calendario
+    // Handler de click en evento del calendario → abre modal detalle
     const handleEventClick = useCallback((info) => {
         const ordenId = parseInt(info.event.id)
         const orden = ordenesPorId[ordenId]
         if (orden) {
-            setSelectedEvent(orden)
+            setOrdenDetalleModal({ isOpen: true, orden })
         }
     }, [ordenesPorId])
+
+    // Handler de click en fecha → abre modal con ordenes del día
+    const handleDateClick = useCallback((info) => {
+        const fechaClick = info.dateStr.split('T')[0]
+        const ordenesDia = (calendario || []).filter(o => {
+            const fechaOrden = new Date(o.fecha_programada).toISOString().split('T')[0]
+            return fechaOrden === fechaClick
+        })
+        setDiaModal({ isOpen: true, fecha: fechaClick, ordenes: ordenesDia })
+    }, [calendario])
 
     // Actualizar rango cuando el usuario navega en el calendario
     const handleDatesSet = useCallback((dateInfo) => {
@@ -450,7 +345,8 @@ export default function CalendarioOperaciones() {
         },
         dayMaxEvents: 3,
         eventDisplay: 'block',
-        height: 'auto'
+        height: 'auto',
+        selectable: false
     }), [])
 
     const abrirOrdenCargue = (orden) => {
@@ -529,6 +425,7 @@ export default function CalendarioOperaciones() {
                                 options={calendarOptions}
                                 handlers={{
                                     eventClick: handleEventClick,
+                                    dateClick: handleDateClick,
                                     datesSet: handleDatesSet
                                 }}
                             />
@@ -584,32 +481,32 @@ export default function CalendarioOperaciones() {
                             </div>
                         </div>
 
-                        {/* Detalle de orden seleccionada */}
-                        {selectedEvent && (
-                            <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
-                                <div className="px-4 py-3 border-b border-slate-200 flex items-center justify-between">
-                                    <h3 className="text-sm font-semibold text-slate-700">
-                                        Orden Seleccionada
-                                    </h3>
-                                    <button
-                                        onClick={() => setSelectedEvent(null)}
-                                        className="text-xs text-slate-400 hover:text-slate-600"
-                                    >
-                                        Cerrar
-                                    </button>
-                                </div>
-                                <OrdenCard
-                                    orden={selectedEvent}
-                                    onClick={() => navigate(`/operaciones/ordenes/${selectedEvent.id}`)}
-                                    onOpenCargue={abrirOrdenCargue}
-                                />
-                            </div>
-                        )}
                     </div>
                 </div>
             )}
 
-            {/* Modal de Orden de Cargue */}
+            {/* Modal: Detalle de Orden */}
+            <ModalOrdenDetalle
+                isOpen={ordenDetalleModal.isOpen}
+                onClose={() => setOrdenDetalleModal({ isOpen: false, orden: null })}
+                orden={ordenDetalleModal.orden}
+                onVerDetalle={(id) => navigate(`/operaciones/ordenes/${id}`)}
+                onOrdenCargue={abrirOrdenCargue}
+            />
+
+            {/* Modal: Ordenes del Día */}
+            <ModalDiaOrdenes
+                isOpen={diaModal.isOpen}
+                onClose={() => setDiaModal({ isOpen: false, fecha: null, ordenes: [] })}
+                fecha={diaModal.fecha}
+                ordenes={diaModal.ordenes}
+                onClickOrden={(orden) => {
+                    setDiaModal({ isOpen: false, fecha: null, ordenes: [] })
+                    setOrdenDetalleModal({ isOpen: true, orden })
+                }}
+            />
+
+            {/* Modal: Orden de Cargue */}
             <ModalOrdenCargue
                 isOpen={ordenCargueModal.isOpen}
                 onClose={cerrarOrdenCargue}
