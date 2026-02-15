@@ -9,7 +9,7 @@ import { ArrowLeft, Edit, Trash2, Plus } from 'lucide-react'
 import { toast } from 'sonner'
 
 // Hooks personalizados
-import { useGetElemento, useDeleteElemento } from '../hooks/Useelementos'
+import { useGetElemento, useDeleteElemento, useSubirImagenElemento, useEliminarImagenElemento } from '../hooks/Useelementos'
 import { useGetSeries, useDeleteSerie } from '../hooks/Useseries'
 import { useGetLotes, useDeleteLote } from '../hooks/Uselotes'
 
@@ -20,6 +20,7 @@ import Breadcrumb from '../components/common/Breadcrum'
 import Card from '../components/common/Card'
 import { EstadoBadge } from '../components/common/Badge'
 import StatCard from '../components/common/StatCard'
+import ImageUpload from '../components/common/ImageUpload'
 import SerieItem from '../components/elementos/series/SerieItem'
 import LoteUbicacionGroup from '../components/elementos/lotes/LoteUbicacionGroup'
 import EmptyState from '../components/common/EmptyState'
@@ -167,6 +168,12 @@ function ElementoDetallePage() {
    * useDeleteLote: Mutation para eliminar un lote
    */
   const deleteLote = useDeleteLote()
+
+  /**
+   * Hooks de imagen: Subir y eliminar imagen del elemento
+   */
+  const subirImagen = useSubirImagenElemento()
+  const eliminarImagen = useEliminarImagenElemento()
 
   // ============================================
   // 4. VARIABLES DERIVADAS
@@ -444,105 +451,159 @@ function ElementoDetallePage() {
           HEADER
           ============================================ */}
       <div className="mb-6">
-        {/* Breadcrumb */}
-        <Breadcrumb items={breadcrumbItems} className="mb-4" />
+        {/* Breadcrumb + Volver */}
+        <div className="flex items-center gap-3 mb-4">
+          <button
+            onClick={handleGoBack}
+            className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+            aria-label="Volver"
+          >
+            <ArrowLeft className="w-5 h-5 text-slate-600" />
+          </button>
+          <Breadcrumb items={breadcrumbItems} />
+        </div>
 
-        {/* Título y acciones */}
-        <div className="flex items-start justify-between">
-          {/* Lado izquierdo: Info del elemento */}
-          <div className="flex items-start gap-4">
-            {/* Botón volver */}
-            <button
-              onClick={handleGoBack}
-              className="p-2 hover:bg-slate-100 rounded-lg transition-colors mt-2"
-              aria-label="Volver"
-            >
-              <ArrowLeft className="w-5 h-5 text-slate-600" />
-            </button>
+        {/* Card de info del elemento */}
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          {/* Barra de acento */}
+          <div className={`h-1.5 ${elemento.requiere_series
+            ? 'bg-gradient-to-r from-purple-500 to-violet-500'
+            : 'bg-gradient-to-r from-emerald-500 to-teal-500'
+          }`} />
 
-            {/* Icono (heredado de subcategoría) y título */}
-            <div>
-              <div className="flex items-center gap-3 mb-2">
-                <span className="text-5xl">{elemento.subcategoria_icono || '📦'}</span>
-                <div>
-                  <h1 className="text-3xl font-bold text-slate-900">
-                    {elemento.nombre}
-                  </h1>
-                  <p className="text-slate-600">
-                    {elemento.subcategoria_nombre} • {elemento.categoria_padre_nombre}
+          <div className="p-6">
+            <div className="flex gap-6">
+              {/* Imagen del elemento */}
+              <div className="flex-shrink-0">
+                <ImageUpload
+                  imagenUrl={elemento.imagen}
+                  onSubir={(archivo) => {
+                    subirImagen.mutate(
+                      { elementoId: elemento.id, archivo },
+                      {
+                        onSuccess: () => { toast.success('Imagen actualizada'); refetchElemento() },
+                        onError: () => toast.error('Error al subir imagen')
+                      }
+                    )
+                  }}
+                  onEliminar={() => {
+                    eliminarImagen.mutate(elemento.id, {
+                      onSuccess: () => { toast.success('Imagen eliminada'); refetchElemento() },
+                      onError: () => toast.error('Error al eliminar imagen')
+                    })
+                  }}
+                  isUploading={subirImagen.isPending}
+                  size="lg"
+                />
+              </div>
+
+              {/* Información del elemento */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <h1 className="text-2xl font-bold text-slate-900 truncate">
+                      {elemento.nombre}
+                    </h1>
+                    <p className="text-sm text-slate-500 mt-0.5">
+                      {elemento.subcategoria_nombre} &middot; {elemento.categoria_padre_nombre}
+                    </p>
+                  </div>
+
+                  {/* Acciones principales - PROMINENTES */}
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <Button
+                      variant="primary"
+                      icon={<Edit className="w-4 h-4" />}
+                      onClick={handleEditElemento}
+                    >
+                      Editar elemento
+                    </Button>
+                    <Button
+                      variant="outline"
+                      icon={<Trash2 className="w-4 h-4" />}
+                      onClick={handleDeleteElemento}
+                      className="text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300"
+                    >
+                      Eliminar
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Descripción */}
+                {elemento.descripcion && (
+                  <p className="text-slate-600 mt-2 max-w-2xl text-sm">
+                    {elemento.descripcion}
                   </p>
+                )}
+
+                {/* Badges: tipo de gestión + material + unidad */}
+                <div className="flex items-center gap-2 flex-wrap mt-3">
+                  {elemento.requiere_series ? (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-medium">
+                      Gestión por Series
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-medium">
+                      Gestión por Lotes
+                    </span>
+                  )}
+                  {elemento.material && (
+                    <span className="inline-flex items-center px-2.5 py-1 bg-slate-100 text-slate-600 rounded-full text-xs">
+                      {elemento.material}
+                    </span>
+                  )}
+                  {elemento.unidad && (
+                    <span className="inline-flex items-center px-2.5 py-1 bg-slate-100 text-slate-600 rounded-full text-xs">
+                      {elemento.unidad}
+                    </span>
+                  )}
                 </div>
               </div>
-
-              {/* Descripción (si existe) */}
-              {elemento.descripcion && (
-                <p className="text-slate-700 mt-2 max-w-2xl">
-                  {elemento.descripcion}
-                </p>
-              )}
-
-              {/* Badge de tipo de gestión */}
-              <div className="mt-3">
-                {elemento.requiere_series ? (
-                  <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
-                    📋 Gestión por Series (tracking individual)
-                  </span>
-                ) : (
-                  <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-medium">
-                    📊 Gestión por Lotes (tracking por cantidad)
-                  </span>
-                )}
-              </div>
             </div>
-          </div>
-
-          {/* Lado derecho: Botones de acción */}
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              icon={<Edit className="w-4 h-4" />}
-              onClick={handleEditElemento}
-            >
-              Editar
-            </Button>
-            <Button
-              variant="danger"
-              icon={<Trash2 className="w-4 h-4" />}
-              onClick={handleDeleteElemento}
-            >
-              Eliminar
-            </Button>
           </div>
         </div>
       </div>
 
       {/* ============================================
-          ESTADÍSTICAS
+          ESTADÍSTICAS - Grid consistente de 6 columnas
           ============================================ */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+      <div className="grid grid-cols-3 md:grid-cols-6 gap-3 mb-6">
         <StatCard
           label="Total"
           value={elemento.requiere_series ? totalSeries : cantidad_total}
           color="gray"
-          icon="📦"
           size="md"
         />
-        <StatCard
-          label={elemento.requiere_series ? "Disponibles" : "Nuevo"}
-          value={elemento.requiere_series
-            ? disponiblesSeries
-            : estadisticas?.nuevo || 0
-          }
-          color={elemento.requiere_series ? "green" : "purple"}
-          size="md"
-        />
-        {!elemento.requiere_series && (
-          <StatCard
-            label="Bueno"
-            value={estadisticas?.bueno || 0}
-            color="green"
-            size="md"
-          />
+        {elemento.requiere_series ? (
+          <>
+            <StatCard
+              label="Disponibles"
+              value={disponiblesSeries}
+              color="green"
+              size="md"
+            />
+            <StatCard
+              label="Bueno"
+              value={estadisticas?.bueno || 0}
+              color="green"
+              size="md"
+            />
+          </>
+        ) : (
+          <>
+            <StatCard
+              label="Nuevo"
+              value={estadisticas?.nuevo || 0}
+              color="purple"
+              size="md"
+            />
+            <StatCard
+              label="Bueno"
+              value={estadisticas?.bueno || 0}
+              color="green"
+              size="md"
+            />
+          </>
         )}
         <StatCard
           label="Alquilado"
