@@ -10,7 +10,7 @@ const { pool } = require('../../../config/database');
 // ============================================
 
 const SELECT_FULL = `
-    e.id, e.nombre, e.descripcion, e.cantidad, e.stock_minimo,
+    e.id, e.nombre, e.descripcion, e.imagen, e.cantidad, e.stock_minimo,
     e.costo_adquisicion, e.precio_unitario,
     e.requiere_series, e.estado, e.ubicacion, e.fecha_ingreso, e.categoria_id,
     c.nombre AS categoria_nombre, c.emoji AS categoria_emoji,
@@ -21,7 +21,7 @@ const SELECT_FULL = `
 `;
 
 const SELECT_DETAIL = `
-    e.id, e.nombre, e.descripcion, e.cantidad, e.stock_minimo,
+    e.id, e.nombre, e.descripcion, e.imagen, e.cantidad, e.stock_minimo,
     e.costo_adquisicion, e.precio_unitario,
     e.requiere_series, e.estado, e.ubicacion, e.fecha_ingreso,
     e.categoria_id, e.material_id, e.unidad_id,
@@ -33,7 +33,7 @@ const SELECT_DETAIL = `
 `;
 
 const SELECT_PARTIAL = `
-    e.id, e.nombre, e.descripcion, e.cantidad, e.requiere_series,
+    e.id, e.nombre, e.descripcion, e.imagen, e.cantidad, e.requiere_series,
     e.estado, e.categoria_id,
     c.nombre AS categoria_nombre, c.emoji AS categoria_emoji,
     m.nombre AS material,
@@ -41,7 +41,7 @@ const SELECT_PARTIAL = `
 `;
 
 const SELECT_MINIMAL = `
-    e.id, e.nombre, e.descripcion, e.cantidad, e.requiere_series,
+    e.id, e.nombre, e.descripcion, e.imagen, e.cantidad, e.requiere_series,
     e.estado, e.categoria_id,
     m.nombre AS material,
     u.nombre AS unidad, u.abreviatura AS unidad_abrev
@@ -319,6 +319,17 @@ class ElementoModel {
         const [result] = await pool.query(
             'DELETE FROM elementos WHERE id = ?',
             [id]
+        );
+        return result.affectedRows;
+    }
+
+    // ============================================
+    // ACTUALIZAR IMAGEN
+    // ============================================
+    static async actualizarImagen(id, imagenUrl) {
+        const [result] = await pool.query(
+            'UPDATE elementos SET imagen = ? WHERE id = ?',
+            [imagenUrl, id]
         );
         return result.affectedRows;
     }

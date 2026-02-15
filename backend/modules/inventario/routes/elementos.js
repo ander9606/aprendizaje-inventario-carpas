@@ -6,6 +6,7 @@
 const express = require('express');
 const router = express.Router();
 const elementoController = require('../controllers/elementoController');
+const { uploadElementoImagen } = require('../../../middleware/upload');
 
 // ============================================
 // RUTAS ESPECIALES (van primero)
@@ -53,6 +54,16 @@ router.put('/:id', elementoController.actualizar);
 
 // DELETE /api/elementos/:id - Eliminar
 router.delete('/:id', elementoController.eliminar);
+
+// ============================================
+// RUTAS DE IMAGEN
+// ============================================
+
+// POST /api/elementos/:id/imagen - Subir imagen
+router.post('/:id/imagen', uploadElementoImagen, elementoController.subirImagen);
+
+// DELETE /api/elementos/:id/imagen - Eliminar imagen
+router.delete('/:id/imagen', elementoController.eliminarImagen);
 
 // ============================================
 // EXPORTAR

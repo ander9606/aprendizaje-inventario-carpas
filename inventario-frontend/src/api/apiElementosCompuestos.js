@@ -88,6 +88,24 @@ const elementosCompuestosAPI = {
   eliminarComponente: async (elementoId, componenteId) => {
     const response = await api.delete(`/elementos-compuestos/${elementoId}/componentes/${componenteId}`)
     return response.data
+  },
+
+  // ============================================
+  // IMAGEN
+  // ============================================
+
+  subirImagen: async (elementoId, archivo) => {
+    const formData = new FormData()
+    formData.append('imagen', archivo)
+    const response = await api.post(`/elementos-compuestos/${elementoId}/imagen`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
+    return response.data
+  },
+
+  eliminarImagen: async (elementoId) => {
+    const response = await api.delete(`/elementos-compuestos/${elementoId}/imagen`)
+    return response.data
   }
 }
 

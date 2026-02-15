@@ -518,6 +518,36 @@ export const useDeleteElemento = () => {
  */
 
 /**
+ * Hook: Subir imagen de un elemento
+ */
+export const useSubirImagenElemento = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ elementoId, archivo }) => elementosAPI.subirImagen(elementoId, archivo),
+    retry: 0,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['elementos'] })
+    }
+  })
+}
+
+/**
+ * Hook: Eliminar imagen de un elemento
+ */
+export const useEliminarImagenElemento = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (elementoId) => elementosAPI.eliminarImagen(elementoId),
+    retry: 0,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['elementos'] })
+    }
+  })
+}
+
+/**
  * Hook: Obtener estadisticas de inventario (Dashboard)
  */
 export const useGetEstadisticasInventario = () => {

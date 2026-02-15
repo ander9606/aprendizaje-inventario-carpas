@@ -18,6 +18,7 @@ class ElementoCompuestoModel {
         ec.nombre,
         ec.codigo,
         ec.descripcion,
+        ec.imagen,
         ec.precio_base,
         ec.deposito,
         ec.activo,
@@ -45,6 +46,7 @@ class ElementoCompuestoModel {
         ec.nombre,
         ec.codigo,
         ec.descripcion,
+        ec.imagen,
         ec.precio_base,
         ec.deposito,
         ec.activo,
@@ -69,6 +71,7 @@ class ElementoCompuestoModel {
         ec.nombre,
         ec.codigo,
         ec.descripcion,
+        ec.imagen,
         ec.precio_base,
         ec.deposito,
         ec.activo,
@@ -181,6 +184,17 @@ class ElementoCompuestoModel {
       [id]
     );
     return rows[0].total > 0;
+  }
+
+  // ============================================
+  // ACTUALIZAR IMAGEN
+  // ============================================
+  static async actualizarImagen(id, imagenUrl) {
+    const [result] = await pool.query(
+      'UPDATE elementos_compuestos SET imagen = ? WHERE id = ?',
+      [imagenUrl, id]
+    );
+    return result.affectedRows;
   }
 
   // ============================================

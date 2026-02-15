@@ -6,6 +6,7 @@ const express = require('express');
 const router = express.Router();
 const elementoCompuestoController = require('../controllers/elementoCompuestoController');
 const { validateId } = require('../../../middleware/validator');
+const { uploadProductoImagen } = require('../../../middleware/upload');
 
 // GET /api/elementos-compuestos - Obtener todos
 router.get('/', elementoCompuestoController.obtenerTodos);
@@ -46,5 +47,15 @@ router.put('/:id/componentes', validateId(), elementoCompuestoController.actuali
 
 // DELETE /api/elementos-compuestos/:id/componentes/:componenteId - Eliminar componente
 router.delete('/:id/componentes/:componenteId', validateId(), elementoCompuestoController.eliminarComponente);
+
+// ============================================
+// RUTAS DE IMAGEN
+// ============================================
+
+// POST /api/elementos-compuestos/:id/imagen - Subir imagen
+router.post('/:id/imagen', validateId(), uploadProductoImagen, elementoCompuestoController.subirImagen);
+
+// DELETE /api/elementos-compuestos/:id/imagen - Eliminar imagen
+router.delete('/:id/imagen', validateId(), elementoCompuestoController.eliminarImagen);
 
 module.exports = router;

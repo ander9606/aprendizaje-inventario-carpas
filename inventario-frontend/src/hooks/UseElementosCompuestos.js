@@ -292,5 +292,41 @@ export const useEliminarComponente = () => {
   }
 }
 
+// ============================================
+// HOOK: useSubirImagenProducto
+// Sube imagen de un producto compuesto
+// ============================================
+
+export const useSubirImagenProducto = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ elementoId, archivo }) =>
+      elementosCompuestosAPI.subirImagen(elementoId, archivo),
+    retry: 0,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['elementos-compuestos'] })
+    }
+  })
+}
+
+// ============================================
+// HOOK: useEliminarImagenProducto
+// Elimina imagen de un producto compuesto
+// ============================================
+
+export const useEliminarImagenProducto = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (elementoId) =>
+      elementosCompuestosAPI.eliminarImagen(elementoId),
+    retry: 0,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['elementos-compuestos'] })
+    }
+  })
+}
+
 // Exportación por defecto
 export default useGetElementosCompuestos

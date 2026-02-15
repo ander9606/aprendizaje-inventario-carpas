@@ -22,6 +22,7 @@ import {
 
 import Modal from '../common/Modal'
 import Button from '../common/Button'
+import ImageUpload from '../common/ImageUpload'
 import CategoriaProductoFormModal from './CategoriaProductoFormModal'
 
 // Hooks
@@ -31,7 +32,9 @@ import {
   useCreateElementoCompuesto,
   useUpdateElementoCompuesto,
   useActualizarComponentes,
-  useGetComponentesAgrupados
+  useGetComponentesAgrupados,
+  useSubirImagenProducto,
+  useEliminarImagenProducto
 } from '../../hooks/UseElementosCompuestos'
 
 // ============================================
@@ -81,6 +84,11 @@ function ElementoCompuestoFormModal({
   const { createElemento, isPending: isCreating } = useCreateElementoCompuesto()
   const { updateElemento, isPending: isUpdating } = useUpdateElementoCompuesto()
   const { actualizarComponentes, isPending: isUpdatingComponentes } = useActualizarComponentes()
+  const subirImagen = useSubirImagenProducto()
+  const eliminarImagen = useEliminarImagenProducto()
+
+  // Archivo de imagen pendiente (se sube después de crear)
+  const [archivoImagen, setArchivoImagen] = useState(null)
 
   // Cargar componentes existentes si estamos editando
   const { componentes: componentesExistentes } = useGetComponentesAgrupados(
@@ -295,17 +303,33 @@ function ElementoCompuestoFormModal({
     }
 
     try {
+      let elementoId = null
+
       if (isEditMode) {
         await updateElemento({ id: elemento.id, ...dataToSend })
         await actualizarComponentes({
           elementoId: elemento.id,
           componentes
         })
+        elementoId = elemento.id
         toast.success('Plantilla actualizada exitosamente')
       } else {
-        await createElemento(dataToSend)
+        const result = await createElemento(dataToSend)
+        elementoId = result?.data?.id
         toast.success('Plantilla creada exitosamente')
       }
+
+      // Subir imagen si hay una pendiente
+      if (archivoImagen && elementoId) {
+        try {
+          await subirImagen.mutateAsync({ elementoId, archivo: archivoImagen })
+        } catch (err) {
+          console.error('Error al subir imagen:', err)
+          toast.warning('Plantilla guardada pero error al subir imagen')
+        }
+      }
+
+      setArchivoImagen(null)
       onSuccess?.()
       onClose()
     } catch (error) {
@@ -383,6 +407,31 @@ function ElementoCompuestoFormModal({
             loadingCategorias={loadingCategorias}
             onChange={handleInputChange}
             onOpenCategoriaModal={() => setShowCategoriaModal(true)}
+            imagenUrl={elemento?.imagen}
+            onSubirImagen={(archivo) => {
+              if (isEditMode) {
+                subirImagen.mutate(
+                  { elementoId: elemento.id, archivo },
+                  {
+                    onSuccess: () => toast.success('Imagen actualizada'),
+                    onError: () => toast.error('Error al subir imagen')
+                  }
+                )
+              } else {
+                setArchivoImagen(archivo)
+              }
+            }}
+            onEliminarImagen={() => {
+              if (isEditMode && elemento?.imagen) {
+                eliminarImagen.mutate(elemento.id, {
+                  onSuccess: () => toast.success('Imagen eliminada'),
+                  onError: () => toast.error('Error al eliminar imagen')
+                })
+              } else {
+                setArchivoImagen(null)
+              }
+            }}
+            isUploadingImagen={subirImagen.isPending}
           />
         )}
 
@@ -526,12 +575,26 @@ function StepIndicator({ steps, currentStep, onStepClick }) {
 // PASO 1: Información Básica
 // ============================================
 
-function Step1InfoBasica({ formData, errors, categorias, loadingCategorias, onChange, onOpenCategoriaModal }) {
+function Step1InfoBasica({ formData, errors, categorias, loadingCategorias, onChange, onOpenCategoriaModal, imagenUrl, onSubirImagen, onEliminarImagen, isUploadingImagen }) {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2 mb-4">
         <Package className="w-5 h-5 text-emerald-600" />
         <h3 className="text-lg font-medium text-slate-900">Información Básica</h3>
+      </div>
+
+      {/* Imagen */}
+      <div>
+        <label className="block text-sm font-medium text-slate-700 mb-1">
+          Imagen del producto (opcional)
+        </label>
+        <ImageUpload
+          imagenUrl={imagenUrl}
+          onSubir={onSubirImagen}
+          onEliminar={onEliminarImagen}
+          isUploading={isUploadingImagen}
+          size="md"
+        />
       </div>
 
       {/* Categoría */}

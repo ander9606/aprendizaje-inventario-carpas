@@ -3,7 +3,9 @@
 // Tarjeta para mostrar plantillas de productos compuestos
 // ============================================
 
-import { Package, DollarSign, Eye, Edit, Trash2 } from 'lucide-react'
+import { Package, DollarSign, Eye, Edit, Trash2, ImageIcon } from 'lucide-react'
+
+const BACKEND_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api').replace('/api', '')
 
 /**
  * ElementoCompuestoCard
@@ -25,7 +27,23 @@ function ElementoCompuestoCard({
   formatPrecio,
 }) {
   return (
-    <div className="bg-white border border-slate-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+    <div className="bg-white border border-slate-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow">
+      {/* Imagen */}
+      {elemento.imagen ? (
+        <div className="h-40 bg-slate-100">
+          <img
+            src={`${BACKEND_URL}${elemento.imagen}`}
+            alt={elemento.nombre}
+            className="w-full h-full object-cover"
+          />
+        </div>
+      ) : (
+        <div className="h-24 bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
+          <ImageIcon className="w-8 h-8 text-slate-300" />
+        </div>
+      )}
+
+      <div className="p-4">
       {/* Header */}
       <div className="flex items-start justify-between mb-3">
         <div>
@@ -82,6 +100,7 @@ function ElementoCompuestoCard({
         >
           <Trash2 className="w-4 h-4" />
         </button>
+      </div>
       </div>
     </div>
   )
