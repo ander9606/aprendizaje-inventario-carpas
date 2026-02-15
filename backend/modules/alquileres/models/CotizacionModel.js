@@ -145,7 +145,7 @@ class CotizacionModel {
     const cotizacion = await this.obtenerPorId(id);
     if (!cotizacion) return null;
 
-    // Obtener productos
+    // Obtener productos (con recargos incluidos)
     const queryProductos = `
       SELECT
         cp.id,
@@ -155,6 +155,7 @@ class CotizacionModel {
         cp.deposito,
         cp.precio_adicionales,
         cp.subtotal,
+        COALESCE(cp.total_recargos, 0) AS total_recargos,
         cp.notas,
         ec.nombre AS producto_nombre,
         ec.codigo AS producto_codigo,
@@ -203,8 +204,8 @@ class CotizacionModel {
     `;
     const [descuentos] = await pool.query(queryDescuentos, [id]);
 
-    // Calcular totales
-    const subtotalProductos = productos.reduce((sum, p) => sum + parseFloat(p.subtotal), 0);
+    // Calcular totales (incluye recargos por adelanto/extensión)
+    const subtotalProductos = productos.reduce((sum, p) => sum + parseFloat(p.subtotal) + parseFloat(p.total_recargos || 0), 0);
     const subtotalTransporte = transporte.reduce((sum, t) => sum + parseFloat(t.subtotal), 0);
     const totalDeposito = productos.reduce((sum, p) => sum + (parseFloat(p.deposito) * p.cantidad), 0);
     const totalDescuentosAplicados = descuentos.reduce((sum, d) => sum + parseFloat(d.monto_calculado || 0), 0);
@@ -482,9 +483,9 @@ class CotizacionModel {
   // RECALCULAR TOTALES (con IVA y días extra)
   // ============================================
   static async recalcularTotales(id) {
-    // Obtener subtotal de productos
+    // Obtener subtotal de productos (incluye recargos por adelanto/extensión)
     const [productos] = await pool.query(
-      'SELECT COALESCE(SUM(subtotal), 0) AS subtotal FROM cotizacion_productos WHERE cotizacion_id = ?',
+      'SELECT COALESCE(SUM(subtotal + COALESCE(total_recargos, 0)), 0) AS subtotal FROM cotizacion_productos WHERE cotizacion_id = ?',
       [id]
     );
 

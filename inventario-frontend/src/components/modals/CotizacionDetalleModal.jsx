@@ -144,10 +144,18 @@ const CotizacionDetalleModal = ({
   }
 
   // Calcular totales simplificados para el cliente
-  const subtotalProductos = cotizacion?.productos?.reduce((total, p) => {
+  const subtotalProductosSinRecargos = cotizacion?.productos?.reduce((total, p) => {
     const precioUnitario = parseFloat(p.precio_base || 0) + parseFloat(p.precio_adicionales || 0)
     return total + (precioUnitario * parseInt(p.cantidad || 1))
   }, 0) || 0
+
+  // Total de recargos por adelanto/extensión
+  const totalRecargos = cotizacion?.productos?.reduce((total, p) => {
+    return total + parseFloat(p.total_recargos || 0)
+  }, 0) || 0
+
+  // Subtotal productos = base + recargos
+  const subtotalProductos = subtotalProductosSinRecargos + totalRecargos
 
   // Calcular subtotal de transporte (suma de todos los viajes)
   const subtotalTransporte = cotizacion?.transporte?.reduce((total, t) => {
@@ -331,11 +339,19 @@ const CotizacionDetalleModal = ({
             <div className="border-t-2 border-slate-200 pt-4">
               <div className="flex justify-end">
                 <div className="w-80">
-                  {/* Subtotal Productos */}
+                  {/* Subtotal Productos (sin recargos) */}
                   <div className="flex justify-between py-1.5 text-sm">
                     <span className="text-slate-600">Subtotal productos:</span>
-                    <span className="font-medium">{formatearMoneda(subtotalProductos)}</span>
+                    <span className="font-medium">{formatearMoneda(subtotalProductosSinRecargos)}</span>
                   </div>
+
+                  {/* Recargos */}
+                  {totalRecargos > 0 && (
+                    <div className="flex justify-between py-1.5 text-sm text-orange-700">
+                      <span>Recargos (adelanto/extensión):</span>
+                      <span className="font-medium">+{formatearMoneda(totalRecargos)}</span>
+                    </div>
+                  )}
 
                   {/* Subtotal Transporte */}
                   {subtotalTransporte > 0 && (
