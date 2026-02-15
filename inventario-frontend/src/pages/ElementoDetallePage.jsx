@@ -18,7 +18,6 @@ import Button from '../components/common/Button'
 import Spinner from '../components/common/Spinner'
 import Breadcrumb from '../components/common/Breadcrum'
 import Card from '../components/common/Card'
-import { EstadoBadge } from '../components/common/Badge'
 import StatCard from '../components/common/StatCard'
 import ImageUpload from '../components/common/ImageUpload'
 import SerieItem from '../components/elementos/series/SerieItem'
@@ -565,7 +564,7 @@ function ElementoDetallePage() {
       </div>
 
       {/* ============================================
-          ESTADÍSTICAS - Grid consistente de 6 columnas
+          ESTADÍSTICAS - Click para filtrar
           ============================================ */}
       <div className="grid grid-cols-3 md:grid-cols-6 gap-3 mb-6">
         <StatCard
@@ -573,92 +572,49 @@ function ElementoDetallePage() {
           value={elemento.requiere_series ? totalSeries : cantidad_total}
           color="gray"
           size="md"
+          onClick={() => setFiltroEstado(null)}
+          active={!filtroEstado}
         />
-        {elemento.requiere_series ? (
-          <>
-            <StatCard
-              label="Disponibles"
-              value={disponiblesSeries}
-              color="green"
-              size="md"
-            />
-            <StatCard
-              label="Bueno"
-              value={estadisticas?.bueno || 0}
-              color="green"
-              size="md"
-            />
-          </>
-        ) : (
-          <>
-            <StatCard
-              label="Nuevo"
-              value={estadisticas?.nuevo || 0}
-              color="purple"
-              size="md"
-            />
-            <StatCard
-              label="Bueno"
-              value={estadisticas?.bueno || 0}
-              color="green"
-              size="md"
-            />
-          </>
-        )}
+        <StatCard
+          label="Nuevo"
+          value={estadisticas?.nuevo || 0}
+          color="purple"
+          size="md"
+          onClick={() => handleFiltroEstado('nuevo')}
+          active={filtroEstado === 'nuevo'}
+        />
+        <StatCard
+          label="Bueno"
+          value={estadisticas?.bueno || 0}
+          color="green"
+          size="md"
+          onClick={() => handleFiltroEstado('bueno')}
+          active={filtroEstado === 'bueno'}
+        />
         <StatCard
           label="Alquilado"
           value={estadisticas?.alquilado || 0}
           color="blue"
           size="md"
+          onClick={() => handleFiltroEstado('alquilado')}
+          active={filtroEstado === 'alquilado'}
         />
         <StatCard
           label="Mantenimiento"
           value={estadisticas?.mantenimiento || 0}
           color="yellow"
           size="md"
+          onClick={() => handleFiltroEstado('mantenimiento')}
+          active={filtroEstado === 'mantenimiento'}
         />
         <StatCard
           label="Dañado"
           value={estadisticas?.danado || 0}
           color="red"
           size="md"
+          onClick={() => handleFiltroEstado('dañado')}
+          active={filtroEstado === 'dañado'}
         />
-      </div>
-
-      {/* ============================================
-          FILTROS POR ESTADO
-          ============================================ */}
-      <div className="mb-6">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-sm font-medium text-slate-700">Filtrar:</span>
-
-          {/* Botón "Todos" */}
-          <button
-            onClick={() => setFiltroEstado(null)}
-            className={`
-              px-3 py-1 rounded-full text-sm font-medium transition-colors
-              ${!filtroEstado
-                ? 'bg-slate-900 text-white'
-                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-              }
-            `}
-          >
-            Todos
-          </button>
-
-          {/* Botones por estado */}
-          {['nuevo', 'bueno', 'alquilado', 'mantenimiento', 'dañado'].map(estado => (
-            <button
-              key={estado}
-              onClick={() => handleFiltroEstado(estado)}
-              className={`transition-opacity ${
-                filtroEstado && filtroEstado !== estado ? 'opacity-50' : ''
-              }`}
-            >
-              <EstadoBadge estado={estado} size="md" />
-            </button>
-          ))}
-        </div>
       </div>
 
       {/* ============================================
@@ -669,7 +625,10 @@ function ElementoDetallePage() {
           <div className="flex items-center justify-between">
             <Card.Title>
               {elemento.requiere_series ? 'Series' : 'Lotes por Ubicación'}
-              {filtroEstado && ` (${itemsFiltrados.length})`}
+              {filtroEstado
+                ? ` — ${filtroEstado.charAt(0).toUpperCase() + filtroEstado.slice(1)} (${itemsFiltrados.length})`
+                : ''
+              }
             </Card.Title>
 
             <Button
