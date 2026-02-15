@@ -54,7 +54,6 @@ function CrearLoteModal({
   // ============================================
 
   const [formData, setFormData] = useState({
-    lote_numero: '',
     cantidad: '',
     estado: ESTADOS.BUENO,
     ubicacion: '',
@@ -75,7 +74,6 @@ function CrearLoteModal({
   useEffect(() => {
     if (isOpen) {
       setFormData({
-        lote_numero: '',
         cantidad: '',
         estado: ESTADOS.BUENO,
         ubicacion: '',
@@ -90,13 +88,6 @@ function CrearLoteModal({
 
   const validateForm = () => {
     const newErrors = {}
-
-    // Validar lote_numero
-    if (!formData.lote_numero.trim()) {
-      newErrors.lote_numero = 'Ingresa el número de lote'
-    } else if (formData.lote_numero.trim().length < 3) {
-      newErrors.lote_numero = 'El número de lote debe tener al menos 3 caracteres'
-    }
 
     // Validar cantidad
     if (!formData.cantidad) {
@@ -187,10 +178,9 @@ function CrearLoteModal({
       return
     }
 
-    // Preparar datos
+    // Preparar datos (lote_numero se genera automáticamente en el backend)
     const dataToSend = {
       elemento_id: elemento.id,
-      lote_numero: formData.lote_numero.trim(),
       cantidad: Number(formData.cantidad),
       estado: formData.estado,
       ubicacion: formData.ubicacion.trim()
@@ -250,36 +240,6 @@ function CrearLoteModal({
               </p>
             </div>
           </div>
-        </div>
-
-        {/* CAMPO: Número de Lote */}
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-slate-700 mb-2">
-            Número de lote *
-          </label>
-          <input
-            type="text"
-            name="lote_numero"
-            value={formData.lote_numero}
-            onChange={handleInputChange}
-            placeholder="Ej: LOTE-001, L-2024-01, etc."
-            className={`
-              w-full px-4 py-2 border rounded-lg
-              focus:outline-none focus:ring-2
-              ${errors.lote_numero
-                ? 'border-red-300 focus:ring-red-500'
-                : 'border-slate-300 focus:ring-blue-500'
-              }
-            `}
-          />
-          {errors.lote_numero && (
-            <p className="mt-1 text-sm text-red-600">
-              {errors.lote_numero}
-            </p>
-          )}
-          <p className="mt-1 text-xs text-slate-500">
-            💡 Usa un formato único e identificable
-          </p>
         </div>
 
         {/* CAMPO: Cantidad */}
