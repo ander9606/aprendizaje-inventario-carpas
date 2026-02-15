@@ -324,6 +324,7 @@ class OrdenTrabajoModel {
                     cp.notas,
                     ec.nombre as producto_nombre,
                     ec.codigo as producto_codigo,
+                    ec.imagen as producto_imagen,
                     cat.nombre as categoria_nombre,
                     cat.emoji as categoria_emoji
                 FROM cotizacion_productos cp
@@ -361,6 +362,7 @@ class OrdenTrabajoModel {
                     ae.costo_dano,
                     ae.notas_retorno,
                     e.nombre as elemento_nombre,
+                    e.imagen as elemento_imagen,
                     s.numero_serie as serie_codigo,
                     l.lote_numero as lote_codigo
                 FROM alquiler_elementos ae
@@ -380,6 +382,7 @@ class OrdenTrabajoModel {
                     ote.cantidad,
                     ote.estado,
                     e.nombre as elemento_nombre,
+                    e.imagen as elemento_imagen,
                     s.numero_serie as serie_codigo,
                     l.lote_numero as lote_codigo
                 FROM orden_trabajo_elementos ote
