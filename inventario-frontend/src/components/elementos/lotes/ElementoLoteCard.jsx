@@ -32,6 +32,7 @@ export const ElementoLoteCard = ({
     id: elementoId,
     nombre,
     icono = '📦',
+    imagen,
     descripcion,
     material,
     unidad,
@@ -40,6 +41,8 @@ export const ElementoLoteCard = ({
     costo_adquisicion,
     alertas = []
   } = elemento
+
+  const BACKEND_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api').replace('/api', '')
 
   // ============================================
   // ESTADO LOCAL
@@ -109,9 +112,17 @@ export const ElementoLoteCard = ({
 
         <div className="px-6 py-4">
           <div className="flex items-start justify-between">
-            {/* Lado izquierdo: icono + info */}
+            {/* Lado izquierdo: imagen/icono + info */}
             <div className="flex items-start gap-3 flex-1 min-w-0">
-              <span className="text-3xl flex-shrink-0 mt-0.5">{icono}</span>
+              {imagen ? (
+                <img
+                  src={`${BACKEND_URL}${imagen}`}
+                  alt={nombre}
+                  className="w-12 h-12 rounded-lg object-cover flex-shrink-0 mt-0.5"
+                />
+              ) : (
+                <span className="text-3xl flex-shrink-0 mt-0.5">{icono}</span>
+              )}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <h3 className="text-lg font-bold text-slate-900 truncate">{nombre}</h3>
@@ -188,9 +199,8 @@ export const ElementoLoteCard = ({
           ============================================ */}
       <div className="px-6 pt-4">
         {/* Stats en grid */}
-        <div className="grid grid-cols-3 md:grid-cols-6 gap-2 mb-3">
+        <div className="grid grid-cols-5 gap-2 mb-3">
           <StatMini label="Total" value={isLoadingLotes ? '-' : cantidad_total} color="slate" />
-          <StatMini label="Nuevo" value={isLoadingLotes ? '-' : (estadisticas.nuevo || 0)} color="purple" />
           <StatMini label="Bueno" value={isLoadingLotes ? '-' : (estadisticas.bueno || 0)} color="green" />
           <StatMini label="Alquilado" value={isLoadingLotes ? '-' : alquilados} color="blue" />
           <StatMini label="Mant." value={isLoadingLotes ? '-' : enMantenimiento} color="amber" />

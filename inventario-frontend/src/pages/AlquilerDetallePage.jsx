@@ -592,7 +592,6 @@ export default function AlquilerDetallePage() {
                             <span className={`
                               inline-flex px-2 py-1 text-xs font-medium rounded-full
                               ${elemento.estado_salida === 'bueno' ? 'bg-green-100 text-green-700' : ''}
-                              ${elemento.estado_salida === 'nuevo' ? 'bg-blue-100 text-blue-700' : ''}
                               ${elemento.estado_salida === 'mantenimiento' ? 'bg-yellow-100 text-yellow-700' : ''}
                             `}>
                               {elemento.estado_salida || '-'}

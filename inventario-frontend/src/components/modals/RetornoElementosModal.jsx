@@ -252,7 +252,6 @@ const RetornoElementosModal = ({
                       <span className={`
                         text-xs px-2 py-1 rounded-full
                         ${elem.estado_salida === 'bueno' ? 'bg-green-100 text-green-700' : ''}
-                        ${elem.estado_salida === 'nuevo' ? 'bg-blue-100 text-blue-700' : ''}
                       `}>
                         Salió: {elem.estado_salida}
                       </span>

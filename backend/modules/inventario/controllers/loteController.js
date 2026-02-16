@@ -160,9 +160,24 @@ exports.obtenerPorEstado = async (req, res, next) => {
 // ============================================
 // CREAR LOTE MANUALMENTE
 // ============================================
+
+/**
+ * Genera un número de lote automático basado en la fecha actual.
+ * Formato: LOTE-YYYYMMDD-XXXX (donde XXXX es un sufijo aleatorio de 4 caracteres)
+ * Ejemplo: LOTE-20260215-A3F7
+ */
+function generarNumeroLote() {
+    const now = new Date();
+    const yyyy = now.getFullYear();
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    const sufijo = Math.random().toString(36).substring(2, 6).toUpperCase();
+    return `LOTE-${yyyy}${mm}${dd}-${sufijo}`;
+}
+
 exports.crear = async (req, res, next) => {
     try {
-        const { elemento_id, cantidad, estado, ubicacion, lote_numero } = req.body;
+        const { elemento_id, cantidad, estado, ubicacion } = req.body;
 
         logger.info('loteController.crear', 'Creando nuevo lote', { elemento_id, cantidad });
 
@@ -189,12 +204,12 @@ exports.crear = async (req, res, next) => {
         }
 
         // ============================================
-        // CREAR LOTE
+        // CREAR LOTE (número generado automáticamente)
         // ============================================
 
         const nuevoId = await LoteModel.crear({
             elemento_id: elementoIdValidado,
-            lote_numero: lote_numero || `LOTE-${Date.now()}`,
+            lote_numero: generarNumeroLote(),
             cantidad: cantidadValidada,
             estado: estadoValidado,
             ubicacion: ubicacion || null
@@ -307,7 +322,7 @@ exports.moverCantidad = async (req, res, next) => {
                 cantidad: cantidadValidada,
                 estado: estadoDestinoValidado,
                 ubicacion: ubicacion_destino,
-                lote_numero: `LOTE-${Date.now()}`
+                lote_numero: generarNumeroLote()
             });
             loteDestinoCreado = true;
         }

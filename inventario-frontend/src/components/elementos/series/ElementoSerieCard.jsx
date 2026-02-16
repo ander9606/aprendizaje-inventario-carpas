@@ -32,6 +32,7 @@ export const ElementoSerieCard = ({
     id: elementoId,
     nombre,
     icono = '📦',
+    imagen,
     descripcion,
     material,
     unidad,
@@ -40,6 +41,8 @@ export const ElementoSerieCard = ({
     costo_adquisicion,
     alertas = []
   } = elemento
+
+  const BACKEND_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api').replace('/api', '')
 
   // ============================================
   // CARGAR SERIES DEL ELEMENTO
@@ -108,9 +111,17 @@ export const ElementoSerieCard = ({
 
         <div className="px-6 py-4">
           <div className="flex items-start justify-between">
-            {/* Lado izquierdo: icono + info */}
+            {/* Lado izquierdo: imagen/icono + info */}
             <div className="flex items-start gap-3 flex-1 min-w-0">
-              <span className="text-3xl flex-shrink-0 mt-0.5">{icono}</span>
+              {imagen ? (
+                <img
+                  src={`${BACKEND_URL}${imagen}`}
+                  alt={nombre}
+                  className="w-12 h-12 rounded-lg object-cover flex-shrink-0 mt-0.5"
+                />
+              ) : (
+                <span className="text-3xl flex-shrink-0 mt-0.5">{icono}</span>
+              )}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <h3 className="text-lg font-bold text-slate-900 truncate">{nombre}</h3>

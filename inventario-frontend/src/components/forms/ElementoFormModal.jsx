@@ -3,11 +3,12 @@
 // Modal para crear o editar un elemento
 // ============================================
 import UbicacionSelector from "../common/UbicacionSelector";
+import ImageUpload from "../common/ImageUpload";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import Modal from "../common/Modal";
 import Button from "../common/Button";
-import { useCreateElemento, useUpdateElemento } from "../../hooks/Useelementos";
+import { useCreateElemento, useUpdateElemento, useSubirImagenElemento, useEliminarImagenElemento } from "../../hooks/Useelementos";
 import { useGetMateriales } from "../../hooks/Usemateriales";
 import { useGetUnidades } from "../../hooks/Useunidades";
 import { ESTADOS } from "../../utils/constants";
@@ -72,7 +73,12 @@ function ElementoFormModal({
   // ============================================
   const createElemento = useCreateElemento();
   const updateElemento = useUpdateElemento();
+  const subirImagen = useSubirImagenElemento();
+  const eliminarImagen = useEliminarImagenElemento();
   const mutation = isEditMode ? updateElemento : createElemento;
+
+  // Archivo de imagen pendiente (se sube después de crear)
+  const [archivoImagen, setArchivoImagen] = useState(null);
 
   // ============================================
   // 4. EFECTOS
@@ -206,10 +212,23 @@ function ElementoFormModal({
     mutation.mutate(
       isEditMode ? { id: elemento.id, ...dataToSend } : dataToSend,
       {
-        onSuccess: () => {
+        onSuccess: async (response) => {
+          const elementoId = isEditMode ? elemento.id : response?.data?.id;
+
+          // Subir imagen si hay una pendiente
+          if (archivoImagen && elementoId) {
+            try {
+              await subirImagen.mutateAsync({ elementoId, archivo: archivoImagen });
+            } catch (err) {
+              console.error('Error al subir imagen:', err);
+              toast.warning('Elemento guardado pero error al subir imagen');
+            }
+          }
+
           toast.success(
             isEditMode ? "Elemento actualizado" : "Elemento creado"
           );
+          setArchivoImagen(null);
           onSuccess?.();
           onClose();
         },
@@ -279,8 +298,43 @@ function ElementoFormModal({
             "
           />
           <p className="mt-1 text-xs text-slate-500">
-            💡 Los elementos heredan el ícono de su subcategoría
+            Los elementos heredan el icono de su subcategoria
           </p>
+        </div>
+
+        {/* CAMPO: Imagen */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-slate-700 mb-2">
+            Imagen (opcional)
+          </label>
+          <ImageUpload
+            imagenUrl={elemento?.imagen}
+            onSubir={(archivo) => {
+              if (isEditMode) {
+                subirImagen.mutate(
+                  { elementoId: elemento.id, archivo },
+                  {
+                    onSuccess: () => toast.success('Imagen actualizada'),
+                    onError: () => toast.error('Error al subir imagen')
+                  }
+                );
+              } else {
+                setArchivoImagen(archivo);
+              }
+            }}
+            onEliminar={() => {
+              if (isEditMode && elemento?.imagen) {
+                eliminarImagen.mutate(elemento.id, {
+                  onSuccess: () => toast.success('Imagen eliminada'),
+                  onError: () => toast.error('Error al eliminar imagen')
+                });
+              } else {
+                setArchivoImagen(null);
+              }
+            }}
+            isUploading={subirImagen.isPending}
+            size="md"
+          />
         </div>
 
         {/* CAMPO: Tipo de gestión */}
@@ -437,7 +491,6 @@ function ElementoFormModal({
               focus:outline-none focus:ring-2 focus:ring-blue-500
             "
           >
-            <option value={ESTADOS.NUEVO}>Nuevo</option>
             <option value={ESTADOS.BUENO}>Bueno</option>
             <option value={ESTADOS.MANTENIMIENTO}>Mantenimiento</option>
             <option value={ESTADOS.DANADO}>Dañado</option>

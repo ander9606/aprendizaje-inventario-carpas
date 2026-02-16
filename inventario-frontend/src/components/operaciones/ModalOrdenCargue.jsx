@@ -3,7 +3,7 @@
 // Muestra productos cotizados y elementos desglosados para cargue
 // ============================================
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import {
     Package,
     Truck,
@@ -18,13 +18,74 @@ import {
     Printer,
     MapPin,
     Calendar,
-    User
+    User,
+    Camera
 } from 'lucide-react'
 import Modal from '../common/Modal'
 import Spinner from '../common/Spinner'
 import Button from '../common/Button'
 import { useGetOrdenCompleta, useCambiarEstadoElementosMasivo } from '../../hooks/useOrdenesTrabajo'
 import { toast } from 'sonner'
+
+// ============================================
+// HELPER: URL base del backend (sin /api)
+// ============================================
+const BACKEND_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api').replace('/api', '')
+
+// ============================================
+// COMPONENTE: Botón para ver foto de un elemento
+// Solo se muestra si el elemento tiene imagen
+// ============================================
+const BotonVerFoto = ({ imagenUrl, nombreElemento }) => {
+    const [visible, setVisible] = useState(false)
+    const popoverRef = useRef(null)
+    const btnRef = useRef(null)
+
+    // Cerrar al hacer clic fuera
+    useEffect(() => {
+        if (!visible) return
+        const handleClickOutside = (e) => {
+            if (
+                popoverRef.current && !popoverRef.current.contains(e.target) &&
+                btnRef.current && !btnRef.current.contains(e.target)
+            ) {
+                setVisible(false)
+            }
+        }
+        document.addEventListener('mousedown', handleClickOutside)
+        return () => document.removeEventListener('mousedown', handleClickOutside)
+    }, [visible])
+
+    if (!imagenUrl) return null
+
+    return (
+        <div className="relative inline-flex">
+            <button
+                ref={btnRef}
+                type="button"
+                onClick={(e) => { e.stopPropagation(); setVisible(v => !v) }}
+                className="p-0.5 rounded hover:bg-blue-100 text-slate-400 hover:text-blue-600 transition-colors"
+                title={`Ver foto de ${nombreElemento}`}
+            >
+                <Camera className="w-3.5 h-3.5" />
+            </button>
+            {visible && (
+                <div
+                    ref={popoverRef}
+                    className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 bg-white rounded-lg shadow-xl border border-slate-200 p-1.5 animate-in fade-in zoom-in-95 duration-150"
+                >
+                    <img
+                        src={`${BACKEND_URL}${imagenUrl}`}
+                        alt={nombreElemento}
+                        className="w-40 h-40 object-cover rounded-md"
+                        onError={(e) => { e.target.style.display = 'none' }}
+                    />
+                    <p className="text-xs text-slate-500 text-center mt-1 truncate max-w-[160px]">{nombreElemento}</p>
+                </div>
+            )}
+        </div>
+    )
+}
 
 // ============================================
 // COMPONENTE: Producto Expandible
@@ -42,7 +103,15 @@ const ProductoItem = ({ producto, elementos, expanded, onToggle }) => {
                 className="w-full px-4 py-3 flex items-center justify-between bg-slate-50 hover:bg-slate-100 transition-colors"
             >
                 <div className="flex items-center gap-3">
-                    <span className="text-lg">{producto.categoria_emoji || '📦'}</span>
+                    {producto.producto_imagen ? (
+                        <img
+                            src={`${BACKEND_URL}${producto.producto_imagen}`}
+                            alt={producto.producto_nombre}
+                            className="w-8 h-8 rounded object-cover"
+                            onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling && (e.target.nextSibling.style.display = '') }}
+                        />
+                    ) : null}
+                    <span className={`text-lg ${producto.producto_imagen ? 'hidden' : ''}`}>{producto.categoria_emoji || '📦'}</span>
                     <div className="text-left">
                         <p className="font-medium text-slate-900">
                             {producto.cantidad}x {producto.producto_nombre}
@@ -80,8 +149,12 @@ const ProductoItem = ({ producto, elementos, expanded, onToggle }) => {
                         {elementosProducto.map((elem, idx) => (
                             <div key={idx} className="px-4 py-2 grid grid-cols-12 gap-2 items-center text-sm">
                                 <div className="col-span-5 flex items-center gap-2">
-                                    <Box className="w-4 h-4 text-slate-400" />
+                                    <Box className="w-4 h-4 text-slate-400 flex-shrink-0" />
                                     <span className="truncate">{elem.elemento_nombre}</span>
+                                    <BotonVerFoto
+                                        imagenUrl={elem.elemento_imagen}
+                                        nombreElemento={elem.elemento_nombre}
+                                    />
                                 </div>
                                 <div className="col-span-3">
                                     {elem.serie_codigo ? (

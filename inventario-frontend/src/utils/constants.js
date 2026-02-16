@@ -6,9 +6,8 @@
 // ============================================
 // ESTADOS DE LOS ELEMENTOS
 // ============================================
-// Estos son los 5 estados posibles que puede tener un elemento
+// Estos son los 4 estados posibles que puede tener un elemento
 export const ESTADOS = {
-  NUEVO: 'nuevo',
   BUENO: 'bueno',
   ALQUILADO: 'alquilado',
   MANTENIMIENTO: 'mantenimiento',
@@ -21,12 +20,6 @@ export const ESTADOS = {
 // Cada estado tiene su color para badges y tarjetas
 // Formato: { bg, text, border }
 export const ESTADO_COLORS = {
-  [ESTADOS.NUEVO]: {
-    bg: 'bg-purple-100',
-    text: 'text-purple-700',
-    border: 'border-purple-200',
-    dot: 'bg-purple-500'
-  },
   [ESTADOS.BUENO]: {
     bg: 'bg-green-100',
     text: 'text-green-700',
@@ -57,7 +50,6 @@ export const ESTADO_COLORS = {
 // ETIQUETAS AMIGABLES PARA ESTADOS
 // ============================================
 export const ESTADO_LABELS = {
-  [ESTADOS.NUEVO]: '🆕 Nuevo',
   [ESTADOS.BUENO]: '✅ Bueno',
   [ESTADOS.ALQUILADO]: '📦 Alquilado',
   [ESTADOS.MANTENIMIENTO]: '🔧 Mantenimiento',

@@ -124,7 +124,7 @@ import { ESTADO_COLORS, ESTADO_LABELS } from '../../utils/constants'
 /**
  * EstadoBadge - Badge especializado para estados de elementos
  *
- * @param {string} estado - Estado del elemento ('nuevo' | 'bueno' | 'alquilado' | 'mantenimiento' | 'dañado')
+ * @param {string} estado - Estado del elemento ('bueno' | 'alquilado' | 'mantenimiento' | 'dañado')
  * @param {string} size - Tamaño: 'sm' | 'md' | 'lg'
  * @param {boolean} showDot - Mostrar punto de color
  *

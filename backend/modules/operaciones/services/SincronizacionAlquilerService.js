@@ -118,7 +118,6 @@ const ESTADOS_ALQUILER = {
  * @constant {Object}
  */
 const ESTADOS_SERIE = {
-  NUEVO: 'nuevo',
   BUENO: 'bueno',
   ALQUILADO: 'alquilado',
   MANTENIMIENTO: 'mantenimiento',
@@ -165,7 +164,7 @@ class SincronizacionAlquilerService {
    * 2. Para cada producto de la cotización:
    *    a. Obtiene los componentes del elemento compuesto
    *    b. Para cada componente:
-   *       - Si requiere series: busca series en estado 'nuevo' o 'bueno'
+   *       - Si requiere series: busca series en estado 'bueno'
    *       - Si usa lotes: busca lotes con cantidad_disponible > 0
    * 3. Retorna estructura jerárquica con disponibilidad
    *
@@ -274,7 +273,7 @@ class SincronizacionAlquilerService {
         if (componente.requiere_series) {
           // ---------------------------------------------------------------
           // CASO A: Elemento requiere series (items individuales)
-          // Buscar series en estado 'nuevo' o 'bueno' (no alquiladas)
+          // Buscar series en estado 'bueno' (no alquiladas)
           // ---------------------------------------------------------------
           const [series] = await pool.query(`
             SELECT
@@ -287,9 +286,9 @@ class SincronizacionAlquilerService {
             FROM series s
             LEFT JOIN ubicaciones u ON s.ubicacion_id = u.id
             WHERE s.id_elemento = ?
-              AND s.estado IN (?, ?)
+              AND s.estado = ?
             ORDER BY u.nombre, s.numero_serie
-          `, [componente.elemento_id, ESTADOS_SERIE.NUEVO, ESTADOS_SERIE.BUENO]);
+          `, [componente.elemento_id, ESTADOS_SERIE.BUENO]);
 
           disponibles = series.map(s => ({
             tipo: 'serie',
@@ -368,7 +367,7 @@ class SincronizacionAlquilerService {
    * VALIDACIONES:
    * - La orden debe existir
    * - La orden debe estar en estado válido (pendiente, confirmado, en_preparacion)
-   * - Cada serie debe estar disponible (estado 'nuevo' o 'bueno')
+   * - Cada serie debe estar disponible (estado 'bueno')
    * - Cada lote debe tener suficiente cantidad disponible
    *
    * NOTA IMPORTANTE:
@@ -474,7 +473,7 @@ class SincronizacionAlquilerService {
           }
 
           const serie = serieRows[0];
-          if (![ESTADOS_SERIE.NUEVO, ESTADOS_SERIE.BUENO].includes(serie.estado)) {
+          if (serie.estado !== ESTADOS_SERIE.BUENO) {
             throw new AppError(
               `Serie ${serie.numero_serie} no está disponible. Estado actual: ${serie.estado}`,
               400
@@ -800,7 +799,7 @@ class SincronizacionAlquilerService {
           resumen.series_actualizadas.push({
             id: serieId,
             numero_serie: serieData[0]?.numero_serie,
-            estado_anterior: 'bueno/nuevo',
+            estado_anterior: 'bueno',
             estado_nuevo: ESTADOS_SERIE.ALQUILADO
           });
 

@@ -29,6 +29,8 @@ export const StatCard = ({
   icon = null,
   size = 'md',
   subtext = null,
+  onClick = null,
+  active = false,
   className = '',
   ...props
 }) => {
@@ -110,15 +112,28 @@ export const StatCard = ({
 
   const colors = colorStyles[color]
   const sizes = sizeStyles[size]
+  const isClickable = !!onClick
+  const Tag = isClickable ? 'button' : 'div'
 
   return (
-    <div
+    <Tag
+      type={isClickable ? 'button' : undefined}
+      onClick={onClick}
       className={`
         ${colors.bg} ${colors.border}
         border rounded-lg
         ${sizes.padding}
         transition-all duration-200
-        hover:shadow-md
+        ${isClickable
+          ? 'cursor-pointer hover:shadow-md hover:scale-[1.02] active:scale-[0.98]'
+          : 'hover:shadow-md'
+        }
+        ${active
+          ? 'ring-2 ring-offset-1 ring-current shadow-md scale-[1.02]'
+          : isClickable && !active
+            ? 'opacity-80 hover:opacity-100'
+            : ''
+        }
         ${className}
       `}
       {...props}
@@ -153,7 +168,7 @@ export const StatCard = ({
           </div>
         )}
       </div>
-    </div>
+    </Tag>
   )
 }
 

@@ -267,6 +267,24 @@ const elementosAPI = {
     const response = await api.get('/elementos/estadisticas-inventario')
     return response.data
   },
+
+  // ============================================
+  // IMAGEN
+  // ============================================
+
+  subirImagen: async (elementoId, archivo) => {
+    const formData = new FormData()
+    formData.append('imagen', archivo)
+    const response = await api.post(`/elementos/${elementoId}/imagen`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
+    return response.data
+  },
+
+  eliminarImagen: async (elementoId) => {
+    const response = await api.delete(`/elementos/${elementoId}/imagen`)
+    return response.data
+  },
 }
 
 export default elementosAPI

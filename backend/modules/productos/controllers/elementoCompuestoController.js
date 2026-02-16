@@ -8,6 +8,7 @@ const CompuestoComponenteModel = require('../models/CompuestoComponenteModel');
 const CategoriaProductoModel = require('../models/CategoriaProductoModel');
 const AppError = require('../../../utils/AppError');
 const logger = require('../../../utils/logger');
+const { deleteImageFile } = require('../../../middleware/upload');
 
 // ============================================
 // OBTENER TODOS
@@ -357,6 +358,73 @@ exports.actualizarComponentes = async (req, res, next) => {
     });
   } catch (error) {
     logger.error('elementoCompuestoController.actualizarComponentes', error);
+    next(error);
+  }
+};
+
+// ============================================
+// SUBIR IMAGEN DE PRODUCTO
+// ============================================
+exports.subirImagen = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    if (!req.file) {
+      throw new AppError('No se recibió ningún archivo', 400);
+    }
+
+    const elemento = await ElementoCompuestoModel.obtenerPorId(id);
+    if (!elemento) {
+      throw new AppError('Elemento compuesto no encontrado', 404);
+    }
+
+    // Eliminar imagen anterior si existe
+    if (elemento.imagen) {
+      deleteImageFile(elemento.imagen);
+    }
+
+    const imagenUrl = `/uploads/productos/${req.file.filename}`;
+    await ElementoCompuestoModel.actualizarImagen(id, imagenUrl);
+
+    logger.info('elementoCompuestoController.subirImagen', 'Imagen subida', { id, imagenUrl });
+
+    res.json({
+      success: true,
+      mensaje: 'Imagen subida correctamente',
+      data: { imagen: imagenUrl }
+    });
+  } catch (error) {
+    logger.error('elementoCompuestoController.subirImagen', error);
+    next(error);
+  }
+};
+
+// ============================================
+// ELIMINAR IMAGEN DE PRODUCTO
+// ============================================
+exports.eliminarImagen = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const elemento = await ElementoCompuestoModel.obtenerPorId(id);
+    if (!elemento) {
+      throw new AppError('Elemento compuesto no encontrado', 404);
+    }
+
+    if (elemento.imagen) {
+      deleteImageFile(elemento.imagen);
+    }
+
+    await ElementoCompuestoModel.actualizarImagen(id, null);
+
+    logger.info('elementoCompuestoController.eliminarImagen', 'Imagen eliminada', { id });
+
+    res.json({
+      success: true,
+      mensaje: 'Imagen eliminada correctamente'
+    });
+  } catch (error) {
+    logger.error('elementoCompuestoController.eliminarImagen', error);
     next(error);
   }
 };

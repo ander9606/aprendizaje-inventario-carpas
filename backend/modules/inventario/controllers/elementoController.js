@@ -7,6 +7,7 @@ const ElementoModel = require('../models/ElementoModel');
 const LoteModel = require('../models/LoteModel');
 const AppError = require('../../../utils/AppError');
 const logger = require('../../../utils/logger');
+const { deleteImageFile } = require('../../../middleware/upload');
 
 const {
     validateNombre,
@@ -465,6 +466,77 @@ exports.obtenerEstadisticasInventario = async (_req, res, next) => {
 
     } catch (error) {
         logger.error('elementoController.obtenerEstadisticasInventario', error);
+        next(error);
+    }
+};
+
+// ============================================
+// SUBIR IMAGEN DE ELEMENTO
+// ============================================
+
+exports.subirImagen = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        validateId(id, 'ID de elemento');
+
+        if (!req.file) {
+            throw new AppError('No se recibió ningún archivo', 400);
+        }
+
+        const elemento = await ElementoModel.obtenerPorId(id);
+        if (!elemento) {
+            throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO(ENTIDADES.ELEMENTO), 404);
+        }
+
+        // Eliminar imagen anterior si existe
+        if (elemento.imagen) {
+            deleteImageFile(elemento.imagen);
+        }
+
+        const imagenUrl = `/uploads/elementos/${req.file.filename}`;
+        await ElementoModel.actualizarImagen(id, imagenUrl);
+
+        logger.info('elementoController.subirImagen', 'Imagen subida', { id, imagenUrl });
+
+        res.json({
+            success: true,
+            mensaje: 'Imagen subida correctamente',
+            data: { imagen: imagenUrl }
+        });
+    } catch (error) {
+        logger.error('elementoController.subirImagen', error);
+        next(error);
+    }
+};
+
+// ============================================
+// ELIMINAR IMAGEN DE ELEMENTO
+// ============================================
+
+exports.eliminarImagen = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        validateId(id, 'ID de elemento');
+
+        const elemento = await ElementoModel.obtenerPorId(id);
+        if (!elemento) {
+            throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO(ENTIDADES.ELEMENTO), 404);
+        }
+
+        if (elemento.imagen) {
+            deleteImageFile(elemento.imagen);
+        }
+
+        await ElementoModel.actualizarImagen(id, null);
+
+        logger.info('elementoController.eliminarImagen', 'Imagen eliminada', { id });
+
+        res.json({
+            success: true,
+            mensaje: 'Imagen eliminada correctamente'
+        });
+    } catch (error) {
+        logger.error('elementoController.eliminarImagen', error);
         next(error);
     }
 };

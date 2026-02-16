@@ -10,7 +10,6 @@
 // ============================================
 
 const ESTADOS = {
-  NUEVO: 'nuevo',
   BUENO: 'bueno',
   MANTENIMIENTO: 'mantenimiento',
   ALQUILADO: 'alquilado',
