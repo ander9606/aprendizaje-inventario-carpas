@@ -116,7 +116,7 @@ export default function OrdenDetallePage() {
     const ejecutarRetorno = useEjecutarRetorno()
 
     // ============================================
-    // CRONÓMETRO: Montaje en proceso
+    // CRONÓMETRO: Montaje / Desmontaje en curso
     // ============================================
     useEffect(() => {
         // Limpiar intervalo anterior
@@ -125,17 +125,20 @@ export default function OrdenDetallePage() {
             intervalRef.current = null
         }
 
-        // Solo activar si está en_proceso y es montaje (o en_sitio para desmontaje)
+        // Montaje: activo en en_proceso
+        // Desmontaje: activo en en_sitio o en_proceso (el trabajo empieza al llegar al sitio)
         const estadoActivo = orden?.tipo === 'montaje'
             ? orden?.estado === 'en_proceso'
-            : orden?.estado === 'en_sitio'
+            : ['en_sitio', 'en_proceso'].includes(orden?.estado)
 
         if (!estadoActivo || !historialEstados?.length) {
             setTiempoTranscurrido(null)
             return
         }
 
-        // Buscar timestamp de inicio del estado activo
+        // Buscar timestamp de inicio:
+        // - Montaje: cuando entró a en_proceso
+        // - Desmontaje: cuando llegó a en_sitio (inicio del trabajo de desmontaje)
         const estadoBuscado = orden.tipo === 'montaje' ? 'en_proceso' : 'en_sitio'
         const entradaEstado = historialEstados.find(h => h.estado_nuevo === estadoBuscado)
         if (!entradaEstado) {
@@ -1151,7 +1154,11 @@ export default function OrdenDetallePage() {
 
                         {/* CRONÓMETRO EN VIVO */}
                         {tiempoTranscurrido != null && (
-                            <div className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl border border-blue-500 p-6 text-white shadow-lg">
+                            <div className={`rounded-xl border p-6 text-white shadow-lg ${
+                                orden.tipo === 'montaje'
+                                    ? 'bg-gradient-to-br from-blue-600 to-blue-700 border-blue-500'
+                                    : 'bg-gradient-to-br from-orange-500 to-orange-600 border-orange-400'
+                            }`}>
                                 <div className="flex items-center gap-2 mb-3">
                                     <div className="relative">
                                         <Timer className="w-5 h-5" />
@@ -1165,19 +1172,30 @@ export default function OrdenDetallePage() {
                                     <p className="text-4xl font-mono font-bold tracking-wider tabular-nums">
                                         {formatTimer(tiempoTranscurrido)}
                                     </p>
-                                    <p className="text-blue-200 text-sm mt-2">
+                                    <p className={`text-sm mt-2 ${orden.tipo === 'montaje' ? 'text-blue-200' : 'text-orange-200'}`}>
                                         Tiempo transcurrido
                                     </p>
                                 </div>
-                                {orden.estado === 'en_proceso' && orden.tipo === 'montaje' && canManage && (
-                                    <button
-                                        onClick={() => openConfirm('completar_montaje')}
-                                        disabled={cambiarEstado.isPending}
-                                        className="w-full mt-3 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-lg transition-colors"
-                                    >
-                                        <CheckCircle className="w-4 h-4" />
-                                        Finalizar {orden.tipo === 'montaje' ? 'Montaje' : 'Desmontaje'}
-                                    </button>
+                                {/* Botón finalizar: Montaje → Completar, Desmontaje → Registrar Retorno */}
+                                {canManage && (
+                                    orden.tipo === 'montaje' && orden.estado === 'en_proceso' ? (
+                                        <button
+                                            onClick={() => openConfirm('completar_montaje')}
+                                            disabled={cambiarEstado.isPending}
+                                            className="w-full mt-3 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-lg transition-colors"
+                                        >
+                                            <CheckCircle className="w-4 h-4" />
+                                            Finalizar Montaje
+                                        </button>
+                                    ) : orden.tipo === 'desmontaje' && ['en_sitio', 'en_proceso'].includes(orden.estado) ? (
+                                        <button
+                                            onClick={() => setShowModalRetorno(true)}
+                                            className="w-full mt-3 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-lg transition-colors"
+                                        >
+                                            <RotateCcw className="w-4 h-4" />
+                                            Registrar Retorno
+                                        </button>
+                                    ) : null
                                 )}
                             </div>
                         )}
