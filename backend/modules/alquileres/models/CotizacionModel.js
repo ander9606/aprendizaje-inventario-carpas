@@ -412,26 +412,51 @@ class CotizacionModel {
     subtotal_productos, subtotal_transporte, total_descuentos, base_gravable,
     valor_deposito
   }) {
-    const query = `
-      UPDATE cotizaciones
-      SET subtotal = ?, descuento = ?, total = ?,
-          cobro_dias_extra = COALESCE(?, cobro_dias_extra),
-          valor_iva = COALESCE(?, valor_iva),
-          subtotal_productos = COALESCE(?, subtotal_productos),
-          subtotal_transporte = COALESCE(?, subtotal_transporte),
-          total_descuentos = COALESCE(?, total_descuentos),
-          base_gravable = COALESCE(?, base_gravable),
-          valor_deposito = COALESCE(?, valor_deposito)
-      WHERE id = ?
-    `;
-    const [result] = await pool.query(query, [
-      subtotal, descuento || 0, total,
-      cobro_dias_extra, valor_iva,
-      subtotal_productos, subtotal_transporte, total_descuentos, base_gravable,
-      valor_deposito,
-      id
-    ]);
-    return result;
+    // Intentar con valor_deposito, si la columna no existe (migración 28), reintentar sin ella
+    try {
+      const query = `
+        UPDATE cotizaciones
+        SET subtotal = ?, descuento = ?, total = ?,
+            cobro_dias_extra = COALESCE(?, cobro_dias_extra),
+            valor_iva = COALESCE(?, valor_iva),
+            subtotal_productos = COALESCE(?, subtotal_productos),
+            subtotal_transporte = COALESCE(?, subtotal_transporte),
+            total_descuentos = COALESCE(?, total_descuentos),
+            base_gravable = COALESCE(?, base_gravable),
+            valor_deposito = COALESCE(?, valor_deposito)
+        WHERE id = ?
+      `;
+      const [result] = await pool.query(query, [
+        subtotal, descuento || 0, total,
+        cobro_dias_extra, valor_iva,
+        subtotal_productos, subtotal_transporte, total_descuentos, base_gravable,
+        valor_deposito,
+        id
+      ]);
+      return result;
+    } catch (error) {
+      if (error.code === 'ER_BAD_FIELD_ERROR' && error.message.includes('valor_deposito')) {
+        const query = `
+          UPDATE cotizaciones
+          SET subtotal = ?, descuento = ?, total = ?,
+              cobro_dias_extra = COALESCE(?, cobro_dias_extra),
+              valor_iva = COALESCE(?, valor_iva),
+              subtotal_productos = COALESCE(?, subtotal_productos),
+              subtotal_transporte = COALESCE(?, subtotal_transporte),
+              total_descuentos = COALESCE(?, total_descuentos),
+              base_gravable = COALESCE(?, base_gravable)
+          WHERE id = ?
+        `;
+        const [result] = await pool.query(query, [
+          subtotal, descuento || 0, total,
+          cobro_dias_extra, valor_iva,
+          subtotal_productos, subtotal_transporte, total_descuentos, base_gravable,
+          id
+        ]);
+        return result;
+      }
+      throw error;
+    }
   }
 
   // ============================================
@@ -509,7 +534,7 @@ class CotizacionModel {
     // Obtener datos actuales de la cotización
     const [cotizacionData] = await pool.query(
       `SELECT descuento, dias_montaje_extra, dias_desmontaje_extra,
-              porcentaje_dias_extra, porcentaje_iva, cobrar_deposito
+              porcentaje_dias_extra, porcentaje_iva
        FROM cotizaciones WHERE id = ?`,
       [id]
     );

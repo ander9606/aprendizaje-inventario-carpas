@@ -4,7 +4,7 @@
 // ============================================
 
 import { useState } from 'react'
-import { Calendar, User, MapPin, Phone, Mail, Truck, FileText, Edit, CheckCircle, XCircle, Ban, Download, FileEdit, CalendarCheck, MessageSquare, Clock, Shield, ShieldOff } from 'lucide-react'
+import { Calendar, User, MapPin, Phone, Mail, Truck, FileText, Edit, CheckCircle, XCircle, Ban, Download, Eye, FileEdit, CalendarCheck, MessageSquare, Clock, Shield, ShieldOff } from 'lucide-react'
 import Modal from '../common/Modal'
 import Button from '../common/Button'
 import Spinner from '../common/Spinner'
@@ -25,6 +25,7 @@ const CotizacionDetalleModal = ({
   const [showCancelarModal, setShowCancelarModal] = useState(false)
   const [notasCancelacion, setNotasCancelacion] = useState('')
   const [descargandoPDF, setDescargandoPDF] = useState(false)
+  const [viendoPDF, setViendoPDF] = useState(false)
   const [showConfirmarFechas, setShowConfirmarFechas] = useState(false)
   const [fechasConfirmar, setFechasConfirmar] = useState({ fecha_montaje: '', fecha_evento: '', fecha_desmontaje: '' })
   const [showSeguimiento, setShowSeguimiento] = useState(false)
@@ -140,6 +141,18 @@ const CotizacionDetalleModal = ({
       alert('Error al descargar el PDF: ' + (error.response?.data?.message || error.message))
     } finally {
       setDescargandoPDF(false)
+    }
+  }
+
+  const handleVerPDF = async () => {
+    if (!cotizacionId) return
+    setViendoPDF(true)
+    try {
+      await apiCotizaciones.verPDF(cotizacionId)
+    } catch (error) {
+      alert('Error al ver el PDF: ' + (error.response?.data?.message || error.message))
+    } finally {
+      setViendoPDF(false)
     }
   }
 
@@ -591,8 +604,17 @@ const CotizacionDetalleModal = ({
             </div>
           )}
 
-          {/* BOTÓN PDF - Siempre visible */}
-          <div className="flex justify-center mt-6 print:hidden">
+          {/* BOTONES PDF - Siempre visible */}
+          <div className="flex justify-center gap-3 mt-6 print:hidden">
+            <Button
+              variant="secondary"
+              icon={<Eye className="w-4 h-4" />}
+              onClick={handleVerPDF}
+              loading={viendoPDF}
+              disabled={viendoPDF}
+            >
+              Ver PDF
+            </Button>
             <Button
               variant="secondary"
               icon={<Download className="w-4 h-4" />}

@@ -150,10 +150,11 @@ exports.generarPDF = async (req, res, next) => {
       empresa[key] = c.valor;
     });
 
-    // Configurar headers para descarga
+    // Configurar headers para descarga o vista inline
     const filename = `cotizacion_${id}.pdf`;
+    const inline = req.query.inline === 'true';
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Disposition', `${inline ? 'inline' : 'attachment'}; filename="${filename}"`);
 
     // Generar PDF y pipe directo a la respuesta
     const pdfDoc = CotizacionPDFService.generar(cotizacion, empresa);
