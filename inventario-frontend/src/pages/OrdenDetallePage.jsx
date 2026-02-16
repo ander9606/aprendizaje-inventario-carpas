@@ -3,7 +3,7 @@
 // Vista completa con acciones de modificación
 // ============================================
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import {
     Truck,
@@ -56,6 +56,7 @@ import {
     ChecklistCargueDescargue,
     ModalInventarioCliente
 } from '../components/operaciones'
+import ConfirmModal from '../components/common/ConfirmModal'
 import { toast } from 'sonner'
 
 // ============================================
@@ -80,6 +81,13 @@ export default function OrdenDetallePage() {
     const [showChecklistDescargue, setShowChecklistDescargue] = useState(false)
     const [showInventarioCliente, setShowInventarioCliente] = useState(false)
     const [ejecutandoSalida, setEjecutandoSalida] = useState(false)
+
+    // Estado para modales de confirmación
+    const [confirmModal, setConfirmModal] = useState({ isOpen: false, key: null })
+
+    // Cronómetro para montaje en proceso
+    const [tiempoTranscurrido, setTiempoTranscurrido] = useState(null)
+    const intervalRef = useRef(null)
 
     // ============================================
     // HOOKS: Obtener datos
@@ -108,6 +116,51 @@ export default function OrdenDetallePage() {
     const ejecutarRetorno = useEjecutarRetorno()
 
     // ============================================
+    // CRONÓMETRO: Montaje en proceso
+    // ============================================
+    useEffect(() => {
+        // Limpiar intervalo anterior
+        if (intervalRef.current) {
+            clearInterval(intervalRef.current)
+            intervalRef.current = null
+        }
+
+        // Solo activar si está en_proceso y es montaje (o en_sitio para desmontaje)
+        const estadoActivo = orden?.tipo === 'montaje'
+            ? orden?.estado === 'en_proceso'
+            : orden?.estado === 'en_sitio'
+
+        if (!estadoActivo || !historialEstados?.length) {
+            setTiempoTranscurrido(null)
+            return
+        }
+
+        // Buscar timestamp de inicio del estado activo
+        const estadoBuscado = orden.tipo === 'montaje' ? 'en_proceso' : 'en_sitio'
+        const entradaEstado = historialEstados.find(h => h.estado_nuevo === estadoBuscado)
+        if (!entradaEstado) {
+            setTiempoTranscurrido(null)
+            return
+        }
+
+        const inicio = new Date(entradaEstado.created_at).getTime()
+
+        const actualizar = () => {
+            setTiempoTranscurrido(Date.now() - inicio)
+        }
+
+        actualizar()
+        intervalRef.current = setInterval(actualizar, 1000)
+
+        return () => {
+            if (intervalRef.current) {
+                clearInterval(intervalRef.current)
+                intervalRef.current = null
+            }
+        }
+    }, [orden?.estado, orden?.tipo, historialEstados])
+
+    // ============================================
     // HELPERS
     // ============================================
     const formatDuration = (ms) => {
@@ -121,6 +174,19 @@ export default function OrdenDetallePage() {
         const horasRest = horas % 24
         return `${dias}d ${horasRest}h`
     }
+
+    const formatTimer = (ms) => {
+        if (ms == null) return '00:00:00'
+        const totalSeconds = Math.floor(ms / 1000)
+        const hours = Math.floor(totalSeconds / 3600)
+        const minutes = Math.floor((totalSeconds % 3600) / 60)
+        const seconds = totalSeconds % 60
+        return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+    }
+
+    // Helper para abrir modal de confirmación
+    const openConfirm = (key) => setConfirmModal({ isOpen: true, key })
+    const closeConfirm = () => setConfirmModal({ isOpen: false, key: null })
 
     // ============================================
     // HANDLERS
@@ -168,10 +234,6 @@ export default function OrdenDetallePage() {
     }
 
     const handleEjecutarSalida = async () => {
-        if (!confirm('¿Confirmar ejecución de salida? Esta acción cambiará el estado del alquiler a "activo" y marcará los elementos como despachados.')) {
-            return
-        }
-
         setEjecutandoSalida(true)
         try {
             await ejecutarSalida.mutateAsync({ ordenId: orden.id, datos: {} })
@@ -181,6 +243,7 @@ export default function OrdenDetallePage() {
             toast.error(error?.response?.data?.message || 'Error al ejecutar salida')
         } finally {
             setEjecutandoSalida(false)
+            closeConfirm()
         }
     }
 
@@ -619,7 +682,10 @@ export default function OrdenDetallePage() {
                                 <Button
                                     color="blue" icon={CheckCircle}
                                     onClick={() => {
-                                        if (!tieneResponsable && !confirm('No hay responsable asignado. ¿Confirmar de todas formas?')) return
+                                        if (!tieneResponsable) {
+                                            openConfirm('confirmar_sin_responsable')
+                                            return
+                                        }
                                         handleCambiarEstado('confirmado')
                                     }}
                                     disabled={cambiarEstado.isPending}
@@ -648,7 +714,7 @@ export default function OrdenDetallePage() {
                                 ) : (
                                     <Button
                                         color="green" icon={LogOut}
-                                        onClick={handleEjecutarSalida}
+                                        onClick={() => openConfirm('ejecutar_salida')}
                                         disabled={ejecutandoSalida}
                                     >
                                         {ejecutandoSalida ? 'Ejecutando...' : 'Ejecutar Salida'}
@@ -680,7 +746,7 @@ export default function OrdenDetallePage() {
                             )}
                             {orden.estado === 'en_proceso' && orden.tipo === 'montaje' && (
                                 <Button color="green" icon={CheckCircle}
-                                    onClick={() => { if (!confirm('¿Marcar como completada?')) return; handleCambiarEstado('completado') }}
+                                    onClick={() => openConfirm('completar_montaje')}
                                     disabled={cambiarEstado.isPending}
                                 >Completar</Button>
                             )}
@@ -1083,6 +1149,39 @@ export default function OrdenDetallePage() {
                             )}
                         </div>
 
+                        {/* CRONÓMETRO EN VIVO */}
+                        {tiempoTranscurrido != null && (
+                            <div className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl border border-blue-500 p-6 text-white shadow-lg">
+                                <div className="flex items-center gap-2 mb-3">
+                                    <div className="relative">
+                                        <Timer className="w-5 h-5" />
+                                        <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-red-400 rounded-full animate-pulse" />
+                                    </div>
+                                    <h3 className="text-lg font-semibold">
+                                        {orden.tipo === 'montaje' ? 'Montaje en curso' : 'Desmontaje en curso'}
+                                    </h3>
+                                </div>
+                                <div className="text-center py-3">
+                                    <p className="text-4xl font-mono font-bold tracking-wider tabular-nums">
+                                        {formatTimer(tiempoTranscurrido)}
+                                    </p>
+                                    <p className="text-blue-200 text-sm mt-2">
+                                        Tiempo transcurrido
+                                    </p>
+                                </div>
+                                {orden.estado === 'en_proceso' && orden.tipo === 'montaje' && canManage && (
+                                    <button
+                                        onClick={() => openConfirm('completar_montaje')}
+                                        disabled={cambiarEstado.isPending}
+                                        className="w-full mt-3 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-lg transition-colors"
+                                    >
+                                        <CheckCircle className="w-4 h-4" />
+                                        Finalizar {orden.tipo === 'montaje' ? 'Montaje' : 'Desmontaje'}
+                                    </button>
+                                )}
+                            </div>
+                        )}
+
                         {/* TIEMPOS DE OPERACIÓN */}
                         {duraciones && (
                             <div className="bg-white rounded-xl border border-slate-200 p-6">
@@ -1160,10 +1259,7 @@ export default function OrdenDetallePage() {
                         {/* CANCELAR ORDEN */}
                         {canManage && !esCompletado && !esCancelado && (
                             <button
-                                onClick={() => {
-                                    if (!confirm('¿Estás seguro de cancelar esta orden? Esta acción no se puede deshacer.')) return
-                                    handleCambiarEstado('cancelado')
-                                }}
+                                onClick={() => openConfirm('cancelar_orden')}
                                 disabled={cambiarEstado.isPending}
                                 className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 border border-red-200 rounded-xl transition-colors"
                             >
@@ -1245,6 +1341,51 @@ export default function OrdenDetallePage() {
                     onClose={() => setShowInventarioCliente(false)}
                 />
             )}
+
+            {/* MODALES DE CONFIRMACIÓN */}
+            <ConfirmModal
+                isOpen={confirmModal.isOpen && confirmModal.key === 'ejecutar_salida'}
+                onClose={closeConfirm}
+                onConfirm={handleEjecutarSalida}
+                variant="info"
+                icon={LogOut}
+                title="Confirmar ejecución de salida"
+                message='Esta acción cambiará el estado del alquiler a "activo" y marcará los elementos como despachados. Los inventarios quedarán registrados como en uso.'
+                confirmText="Ejecutar Salida"
+                loading={ejecutandoSalida}
+            />
+            <ConfirmModal
+                isOpen={confirmModal.isOpen && confirmModal.key === 'confirmar_sin_responsable'}
+                onClose={closeConfirm}
+                onConfirm={() => { closeConfirm(); handleCambiarEstado('confirmado') }}
+                variant="warning"
+                title="Sin responsable asignado"
+                message="No hay un responsable asignado a esta orden. Puedes asignar uno después, pero se recomienda hacerlo antes de confirmar."
+                confirmText="Confirmar de todas formas"
+            />
+            <ConfirmModal
+                isOpen={confirmModal.isOpen && confirmModal.key === 'completar_montaje'}
+                onClose={closeConfirm}
+                onConfirm={() => { closeConfirm(); handleCambiarEstado('completado') }}
+                variant="success"
+                title={`Completar ${orden.tipo === 'montaje' ? 'montaje' : 'orden'}`}
+                message={tiempoTranscurrido != null
+                    ? `El ${orden.tipo} lleva ${formatTimer(tiempoTranscurrido)} en ejecución. ¿Marcar como completado?`
+                    : '¿Marcar esta orden como completada?'
+                }
+                confirmText="Completar"
+                loading={cambiarEstado.isPending}
+            />
+            <ConfirmModal
+                isOpen={confirmModal.isOpen && confirmModal.key === 'cancelar_orden'}
+                onClose={closeConfirm}
+                onConfirm={() => { closeConfirm(); handleCambiarEstado('cancelado') }}
+                variant="danger"
+                title="Cancelar orden de trabajo"
+                message="¿Estás seguro de cancelar esta orden? Esta acción no se puede deshacer y los recursos asignados serán liberados."
+                confirmText="Sí, cancelar orden"
+                loading={cambiarEstado.isPending}
+            />
         </div>
     )
 }
