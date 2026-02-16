@@ -222,6 +222,8 @@ class CotizacionModel {
         subtotal_productos: subtotalProductos,
         subtotal_transporte: subtotalTransporte,
         total_deposito: totalDeposito,
+        cobrar_deposito: cotizacion.cobrar_deposito !== undefined ? !!cotizacion.cobrar_deposito : true,
+        valor_deposito: parseFloat(cotizacion.valor_deposito || totalDeposito || 0),
         dias_montaje_extra: cotizacion.dias_montaje_extra || 0,
         dias_desmontaje_extra: cotizacion.dias_desmontaje_extra || 0,
         total_dias_extra: totalDiasExtra,
@@ -407,26 +409,54 @@ class CotizacionModel {
   // ============================================
   static async actualizarTotales(id, {
     subtotal, descuento, total, cobro_dias_extra, valor_iva,
-    subtotal_productos, subtotal_transporte, total_descuentos, base_gravable
+    subtotal_productos, subtotal_transporte, total_descuentos, base_gravable,
+    valor_deposito
   }) {
-    const query = `
-      UPDATE cotizaciones
-      SET subtotal = ?, descuento = ?, total = ?,
-          cobro_dias_extra = COALESCE(?, cobro_dias_extra),
-          valor_iva = COALESCE(?, valor_iva),
-          subtotal_productos = COALESCE(?, subtotal_productos),
-          subtotal_transporte = COALESCE(?, subtotal_transporte),
-          total_descuentos = COALESCE(?, total_descuentos),
-          base_gravable = COALESCE(?, base_gravable)
-      WHERE id = ?
-    `;
-    const [result] = await pool.query(query, [
-      subtotal, descuento || 0, total,
-      cobro_dias_extra, valor_iva,
-      subtotal_productos, subtotal_transporte, total_descuentos, base_gravable,
-      id
-    ]);
-    return result;
+    // Intentar con valor_deposito, si la columna no existe (migración 28), reintentar sin ella
+    try {
+      const query = `
+        UPDATE cotizaciones
+        SET subtotal = ?, descuento = ?, total = ?,
+            cobro_dias_extra = COALESCE(?, cobro_dias_extra),
+            valor_iva = COALESCE(?, valor_iva),
+            subtotal_productos = COALESCE(?, subtotal_productos),
+            subtotal_transporte = COALESCE(?, subtotal_transporte),
+            total_descuentos = COALESCE(?, total_descuentos),
+            base_gravable = COALESCE(?, base_gravable),
+            valor_deposito = COALESCE(?, valor_deposito)
+        WHERE id = ?
+      `;
+      const [result] = await pool.query(query, [
+        subtotal, descuento || 0, total,
+        cobro_dias_extra, valor_iva,
+        subtotal_productos, subtotal_transporte, total_descuentos, base_gravable,
+        valor_deposito,
+        id
+      ]);
+      return result;
+    } catch (error) {
+      if (error.code === 'ER_BAD_FIELD_ERROR' && error.message.includes('valor_deposito')) {
+        const query = `
+          UPDATE cotizaciones
+          SET subtotal = ?, descuento = ?, total = ?,
+              cobro_dias_extra = COALESCE(?, cobro_dias_extra),
+              valor_iva = COALESCE(?, valor_iva),
+              subtotal_productos = COALESCE(?, subtotal_productos),
+              subtotal_transporte = COALESCE(?, subtotal_transporte),
+              total_descuentos = COALESCE(?, total_descuentos),
+              base_gravable = COALESCE(?, base_gravable)
+          WHERE id = ?
+        `;
+        const [result] = await pool.query(query, [
+          subtotal, descuento || 0, total,
+          cobro_dias_extra, valor_iva,
+          subtotal_productos, subtotal_transporte, total_descuentos, base_gravable,
+          id
+        ]);
+        return result;
+      }
+      throw error;
+    }
   }
 
   // ============================================
@@ -489,6 +519,12 @@ class CotizacionModel {
       [id]
     );
 
+    // Obtener total de depósito (deposito × cantidad por cada producto)
+    const [depositoData] = await pool.query(
+      'SELECT COALESCE(SUM(deposito * cantidad), 0) AS total_deposito FROM cotizacion_productos WHERE cotizacion_id = ?',
+      [id]
+    );
+
     // Obtener subtotal de transporte
     const [transporte] = await pool.query(
       'SELECT COALESCE(SUM(subtotal), 0) AS subtotal FROM cotizacion_transportes WHERE cotizacion_id = ?',
@@ -513,6 +549,7 @@ class CotizacionModel {
     const subtotalProductos = parseFloat(productos[0].subtotal);
     const subtotalTransporte = parseFloat(transporte[0].subtotal);
     const subtotal = subtotalProductos + subtotalTransporte;
+    const valorDeposito = parseFloat(depositoData[0].total_deposito);
 
     // Calcular cobro por días extra
     const totalDiasExtra = (cot?.dias_montaje_extra || 0) + (cot?.dias_desmontaje_extra || 0);
@@ -545,7 +582,8 @@ class CotizacionModel {
       subtotal_productos: subtotalProductos,
       subtotal_transporte: subtotalTransporte,
       total_descuentos: totalDescuentos,
-      base_gravable: baseGravable
+      base_gravable: baseGravable,
+      valor_deposito: valorDeposito
     });
 
     return {
@@ -557,8 +595,18 @@ class CotizacionModel {
       base_gravable: baseGravable,
       porcentaje_iva: porcentajeIva,
       valor_iva: valorIva,
-      total
+      total,
+      valor_deposito: valorDeposito
     };
+  }
+
+  // ============================================
+  // ACTUALIZAR COBRO DE DEPÓSITO
+  // ============================================
+  static async actualizarCobrarDeposito(id, cobrarDeposito) {
+    const query = `UPDATE cotizaciones SET cobrar_deposito = ? WHERE id = ?`;
+    const [result] = await pool.query(query, [cobrarDeposito ? 1 : 0, id]);
+    return result;
   }
 
   // ============================================

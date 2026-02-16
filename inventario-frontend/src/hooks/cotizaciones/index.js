@@ -25,5 +25,6 @@ export {
   useConfirmarFechasCotizacion,
   useDuplicarCotizacion,
   useDeleteCotizacion,
-  useRegistrarSeguimiento
+  useRegistrarSeguimiento,
+  useActualizarCobrarDeposito
 } from './useCotizacionMutations'

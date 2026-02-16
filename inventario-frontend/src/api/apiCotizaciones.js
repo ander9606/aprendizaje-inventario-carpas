@@ -74,6 +74,17 @@ export const apiCotizaciones = {
     window.URL.revokeObjectURL(url);
   },
 
+  verPDF: async (id) => {
+    const response = await api.get(`/cotizaciones/${id}/pdf?inline=true`, {
+      responseType: 'blob'
+    });
+    const blob = new Blob([response.data], { type: 'application/pdf' });
+    const url = window.URL.createObjectURL(blob);
+    window.open(url, '_blank');
+    // Liberar el blob URL después de un tiempo prudencial
+    setTimeout(() => window.URL.revokeObjectURL(url), 60000);
+  },
+
   confirmarFechas: async (id, fechas) => {
     const response = await api.patch(`/cotizaciones/${id}/confirmar-fechas`, fechas);
     return response.data;
@@ -81,6 +92,12 @@ export const apiCotizaciones = {
 
   duplicar: async (id) => {
     const response = await api.post(`/cotizaciones/${id}/duplicar`);
+    return response.data;
+  },
+
+  // Depósito
+  actualizarCobrarDeposito: async (id, cobrarDeposito) => {
+    const response = await api.patch(`/cotizaciones/${id}/deposito`, { cobrar_deposito: cobrarDeposito });
     return response.data;
   },
 

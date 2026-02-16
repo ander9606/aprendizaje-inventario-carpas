@@ -116,6 +116,22 @@ export const useDeleteCotizacion = () => {
 }
 
 /**
+ * Hook para actualizar cobro de depósito de una cotizacion
+ */
+export const useActualizarCobrarDeposito = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id, cobrarDeposito }) => apiCotizaciones.actualizarCobrarDeposito(id, cobrarDeposito),
+    retry: 0,
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries(['cotizaciones'])
+      queryClient.invalidateQueries(['cotizaciones', variables.id, 'completa'])
+    }
+  })
+}
+
+/**
  * Hook para registrar seguimiento de una cotizacion
  */
 export const useRegistrarSeguimiento = () => {

@@ -262,7 +262,6 @@ class OrdenElementoModel {
                 ote.verificado_retorno,
                 ote.notas,
                 el.nombre as elemento_nombre,
-                el.compuesto_id,
                 s.numero_serie as serie_codigo,
                 l.lote_numero as lote_codigo
             FROM orden_trabajo_elementos ote
@@ -270,7 +269,7 @@ class OrdenElementoModel {
             LEFT JOIN series s ON ote.serie_id = s.id
             LEFT JOIN lotes l ON ote.lote_id = l.id
             WHERE ote.orden_id = ?
-            ORDER BY el.compuesto_id, el.nombre ASC
+            ORDER BY el.nombre ASC
         `, [ordenId]);
 
         const totalElementos = rows.length;

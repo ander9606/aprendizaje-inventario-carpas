@@ -3,12 +3,13 @@
 // Resumen de totales con IVA, días extra y descuentos
 // ============================================
 
-import { Info, Calendar, Percent, Tag } from 'lucide-react'
+import { Info, Calendar, Percent, Tag, Shield, ShieldOff } from 'lucide-react'
 
 const ResumenCotizacion = ({
   resumen,
   mostrarDetalles = true,
-  className = ''
+  className = '',
+  onToggleDeposito
 }) => {
   if (!resumen) return null
 
@@ -142,12 +143,48 @@ const ResumenCotizacion = ({
 
         {/* Depósito (si aplica) */}
         {total_deposito > 0 && (
-          <div className="flex justify-between text-slate-500 mt-2">
-            <span className="flex items-center gap-1 text-xs">
-              <Info className="w-3 h-3" />
-              Depósito requerido:
-            </span>
-            <span className="text-sm">{formatearMoneda(total_deposito)}</span>
+          <div className={`
+            mt-3 p-3 rounded-lg border
+            ${resumen.cobrar_deposito !== false
+              ? 'bg-blue-50 border-blue-200'
+              : 'bg-slate-50 border-slate-200'
+            }
+          `}>
+            <div className="flex items-center justify-between">
+              <span className={`flex items-center gap-1.5 text-sm font-medium ${
+                resumen.cobrar_deposito !== false ? 'text-blue-700' : 'text-slate-500'
+              }`}>
+                {resumen.cobrar_deposito !== false ? (
+                  <Shield className="w-4 h-4" />
+                ) : (
+                  <ShieldOff className="w-4 h-4" />
+                )}
+                Depósito de garantía:
+              </span>
+              <span className={`text-sm font-semibold ${
+                resumen.cobrar_deposito !== false ? 'text-blue-800' : 'text-slate-400 line-through'
+              }`}>
+                {formatearMoneda(total_deposito)}
+              </span>
+            </div>
+            {resumen.cobrar_deposito === false && (
+              <p className="text-xs text-slate-400 mt-1">No se cobrará depósito</p>
+            )}
+            {onToggleDeposito && (
+              <button
+                type="button"
+                onClick={onToggleDeposito}
+                className={`
+                  mt-2 text-xs font-medium px-3 py-1 rounded-full transition-colors
+                  ${resumen.cobrar_deposito !== false
+                    ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }
+                `}
+              >
+                {resumen.cobrar_deposito !== false ? 'No cobrar depósito' : 'Cobrar depósito'}
+              </button>
+            )}
           </div>
         )}
       </div>
