@@ -31,7 +31,7 @@ function ImageUpload({
   const sizeClasses = {
     sm: 'w-20 h-20',
     md: 'w-32 h-32',
-    lg: 'w-48 h-48'
+    lg: 'w-48 h-48 lg:w-64 lg:h-64'
   }
 
   const handleFileSelect = (e) => {
