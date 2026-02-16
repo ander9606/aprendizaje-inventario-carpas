@@ -143,28 +143,20 @@ const CotizacionDetalleModal = ({
     }
   }
 
-  // Calcular totales simplificados para el cliente
-  const subtotalProductosSinRecargos = cotizacion?.productos?.reduce((total, p) => {
-    const precioUnitario = parseFloat(p.precio_base || 0) + parseFloat(p.precio_adicionales || 0)
-    return total + (precioUnitario * parseInt(p.cantidad || 1))
-  }, 0) || 0
+  // Usar valores calculados por el backend (mismos que el PDF)
+  const resumen = cotizacion?.resumen || {}
+  const subtotalProductos = resumen.subtotal_productos || 0
+  const subtotalTransporte = resumen.subtotal_transporte || 0
 
-  // Total de recargos por adelanto/extensión
+  // Total de recargos por adelanto/extensión (para desglose visual)
   const totalRecargos = cotizacion?.productos?.reduce((total, p) => {
     return total + parseFloat(p.total_recargos || 0)
   }, 0) || 0
 
-  // Subtotal productos = base + recargos
-  const subtotalProductos = subtotalProductosSinRecargos + totalRecargos
+  // Subtotal productos sin recargos (para desglose visual)
+  const subtotalProductosSinRecargos = subtotalProductos - totalRecargos
 
-  // Calcular subtotal de transporte (suma de todos los viajes)
-  const subtotalTransporte = cotizacion?.transporte?.reduce((total, t) => {
-    const precio = parseFloat(t.precio_unitario || t.subtotal || 0)
-    return total + (t.subtotal ? parseFloat(t.subtotal) : precio * parseInt(t.cantidad || 1))
-  }, 0) || 0
-
-  const descuento = parseFloat(cotizacion?.descuento || 0)
-  const total = subtotalProductos + subtotalTransporte - descuento
+  const descuento = parseFloat(resumen.total_descuentos || cotizacion?.descuento || 0)
 
   // ============================================
   // RENDER
@@ -297,18 +289,15 @@ const CotizacionDetalleModal = ({
                   <tbody>
                     {/* Productos */}
                     {cotizacion.productos?.length > 0 ? (
-                      cotizacion.productos.map((producto, index) => {
-                        const precioTotal = (parseFloat(producto.precio_base || 0) + parseFloat(producto.precio_adicionales || 0)) * parseInt(producto.cantidad || 1)
-                        return (
+                      cotizacion.productos.map((producto, index) => (
                           <tr key={`prod-${index}`} className="border-t border-slate-100">
                             <td className="px-4 py-3">
                               <p className="font-medium text-slate-900">{producto.producto_nombre}</p>
                             </td>
                             <td className="text-center px-4 py-3 text-slate-600">{producto.cantidad}</td>
-                            <td className="text-right px-4 py-3 font-medium text-slate-900">{formatearMoneda(precioTotal)}</td>
+                            <td className="text-right px-4 py-3 font-medium text-slate-900">{formatearMoneda(producto.subtotal)}</td>
                           </tr>
-                        )
-                      })
+                        ))
                     ) : (
                       <tr>
                         <td colSpan="3" className="px-4 py-6 text-center text-slate-500 italic">
@@ -375,13 +364,13 @@ const CotizacionDetalleModal = ({
                   {/* Subtotal */}
                   <div className="flex justify-between py-1.5 text-sm">
                     <span className="text-slate-600">Subtotal:</span>
-                    <span className="font-medium">{formatearMoneda(subtotalProductos + subtotalTransporte + (cotizacion.cobro_dias_extra || 0))}</span>
+                    <span className="font-medium">{formatearMoneda(subtotalProductos + subtotalTransporte + parseFloat(cotizacion.cobro_dias_extra || 0))}</span>
                   </div>
 
                   {/* Descuento */}
                   {descuento > 0 && (
                     <div className="flex justify-between py-1.5 text-sm text-green-600">
-                      <span>Descuento:</span>
+                      <span>Descuentos:</span>
                       <span className="font-medium">-{formatearMoneda(descuento)}</span>
                     </div>
                   )}
@@ -389,7 +378,7 @@ const CotizacionDetalleModal = ({
                   {/* Base Gravable */}
                   <div className="flex justify-between py-1.5 text-sm border-t border-slate-200 mt-2 pt-2">
                     <span className="text-slate-700 font-medium">Base gravable:</span>
-                    <span className="font-medium">{formatearMoneda(cotizacion.base_gravable || (subtotalProductos + subtotalTransporte - descuento))}</span>
+                    <span className="font-medium">{formatearMoneda(resumen.base_gravable || cotizacion.base_gravable || 0)}</span>
                   </div>
 
                   {/* IVA */}
@@ -401,7 +390,7 @@ const CotizacionDetalleModal = ({
                   {/* TOTAL FINAL */}
                   <div className="flex justify-between py-3 border-t-2 border-slate-900 mt-2">
                     <span className="text-xl font-bold text-slate-900">TOTAL:</span>
-                    <span className="text-xl font-bold text-blue-700">{formatearMoneda(cotizacion.total || total)}</span>
+                    <span className="text-xl font-bold text-blue-700">{formatearMoneda(resumen.total || cotizacion.total || 0)}</span>
                   </div>
 
                   {/* Depósito de garantía */}
