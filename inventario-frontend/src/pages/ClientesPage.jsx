@@ -5,12 +5,14 @@
 
 import { useState } from 'react'
 import { Plus, Users } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import {
   useGetClientes,
   useDeleteCliente
 } from '../hooks/UseClientes'
 import ClienteCard from '../components/cards/ClienteCard'
 import ClienteFormModal from '../components/forms/ClienteFormModal'
+import ClienteHistorialModal from '../components/modals/ClienteHistorialModal'
 import Button from '../components/common/Button'
 import Spinner from '../components/common/Spinner'
 import EmptyState from '../components/common/EmptyState'
@@ -25,6 +27,8 @@ import EmptyState from '../components/common/EmptyState'
  * - Crear nuevo cliente
  * - Editar cliente existente
  * - Eliminar cliente
+ * - Ver historial de eventos de un cliente
+ * - Repetir un evento pasado (crear nuevo evento con mismo cliente)
  */
 export default function ClientesPage() {
 
@@ -32,6 +36,7 @@ export default function ClientesPage() {
   // HOOKS: Obtener datos
   // ============================================
 
+  const navigate = useNavigate()
   const { clientes, isLoading, error, refetch } = useGetClientes()
   const { mutateAsync: deleteCliente, isLoading: isDeleting } = useDeleteCliente()
 
@@ -45,6 +50,7 @@ export default function ClientesPage() {
   })
 
   const [selectedCliente, setSelectedCliente] = useState(null)
+  const [historialClienteId, setHistorialClienteId] = useState(null)
 
   // ============================================
   // HANDLERS
@@ -78,7 +84,24 @@ export default function ClientesPage() {
     }
   }
 
-  
+  const handleVerHistorial = (cliente) => {
+    setHistorialClienteId(cliente.id)
+  }
+
+  const handleRepetirEvento = (evento, cliente) => {
+    setHistorialClienteId(null)
+    navigate('/alquileres/cotizaciones', {
+      state: {
+        crearParaCliente: {
+          id: cliente.id,
+          nombre: cliente.nombre
+        },
+        eventoReferencia: evento.nombre
+      }
+    })
+  }
+
+
   // ============================================
   // RENDER: Estados de carga y error
   // ============================================
@@ -149,6 +172,7 @@ export default function ClientesPage() {
               cliente={cliente}
               onEdit={handleEdit}
               onDelete={handleDelete}
+              onVerHistorial={handleVerHistorial}
             />
           ))}
         </div>
@@ -179,6 +203,14 @@ export default function ClientesPage() {
         onClose={handleCloseModal}
         mode="editar"
         cliente={selectedCliente}
+      />
+
+      {/* Modal historial de eventos */}
+      <ClienteHistorialModal
+        isOpen={!!historialClienteId}
+        onClose={() => setHistorialClienteId(null)}
+        clienteId={historialClienteId}
+        onRepetirEvento={handleRepetirEvento}
       />
 
       {/* Indicador de carga al eliminar */}

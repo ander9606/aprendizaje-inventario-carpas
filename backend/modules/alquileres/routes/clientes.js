@@ -16,6 +16,9 @@ router.get('/activos', clienteController.obtenerActivos);
 // GET /api/clientes/buscar?q=termino - Buscar
 router.get('/buscar', clienteController.buscar);
 
+// GET /api/clientes/:id/historial-eventos - Historial de eventos del cliente
+router.get('/:id/historial-eventos', validateId(), clienteController.obtenerHistorialEventos);
+
 // GET /api/clientes/:id - Obtener por ID
 router.get('/:id', validateId(), clienteController.obtenerPorId);
 

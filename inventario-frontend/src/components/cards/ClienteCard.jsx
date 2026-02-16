@@ -3,7 +3,7 @@
 // Muestra una tarjeta de cliente
 // ============================================
 
-import { User, Phone, Mail, MapPin, Edit, Trash2, FileText } from 'lucide-react'
+import { User, Phone, Mail, MapPin, Edit, Trash2, FileText, History } from 'lucide-react'
 import Card from '../common/Card'
 import Button from '../common/Button'
 
@@ -19,11 +19,13 @@ import Button from '../common/Button'
  * @param {Object} cliente - Datos del cliente
  * @param {Function} onEdit - Callback para editar cliente
  * @param {Function} onDelete - Callback para eliminar cliente
+ * @param {Function} onVerHistorial - Callback para ver historial de eventos
  */
 const ClienteCard = ({
   cliente,
   onEdit,
-  onDelete
+  onDelete,
+  onVerHistorial
 }) => {
 
   // ============================================
@@ -75,6 +77,13 @@ const ClienteCard = ({
 
     if (confirmacion && onDelete) {
       onDelete(cliente.id)
+    }
+  }
+
+  const handleVerHistorial = (e) => {
+    e.stopPropagation()
+    if (onVerHistorial) {
+      onVerHistorial(cliente)
     }
   }
 
@@ -161,26 +170,39 @@ const ClienteCard = ({
 
       {/* FOOTER */}
       <Card.Footer>
-        <div className="flex gap-2 justify-between">
-          <Button
-            variant="ghost"
-            size="sm"
-            icon={<Edit className="w-4 h-4" />}
-            onClick={handleEdit}
-            className="flex-1"
-          >
-            Editar
-          </Button>
+        <div className="space-y-2">
+          {onVerHistorial && (
+            <Button
+              variant="ghost"
+              size="sm"
+              icon={<History className="w-4 h-4" />}
+              onClick={handleVerHistorial}
+              className="w-full text-blue-600 hover:bg-blue-50"
+            >
+              Ver historial de eventos
+            </Button>
+          )}
+          <div className="flex gap-2 justify-between">
+            <Button
+              variant="ghost"
+              size="sm"
+              icon={<Edit className="w-4 h-4" />}
+              onClick={handleEdit}
+              className="flex-1"
+            >
+              Editar
+            </Button>
 
-          <Button
-            variant="ghost"
-            size="sm"
-            icon={<Trash2 className="w-4 h-4" />}
-            onClick={handleDelete}
-            className="flex-1"
-          >
-            Eliminar
-          </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              icon={<Trash2 className="w-4 h-4" />}
+              onClick={handleDelete}
+              className="flex-1"
+            >
+              Eliminar
+            </Button>
+          </div>
         </div>
       </Card.Footer>
     </Card>

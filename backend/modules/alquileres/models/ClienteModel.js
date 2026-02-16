@@ -170,6 +170,74 @@ class ClienteModel {
   }
 
   // ============================================
+  // OBTENER HISTORIAL DE EVENTOS DEL CLIENTE
+  // ============================================
+  static async obtenerHistorialEventos(clienteId) {
+    // Eventos del cliente con estadísticas
+    const eventosQuery = `
+      SELECT
+        e.id,
+        e.nombre,
+        e.descripcion,
+        DATE_FORMAT(e.fecha_inicio, '%Y-%m-%d') AS fecha_inicio,
+        DATE_FORMAT(e.fecha_fin, '%Y-%m-%d') AS fecha_fin,
+        e.direccion,
+        e.estado,
+        ci.nombre AS ciudad_nombre,
+        e.created_at,
+        (SELECT COUNT(*) FROM cotizaciones WHERE evento_id = e.id) AS total_cotizaciones,
+        (SELECT COALESCE(SUM(total), 0) FROM cotizaciones WHERE evento_id = e.id AND estado = 'aprobada') AS valor_aprobado,
+        (SELECT COUNT(*) FROM cotizaciones cot
+          INNER JOIN alquileres a ON a.cotizacion_id = cot.id
+          WHERE cot.evento_id = e.id) AS total_alquileres,
+        (SELECT COUNT(*) FROM cotizaciones cot
+          INNER JOIN alquileres a ON a.cotizacion_id = cot.id
+          WHERE cot.evento_id = e.id AND a.estado = 'finalizado') AS alquileres_finalizados
+      FROM eventos e
+      LEFT JOIN ciudades ci ON e.ciudad_id = ci.id
+      WHERE e.cliente_id = ?
+      ORDER BY e.fecha_inicio DESC
+    `;
+    const [eventos] = await pool.query(eventosQuery, [clienteId]);
+
+    // Para cada evento, obtener los productos alquilados (resumen)
+    for (const evento of eventos) {
+      const productosQuery = `
+        SELECT
+          cp.nombre_producto,
+          cp.cantidad,
+          cp.precio_unitario,
+          cp.subtotal,
+          cot.estado AS estado_cotizacion
+        FROM cotizacion_productos cp
+        INNER JOIN cotizaciones cot ON cp.cotizacion_id = cot.id
+        WHERE cot.evento_id = ? AND cot.estado = 'aprobada'
+        ORDER BY cp.nombre_producto
+      `;
+      const [productos] = await pool.query(productosQuery, [evento.id]);
+      evento.productos = productos;
+    }
+
+    // Resumen general del cliente
+    const resumenQuery = `
+      SELECT
+        COUNT(DISTINCT e.id) AS total_eventos,
+        COUNT(DISTINCT CASE WHEN e.estado = 'completado' THEN e.id END) AS eventos_completados,
+        COUNT(DISTINCT CASE WHEN e.estado = 'activo' THEN e.id END) AS eventos_activos,
+        COALESCE(SUM(CASE WHEN cot.estado = 'aprobada' THEN cot.total ELSE 0 END), 0) AS total_facturado
+      FROM eventos e
+      LEFT JOIN cotizaciones cot ON cot.evento_id = e.id
+      WHERE e.cliente_id = ?
+    `;
+    const [resumenRows] = await pool.query(resumenQuery, [clienteId]);
+
+    return {
+      eventos,
+      resumen: resumenRows[0]
+    };
+  }
+
+  // ============================================
   // VERIFICAR SI TIENE COTIZACIONES
   // ============================================
   static async tieneCotizaciones(id) {
