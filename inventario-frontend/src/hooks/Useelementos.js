@@ -104,13 +104,13 @@ export const useGetElementos = (subcategoriaId) => {
               return stats
             }, {
               disponible: 0,
+              bueno: 0,
               alquilado: 0,
               mantenimiento: 0,
-              dañado: 0,
-              nuevo: 0
+              dañado: 0
             })
-            
-            const series_disponibles = (series_por_estado.disponible || 0) + (series_por_estado.nuevo || 0)
+
+            const series_disponibles = (series_por_estado.disponible || 0) + (series_por_estado.bueno || 0)
             
             return {
               ...elemento,

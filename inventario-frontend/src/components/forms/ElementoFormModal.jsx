@@ -491,7 +491,6 @@ function ElementoFormModal({
               focus:outline-none focus:ring-2 focus:ring-blue-500
             "
           >
-            <option value={ESTADOS.NUEVO}>Nuevo</option>
             <option value={ESTADOS.BUENO}>Bueno</option>
             <option value={ESTADOS.MANTENIMIENTO}>Mantenimiento</option>
             <option value={ESTADOS.DANADO}>Dañado</option>

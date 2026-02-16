@@ -208,7 +208,7 @@ const validateId = (id, fieldName = 'ID') => {
 // ============================================
 
 /**
- * Valida un estado (nuevo, bueno, mantenimiento, alquilado, dañado)
+ * Valida un estado (bueno, mantenimiento, alquilado, dañado)
  * @param {string} estado - Estado a validar
  * @param {boolean} required - Si es obligatorio (default: true)
  * @throws {AppError} Si el estado no es válido

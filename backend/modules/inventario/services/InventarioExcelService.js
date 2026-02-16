@@ -456,7 +456,6 @@ class InventarioExcelService {
 
     static _getColorEstado(estado) {
         const colores = {
-            'nuevo': COLORES.AZUL,
             'bueno': COLORES.VERDE,
             'disponible': COLORES.VERDE,
             'mantenimiento': COLORES.AMARILLO,

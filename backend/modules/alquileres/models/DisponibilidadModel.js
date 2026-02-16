@@ -34,17 +34,17 @@ class DisponibilidadModel {
   // ============================================
   // OBTENER STOCK TOTAL POR ELEMENTO
   // Prioridad: series > lotes > cantidad en tabla elementos
-  // Estados disponibles: 'bueno', 'nuevo' (no 'mantenimiento', 'alquilado', 'dañado')
+  // Estados disponibles: 'bueno' (no 'mantenimiento', 'alquilado', 'dañado')
   // ============================================
   static async obtenerStockTotal(elementoId, requiereSeries) {
     console.log(`📦 obtenerStockTotal(elementoId=${elementoId}, requiereSeries=${requiereSeries})`);
 
     if (requiereSeries) {
-      // Contar series disponibles (estados: bueno, nuevo)
+      // Contar series disponibles (estado: bueno)
       const [result] = await pool.query(`
         SELECT COUNT(*) AS total
         FROM series
-        WHERE id_elemento = ? AND estado IN ('bueno', 'nuevo', 'disponible')
+        WHERE id_elemento = ? AND estado IN ('bueno', 'disponible')
       `, [elementoId]);
       const totalSeries = parseInt(result[0].total);
       console.log(`   📊 Series disponibles: ${totalSeries}`);
@@ -60,11 +60,11 @@ class DisponibilidadModel {
       console.log(`   🔄 Fallback elementos.cantidad: ${cantidadElemento}`);
       return cantidadElemento;
     } else {
-      // Sumar cantidad de lotes disponibles (estados: bueno, nuevo)
+      // Sumar cantidad de lotes disponibles (estado: bueno)
       const [result] = await pool.query(`
         SELECT COALESCE(SUM(cantidad), 0) AS total
         FROM lotes
-        WHERE elemento_id = ? AND estado IN ('bueno', 'nuevo', 'disponible')
+        WHERE elemento_id = ? AND estado IN ('bueno', 'disponible')
       `, [elementoId]);
       const totalLotes = parseInt(result[0].total);
       console.log(`   📊 Lotes disponibles: ${totalLotes}`);
@@ -200,7 +200,7 @@ class DisponibilidadModel {
       FROM series s
       LEFT JOIN ubicaciones u ON s.ubicacion_id = u.id
       WHERE s.id_elemento = ?
-        AND s.estado IN ('bueno', 'nuevo', 'disponible')
+        AND s.estado IN ('bueno', 'disponible')
         AND s.id NOT IN (
           SELECT ae.serie_id
           FROM alquiler_elementos ae
@@ -249,7 +249,7 @@ class DisponibilidadModel {
       FROM lotes l
       LEFT JOIN ubicaciones u ON l.ubicacion_id = u.id
       WHERE l.elemento_id = ?
-        AND l.estado IN ('bueno', 'nuevo', 'disponible')
+        AND l.estado IN ('bueno', 'disponible')
       HAVING (l.cantidad - cantidad_ocupada) > 0
       ORDER BY (l.cantidad - cantidad_ocupada) DESC
     `;

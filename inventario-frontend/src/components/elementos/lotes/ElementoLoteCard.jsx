@@ -199,9 +199,8 @@ export const ElementoLoteCard = ({
           ============================================ */}
       <div className="px-6 pt-4">
         {/* Stats en grid */}
-        <div className="grid grid-cols-3 md:grid-cols-6 gap-2 mb-3">
+        <div className="grid grid-cols-5 gap-2 mb-3">
           <StatMini label="Total" value={isLoadingLotes ? '-' : cantidad_total} color="slate" />
-          <StatMini label="Nuevo" value={isLoadingLotes ? '-' : (estadisticas.nuevo || 0)} color="purple" />
           <StatMini label="Bueno" value={isLoadingLotes ? '-' : (estadisticas.bueno || 0)} color="green" />
           <StatMini label="Alquilado" value={isLoadingLotes ? '-' : alquilados} color="blue" />
           <StatMini label="Mant." value={isLoadingLotes ? '-' : enMantenimiento} color="amber" />

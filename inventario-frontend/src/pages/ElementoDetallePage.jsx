@@ -566,7 +566,7 @@ function ElementoDetallePage() {
       {/* ============================================
           ESTADÍSTICAS - Click para filtrar
           ============================================ */}
-      <div className="grid grid-cols-3 md:grid-cols-6 gap-3 mb-6">
+      <div className="grid grid-cols-5 gap-3 mb-6">
         <StatCard
           label="Total"
           value={elemento.requiere_series ? totalSeries : cantidad_total}
@@ -574,14 +574,6 @@ function ElementoDetallePage() {
           size="md"
           onClick={() => setFiltroEstado(null)}
           active={!filtroEstado}
-        />
-        <StatCard
-          label="Nuevo"
-          value={estadisticas?.nuevo || 0}
-          color="purple"
-          size="md"
-          onClick={() => handleFiltroEstado('nuevo')}
-          active={filtroEstado === 'nuevo'}
         />
         <StatCard
           label="Bueno"

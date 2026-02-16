@@ -38,14 +38,11 @@ export default function ModalAsignarInventario({ ordenId, elementosPendientes, o
 
     // ============================================
     // HELPER: Ordenar disponibles por prioridad
-    // Prioridad: bueno > nuevo, mayor cantidad disponible
+    // Prioridad: mayor cantidad disponible primero
     // ============================================
     const ordenarPorPrioridad = (disponibles) => {
         return [...disponibles].sort((a, b) => {
-            // 1. Priorizar estado 'bueno' sobre 'nuevo' (preservar nuevos)
-            if (a.estado === 'bueno' && b.estado === 'nuevo') return -1
-            if (a.estado === 'nuevo' && b.estado === 'bueno') return 1
-            // 2. Para lotes: priorizar el que tenga mayor cantidad
+            // Para lotes: priorizar el que tenga mayor cantidad
             if (a.tipo === 'lote' && b.tipo === 'lote') {
                 return b.cantidad - a.cantidad
             }
@@ -297,7 +294,7 @@ export default function ModalAsignarInventario({ ordenId, elementosPendientes, o
                                                                             {serie.identificador}
                                                                         </span>
                                                                         <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
-                                                                            serie.estado === 'nuevo' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'
+                                                                            'bg-green-100 text-green-700'
                                                                         }`}>
                                                                             {serie.estado}
                                                                         </span>

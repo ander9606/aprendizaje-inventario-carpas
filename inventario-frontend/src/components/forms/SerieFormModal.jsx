@@ -77,7 +77,7 @@ function SerieFormModal({
    *
    * CAMPOS:
    * - numero_serie: Número de serie único (ej: "DOITE-001")
-   * - estado: Estado de la serie ('nuevo', 'bueno', etc)
+   * - estado: Estado de la serie ('bueno', 'mantenimiento', etc)
    * - ubicacion_id: ID de la ubicación seleccionada
    * - ubicacion: Nombre de la ubicación (se obtiene automáticamente del selector)
    */

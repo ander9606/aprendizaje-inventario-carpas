@@ -277,7 +277,7 @@ function CrearLoteModal({
           </label>
 
           <div className="grid grid-cols-2 gap-2">
-            {[ESTADOS.NUEVO, ESTADOS.BUENO, ESTADOS.MANTENIMIENTO, ESTADOS.DANADO].map((estado) => (
+            {[ESTADOS.BUENO, ESTADOS.MANTENIMIENTO, ESTADOS.DANADO].map((estado) => (
               <button
                 key={estado}
                 type="button"
