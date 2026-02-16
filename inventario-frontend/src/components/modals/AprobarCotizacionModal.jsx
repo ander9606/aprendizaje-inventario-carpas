@@ -4,7 +4,7 @@
 // ============================================
 
 import { useState, useEffect } from 'react'
-import { CheckCircle, XCircle, AlertTriangle, Calendar, User, Package, DollarSign } from 'lucide-react'
+import { CheckCircle, XCircle, AlertTriangle, Calendar, User, Package, DollarSign, Shield, ShieldOff } from 'lucide-react'
 import Modal from '../common/Modal'
 import Button from '../common/Button'
 import Spinner from '../common/Spinner'
@@ -24,6 +24,7 @@ const AprobarCotizacionModal = ({
   onAprobar,
   isAprobando = false
 }) => {
+  const [cobrarDeposito, setCobrarDeposito] = useState(true)
   const [depositoCobrado, setDepositoCobrado] = useState('')
   const [notasSalida, setNotasSalida] = useState('')
   const [forzar, setForzar] = useState(false)
@@ -45,8 +46,21 @@ const AprobarCotizacionModal = ({
       setDepositoCobrado('')
       setNotasSalida('')
       setForzar(false)
+      setCobrarDeposito(true)
     }
   }, [isOpen])
+
+  // Auto-populate deposit when cotizacion loads
+  useEffect(() => {
+    if (cotizacion?.resumen) {
+      const valorDeposito = cotizacion.resumen.valor_deposito || cotizacion.resumen.total_deposito || 0
+      const cobrar = cotizacion.resumen.cobrar_deposito !== undefined
+        ? cotizacion.resumen.cobrar_deposito
+        : true
+      setCobrarDeposito(cobrar)
+      setDepositoCobrado(valorDeposito > 0 ? String(valorDeposito) : '')
+    }
+  }, [cotizacion])
 
   // Helpers
   const formatearFecha = (fecha) => {
@@ -70,7 +84,7 @@ const AprobarCotizacionModal = ({
     onAprobar({
       id: cotizacionId,
       opciones: {
-        deposito_cobrado: depositoCobrado ? parseFloat(depositoCobrado) : null,
+        deposito_cobrado: cobrarDeposito && depositoCobrado ? parseFloat(depositoCobrado) : 0,
         notas_salida: notasSalida || null,
         forzar: forzar
       }
@@ -216,22 +230,78 @@ const AprobarCotizacionModal = ({
             )}
           </div>
 
-          {/* DATOS ADICIONALES */}
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                <DollarSign className="w-4 h-4 inline mr-1" />
-                Depósito Cobrado (opcional)
-              </label>
-              <input
-                type="number"
-                value={depositoCobrado}
-                onChange={(e) => setDepositoCobrado(e.target.value)}
-                placeholder="0"
-                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+          {/* DEPÓSITO */}
+          <div className={`
+            rounded-lg p-4 border-2 transition-colors
+            ${cobrarDeposito
+              ? 'bg-blue-50 border-blue-300'
+              : 'bg-slate-50 border-slate-200'
+            }
+          `}>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                {cobrarDeposito ? (
+                  <Shield className="w-5 h-5 text-blue-600" />
+                ) : (
+                  <ShieldOff className="w-5 h-5 text-slate-400" />
+                )}
+                <h4 className={`font-semibold ${cobrarDeposito ? 'text-blue-800' : 'text-slate-600'}`}>
+                  Depósito de Garantía
+                </h4>
+              </div>
+
+              {/* Toggle switch */}
+              <button
+                type="button"
+                onClick={() => setCobrarDeposito(!cobrarDeposito)}
+                className={`
+                  relative inline-flex h-7 w-12 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
+                  ${cobrarDeposito ? 'bg-blue-600' : 'bg-slate-300'}
+                `}
+              >
+                <span
+                  className={`
+                    inline-block h-5 w-5 transform rounded-full bg-white transition-transform shadow-sm
+                    ${cobrarDeposito ? 'translate-x-6' : 'translate-x-1'}
+                  `}
+                />
+              </button>
             </div>
 
+            {cobrarDeposito ? (
+              <div>
+                <p className="text-sm text-blue-700 mb-3">
+                  Se cobrará depósito al cliente antes de aprobar el alquiler.
+                </p>
+                <div>
+                  <label className="block text-sm font-medium text-blue-800 mb-1">
+                    <DollarSign className="w-4 h-4 inline mr-1" />
+                    Valor del depósito
+                  </label>
+                  <input
+                    type="number"
+                    value={depositoCobrado}
+                    onChange={(e) => setDepositoCobrado(e.target.value)}
+                    placeholder="0"
+                    min="0"
+                    className="w-full px-4 py-2.5 border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-lg font-semibold"
+                  />
+                  {cotizacion?.resumen?.valor_deposito > 0 && depositoCobrado !== String(cotizacion.resumen.valor_deposito) && (
+                    <p className="text-xs text-blue-600 mt-1">
+                      Valor sugerido: {formatearMoneda(cotizacion.resumen.valor_deposito)}
+                    </p>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-slate-500">
+                No se cobrará depósito para este alquiler.
+              </p>
+            )}
+          </div>
+
+          {/* DATOS ADICIONALES */}
+          <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
                 Notas de Salida (opcional)

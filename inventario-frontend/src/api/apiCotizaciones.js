@@ -84,6 +84,12 @@ export const apiCotizaciones = {
     return response.data;
   },
 
+  // Depósito
+  actualizarCobrarDeposito: async (id, cobrarDeposito) => {
+    const response = await api.patch(`/cotizaciones/${id}/deposito`, { cobrar_deposito: cobrarDeposito });
+    return response.data;
+  },
+
   // Seguimiento
   obtenerSeguimiento: async (id) => {
     const response = await api.get(`/cotizaciones/${id}/seguimiento`);

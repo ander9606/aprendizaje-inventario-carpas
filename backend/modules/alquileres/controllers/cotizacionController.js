@@ -698,13 +698,22 @@ exports.aprobarYCrearAlquiler = async (req, res, next) => {
     // Aprobar cotización
     await CotizacionModel.actualizarEstado(id, 'aprobada');
 
+    // Determinar depósito cobrado: usar valor explícito, o basarse en cobrar_deposito de la cotización
+    let depositoFinal = deposito_cobrado;
+    if (depositoFinal === undefined || depositoFinal === null) {
+      const cobrarDeposito = cotizacion.resumen?.cobrar_deposito !== undefined
+        ? cotizacion.resumen.cobrar_deposito
+        : true;
+      depositoFinal = cobrarDeposito ? (cotizacion.resumen?.valor_deposito || 0) : 0;
+    }
+
     // Crear alquiler con fechas de la cotización
     const resultadoAlquiler = await AlquilerModel.crear({
       cotizacion_id: id,
       fecha_salida: fechaSalida,
       fecha_retorno_esperado: fechaRetorno,
       total: cotizacion.total,
-      deposito_cobrado,
+      deposito_cobrado: depositoFinal,
       notas_salida
     });
 
@@ -1152,6 +1161,47 @@ exports.asignarEvento = async (req, res, next) => {
     });
   } catch (error) {
     logger.error('cotizacionController.asignarEvento', error);
+    next(error);
+  }
+};
+
+// ============================================
+// ACTUALIZAR COBRO DE DEPÓSITO
+// ============================================
+exports.actualizarCobrarDeposito = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { cobrar_deposito } = req.body;
+
+    const cotizacion = await CotizacionModel.obtenerPorId(id);
+    if (!cotizacion) {
+      throw new AppError('Cotización no encontrada', 404);
+    }
+
+    if (!['pendiente', 'borrador'].includes(cotizacion.estado)) {
+      throw new AppError('Solo se puede modificar el depósito de cotizaciones pendientes o en borrador', 400);
+    }
+
+    if (cobrar_deposito === undefined || cobrar_deposito === null) {
+      throw new AppError('Debe indicar si se cobra depósito (cobrar_deposito: true/false)', 400);
+    }
+
+    await CotizacionModel.actualizarCobrarDeposito(id, cobrar_deposito);
+
+    const cotizacionActualizada = await CotizacionModel.obtenerCompleta(id);
+
+    logger.info('cotizacionController.actualizarCobrarDeposito', 'Cobro de depósito actualizado', {
+      id,
+      cobrar_deposito
+    });
+
+    res.json({
+      success: true,
+      mensaje: cobrar_deposito ? 'Se cobrará depósito' : 'No se cobrará depósito',
+      data: cotizacionActualizada
+    });
+  } catch (error) {
+    logger.error('cotizacionController.actualizarCobrarDeposito', error);
     next(error);
   }
 };

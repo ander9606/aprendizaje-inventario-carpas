@@ -4,7 +4,7 @@
 // ============================================
 
 import { useState } from 'react'
-import { Calendar, User, MapPin, Phone, Mail, Truck, FileText, Edit, CheckCircle, XCircle, Ban, Download, FileEdit, CalendarCheck, MessageSquare, Clock } from 'lucide-react'
+import { Calendar, User, MapPin, Phone, Mail, Truck, FileText, Edit, CheckCircle, XCircle, Ban, Download, FileEdit, CalendarCheck, MessageSquare, Clock, Shield, ShieldOff } from 'lucide-react'
 import Modal from '../common/Modal'
 import Button from '../common/Button'
 import Spinner from '../common/Spinner'
@@ -403,6 +403,33 @@ const CotizacionDetalleModal = ({
                     <span className="text-xl font-bold text-slate-900">TOTAL:</span>
                     <span className="text-xl font-bold text-blue-700">{formatearMoneda(cotizacion.total || total)}</span>
                   </div>
+
+                  {/* Depósito de garantía */}
+                  {(cotizacion.resumen?.total_deposito > 0 || cotizacion.resumen?.valor_deposito > 0) && (
+                    <div className={`
+                      flex items-center justify-between py-2 px-3 rounded-lg mt-2
+                      ${cotizacion.resumen?.cobrar_deposito !== false
+                        ? 'bg-blue-50 border border-blue-200'
+                        : 'bg-slate-50 border border-slate-200'
+                      }
+                    `}>
+                      <span className={`flex items-center gap-1.5 text-sm ${
+                        cotizacion.resumen?.cobrar_deposito !== false ? 'text-blue-700 font-medium' : 'text-slate-400'
+                      }`}>
+                        {cotizacion.resumen?.cobrar_deposito !== false ? (
+                          <Shield className="w-4 h-4" />
+                        ) : (
+                          <ShieldOff className="w-4 h-4" />
+                        )}
+                        Depósito de garantía:
+                      </span>
+                      <span className={`font-semibold ${
+                        cotizacion.resumen?.cobrar_deposito !== false ? 'text-blue-800' : 'text-slate-400 line-through'
+                      }`}>
+                        {formatearMoneda(cotizacion.resumen?.valor_deposito || cotizacion.resumen?.total_deposito || 0)}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
