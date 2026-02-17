@@ -312,7 +312,14 @@ exports.repetir = async (req, res, next) => {
     const nuevoEventoId = resultadoEvento.insertId;
 
     // Obtener productos de cotizaciones aprobadas del evento original
-    const productosOriginales = await EventoModel.obtenerProductosAprobados(id);
+    // MySQL DECIMAL retorna strings, convertir a números para evitar NaN en cálculos
+    const productosOriginales = (await EventoModel.obtenerProductosAprobados(id)).map(p => ({
+      ...p,
+      cantidad: parseInt(p.cantidad) || 1,
+      precio_base: parseFloat(p.precio_base) || 0,
+      deposito: parseFloat(p.deposito) || 0,
+      precio_adicionales: parseFloat(p.precio_adicionales) || 0
+    }));
 
     let cotizacionId = null;
 
