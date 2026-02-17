@@ -204,15 +204,16 @@ class ClienteModel {
     for (const evento of eventos) {
       const productosQuery = `
         SELECT
-          cp.nombre_producto,
+          ec.nombre AS nombre_producto,
           cp.cantidad,
-          cp.precio_unitario,
+          cp.precio_base AS precio_unitario,
           cp.subtotal,
           cot.estado AS estado_cotizacion
         FROM cotizacion_productos cp
         INNER JOIN cotizaciones cot ON cp.cotizacion_id = cot.id
+        INNER JOIN elementos_compuestos ec ON cp.compuesto_id = ec.id
         WHERE cot.evento_id = ? AND cot.estado = 'aprobada'
-        ORDER BY cp.nombre_producto
+        ORDER BY ec.nombre
       `;
       const [productos] = await pool.query(productosQuery, [evento.id]);
       evento.productos = productos;
