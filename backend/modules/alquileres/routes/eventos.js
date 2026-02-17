@@ -28,6 +28,9 @@ router.get('/:id/puede-agregar-cotizacion', validateId(), eventoController.puede
 // POST /api/eventos - Crear
 router.post('/', eventoController.crear);
 
+// POST /api/eventos/:id/repetir - Repetir evento con nuevas fechas y mismos productos
+router.post('/:id/repetir', validateId(), eventoController.repetir);
+
 // PUT /api/eventos/:id - Actualizar
 router.put('/:id', validateId(), eventoController.actualizar);
 

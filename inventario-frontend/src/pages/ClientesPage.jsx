@@ -10,7 +10,7 @@ import {
   useGetClientes,
   useDeleteCliente
 } from '../hooks/UseClientes'
-import { useCreateEvento } from '../hooks/useEventos'
+import { useRepetirEvento } from '../hooks/useEventos'
 import ClienteCard from '../components/cards/ClienteCard'
 import ClienteFormModal from '../components/forms/ClienteFormModal'
 import ClienteHistorialModal from '../components/modals/ClienteHistorialModal'
@@ -42,7 +42,7 @@ export default function ClientesPage() {
   const navigate = useNavigate()
   const { clientes, isLoading, error, refetch } = useGetClientes()
   const { mutateAsync: deleteCliente, isLoading: isDeleting } = useDeleteCliente()
-  const crearEvento = useCreateEvento()
+  const repetirEvento = useRepetirEvento()
 
   // ============================================
   // STATE: Control de modales
@@ -103,12 +103,17 @@ export default function ClientesPage() {
 
   const handleCrearEventoRepetido = async (datos) => {
     try {
-      await crearEvento.mutateAsync(datos)
-      toast.success('Evento creado exitosamente')
+      const resultado = await repetirEvento.mutateAsync({
+        id: eventoRepetir.id,
+        fecha_inicio: datos.fecha_inicio,
+        fecha_fin: datos.fecha_fin
+      })
+      const productosCopiados = resultado?.data?.productos_copiados || 0
+      toast.success(`Evento repetido con ${productosCopiados} producto${productosCopiados !== 1 ? 's' : ''}`)
       setEventoRepetir(null)
       navigate('/alquileres/cotizaciones')
     } catch (error) {
-      toast.error(error?.response?.data?.message || 'Error al crear evento')
+      toast.error(error?.response?.data?.message || 'Error al repetir evento')
       throw error
     }
   }

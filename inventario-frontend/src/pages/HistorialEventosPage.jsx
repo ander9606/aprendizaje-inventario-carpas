@@ -22,7 +22,7 @@ import {
     RefreshCw
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import { useGetEventos, useCreateEvento } from '../hooks/useEventos'
+import { useGetEventos, useRepetirEvento } from '../hooks/useEventos'
 import Spinner from '../components/common/Spinner'
 import Button from '../components/common/Button'
 import EventoFormModal from '../components/modals/EventoFormModal'
@@ -213,7 +213,7 @@ export default function HistorialEventosPage() {
     const [eventoRepetir, setEventoRepetir] = useState(null)
 
     const { eventos, isLoading, refetch } = useGetEventos()
-    const crearEvento = useCreateEvento()
+    const repetirEvento = useRepetirEvento()
 
     // Filtrar solo completados/cancelados
     const historial = useMemo(() => {
@@ -242,13 +242,18 @@ export default function HistorialEventosPage() {
 
     const handleCrearEventoRepetido = async (datos) => {
         try {
-            await crearEvento.mutateAsync(datos)
-            toast.success('Evento creado exitosamente')
+            const resultado = await repetirEvento.mutateAsync({
+                id: eventoRepetir.id,
+                fecha_inicio: datos.fecha_inicio,
+                fecha_fin: datos.fecha_fin
+            })
+            const productosCopiados = resultado?.data?.productos_copiados || 0
+            toast.success(`Evento repetido con ${productosCopiados} producto${productosCopiados !== 1 ? 's' : ''}`)
             setEventoRepetir(null)
             refetch()
             navigate('/alquileres/cotizaciones')
         } catch (error) {
-            toast.error(error?.response?.data?.message || 'Error al crear evento')
+            toast.error(error?.response?.data?.message || 'Error al repetir evento')
             throw error
         }
     }

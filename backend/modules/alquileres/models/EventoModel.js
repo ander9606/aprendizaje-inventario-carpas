@@ -360,6 +360,28 @@ class EventoModel {
 
     return { permitido: true };
   }
+
+  // ============================================
+  // OBTENER PRODUCTOS DE COTIZACIONES APROBADAS
+  // Retorna los productos para copiarlos a un nuevo evento
+  // ============================================
+  static async obtenerProductosAprobados(eventoId) {
+    const query = `
+      SELECT
+        cp.compuesto_id,
+        cp.cantidad,
+        cp.precio_base,
+        cp.deposito,
+        cp.precio_adicionales,
+        cp.notas
+      FROM cotizacion_productos cp
+      INNER JOIN cotizaciones cot ON cp.cotizacion_id = cot.id
+      WHERE cot.evento_id = ? AND cot.estado = 'aprobada'
+      ORDER BY cp.id
+    `;
+    const [rows] = await pool.query(query, [eventoId]);
+    return rows;
+  }
 }
 
 module.exports = EventoModel;
