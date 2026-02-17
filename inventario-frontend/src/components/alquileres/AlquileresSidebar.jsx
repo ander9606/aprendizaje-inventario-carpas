@@ -65,7 +65,12 @@ const AlquileresSidebar = () => {
     {
       to: '/alquileres/historial',
       icon: Archive,
-      label: 'Historial'
+      label: 'Historial Alquileres'
+    },
+    {
+      to: '/alquileres/historial-eventos',
+      icon: Calendar,
+      label: 'Historial Eventos'
     }
   ]
 

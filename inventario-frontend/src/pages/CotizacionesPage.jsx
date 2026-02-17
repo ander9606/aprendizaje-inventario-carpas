@@ -9,7 +9,6 @@ import {
   Plus,
   Users,
   Calendar,
-  Filter,
   Search,
   Clock,
   CheckCircle,
@@ -20,7 +19,8 @@ import {
   ChevronDown,
   Eye,
   Edit2,
-  Trash2
+  Trash2,
+  Archive
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -251,7 +251,6 @@ export default function CotizacionesPage() {
   // ============================================
 
   const [busqueda, setBusqueda] = useState('')
-  const [filtroEstado, setFiltroEstado] = useState('')
 
   // Modales
   const [showModalEvento, setShowModalEvento] = useState(false)
@@ -267,6 +266,10 @@ export default function CotizacionesPage() {
   // ============================================
 
   const eventosFiltrados = (eventos || []).filter(e => {
+    // Solo mostrar eventos activos (completados y cancelados van al historial)
+    if (e.estado === 'completado' || e.estado === 'cancelado') {
+      return false
+    }
     // Filtro por búsqueda
     if (busqueda) {
       const termino = busqueda.toLowerCase()
@@ -274,10 +277,6 @@ export default function CotizacionesPage() {
           !e.cliente_nombre?.toLowerCase().includes(termino)) {
         return false
       }
-    }
-    // Filtro por estado
-    if (filtroEstado && e.estado !== filtroEstado) {
-      return false
     }
     return true
   })
@@ -426,27 +425,23 @@ export default function CotizacionesPage() {
             />
           </div>
 
-          {/* Filtro de estado */}
-          <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4 text-slate-500" />
-            <select
-              value={filtroEstado}
-              onChange={(e) => setFiltroEstado(e.target.value)}
-              className="px-3 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
-            >
-              <option value="">Todos los estados</option>
-              <option value="activo">Activos</option>
-              <option value="completado">Completados</option>
-              <option value="cancelado">Cancelados</option>
-            </select>
-          </div>
+          {/* Link al historial */}
+          <Button
+            variant="ghost"
+            size="sm"
+            icon={<Archive className="w-4 h-4" />}
+            onClick={() => navigate('/alquileres/historial-eventos')}
+            className="text-slate-600"
+          >
+            Historial
+          </Button>
         </div>
       </div>
 
       {/* INFO */}
       <div className="mb-4 text-sm text-slate-500">
-        Mostrando {eventosFiltrados.length} evento{eventosFiltrados.length !== 1 ? 's' : ''}
-        {busqueda || filtroEstado ? ' encontrado' + (eventosFiltrados.length !== 1 ? 's' : '') : ''}
+        Mostrando {eventosFiltrados.length} evento{eventosFiltrados.length !== 1 ? 's' : ''} activo{eventosFiltrados.length !== 1 ? 's' : ''}
+        {busqueda ? ' encontrado' + (eventosFiltrados.length !== 1 ? 's' : '') : ''}
       </div>
 
       {/* GRID DE EVENTOS */}
@@ -467,11 +462,11 @@ export default function CotizacionesPage() {
         <EmptyState
           type="no-data"
           title="No hay eventos"
-          description={busqueda || filtroEstado
+          description={busqueda
             ? "No se encontraron eventos con los filtros seleccionados"
             : "Crea tu primer evento para comenzar a gestionar cotizaciones"}
           icon={Calendar}
-          action={!busqueda && !filtroEstado ? {
+          action={!busqueda ? {
             label: "Crear evento",
             icon: <Plus />,
             onClick: () => setShowModalEvento(true)

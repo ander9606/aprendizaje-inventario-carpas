@@ -24,11 +24,13 @@ import {
     History
 } from 'lucide-react'
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useGetHistorialEventos } from '../../hooks/UseClientes'
 import Spinner from '../common/Spinner'
 import Button from '../common/Button'
 
 const ClienteHistorialModal = ({ isOpen, onClose, clienteId, onRepetirEvento }) => {
+    const navigate = useNavigate()
     const { historial, isLoading, error } = useGetHistorialEventos(isOpen ? clienteId : null)
     const [expandedEvento, setExpandedEvento] = useState(null)
 
@@ -325,7 +327,18 @@ const ClienteHistorialModal = ({ isOpen, onClose, clienteId, onRepetirEvento }) 
                 </div>
 
                 {/* Footer */}
-                <div className="p-4 border-t border-slate-200 bg-slate-50 flex justify-end">
+                <div className="p-4 border-t border-slate-200 bg-slate-50 flex justify-between">
+                    <Button
+                        variant="ghost"
+                        icon={<History className="w-4 h-4" />}
+                        onClick={() => {
+                            onClose()
+                            navigate('/alquileres/historial-eventos')
+                        }}
+                        className="text-purple-600 hover:bg-purple-50"
+                    >
+                        Ver historial completo
+                    </Button>
                     <Button variant="secondary" onClick={onClose}>
                         Cerrar
                     </Button>

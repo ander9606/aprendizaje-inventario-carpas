@@ -51,6 +51,7 @@ import CalendarioOperaciones from './pages/CalendarioOperaciones'
 import AlertasPage from './pages/AlertasPage'
 import HistorialOrdenesPage from './pages/HistorialOrdenesPage'
 import HistorialAlquileresPage from './pages/HistorialAlquileresPage'
+import HistorialEventosPage from './pages/HistorialEventosPage'
 
 /**
  * COMPONENTE: App
@@ -151,6 +152,7 @@ function App() {
                   <Route path="gestion" element={<AlquileresPage />} />
                   <Route path="gestion/:id" element={<AlquilerDetallePage />} />
                   <Route path="historial" element={<HistorialAlquileresPage />} />
+                  <Route path="historial-eventos" element={<HistorialEventosPage />} />
                   <Route path="transporte" element={<TransportePage />} />
                   <Route path="reportes" element={<ReportesAlquileresPage />} />
                   <Route path="configuracion" element={<ConfiguracionAlquileresPage />} />
