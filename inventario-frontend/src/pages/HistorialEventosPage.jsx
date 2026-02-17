@@ -103,6 +103,13 @@ const EventoHistorialCard = ({ evento, onRepetirEvento }) => {
                             </span>
                         )}
                     </div>
+                    {/* Productos resumen */}
+                    {evento.productos_resumen && (
+                        <div className="flex items-center gap-1.5 mt-1.5 text-xs text-slate-500">
+                            <Package className="w-3.5 h-3.5 shrink-0" />
+                            <span className="truncate">{evento.productos_resumen}</span>
+                        </div>
+                    )}
                 </div>
 
                 {/* Valor y toggle */}
@@ -128,6 +135,23 @@ const EventoHistorialCard = ({ evento, onRepetirEvento }) => {
                     {/* Descripción */}
                     {evento.descripcion && (
                         <p className="text-sm text-slate-600">{evento.descripcion}</p>
+                    )}
+
+                    {/* Productos alquilados */}
+                    {evento.productos_resumen && (
+                        <div>
+                            <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1">
+                                <Package className="w-3.5 h-3.5" />
+                                Productos alquilados
+                            </p>
+                            <div className="bg-white rounded-lg border border-slate-200 divide-y divide-slate-100">
+                                {evento.productos_resumen.split(', ').map((prod, idx) => (
+                                    <div key={idx} className="px-3 py-2 flex items-center gap-2 text-sm">
+                                        <span className="text-slate-900">{prod}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
                     )}
 
                     {/* Stats */}

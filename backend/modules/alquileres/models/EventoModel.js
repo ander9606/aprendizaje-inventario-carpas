@@ -37,7 +37,13 @@ class EventoModel {
           WHERE cot.evento_id = e.id AND a.estado = 'finalizado') AS alquileres_finalizados,
         (SELECT COUNT(*) FROM cotizaciones cot
           INNER JOIN alquileres a ON a.cotizacion_id = cot.id
-          WHERE cot.evento_id = e.id AND a.estado = 'activo') AS alquileres_activos
+          WHERE cot.evento_id = e.id AND a.estado = 'activo') AS alquileres_activos,
+        (SELECT GROUP_CONCAT(CONCAT(ec.nombre, ' x', cp.cantidad) SEPARATOR ', ')
+          FROM cotizacion_productos cp
+          INNER JOIN cotizaciones cot ON cp.cotizacion_id = cot.id
+          INNER JOIN elementos_compuestos ec ON cp.compuesto_id = ec.id
+          WHERE cot.evento_id = e.id AND cot.estado = 'aprobada'
+        ) AS productos_resumen
       FROM eventos e
       INNER JOIN clientes c ON e.cliente_id = c.id
       LEFT JOIN ciudades ci ON e.ciudad_id = ci.id
