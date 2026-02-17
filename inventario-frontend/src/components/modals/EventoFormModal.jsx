@@ -19,13 +19,15 @@ import { useGetUbicacionesActivas } from '../../hooks/Useubicaciones'
  * @param {Function} props.onSave - Recibe los datos del evento
  * @param {Object} props.evento - Evento a editar (opcional)
  * @param {number} props.clientePreseleccionado - ID del cliente preseleccionado
+ * @param {Object} props.eventoReferencia - Evento base para repetir (pre-llena todo excepto fechas)
  */
 const EventoFormModal = ({
     isOpen,
     onClose,
     onSave,
     evento = null,
-    clientePreseleccionado = null
+    clientePreseleccionado = null,
+    eventoReferencia = null
 }) => {
     const [formData, setFormData] = useState({
         cliente_id: '',
@@ -65,6 +67,18 @@ const EventoFormModal = ({
                 ciudad_id: evento.ciudad_id || '',
                 notas: evento.notas || ''
             })
+        } else if (eventoReferencia) {
+            // Repetir evento: pre-llenar todo excepto fechas
+            setFormData({
+                cliente_id: eventoReferencia.cliente_id || '',
+                nombre: eventoReferencia.nombre || '',
+                descripcion: eventoReferencia.descripcion || '',
+                fecha_inicio: '',
+                fecha_fin: '',
+                direccion: eventoReferencia.direccion || '',
+                ciudad_id: eventoReferencia.ciudad_id || '',
+                notas: eventoReferencia.notas || ''
+            })
         } else {
             setFormData({
                 cliente_id: clientePreseleccionado || '',
@@ -78,7 +92,7 @@ const EventoFormModal = ({
             })
         }
         setErrors({})
-    }, [evento, clientePreseleccionado, isOpen])
+    }, [evento, eventoReferencia, clientePreseleccionado, isOpen])
 
     // Manejar cambios
     const handleChange = (e) => {
@@ -180,7 +194,7 @@ const EventoFormModal = ({
                 <div className="p-6 border-b border-slate-200">
                     <div className="flex items-center justify-between">
                         <h3 className="text-lg font-semibold text-slate-900">
-                            {isEditing ? 'Editar Evento' : 'Nuevo Evento'}
+                            {isEditing ? 'Editar Evento' : eventoReferencia ? 'Repetir Evento' : 'Nuevo Evento'}
                         </h3>
                         <button
                             onClick={onClose}

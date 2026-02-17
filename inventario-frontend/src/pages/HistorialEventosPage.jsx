@@ -22,10 +22,11 @@ import {
     RefreshCw
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import { useGetEventos } from '../hooks/useEventos'
-import { useGetHistorialEventos } from '../hooks/UseClientes'
+import { useGetEventos, useCreateEvento } from '../hooks/useEventos'
 import Spinner from '../components/common/Spinner'
 import Button from '../components/common/Button'
+import EventoFormModal from '../components/modals/EventoFormModal'
+import { toast } from 'sonner'
 
 // ============================================
 // HELPERS
@@ -209,8 +210,10 @@ export default function HistorialEventosPage() {
     const navigate = useNavigate()
     const [busqueda, setBusqueda] = useState('')
     const [filtroEstado, setFiltroEstado] = useState('')
+    const [eventoRepetir, setEventoRepetir] = useState(null)
 
-    const { eventos, isLoading } = useGetEventos()
+    const { eventos, isLoading, refetch } = useGetEventos()
+    const crearEvento = useCreateEvento()
 
     // Filtrar solo completados/cancelados
     const historial = useMemo(() => {
@@ -234,15 +237,20 @@ export default function HistorialEventosPage() {
     }, [historial, busqueda, filtroEstado])
 
     const handleRepetirEvento = (evento) => {
-        navigate('/alquileres/cotizaciones', {
-            state: {
-                crearParaCliente: {
-                    id: evento.cliente_id,
-                    nombre: evento.cliente_nombre
-                },
-                eventoReferencia: evento.nombre
-            }
-        })
+        setEventoRepetir(evento)
+    }
+
+    const handleCrearEventoRepetido = async (datos) => {
+        try {
+            await crearEvento.mutateAsync(datos)
+            toast.success('Evento creado exitosamente')
+            setEventoRepetir(null)
+            refetch()
+            navigate('/alquileres/cotizaciones')
+        } catch (error) {
+            toast.error(error?.response?.data?.message || 'Error al crear evento')
+            throw error
+        }
     }
 
     if (isLoading) {
@@ -348,6 +356,14 @@ export default function HistorialEventosPage() {
                     ))}
                 </div>
             )}
+
+            {/* Modal repetir evento */}
+            <EventoFormModal
+                isOpen={!!eventoRepetir}
+                onClose={() => setEventoRepetir(null)}
+                onSave={handleCrearEventoRepetido}
+                eventoReferencia={eventoRepetir}
+            />
         </div>
     )
 }

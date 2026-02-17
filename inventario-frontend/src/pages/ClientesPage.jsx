@@ -10,12 +10,15 @@ import {
   useGetClientes,
   useDeleteCliente
 } from '../hooks/UseClientes'
+import { useCreateEvento } from '../hooks/useEventos'
 import ClienteCard from '../components/cards/ClienteCard'
 import ClienteFormModal from '../components/forms/ClienteFormModal'
 import ClienteHistorialModal from '../components/modals/ClienteHistorialModal'
+import EventoFormModal from '../components/modals/EventoFormModal'
 import Button from '../components/common/Button'
 import Spinner from '../components/common/Spinner'
 import EmptyState from '../components/common/EmptyState'
+import { toast } from 'sonner'
 
 /**
  * Página ClientesPage
@@ -39,6 +42,7 @@ export default function ClientesPage() {
   const navigate = useNavigate()
   const { clientes, isLoading, error, refetch } = useGetClientes()
   const { mutateAsync: deleteCliente, isLoading: isDeleting } = useDeleteCliente()
+  const crearEvento = useCreateEvento()
 
   // ============================================
   // STATE: Control de modales
@@ -51,6 +55,7 @@ export default function ClientesPage() {
 
   const [selectedCliente, setSelectedCliente] = useState(null)
   const [historialClienteId, setHistorialClienteId] = useState(null)
+  const [eventoRepetir, setEventoRepetir] = useState(null)
 
   // ============================================
   // HANDLERS
@@ -90,15 +95,22 @@ export default function ClientesPage() {
 
   const handleRepetirEvento = (evento, cliente) => {
     setHistorialClienteId(null)
-    navigate('/alquileres/cotizaciones', {
-      state: {
-        crearParaCliente: {
-          id: cliente.id,
-          nombre: cliente.nombre
-        },
-        eventoReferencia: evento.nombre
-      }
+    setEventoRepetir({
+      ...evento,
+      cliente_id: cliente.id
     })
+  }
+
+  const handleCrearEventoRepetido = async (datos) => {
+    try {
+      await crearEvento.mutateAsync(datos)
+      toast.success('Evento creado exitosamente')
+      setEventoRepetir(null)
+      navigate('/alquileres/cotizaciones')
+    } catch (error) {
+      toast.error(error?.response?.data?.message || 'Error al crear evento')
+      throw error
+    }
   }
 
 
@@ -211,6 +223,14 @@ export default function ClientesPage() {
         onClose={() => setHistorialClienteId(null)}
         clienteId={historialClienteId}
         onRepetirEvento={handleRepetirEvento}
+      />
+
+      {/* Modal repetir evento */}
+      <EventoFormModal
+        isOpen={!!eventoRepetir}
+        onClose={() => setEventoRepetir(null)}
+        onSave={handleCrearEventoRepetido}
+        eventoReferencia={eventoRepetir}
       />
 
       {/* Indicador de carga al eliminar */}
