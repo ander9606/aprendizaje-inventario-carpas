@@ -29,7 +29,8 @@ import {
     ExternalLink,
     ClipboardCheck,
     Timer,
-    Share2
+    Share2,
+    Home
 } from 'lucide-react'
 import {
     useGetOrden,
@@ -78,7 +79,8 @@ export default function OrdenDetallePage() {
     const [showModalInventario, setShowModalInventario] = useState(false)
     const [showModalOrdenCargue, setShowModalOrdenCargue] = useState(false)
     const [showChecklistCargue, setShowChecklistCargue] = useState(false)
-    const [showChecklistDescargue, setShowChecklistDescargue] = useState(false)
+    const [showChecklistRecogida, setShowChecklistRecogida] = useState(false)
+    const [showChecklistBodega, setShowChecklistBodega] = useState(false)
     const [showInventarioCliente, setShowInventarioCliente] = useState(false)
     const [ejecutandoSalida, setEjecutandoSalida] = useState(false)
 
@@ -1039,7 +1041,7 @@ export default function OrdenDetallePage() {
                                         </div>
                                     )}
 
-                                    {/* Botón Checklist de Descargue - para desmontaje en sitio */}
+                                    {/* Botón Checklist de Recogida - para desmontaje en sitio */}
                                     {['en_ruta', 'en_sitio'].includes(orden.estado) && orden.tipo === 'desmontaje' && elementos?.length > 0 && canManage && (
                                         <div className="mt-4 p-4 bg-orange-50 border border-orange-200 rounded-lg">
                                             <div className="flex items-center justify-between gap-3">
@@ -1047,7 +1049,7 @@ export default function OrdenDetallePage() {
                                                     <ClipboardCheck className="w-5 h-5 text-orange-600 shrink-0" />
                                                     <div>
                                                         <p className="text-sm font-medium text-orange-800">
-                                                            Checklist de Descargue
+                                                            Checklist de Recogida
                                                         </p>
                                                         <p className="text-xs text-orange-600">
                                                             Verifica cada elemento al recoger del sitio del evento
@@ -1058,7 +1060,34 @@ export default function OrdenDetallePage() {
                                                     color="orange"
                                                     icon={ClipboardCheck}
                                                     size="sm"
-                                                    onClick={() => setShowChecklistDescargue(true)}
+                                                    onClick={() => setShowChecklistRecogida(true)}
+                                                >
+                                                    Abrir Checklist
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Botón Checklist en Bodega - para desmontaje al llegar a bodega */}
+                                    {['en_ruta', 'en_sitio', 'completado'].includes(orden.estado) && orden.tipo === 'desmontaje' && elementos?.length > 0 && canManage && (
+                                        <div className="mt-4 p-4 bg-purple-50 border border-purple-200 rounded-lg">
+                                            <div className="flex items-center justify-between gap-3">
+                                                <div className="flex items-center gap-2">
+                                                    <Home className="w-5 h-5 text-purple-600 shrink-0" />
+                                                    <div>
+                                                        <p className="text-sm font-medium text-purple-800">
+                                                            Checklist en Bodega
+                                                        </p>
+                                                        <p className="text-xs text-purple-600">
+                                                            Verifica cada elemento al descargar del vehículo en bodega
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <Button
+                                                    color="purple"
+                                                    icon={Home}
+                                                    size="sm"
+                                                    onClick={() => setShowChecklistBodega(true)}
                                                 >
                                                     Abrir Checklist
                                                 </Button>
@@ -1343,13 +1372,23 @@ export default function OrdenDetallePage() {
                     onCompleto={refetch}
                 />
             )}
-            {showChecklistDescargue && (
+            {showChecklistRecogida && (
                 <ChecklistCargueDescargue
-                    isOpen={showChecklistDescargue}
-                    onClose={() => setShowChecklistDescargue(false)}
+                    isOpen={showChecklistRecogida}
+                    onClose={() => setShowChecklistRecogida(false)}
                     ordenId={orden.id}
                     ordenInfo={orden}
-                    modo="descargue"
+                    modo="recogida"
+                    onCompleto={refetch}
+                />
+            )}
+            {showChecklistBodega && (
+                <ChecklistCargueDescargue
+                    isOpen={showChecklistBodega}
+                    onClose={() => setShowChecklistBodega(false)}
+                    ordenId={orden.id}
+                    ordenInfo={orden}
+                    modo="bodega"
                     onCompleto={refetch}
                 />
             )}

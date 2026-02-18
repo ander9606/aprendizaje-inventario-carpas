@@ -1146,6 +1146,37 @@ const verificarElementoDescargue = async (req, res, next) => {
     }
 };
 
+/**
+ * PUT /api/operaciones/ordenes/:id/elementos/:elemId/verificar-bodega
+ * Toggle verificación en bodega de un elemento individual
+ */
+const verificarElementoBodega = async (req, res, next) => {
+    try {
+        const { id, elemId } = req.params;
+        const { verificado, notas } = req.body;
+
+        if (typeof verificado !== 'boolean') {
+            throw new AppError('El campo "verificado" (boolean) es requerido', 400);
+        }
+
+        const elemento = await OrdenElementoModel.toggleVerificacionBodega(
+            parseInt(elemId),
+            verificado,
+            notas || null
+        );
+
+        logger.info('operaciones', `Elemento ${elemId} ${verificado ? 'verificado' : 'desverificado'} en bodega para orden ${id} por ${req.usuario.email}`);
+
+        res.json({
+            success: true,
+            message: verificado ? 'Elemento verificado en bodega' : 'Verificación en bodega removida',
+            data: elemento
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 module.exports = {
     // Órdenes
     getOrdenes,
@@ -1178,6 +1209,7 @@ module.exports = {
     getChecklistOrden,
     verificarElementoCargue,
     verificarElementoDescargue,
+    verificarElementoBodega,
 
     // Alertas
     getAlertas,

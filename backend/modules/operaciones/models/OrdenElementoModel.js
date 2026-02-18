@@ -210,7 +210,7 @@ class OrdenElementoModel {
     }
 
     /**
-     * Toggle verificación de descargue (retorno al almacén) de un elemento
+     * Toggle verificación de recogida (recoger en sitio del evento) de un elemento
      * @param {number} elementoId
      * @param {boolean} verificado
      * @param {string|null} notas
@@ -244,11 +244,66 @@ class OrdenElementoModel {
     }
 
     /**
+     * Toggle verificación en bodega (descarga del camión en bodega) de un elemento
+     * @param {number} elementoId
+     * @param {boolean} verificado
+     * @param {string|null} notas
+     * @returns {Promise<Object>}
+     */
+    static async toggleVerificacionBodega(elementoId, verificado, notas = null) {
+        const [existente] = await pool.query(
+            'SELECT * FROM orden_trabajo_elementos WHERE id = ?',
+            [elementoId]
+        );
+
+        if (existente.length === 0) {
+            throw new AppError('Elemento no encontrado en la orden', 404);
+        }
+
+        // Asegurar que la columna existe
+        await this._ensureColumnVerificadoBodega();
+
+        const updateNotas = notas !== null ? ', notas = ?' : '';
+        const params = notas !== null
+            ? [verificado, notas, elementoId]
+            : [verificado, elementoId];
+
+        await pool.query(`
+            UPDATE orden_trabajo_elementos
+            SET verificado_bodega = ?
+                ${updateNotas}
+            WHERE id = ?
+        `, params);
+
+        return this.obtenerPorId(elementoId);
+    }
+
+    /**
+     * Auto-agregar columna verificado_bodega si no existe
+     */
+    static async _ensureColumnVerificadoBodega() {
+        if (OrdenElementoModel._bodegaColumnChecked) return;
+        try {
+            await pool.query(`
+                ALTER TABLE orden_trabajo_elementos
+                ADD COLUMN verificado_bodega BOOLEAN DEFAULT FALSE AFTER verificado_retorno
+            `);
+        } catch (error) {
+            // ER_DUP_FIELDNAME = la columna ya existe, está bien
+            if (error.code !== 'ER_DUP_FIELDNAME') throw error;
+        }
+        OrdenElementoModel._bodegaColumnChecked = true;
+    }
+
+    /**
      * Obtener resumen de checklist para una orden
      * @param {number} ordenId
-     * @returns {Promise<Object>} - { elementos, totalElementos, verificadosCargue, verificadosDescargue }
+     * @returns {Promise<Object>} - { elementos, totalElementos, verificadosCargue, verificadosRecogida, verificadosBodega }
      */
     static async obtenerChecklistOrden(ordenId) {
+        // Asegurar que la columna verificado_bodega existe
+        await this._ensureColumnVerificadoBodega();
+
         const [rows] = await pool.query(`
             SELECT
                 ote.id,
@@ -260,6 +315,7 @@ class OrdenElementoModel {
                 ote.estado,
                 ote.verificado_salida,
                 ote.verificado_retorno,
+                ote.verificado_bodega,
                 ote.notas,
                 el.nombre as elemento_nombre,
                 s.numero_serie as serie_codigo,
@@ -274,13 +330,17 @@ class OrdenElementoModel {
 
         const totalElementos = rows.length;
         const verificadosCargue = rows.filter(r => r.verificado_salida).length;
-        const verificadosDescargue = rows.filter(r => r.verificado_retorno).length;
+        const verificadosRecogida = rows.filter(r => r.verificado_retorno).length;
+        const verificadosBodega = rows.filter(r => r.verificado_bodega).length;
 
         return {
             elementos: rows,
             totalElementos,
             verificadosCargue,
-            verificadosDescargue
+            verificadosRecogida,
+            verificadosBodega,
+            // Mantener alias por compatibilidad
+            verificadosDescargue: verificadosRecogida
         };
     }
 

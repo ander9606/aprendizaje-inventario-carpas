@@ -236,7 +236,7 @@ const ordenesAPI = {
     /**
      * Obtener estado del checklist de una orden
      * @param {number} id - ID de la orden
-     * @returns {Object} - { elementos, totalElementos, verificadosCargue, verificadosDescargue }
+     * @returns {Object} - { elementos, totalElementos, verificadosCargue, verificadosRecogida, verificadosBodega }
      */
     obtenerChecklist: async (id) => {
         const response = await api.get(`/operaciones/ordenes/${id}/checklist`)
@@ -258,14 +258,28 @@ const ordenesAPI = {
     },
 
     /**
-     * Toggle verificación de descargue de un elemento individual
+     * Toggle verificación de recogida (en sitio del evento) de un elemento
      * @param {number} ordenId - ID de la orden
      * @param {number} elementoId - ID del elemento en orden_trabajo_elementos
      * @param {Object} datos - { verificado: boolean, notas?: string }
      */
-    verificarElementoDescargue: async (ordenId, elementoId, datos) => {
+    verificarElementoRecogida: async (ordenId, elementoId, datos) => {
         const response = await api.put(
             `/operaciones/ordenes/${ordenId}/elementos/${elementoId}/verificar-descargue`,
+            datos
+        )
+        return response.data
+    },
+
+    /**
+     * Toggle verificación en bodega de un elemento
+     * @param {number} ordenId - ID de la orden
+     * @param {number} elementoId - ID del elemento en orden_trabajo_elementos
+     * @param {Object} datos - { verificado: boolean, notas?: string }
+     */
+    verificarElementoBodega: async (ordenId, elementoId, datos) => {
+        const response = await api.put(
+            `/operaciones/ordenes/${ordenId}/elementos/${elementoId}/verificar-bodega`,
             datos
         )
         return response.data
