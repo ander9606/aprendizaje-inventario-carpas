@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS ordenes_trabajo (
     tipo ENUM('montaje', 'desmontaje') NOT NULL,
 
     -- Estado del flujo de trabajo
-    estado ENUM('pendiente', 'confirmado', 'en_preparacion', 'en_ruta', 'en_sitio', 'en_proceso', 'completado', 'cancelado') DEFAULT 'pendiente',
+    estado ENUM('pendiente', 'confirmado', 'en_preparacion', 'en_ruta', 'en_sitio', 'en_proceso', 'en_retorno', 'descargue', 'completado', 'cancelado') DEFAULT 'pendiente',
 
     -- Programación
     fecha_programada DATETIME NOT NULL,

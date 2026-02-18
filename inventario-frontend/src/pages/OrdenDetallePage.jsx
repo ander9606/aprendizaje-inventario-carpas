@@ -104,7 +104,7 @@ export default function OrdenDetallePage() {
 
     // Duraciones: solo cargar en estados avanzados o completado
     const { historial: historialEstados, duraciones } = useGetDuracionesOrden(id, {
-        enabled: !!orden && ['en_ruta', 'en_sitio', 'en_proceso', 'completado'].includes(orden?.estado)
+        enabled: !!orden && ['en_ruta', 'en_sitio', 'en_proceso', 'en_retorno', 'descargue', 'completado'].includes(orden?.estado)
     })
 
     // ============================================
@@ -203,6 +203,8 @@ export default function OrdenDetallePage() {
             en_ruta: 'Orden en ruta',
             en_sitio: 'Equipo llegó al sitio',
             en_proceso: 'Trabajo iniciado',
+            en_retorno: 'Equipo en retorno a bodega',
+            descargue: 'Descargue en bodega iniciado',
             completado: 'Orden completada exitosamente',
             cancelado: 'Orden cancelada'
         }
@@ -299,6 +301,16 @@ export default function OrdenDetallePage() {
                 icon: RefreshCw,
                 label: 'En Proceso'
             },
+            en_retorno: {
+                color: 'bg-teal-100 text-teal-700 border-teal-200',
+                icon: Truck,
+                label: 'En Retorno'
+            },
+            descargue: {
+                color: 'bg-purple-100 text-purple-700 border-purple-200',
+                icon: Home,
+                label: 'Descargue en Bodega'
+            },
             completado: {
                 color: 'bg-green-100 text-green-700 border-green-200',
                 icon: CheckCircle,
@@ -389,6 +401,9 @@ export default function OrdenDetallePage() {
             { key: 'en_preparacion', label: 'Preparación', short: 'Prep.' },
             { key: 'en_ruta', label: 'En Ruta', short: 'Ruta' },
             { key: 'en_sitio', label: 'En Sitio', short: 'Sitio' },
+            { key: 'en_proceso', label: 'Recogida', short: 'Recog.' },
+            { key: 'en_retorno', label: 'En Retorno', short: 'Ret.' },
+            { key: 'descargue', label: 'Descargue', short: 'Desc.' },
             { key: 'completado', label: 'Completado', short: 'Listo' }
         ]
     }
@@ -458,10 +473,12 @@ export default function OrdenDetallePage() {
             en_ruta: 'El equipo está en camino al sitio del evento.',
             en_sitio: orden.tipo === 'montaje'
                 ? 'El equipo llegó al sitio. Inicia el trabajo de montaje.'
-                : 'El equipo llegó al sitio. Realiza el desmontaje y registra el retorno.',
+                : 'El equipo llegó al sitio. Inicia el desmontaje.',
             en_proceso: orden.tipo === 'montaje'
                 ? 'Montaje en curso. Marca como completado cuando termine.'
-                : 'Desmontaje en curso. Registra el retorno de los elementos.',
+                : 'Recogida en curso. Completa el checklist de recogida para iniciar el retorno.',
+            en_retorno: 'El equipo está en camino de regreso a la bodega con los elementos.',
+            descargue: 'Descargando elementos del vehículo en bodega. Completa el checklist para finalizar.',
             completado: 'Esta orden ha sido completada exitosamente.',
             cancelado: 'Esta orden fue cancelada.'
         }
@@ -745,9 +762,10 @@ export default function OrdenDetallePage() {
                                 >Iniciar Montaje</Button>
                             )}
                             {orden.estado === 'en_sitio' && orden.tipo === 'desmontaje' && (
-                                <Button color="orange" icon={RotateCcw}
-                                    onClick={() => setShowModalRetorno(true)}
-                                >Registrar Retorno</Button>
+                                <Button color="blue" icon={Play}
+                                    onClick={() => handleCambiarEstado('en_proceso')}
+                                    disabled={cambiarEstado.isPending}
+                                >Iniciar Recogida</Button>
                             )}
                             {orden.estado === 'en_proceso' && orden.tipo === 'montaje' && (
                                 <Button color="green" icon={CheckCircle}
@@ -756,9 +774,22 @@ export default function OrdenDetallePage() {
                                 >Completar</Button>
                             )}
                             {orden.estado === 'en_proceso' && orden.tipo === 'desmontaje' && (
-                                <Button color="orange" icon={RotateCcw}
-                                    onClick={() => setShowModalRetorno(true)}
-                                >Registrar Retorno</Button>
+                                <Button color="teal" icon={Truck}
+                                    onClick={() => handleCambiarEstado('en_retorno')}
+                                    disabled={cambiarEstado.isPending}
+                                >Iniciar Retorno</Button>
+                            )}
+                            {orden.estado === 'en_retorno' && orden.tipo === 'desmontaje' && (
+                                <Button color="purple" icon={Home}
+                                    onClick={() => handleCambiarEstado('descargue')}
+                                    disabled={cambiarEstado.isPending}
+                                >Llegó a Bodega</Button>
+                            )}
+                            {orden.estado === 'descargue' && orden.tipo === 'desmontaje' && (
+                                <Button color="green" icon={CheckCircle}
+                                    onClick={() => handleCambiarEstado('completado')}
+                                    disabled={cambiarEstado.isPending}
+                                >Finalizar Orden</Button>
                             )}
                         </div>
                         )}
@@ -1041,8 +1072,8 @@ export default function OrdenDetallePage() {
                                         </div>
                                     )}
 
-                                    {/* Botón Checklist de Recogida - para desmontaje en sitio */}
-                                    {['en_ruta', 'en_sitio'].includes(orden.estado) && orden.tipo === 'desmontaje' && elementos?.length > 0 && canManage && (
+                                    {/* Botón Checklist de Recogida - solo en en_proceso de desmontaje */}
+                                    {orden.estado === 'en_proceso' && orden.tipo === 'desmontaje' && elementos?.length > 0 && canManage && (
                                         <div className="mt-4 p-4 bg-orange-50 border border-orange-200 rounded-lg">
                                             <div className="flex items-center justify-between gap-3">
                                                 <div className="flex items-center gap-2">
@@ -1052,7 +1083,7 @@ export default function OrdenDetallePage() {
                                                             Checklist de Recogida
                                                         </p>
                                                         <p className="text-xs text-orange-600">
-                                                            Verifica cada elemento al recoger del sitio del evento
+                                                            Verifica cada elemento al recoger del sitio del evento. Debe completarse antes de iniciar el retorno.
                                                         </p>
                                                     </div>
                                                 </div>
@@ -1068,8 +1099,8 @@ export default function OrdenDetallePage() {
                                         </div>
                                     )}
 
-                                    {/* Botón Checklist en Bodega - para desmontaje al llegar a bodega */}
-                                    {['en_ruta', 'en_sitio', 'completado'].includes(orden.estado) && orden.tipo === 'desmontaje' && elementos?.length > 0 && canManage && (
+                                    {/* Botón Checklist en Bodega - solo en descargue de desmontaje */}
+                                    {orden.estado === 'descargue' && orden.tipo === 'desmontaje' && elementos?.length > 0 && canManage && (
                                         <div className="mt-4 p-4 bg-purple-50 border border-purple-200 rounded-lg">
                                             <div className="flex items-center justify-between gap-3">
                                                 <div className="flex items-center gap-2">
@@ -1079,7 +1110,7 @@ export default function OrdenDetallePage() {
                                                             Checklist en Bodega
                                                         </p>
                                                         <p className="text-xs text-purple-600">
-                                                            Verifica cada elemento al descargar del vehículo en bodega
+                                                            Verifica cada elemento al descargar del vehículo en bodega. Debe completarse para finalizar la orden.
                                                         </p>
                                                     </div>
                                                 </div>

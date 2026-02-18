@@ -2,6 +2,35 @@ const { pool } = require('../../../config/database');
 const AppError = require('../../../utils/AppError');
 
 class OrdenTrabajoModel {
+    // Flag para evitar ejecutar ALTER TABLE múltiples veces
+    static _estadosEnumActualizado = false;
+
+    /**
+     * Asegurar que el ENUM de estado incluya en_retorno y descargue.
+     * Se ejecuta una sola vez por ciclo de vida del proceso.
+     */
+    static async _ensureEstadosEnum() {
+        if (OrdenTrabajoModel._estadosEnumActualizado) return;
+        try {
+            await pool.query(`
+                ALTER TABLE ordenes_trabajo
+                MODIFY COLUMN estado ENUM(
+                    'pendiente', 'confirmado', 'en_preparacion', 'en_ruta',
+                    'en_sitio', 'en_proceso', 'en_retorno', 'descargue',
+                    'completado', 'cancelado'
+                ) DEFAULT 'pendiente'
+            `);
+        } catch (error) {
+            // Si el ENUM ya tiene esos valores, MySQL no lanza error,
+            // pero atrapamos por si acaso
+            if (error.code !== 'ER_DUP_FIELDNAME') {
+                // Solo logueamos, no lanzamos — no es crítico
+                console.warn('[OrdenTrabajoModel] Warn al actualizar ENUM estado:', error.message);
+            }
+        }
+        OrdenTrabajoModel._estadosEnumActualizado = true;
+    }
+
     /**
      * Obtener todas las órdenes de trabajo con filtros
      * Optimizado: Usa JOINs con conteos agregados en lugar de subconsultas correlacionadas
@@ -607,9 +636,13 @@ class OrdenTrabajoModel {
      * @returns {Promise<Object>}
      */
     static async cambiarEstado(id, estado) {
+        // Asegurar que el ENUM de la BD incluye los nuevos estados
+        await this._ensureEstadosEnum();
+
         const estadosValidos = [
             'pendiente', 'confirmado', 'en_preparacion', 'en_ruta',
-            'en_sitio', 'en_proceso', 'completado', 'cancelado'
+            'en_sitio', 'en_proceso', 'en_retorno', 'descargue',
+            'completado', 'cancelado'
         ];
 
         if (!estadosValidos.includes(estado)) {

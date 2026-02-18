@@ -98,6 +98,8 @@ const ESTADOS_ORDEN = {
   EN_RUTA: 'en_ruta',
   EN_SITIO: 'en_sitio',
   EN_PROCESO: 'en_proceso',
+  EN_RETORNO: 'en_retorno',
+  DESCARGUE: 'descargue',
   COMPLETADO: 'completado',
   CANCELADO: 'cancelado'
 };
