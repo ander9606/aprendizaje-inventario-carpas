@@ -41,6 +41,7 @@ import {
     useCambiarEstadoOrden,
     useAsignarEquipo,
     useUpdateOrden,
+    useCambiarFechaOrden,
     useEjecutarSalida,
     useEjecutarRetorno,
     useGetDuracionesOrden
@@ -113,6 +114,7 @@ export default function OrdenDetallePage() {
     const cambiarEstado = useCambiarEstadoOrden()
     const asignarEquipo = useAsignarEquipo()
     const actualizarOrden = useUpdateOrden()
+    const cambiarFecha = useCambiarFechaOrden()
     const prepararElementos = usePrepararElementos()
     const ejecutarSalida = useEjecutarSalida()
     const ejecutarRetorno = useEjecutarRetorno()
@@ -227,10 +229,17 @@ export default function OrdenDetallePage() {
         refetch()
     }
 
-    const handleActualizarOrden = async (data) => {
+    const handleActualizarOrdenGeneral = async (data) => {
         await actualizarOrden.mutateAsync({ id: orden.id, data })
         toast.success('Orden actualizada correctamente')
         refetch()
+    }
+
+    const handleCambiarFechaOrden = async (data) => {
+        const result = await cambiarFecha.mutateAsync({ id: orden.id, data })
+        toast.success('Fecha actualizada correctamente')
+        refetch()
+        return result
     }
 
     const handleAsignarInventario = async (elementosSeleccionados) => {
@@ -587,7 +596,30 @@ export default function OrdenDetallePage() {
             {/* BARRA DE PROGRESO */}
             {!esCancelado && (
                 <div className="bg-white rounded-xl border border-slate-200 p-4 mb-6">
-                    <div className="flex items-center justify-between">
+                    {/* Vista móvil: indicador compacto */}
+                    <div className="sm:hidden">
+                        <div className="flex items-center justify-between mb-2">
+                            <span className="text-xs font-medium text-slate-500">
+                                Paso {pasoActualIndex + 1} de {pasos.length}
+                            </span>
+                            <span className={`text-xs font-bold ${esCompletado ? 'text-green-600' : 'text-orange-600'}`}>
+                                {pasos[pasoActualIndex]?.label || orden.estado}
+                            </span>
+                        </div>
+                        <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
+                            <div
+                                className={`h-full rounded-full transition-all duration-500 ${esCompletado ? 'bg-green-500' : 'bg-orange-500'}`}
+                                style={{ width: `${pasos.length > 1 ? Math.round((pasoActualIndex / (pasos.length - 1)) * 100) : 100}%` }}
+                            />
+                        </div>
+                        <div className="flex items-center justify-between mt-2 text-[10px] text-slate-400">
+                            <span>{pasos[0]?.short}</span>
+                            <span>{pasos[pasos.length - 1]?.short}</span>
+                        </div>
+                    </div>
+
+                    {/* Vista desktop: stepper completo */}
+                    <div className="hidden sm:flex items-center justify-between">
                         {pasos.map((paso, idx) => {
                             const esActual = paso.key === orden.estado
                             const esCompletadoPaso = idx < pasoActualIndex || esCompletado
@@ -610,8 +642,7 @@ export default function OrdenDetallePage() {
                                         <span className={`text-[10px] mt-1 text-center leading-tight ${
                                             esActual ? 'font-bold text-orange-600' : esCompletadoPaso ? 'text-green-600' : 'text-slate-400'
                                         }`}>
-                                            <span className="hidden sm:inline">{paso.label}</span>
-                                            <span className="sm:hidden">{paso.short}</span>
+                                            {paso.label}
                                         </span>
                                     </div>
                                     {idx < pasos.length - 1 && (
@@ -837,8 +868,21 @@ export default function OrdenDetallePage() {
                                         <p className="text-[11px] text-slate-400 uppercase tracking-wide">Fecha</p>
                                         <p className="text-sm font-medium text-slate-900 truncate">
                                             {orden.fecha_programada
-                                                ? new Date(orden.fecha_programada).toLocaleDateString('es-CO', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+                                                ? new Date(orden.fecha_programada).toLocaleDateString('es-CO', { weekday: 'short', day: 'numeric', month: 'short' })
                                                 : 'Sin fecha'}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-slate-100 rounded-lg shrink-0">
+                                        <Clock className="w-4 h-4 text-slate-500" />
+                                    </div>
+                                    <div className="min-w-0">
+                                        <p className="text-[11px] text-slate-400 uppercase tracking-wide">Hora</p>
+                                        <p className="text-sm font-medium text-slate-900 truncate">
+                                            {orden.fecha_programada
+                                                ? new Date(orden.fecha_programada).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })
+                                                : '—'}
                                         </p>
                                     </div>
                                 </div>
@@ -1361,7 +1405,8 @@ export default function OrdenDetallePage() {
                 <ModalEditarOrden
                     orden={orden}
                     onClose={() => setShowModalEditar(false)}
-                    onSave={handleActualizarOrden}
+                    onSaveFecha={handleCambiarFechaOrden}
+                    onSaveGeneral={handleActualizarOrdenGeneral}
                 />
             )}
             {showModalRetorno && (

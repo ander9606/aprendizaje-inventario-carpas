@@ -407,7 +407,7 @@ const ModalNuevaOrden = ({ onClose, onSave }) => {
     const [formData, setFormData] = useState({
         tipo: 'mantenimiento',
         fecha_programada: '',
-        hora_programada: '08:00',
+        hora_programada: '09:00',
         direccion_destino: '',
         ciudad_destino: '',
         notas: '',
