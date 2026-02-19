@@ -3,15 +3,18 @@
 // Vista completa de un elemento específico
 // ============================================
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Edit, Trash2, Plus } from 'lucide-react'
+import { ArrowLeft, Edit, Trash2, Plus, Calendar, User, Clock, MapPin } from 'lucide-react'
 import { toast } from 'sonner'
 
 // Hooks personalizados
 import { useGetElemento, useDeleteElemento, useSubirImagenElemento, useEliminarImagenElemento } from '../hooks/Useelementos'
-import { useGetSeries, useDeleteSerie } from '../hooks/Useseries'
-import { useGetLotes, useDeleteLote } from '../hooks/Uselotes'
+import { useGetSeriesConContexto, useDeleteSerie } from '../hooks/Useseries'
+import { useGetLotesConContexto, useDeleteLote } from '../hooks/Uselotes'
+
+// Utilidades
+import { formatearFechaCorta } from '../utils/helpers'
 
 // Componentes UI
 import Button from '../components/common/Button'
@@ -121,33 +124,44 @@ function ElementoDetallePage() {
    */
 
   /**
-   * useGetSeries: Para elementos con tracking individual
-   * enabled: solo ejecutar si el elemento requiere series
+   * useGetSeriesConContexto: Para elementos con tracking individual
+   * Incluye info de evento actual y próximo evento por serie
    */
   const {
     series = [],
-    estadisticas: estadisticasSeries,
-    total: totalSeries,
-    disponibles: disponiblesSeries,
     isLoading: loadingSeries,
     refetch: refetchSeries
-  } = useGetSeries(elementoId, {
+  } = useGetSeriesConContexto(elementoId, {
     enabled: elemento?.requiere_series === true
   })
 
   /**
-   * useGetLotes: Para elementos con tracking por cantidad
-   * enabled: solo ejecutar si el elemento NO requiere series
+   * useGetLotesConContexto: Para elementos con tracking por cantidad
+   * Incluye desglose de cantidades en eventos activos
    */
   const {
-    lotes = [],
-    estadisticas: estadisticasLotes,
-    lotes_por_ubicacion = [],
-    cantidad_total,
+    lotes_por_ubicacion: lotesPorUbicacionRaw = [],
+    en_eventos = [],
     isLoading: loadingLotes,
-  } = useGetLotes(elementoId, {
+  } = useGetLotesConContexto(elementoId, {
     enabled: elemento?.requiere_series === false
   })
+
+  // Mapear formato de lotes_por_ubicacion para compatibilidad con LoteUbicacionGroup
+  const lotes_por_ubicacion = useMemo(() =>
+    lotesPorUbicacionRaw.map(ub => ({
+      nombre: ub.ubicacion,
+      lotes: ub.lotes,
+      cantidad_total: ub.total
+    })),
+    [lotesPorUbicacionRaw]
+  )
+
+  // Extraer array plano de lotes para filtrado
+  const lotes = useMemo(() =>
+    lotesPorUbicacionRaw.flatMap(ub => ub.lotes),
+    [lotesPorUbicacionRaw]
+  )
 
   // ============================================
   // 3B. MUTATIONS (Operaciones de escritura)
@@ -186,18 +200,26 @@ function ElementoDetallePage() {
     (elemento?.requiere_series ? loadingSeries : loadingLotes)
 
   /**
-   * estadisticas: Usa las estadísticas correctas según el tipo
+   * estadisticas: Calculadas desde los datos de series/lotes
    */
-  const estadisticas = elemento?.requiere_series
-    ? estadisticasSeries
-    : estadisticasLotes
+  const estadisticas = useMemo(() => {
+    if (elemento?.requiere_series) {
+      return series.reduce((stats, serie) => {
+        const estado = serie.estado || 'sin_estado'
+        stats[estado] = (stats[estado] || 0) + 1
+        return stats
+      }, { bueno: 0, alquilado: 0, mantenimiento: 0, dañado: 0 })
+    } else {
+      return lotes.reduce((stats, lote) => {
+        const estado = lote.estado || 'sin_estado'
+        stats[estado] = (stats[estado] || 0) + (lote.cantidad || 0)
+        return stats
+      }, { bueno: 0, alquilado: 0, mantenimiento: 0, dañado: 0 })
+    }
+  }, [elemento?.requiere_series, series, lotes])
 
   /**
    * itemsFiltrados: Series o lotes filtrados por estado
-   *
-   * LÓGICA:
-   * 1. Si no hay filtro → mostrar todos
-   * 2. Si hay filtro → mostrar solo los que coincidan
    */
   const itemsFiltrados = elemento?.requiere_series
     ? (filtroEstado
@@ -569,7 +591,7 @@ function ElementoDetallePage() {
       <div className="grid grid-cols-5 gap-3 mb-6">
         <StatCard
           label="Total"
-          value={elemento.requiere_series ? totalSeries : cantidad_total}
+          value={elemento.requiere_series ? series.length : lotes.reduce((sum, l) => sum + (l.cantidad || 0), 0)}
           color="gray"
           size="md"
           onClick={() => setFiltroEstado(null)}
@@ -601,13 +623,62 @@ function ElementoDetallePage() {
         />
         <StatCard
           label="Dañado"
-          value={estadisticas?.danado || 0}
+          value={estadisticas?.['dañado'] || 0}
           color="red"
           size="md"
           onClick={() => handleFiltroEstado('dañado')}
           active={filtroEstado === 'dañado'}
         />
       </div>
+
+      {/* ============================================
+          RESUMEN DE EVENTOS (cuando filtro es alquilado)
+          ============================================ */}
+      {filtroEstado === 'alquilado' && !elemento.requiere_series && en_eventos.length > 0 && (
+        <div className="mb-4 space-y-2">
+          <h3 className="text-sm font-semibold text-slate-700 mb-2">En eventos activos</h3>
+          <div className="grid gap-2 lg:grid-cols-2">
+            {en_eventos.map((evento) => (
+              <div
+                key={evento.alquiler_id}
+                className="bg-blue-50 border border-blue-200 rounded-lg p-3 space-y-1.5"
+              >
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                  <span className="font-medium text-blue-900 text-sm truncate">
+                    {evento.evento_nombre || 'Evento sin nombre'}
+                  </span>
+                  <span className="ml-auto text-lg font-bold text-blue-700 flex-shrink-0">
+                    {evento.cantidad}
+                  </span>
+                </div>
+                <div className="flex items-center gap-4 text-xs text-blue-700">
+                  <div className="flex items-center gap-1">
+                    <User className="w-3 h-3" />
+                    <span>{evento.cliente}</span>
+                  </div>
+                  {evento.fecha_evento && (
+                    <div className="flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      <span>
+                        {formatearFechaCorta(evento.fecha_evento)}
+                        {evento.fecha_desmontaje && <> - {formatearFechaCorta(evento.fecha_desmontaje)}</>}
+                      </span>
+                    </div>
+                  )}
+                </div>
+                {evento.ubicacion && (
+                  <div className="flex items-center gap-1 text-xs text-blue-600">
+                    <MapPin className="w-3 h-3" />
+                    <span className="truncate">{evento.ubicacion}</span>
+                    {evento.ciudad && <span>({evento.ciudad})</span>}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ============================================
           CONTENIDO PRINCIPAL (Series o Lotes)
