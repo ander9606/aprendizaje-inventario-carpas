@@ -868,8 +868,21 @@ export default function OrdenDetallePage() {
                                         <p className="text-[11px] text-slate-400 uppercase tracking-wide">Fecha</p>
                                         <p className="text-sm font-medium text-slate-900 truncate">
                                             {orden.fecha_programada
-                                                ? new Date(orden.fecha_programada).toLocaleDateString('es-CO', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+                                                ? new Date(orden.fecha_programada).toLocaleDateString('es-CO', { weekday: 'short', day: 'numeric', month: 'short' })
                                                 : 'Sin fecha'}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-slate-100 rounded-lg shrink-0">
+                                        <Clock className="w-4 h-4 text-slate-500" />
+                                    </div>
+                                    <div className="min-w-0">
+                                        <p className="text-[11px] text-slate-400 uppercase tracking-wide">Hora</p>
+                                        <p className="text-sm font-medium text-slate-900 truncate">
+                                            {orden.fecha_programada
+                                                ? new Date(orden.fecha_programada).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })
+                                                : '—'}
                                         </p>
                                     </div>
                                 </div>

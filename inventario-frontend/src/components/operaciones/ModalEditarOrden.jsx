@@ -10,7 +10,7 @@ import Button from '../common/Button'
 
 export default function ModalEditarOrden({ orden, onSaveFecha, onSaveGeneral, onClose, saving = false }) {
     const fechaOriginal = orden.fecha_programada?.split('T')[0] || ''
-    const horaOriginal = orden.fecha_programada?.split('T')[1]?.substring(0, 5) || '08:00'
+    const horaOriginal = orden.fecha_programada?.split('T')[1]?.substring(0, 5) || '09:00'
 
     const [formData, setFormData] = useState({
         fecha_programada: fechaOriginal,
