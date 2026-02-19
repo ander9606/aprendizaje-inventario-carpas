@@ -788,7 +788,12 @@ function ElementoDetallePage() {
             setShowEditElementoModal(false)
             refetchElemento()
           }}
-          elemento={elemento}
+          elemento={{
+            ...elemento,
+            cantidad: elemento.requiere_series
+              ? series.length
+              : lotes.reduce((sum, l) => sum + (l.cantidad || 0), 0)
+          }}
         />
       )}
 
