@@ -132,7 +132,7 @@ function ElementoDetallePage() {
     isLoading: loadingSeries,
     refetch: refetchSeries
   } = useGetSeriesConContexto(elementoId, {
-    enabled: elemento?.requiere_series === true
+    enabled: !!elemento?.requiere_series
   })
 
   /**
@@ -144,7 +144,7 @@ function ElementoDetallePage() {
     en_eventos = [],
     isLoading: loadingLotes,
   } = useGetLotesConContexto(elementoId, {
-    enabled: elemento?.requiere_series === false
+    enabled: elemento ? !elemento.requiere_series : false
   })
 
   // Mapear formato de lotes_por_ubicacion para compatibilidad con LoteUbicacionGroup
