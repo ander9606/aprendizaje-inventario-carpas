@@ -709,7 +709,7 @@ function ElementoDetallePage() {
           {/* ==========================================
               VISTA PARA SERIES
               ========================================== */}
-          {elemento.requiere_series && (
+          {!!elemento.requiere_series && (
             <>
               {itemsFiltrados.length === 0 ? (
                 <EmptyState
@@ -798,7 +798,7 @@ function ElementoDetallePage() {
       )}
 
       {/* Modal: Agregar Serie */}
-      {showAddSerieModal && elemento?.requiere_series && (
+      {showAddSerieModal && !!elemento?.requiere_series && (
         <SerieFormModal
           isOpen={showAddSerieModal}
           onClose={() => setShowAddSerieModal(false)}
