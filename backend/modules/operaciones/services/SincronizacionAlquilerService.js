@@ -311,26 +311,27 @@ class SincronizacionAlquilerService {
             SELECT
               l.id AS lote_id,
               l.lote_numero,
-              l.cantidad_disponible,
-              l.cantidad_total,
+              l.cantidad,
+              l.estado,
               u.nombre AS ubicacion,
               u.id AS ubicacion_id
             FROM lotes l
             LEFT JOIN ubicaciones u ON l.ubicacion_id = u.id
             WHERE l.elemento_id = ?
-              AND l.cantidad_disponible > 0
-            ORDER BY l.cantidad_disponible DESC
+              AND l.estado IN ('bueno', 'disponible')
+              AND l.cantidad > 0
+            ORDER BY l.cantidad DESC
           `, [componente.elemento_id]);
 
           disponibles = lotes.map(l => ({
             tipo: 'lote',
             id: l.lote_id,
             identificador: l.lote_numero,
-            estado: 'disponible',
+            estado: l.estado,
             ubicacion: l.ubicacion,
             ubicacion_id: l.ubicacion_id,
-            cantidad: l.cantidad_disponible,
-            cantidad_total: l.cantidad_total
+            cantidad: l.cantidad,
+            cantidad_total: l.cantidad
           }));
         }
 
@@ -492,7 +493,7 @@ class SincronizacionAlquilerService {
           const cantidadRequerida = elem.cantidad || 1;
 
           const [loteRows] = await connection.query(`
-            SELECT id, lote_numero, cantidad_disponible
+            SELECT id, lote_numero, cantidad
             FROM lotes
             WHERE id = ?
             FOR UPDATE
@@ -503,15 +504,15 @@ class SincronizacionAlquilerService {
           }
 
           const lote = loteRows[0];
-          if (lote.cantidad_disponible < cantidadRequerida) {
+          if (lote.cantidad < cantidadRequerida) {
             throw new AppError(
               `Lote ${lote.lote_numero} no tiene suficiente cantidad. ` +
-              `Disponible: ${lote.cantidad_disponible}, Requerido: ${cantidadRequerida}`,
+              `Disponible: ${lote.cantidad}, Requerido: ${cantidadRequerida}`,
               400
             );
           }
 
-          logger.debug(`[SincronizacionAlquilerService] Lote ${lote.lote_numero} validado (disponible: ${lote.cantidad_disponible})`);
+          logger.debug(`[SincronizacionAlquilerService] Lote ${lote.lote_numero} validado (disponible: ${lote.cantidad})`);
         }
 
         // -------------------------------------------------------------------
