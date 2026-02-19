@@ -29,7 +29,8 @@ import {
     ExternalLink,
     ClipboardCheck,
     Timer,
-    Share2
+    Share2,
+    Home
 } from 'lucide-react'
 import {
     useGetOrden,
@@ -78,7 +79,8 @@ export default function OrdenDetallePage() {
     const [showModalInventario, setShowModalInventario] = useState(false)
     const [showModalOrdenCargue, setShowModalOrdenCargue] = useState(false)
     const [showChecklistCargue, setShowChecklistCargue] = useState(false)
-    const [showChecklistDescargue, setShowChecklistDescargue] = useState(false)
+    const [showChecklistRecogida, setShowChecklistRecogida] = useState(false)
+    const [showChecklistBodega, setShowChecklistBodega] = useState(false)
     const [showInventarioCliente, setShowInventarioCliente] = useState(false)
     const [ejecutandoSalida, setEjecutandoSalida] = useState(false)
 
@@ -102,7 +104,7 @@ export default function OrdenDetallePage() {
 
     // Duraciones: solo cargar en estados avanzados o completado
     const { historial: historialEstados, duraciones } = useGetDuracionesOrden(id, {
-        enabled: !!orden && ['en_ruta', 'en_sitio', 'en_proceso', 'completado'].includes(orden?.estado)
+        enabled: !!orden && ['en_ruta', 'en_sitio', 'en_proceso', 'en_retorno', 'descargue', 'completado'].includes(orden?.estado)
     })
 
     // ============================================
@@ -201,6 +203,8 @@ export default function OrdenDetallePage() {
             en_ruta: 'Orden en ruta',
             en_sitio: 'Equipo llegó al sitio',
             en_proceso: 'Trabajo iniciado',
+            en_retorno: 'Equipo en retorno a bodega',
+            descargue: 'Descargue en bodega iniciado',
             completado: 'Orden completada exitosamente',
             cancelado: 'Orden cancelada'
         }
@@ -297,6 +301,16 @@ export default function OrdenDetallePage() {
                 icon: RefreshCw,
                 label: 'En Proceso'
             },
+            en_retorno: {
+                color: 'bg-teal-100 text-teal-700 border-teal-200',
+                icon: Truck,
+                label: 'En Retorno'
+            },
+            descargue: {
+                color: 'bg-purple-100 text-purple-700 border-purple-200',
+                icon: Home,
+                label: 'Descargue en Bodega'
+            },
             completado: {
                 color: 'bg-green-100 text-green-700 border-green-200',
                 icon: CheckCircle,
@@ -387,6 +401,9 @@ export default function OrdenDetallePage() {
             { key: 'en_preparacion', label: 'Preparación', short: 'Prep.' },
             { key: 'en_ruta', label: 'En Ruta', short: 'Ruta' },
             { key: 'en_sitio', label: 'En Sitio', short: 'Sitio' },
+            { key: 'en_proceso', label: 'Recogida', short: 'Recog.' },
+            { key: 'en_retorno', label: 'En Retorno', short: 'Ret.' },
+            { key: 'descargue', label: 'Descargue', short: 'Desc.' },
             { key: 'completado', label: 'Completado', short: 'Listo' }
         ]
     }
@@ -456,10 +473,12 @@ export default function OrdenDetallePage() {
             en_ruta: 'El equipo está en camino al sitio del evento.',
             en_sitio: orden.tipo === 'montaje'
                 ? 'El equipo llegó al sitio. Inicia el trabajo de montaje.'
-                : 'El equipo llegó al sitio. Realiza el desmontaje y registra el retorno.',
+                : 'El equipo llegó al sitio. Inicia el desmontaje.',
             en_proceso: orden.tipo === 'montaje'
                 ? 'Montaje en curso. Marca como completado cuando termine.'
-                : 'Desmontaje en curso. Registra el retorno de los elementos.',
+                : 'Recogida en curso. Completa el checklist de recogida para iniciar el retorno.',
+            en_retorno: 'El equipo está en camino de regreso a la bodega con los elementos.',
+            descargue: 'Descargando elementos del vehículo en bodega. Completa el checklist para finalizar.',
             completado: 'Esta orden ha sido completada exitosamente.',
             cancelado: 'Esta orden fue cancelada.'
         }
@@ -743,9 +762,10 @@ export default function OrdenDetallePage() {
                                 >Iniciar Montaje</Button>
                             )}
                             {orden.estado === 'en_sitio' && orden.tipo === 'desmontaje' && (
-                                <Button color="orange" icon={RotateCcw}
-                                    onClick={() => setShowModalRetorno(true)}
-                                >Registrar Retorno</Button>
+                                <Button color="blue" icon={Play}
+                                    onClick={() => handleCambiarEstado('en_proceso')}
+                                    disabled={cambiarEstado.isPending}
+                                >Iniciar Recogida</Button>
                             )}
                             {orden.estado === 'en_proceso' && orden.tipo === 'montaje' && (
                                 <Button color="green" icon={CheckCircle}
@@ -754,9 +774,22 @@ export default function OrdenDetallePage() {
                                 >Completar</Button>
                             )}
                             {orden.estado === 'en_proceso' && orden.tipo === 'desmontaje' && (
-                                <Button color="orange" icon={RotateCcw}
-                                    onClick={() => setShowModalRetorno(true)}
-                                >Registrar Retorno</Button>
+                                <Button color="teal" icon={Truck}
+                                    onClick={() => handleCambiarEstado('en_retorno')}
+                                    disabled={cambiarEstado.isPending}
+                                >Iniciar Retorno</Button>
+                            )}
+                            {orden.estado === 'en_retorno' && orden.tipo === 'desmontaje' && (
+                                <Button color="purple" icon={Home}
+                                    onClick={() => handleCambiarEstado('descargue')}
+                                    disabled={cambiarEstado.isPending}
+                                >Llegó a Bodega</Button>
+                            )}
+                            {orden.estado === 'descargue' && orden.tipo === 'desmontaje' && (
+                                <Button color="green" icon={CheckCircle}
+                                    onClick={() => handleCambiarEstado('completado')}
+                                    disabled={cambiarEstado.isPending}
+                                >Finalizar Orden</Button>
                             )}
                         </div>
                         )}
@@ -1039,18 +1072,18 @@ export default function OrdenDetallePage() {
                                         </div>
                                     )}
 
-                                    {/* Botón Checklist de Descargue - para desmontaje en sitio */}
-                                    {['en_ruta', 'en_sitio'].includes(orden.estado) && orden.tipo === 'desmontaje' && elementos?.length > 0 && canManage && (
+                                    {/* Botón Checklist de Recogida - solo en en_proceso de desmontaje */}
+                                    {orden.estado === 'en_proceso' && orden.tipo === 'desmontaje' && elementos?.length > 0 && canManage && (
                                         <div className="mt-4 p-4 bg-orange-50 border border-orange-200 rounded-lg">
                                             <div className="flex items-center justify-between gap-3">
                                                 <div className="flex items-center gap-2">
                                                     <ClipboardCheck className="w-5 h-5 text-orange-600 shrink-0" />
                                                     <div>
                                                         <p className="text-sm font-medium text-orange-800">
-                                                            Checklist de Descargue
+                                                            Checklist de Recogida
                                                         </p>
                                                         <p className="text-xs text-orange-600">
-                                                            Verifica cada elemento al recoger del sitio del evento
+                                                            Verifica cada elemento al recoger del sitio del evento. Debe completarse antes de iniciar el retorno.
                                                         </p>
                                                     </div>
                                                 </div>
@@ -1058,7 +1091,34 @@ export default function OrdenDetallePage() {
                                                     color="orange"
                                                     icon={ClipboardCheck}
                                                     size="sm"
-                                                    onClick={() => setShowChecklistDescargue(true)}
+                                                    onClick={() => setShowChecklistRecogida(true)}
+                                                >
+                                                    Abrir Checklist
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Botón Checklist en Bodega - solo en descargue de desmontaje */}
+                                    {orden.estado === 'descargue' && orden.tipo === 'desmontaje' && elementos?.length > 0 && canManage && (
+                                        <div className="mt-4 p-4 bg-purple-50 border border-purple-200 rounded-lg">
+                                            <div className="flex items-center justify-between gap-3">
+                                                <div className="flex items-center gap-2">
+                                                    <Home className="w-5 h-5 text-purple-600 shrink-0" />
+                                                    <div>
+                                                        <p className="text-sm font-medium text-purple-800">
+                                                            Checklist en Bodega
+                                                        </p>
+                                                        <p className="text-xs text-purple-600">
+                                                            Verifica cada elemento al descargar del vehículo en bodega. Debe completarse para finalizar la orden.
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <Button
+                                                    color="purple"
+                                                    icon={Home}
+                                                    size="sm"
+                                                    onClick={() => setShowChecklistBodega(true)}
                                                 >
                                                     Abrir Checklist
                                                 </Button>
@@ -1343,13 +1403,23 @@ export default function OrdenDetallePage() {
                     onCompleto={refetch}
                 />
             )}
-            {showChecklistDescargue && (
+            {showChecklistRecogida && (
                 <ChecklistCargueDescargue
-                    isOpen={showChecklistDescargue}
-                    onClose={() => setShowChecklistDescargue(false)}
+                    isOpen={showChecklistRecogida}
+                    onClose={() => setShowChecklistRecogida(false)}
                     ordenId={orden.id}
                     ordenInfo={orden}
-                    modo="descargue"
+                    modo="recogida"
+                    onCompleto={refetch}
+                />
+            )}
+            {showChecklistBodega && (
+                <ChecklistCargueDescargue
+                    isOpen={showChecklistBodega}
+                    onClose={() => setShowChecklistBodega(false)}
+                    ordenId={orden.id}
+                    ordenInfo={orden}
+                    modo="bodega"
                     onCompleto={refetch}
                 />
             )}

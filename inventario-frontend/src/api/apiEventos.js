@@ -48,6 +48,11 @@ export const apiEventos = {
   eliminar: async (id) => {
     const response = await api.delete(`/eventos/${id}`);
     return response.data;
+  },
+
+  repetir: async (id, { fecha_inicio, fecha_fin }) => {
+    const response = await api.post(`/eventos/${id}/repetir`, { fecha_inicio, fecha_fin });
+    return response.data;
   }
 };
 

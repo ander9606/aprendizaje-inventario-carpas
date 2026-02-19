@@ -84,6 +84,26 @@ export const useBuscarClientes = (termino) => {
 }
 
 // ============================================
+// HOOK: useGetHistorialEventos
+// Obtiene historial de eventos de un cliente
+// ============================================
+
+export const useGetHistorialEventos = (clienteId) => {
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ['clientes', clienteId, 'historial-eventos'],
+    queryFn: () => apiClientes.obtenerHistorialEventos(clienteId),
+    enabled: !!clienteId
+  })
+
+  return {
+    historial: data?.data || null,
+    isLoading,
+    error,
+    refetch
+  }
+}
+
+// ============================================
 // HOOK: useCreateCliente
 // Crea un nuevo cliente
 // ============================================

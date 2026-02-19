@@ -160,3 +160,21 @@ export const useDeleteEvento = () => {
     }
   })
 }
+
+/**
+ * Hook para repetir un evento con nuevas fechas
+ * Crea nuevo evento + cotización con mismos productos
+ */
+export const useRepetirEvento = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id, fecha_inicio, fecha_fin }) =>
+      apiEventos.repetir(id, { fecha_inicio, fecha_fin }),
+    retry: 0,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['eventos'] })
+      queryClient.invalidateQueries({ queryKey: ['cotizaciones'] })
+    }
+  })
+}

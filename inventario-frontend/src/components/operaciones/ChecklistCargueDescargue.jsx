@@ -1,7 +1,8 @@
 // ============================================
 // COMPONENTE: ChecklistCargueDescargue
 // Checklist interactivo paso a paso para verificar
-// cargue (subir al camión) y descargue (bajar en sitio)
+// cargue (subir al camión), recogida (recoger en sitio)
+// y bodega (descargar del camión en bodega)
 // ============================================
 
 import { useState, useMemo } from 'react'
@@ -21,12 +22,13 @@ import {
     Calendar,
     User,
     MessageSquare,
-    X
+    X,
+    Home
 } from 'lucide-react'
 import Modal from '../common/Modal'
 import Spinner from '../common/Spinner'
 import Button from '../common/Button'
-import { useGetChecklist, useVerificarElementoCargue, useVerificarElementoDescargue } from '../../hooks/useOrdenesTrabajo'
+import { useGetChecklist, useVerificarElementoCargue, useVerificarElementoRecogida, useVerificarElementoBodega } from '../../hooks/useOrdenesTrabajo'
 import { toast } from 'sonner'
 
 // ============================================
@@ -38,6 +40,8 @@ const ElementoCheckItem = ({ elemento, modo, onToggle, isPending }) => {
 
     const verificado = modo === 'cargue'
         ? elemento.verificado_salida
+        : modo === 'bodega'
+        ? elemento.verificado_bodega
         : elemento.verificado_retorno
 
     const handleToggle = () => {
@@ -138,7 +142,7 @@ const ProductoGroup = ({ compuestoId, nombre, elementos, modo, onToggle, isPendi
     const [expanded, setExpanded] = useState(true)
 
     const verificados = elementos.filter(e =>
-        modo === 'cargue' ? e.verificado_salida : e.verificado_retorno
+        modo === 'cargue' ? e.verificado_salida : modo === 'bodega' ? e.verificado_bodega : e.verificado_retorno
     ).length
     const total = elementos.length
     const todosVerificados = verificados === total
@@ -196,10 +200,62 @@ const ProductoGroup = ({ compuestoId, nombre, elementos, modo, onToggle, isPendi
 }
 
 // ============================================
+// CONFIG: Textos y estilos por modo
+// ============================================
+const MODO_CONFIG = {
+    cargue: {
+        titulo: 'Checklist de Cargue',
+        tituloImpresion: 'CHECKLIST DE CARGUE',
+        icon: Truck,
+        color: 'blue',
+        bgIcon: 'bg-blue-100',
+        textIcon: 'text-blue-600',
+        bgInstruccion: 'bg-blue-50 border-blue-200 text-blue-700',
+        instruccion: 'Marca cada elemento conforme se sube al vehículo. Puedes agregar observaciones si detectas alguna novedad.',
+        columnaVerificado: 'Cargado',
+        mensajeTodosVerificados: 'Todos los elementos han sido verificados para cargue',
+        firmaA: 'Preparó',
+        firmaC: 'Despachó',
+        botonCompleto: 'Cargue Completo'
+    },
+    recogida: {
+        titulo: 'Checklist de Recogida',
+        tituloImpresion: 'CHECKLIST DE RECOGIDA',
+        icon: MapPin,
+        color: 'orange',
+        bgIcon: 'bg-orange-100',
+        textIcon: 'text-orange-600',
+        bgInstruccion: 'bg-orange-50 border-orange-200 text-orange-700',
+        instruccion: 'Marca cada elemento conforme se recoge del sitio del evento y se sube al vehículo.',
+        columnaVerificado: 'Recogido',
+        mensajeTodosVerificados: 'Todos los elementos han sido recogidos del sitio',
+        firmaA: 'Recogió',
+        firmaC: 'Aprobó',
+        botonCompleto: 'Recogida Completa'
+    },
+    bodega: {
+        titulo: 'Checklist en Bodega',
+        tituloImpresion: 'CHECKLIST EN BODEGA',
+        icon: Home,
+        color: 'purple',
+        bgIcon: 'bg-purple-100',
+        textIcon: 'text-purple-600',
+        bgInstruccion: 'bg-purple-50 border-purple-200 text-purple-700',
+        instruccion: 'Marca cada elemento conforme se descarga del vehículo en bodega. Verifica el estado de cada pieza.',
+        columnaVerificado: 'En Bodega',
+        mensajeTodosVerificados: 'Todos los elementos han sido verificados en bodega',
+        firmaA: 'Recibió',
+        firmaC: 'Aprobó',
+        botonCompleto: 'Descarga en Bodega Completa'
+    }
+}
+
+// ============================================
 // HELPER: Generar HTML imprimible para checklist
 // ============================================
 const generarChecklistPrint = ({ ordenId, ordenInfo, grupos, modo, verificados, total }) => {
-    const titulo = modo === 'cargue' ? 'CHECKLIST DE CARGUE' : 'CHECKLIST DE DESCARGUE'
+    const config = MODO_CONFIG[modo] || MODO_CONFIG.cargue
+    const titulo = config.tituloImpresion
     const fecha = ordenInfo?.fecha_programada
         ? new Date(ordenInfo.fecha_programada).toLocaleDateString('es-CO', {
             weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
@@ -208,7 +264,7 @@ const generarChecklistPrint = ({ ordenId, ordenInfo, grupos, modo, verificados, 
 
     const seccionesHTML = grupos.map(grupo => {
         const filas = grupo.elementos.map(elem => {
-            const check = modo === 'cargue' ? elem.verificado_salida : elem.verificado_retorno
+            const check = modo === 'cargue' ? elem.verificado_salida : modo === 'bodega' ? elem.verificado_bodega : elem.verificado_retorno
             return `<tr>
                 <td style="padding-left:24px">${elem.elemento_nombre}</td>
                 <td>${elem.serie_codigo || elem.lote_codigo || '-'}</td>
@@ -274,7 +330,7 @@ const generarChecklistPrint = ({ ordenId, ordenInfo, grupos, modo, verificados, 
                 <th style="width:30%">Elemento</th>
                 <th style="width:18%">Serie/Lote</th>
                 <th class="center" style="width:10%">Cant.</th>
-                <th class="center" style="width:12%">${modo === 'cargue' ? 'Cargado' : 'Descargado'}</th>
+                <th class="center" style="width:12%">${config.columnaVerificado}</th>
                 <th style="width:30%">Observaciones</th>
             </tr>
         </thead>
@@ -286,9 +342,9 @@ const generarChecklistPrint = ({ ordenId, ordenInfo, grupos, modo, verificados, 
     </div>
     <div class="footer">
         <div class="firma-grid">
-            <div class="firma-item"><div class="firma-linea"></div><div class="firma-label">${modo === 'cargue' ? 'Preparó' : 'Recibió'}</div></div>
+            <div class="firma-item"><div class="firma-linea"></div><div class="firma-label">${config.firmaA}</div></div>
             <div class="firma-item"><div class="firma-linea"></div><div class="firma-label">Verificó</div></div>
-            <div class="firma-item"><div class="firma-linea"></div><div class="firma-label">${modo === 'cargue' ? 'Despachó' : 'Aprobó'}</div></div>
+            <div class="firma-item"><div class="firma-linea"></div><div class="firma-label">${config.firmaC}</div></div>
         </div>
     </div>
     <div class="print-date">Impreso: ${new Date().toLocaleString('es-CO')}</div>
@@ -303,21 +359,25 @@ const generarChecklistPrint = ({ ordenId, ordenInfo, grupos, modo, verificados, 
 //   - onClose: function
 //   - ordenId: number
 //   - ordenInfo: object (tipo, cliente, fecha, etc.)
-//   - modo: 'cargue' | 'descargue'
+//   - modo: 'cargue' | 'recogida' | 'bodega'
 //   - onCompleto: callback cuando todos verificados
 // ============================================
 const ChecklistCargueDescargue = ({ isOpen, onClose, ordenId, ordenInfo, modo = 'cargue', onCompleto }) => {
-    const { elementos, totalElementos, verificadosCargue, verificadosDescargue, isLoading, refetch } = useGetChecklist(
+    const { elementos, totalElementos, verificadosCargue, verificadosRecogida, verificadosBodega, isLoading, refetch } = useGetChecklist(
         isOpen ? ordenId : null
     )
 
     const verificarCargue = useVerificarElementoCargue()
-    const verificarDescargue = useVerificarElementoDescargue()
-    const mutacion = modo === 'cargue' ? verificarCargue : verificarDescargue
+    const verificarRecogida = useVerificarElementoRecogida()
+    const verificarBodega = useVerificarElementoBodega()
 
-    const verificados = modo === 'cargue' ? verificadosCargue : verificadosDescargue
+    const mutacion = modo === 'cargue' ? verificarCargue : modo === 'bodega' ? verificarBodega : verificarRecogida
+    const verificados = modo === 'cargue' ? verificadosCargue : modo === 'bodega' ? verificadosBodega : verificadosRecogida
     const todosVerificados = totalElementos > 0 && verificados === totalElementos
     const progreso = totalElementos > 0 ? Math.round((verificados / totalElementos) * 100) : 0
+
+    const config = MODO_CONFIG[modo] || MODO_CONFIG.cargue
+    const IconoModo = config.icon
 
     // Agrupar elementos por compuesto_id
     const grupos = useMemo(() => {
@@ -339,7 +399,6 @@ const ChecklistCargueDescargue = ({ isOpen, onClose, ordenId, ordenInfo, modo = 
         // Nombrar grupos usando el primer elemento
         Object.values(mapa).forEach(grupo => {
             if (!grupo.nombre && grupo.elementos.length > 0) {
-                // Intentar extraer nombre del producto del elemento
                 grupo.nombre = grupo.elementos[0].elemento_nombre?.split(' - ')[0] || 'Grupo'
             }
         })
@@ -383,22 +442,17 @@ const ChecklistCargueDescargue = ({ isOpen, onClose, ordenId, ordenInfo, modo = 
         onClose()
     }
 
-    const esCargue = modo === 'cargue'
-    const titulo = esCargue ? 'Checklist de Cargue' : 'Checklist de Descargue'
-    const IconoModo = esCargue ? Truck : MapPin
-    const colorModo = esCargue ? 'blue' : 'orange'
-
     return (
         <Modal
             isOpen={isOpen}
             onClose={onClose}
             title={
                 <div className="flex items-center gap-3">
-                    <div className={`p-2 rounded-lg ${esCargue ? 'bg-blue-100' : 'bg-orange-100'}`}>
-                        <IconoModo className={`w-5 h-5 ${esCargue ? 'text-blue-600' : 'text-orange-600'}`} />
+                    <div className={`p-2 rounded-lg ${config.bgIcon}`}>
+                        <IconoModo className={`w-5 h-5 ${config.textIcon}`} />
                     </div>
                     <div>
-                        <h3 className="font-semibold text-slate-900">{titulo}</h3>
+                        <h3 className="font-semibold text-slate-900">{config.titulo}</h3>
                         <p className="text-sm text-slate-500">
                             {ordenInfo?.tipo === 'montaje' ? 'Montaje' : 'Desmontaje'} #{ordenId}
                         </p>
@@ -467,25 +521,15 @@ const ChecklistCargueDescargue = ({ isOpen, onClose, ordenId, ordenInfo, modo = 
                             <div className="flex items-center gap-2 p-2 bg-green-50 border border-green-200 rounded-lg">
                                 <CheckCircle className="w-4 h-4 text-green-500" />
                                 <span className="text-sm font-medium text-green-700">
-                                    {esCargue
-                                        ? 'Todos los elementos han sido verificados para cargue'
-                                        : 'Todos los elementos han sido verificados en descargue'
-                                    }
+                                    {config.mensajeTodosVerificados}
                                 </span>
                             </div>
                         )}
                     </div>
 
                     {/* Instrucciones */}
-                    <div className={`p-3 rounded-lg border text-sm ${
-                        esCargue
-                            ? 'bg-blue-50 border-blue-200 text-blue-700'
-                            : 'bg-orange-50 border-orange-200 text-orange-700'
-                    }`}>
-                        {esCargue
-                            ? 'Marca cada elemento conforme se sube al vehículo. Puedes agregar observaciones si detectas alguna novedad.'
-                            : 'Marca cada elemento conforme se baja del vehículo en el sitio. Agrega observaciones sobre el estado de cada pieza.'
-                        }
+                    <div className={`p-3 rounded-lg border text-sm ${config.bgInstruccion}`}>
+                        {config.instruccion}
                     </div>
 
                     {/* Lista de elementos agrupados */}
@@ -531,7 +575,7 @@ const ChecklistCargueDescargue = ({ isOpen, onClose, ordenId, ordenInfo, modo = 
                                     icon={CheckCircle}
                                     onClick={handleConfirmar}
                                 >
-                                    {esCargue ? 'Cargue Completo' : 'Descargue Completo'}
+                                    {config.botonCompleto}
                                 </Button>
                             )}
                         </div>

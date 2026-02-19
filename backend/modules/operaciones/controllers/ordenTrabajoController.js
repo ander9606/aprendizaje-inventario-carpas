@@ -236,13 +236,35 @@ const cambiarEstadoOrden = async (req, res, next) => {
         const estadoAnterior = ordenAnterior.estado;
 
         // Validar: desmontaje no puede avanzar más allá de confirmado si montaje no está completado
-        if (ordenAnterior.tipo === 'desmontaje' && ['en_preparacion', 'en_ruta', 'en_sitio', 'en_proceso', 'completado'].includes(estado)) {
+        if (ordenAnterior.tipo === 'desmontaje' && ['en_preparacion', 'en_ruta', 'en_sitio', 'en_proceso', 'en_retorno', 'descargue', 'completado'].includes(estado)) {
             const [montajeRows] = await pool.query(
                 `SELECT id, estado FROM ordenes_trabajo WHERE alquiler_id = ? AND tipo = 'montaje' AND estado != 'cancelado' LIMIT 1`,
                 [ordenAnterior.alquiler_id]
             );
             if (montajeRows.length > 0 && montajeRows[0].estado !== 'completado') {
                 throw new AppError('No se puede avanzar el desmontaje hasta que el montaje esté completado', 409);
+            }
+        }
+
+        // Validar: para pasar de en_proceso a en_retorno, el checklist de recogida debe estar completo
+        if (ordenAnterior.tipo === 'desmontaje' && estado === 'en_retorno') {
+            const checklistData = await OrdenElementoModel.obtenerChecklistOrden(parseInt(id));
+            if (checklistData.totalElementos > 0 && checklistData.verificadosRecogida < checklistData.totalElementos) {
+                throw new AppError(
+                    `Debes completar el Checklist de Recogida antes de iniciar el retorno (${checklistData.verificadosRecogida}/${checklistData.totalElementos} verificados)`,
+                    409
+                );
+            }
+        }
+
+        // Validar: para pasar de descargue a completado, el checklist en bodega debe estar completo
+        if (ordenAnterior.tipo === 'desmontaje' && estado === 'completado') {
+            const checklistData = await OrdenElementoModel.obtenerChecklistOrden(parseInt(id));
+            if (checklistData.totalElementos > 0 && checklistData.verificadosBodega < checklistData.totalElementos) {
+                throw new AppError(
+                    `Debes completar el Checklist en Bodega antes de finalizar (${checklistData.verificadosBodega}/${checklistData.totalElementos} verificados)`,
+                    409
+                );
             }
         }
 
@@ -1146,6 +1168,37 @@ const verificarElementoDescargue = async (req, res, next) => {
     }
 };
 
+/**
+ * PUT /api/operaciones/ordenes/:id/elementos/:elemId/verificar-bodega
+ * Toggle verificación en bodega de un elemento individual
+ */
+const verificarElementoBodega = async (req, res, next) => {
+    try {
+        const { id, elemId } = req.params;
+        const { verificado, notas } = req.body;
+
+        if (typeof verificado !== 'boolean') {
+            throw new AppError('El campo "verificado" (boolean) es requerido', 400);
+        }
+
+        const elemento = await OrdenElementoModel.toggleVerificacionBodega(
+            parseInt(elemId),
+            verificado,
+            notas || null
+        );
+
+        logger.info('operaciones', `Elemento ${elemId} ${verificado ? 'verificado' : 'desverificado'} en bodega para orden ${id} por ${req.usuario.email}`);
+
+        res.json({
+            success: true,
+            message: verificado ? 'Elemento verificado en bodega' : 'Verificación en bodega removida',
+            data: elemento
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 module.exports = {
     // Órdenes
     getOrdenes,
@@ -1178,6 +1231,7 @@ module.exports = {
     getChecklistOrden,
     verificarElementoCargue,
     verificarElementoDescargue,
+    verificarElementoBodega,
 
     // Alertas
     getAlertas,

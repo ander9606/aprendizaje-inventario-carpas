@@ -2,6 +2,35 @@ const { pool } = require('../../../config/database');
 const AppError = require('../../../utils/AppError');
 
 class OrdenTrabajoModel {
+    // Flag para evitar ejecutar ALTER TABLE múltiples veces
+    static _estadosEnumActualizado = false;
+
+    /**
+     * Asegurar que el ENUM de estado incluya en_retorno y descargue.
+     * Se ejecuta una sola vez por ciclo de vida del proceso.
+     */
+    static async _ensureEstadosEnum() {
+        if (OrdenTrabajoModel._estadosEnumActualizado) return;
+        try {
+            await pool.query(`
+                ALTER TABLE ordenes_trabajo
+                MODIFY COLUMN estado ENUM(
+                    'pendiente', 'confirmado', 'en_preparacion', 'en_ruta',
+                    'en_sitio', 'en_proceso', 'en_retorno', 'descargue',
+                    'completado', 'cancelado'
+                ) DEFAULT 'pendiente'
+            `);
+        } catch (error) {
+            // Si el ENUM ya tiene esos valores, MySQL no lanza error,
+            // pero atrapamos por si acaso
+            if (error.code !== 'ER_DUP_FIELDNAME') {
+                // Solo logueamos, no lanzamos — no es crítico
+                console.warn('[OrdenTrabajoModel] Warn al actualizar ENUM estado:', error.message);
+            }
+        }
+        OrdenTrabajoModel._estadosEnumActualizado = true;
+    }
+
     /**
      * Obtener todas las órdenes de trabajo con filtros
      * Optimizado: Usa JOINs con conteos agregados en lugar de subconsultas correlacionadas
@@ -607,9 +636,13 @@ class OrdenTrabajoModel {
      * @returns {Promise<Object>}
      */
     static async cambiarEstado(id, estado) {
+        // Asegurar que el ENUM de la BD incluye los nuevos estados
+        await this._ensureEstadosEnum();
+
         const estadosValidos = [
             'pendiente', 'confirmado', 'en_preparacion', 'en_ruta',
-            'en_sitio', 'en_proceso', 'completado', 'cancelado'
+            'en_sitio', 'en_proceso', 'en_retorno', 'descargue',
+            'completado', 'cancelado'
         ];
 
         if (!estadosValidos.includes(estado)) {
@@ -953,10 +986,40 @@ class OrdenTrabajoModel {
                 VALUES (?, ?, ?, ?)
             `, [ordenId, estadoAnterior || null, estadoNuevo, cambiadoPor]);
         } catch (error) {
-            // Si la tabla no existe aún, no bloquear la operación principal
-            if (error.code === 'ER_NO_SUCH_TABLE') return;
+            if (error.code === 'ER_NO_SUCH_TABLE') {
+                // Auto-crear tabla y reintentar
+                await this._crearTablaHistorialEstados();
+                await pool.query(`
+                    INSERT INTO orden_trabajo_historial_estados
+                    (orden_id, estado_anterior, estado_nuevo, cambiado_por)
+                    VALUES (?, ?, ?, ?)
+                `, [ordenId, estadoAnterior || null, estadoNuevo, cambiadoPor]);
+                return;
+            }
             throw error;
         }
+    }
+
+    /**
+     * Auto-crear tabla de historial de estados si no existe
+     */
+    static async _crearTablaHistorialEstados() {
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS orden_trabajo_historial_estados (
+                id INT PRIMARY KEY AUTO_INCREMENT,
+                orden_id INT NOT NULL,
+                estado_anterior VARCHAR(30),
+                estado_nuevo VARCHAR(30) NOT NULL,
+                cambiado_por INT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (orden_id) REFERENCES ordenes_trabajo(id) ON DELETE CASCADE,
+                FOREIGN KEY (cambiado_por) REFERENCES empleados(id) ON DELETE SET NULL
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `);
+        // Crear índices ignorando si ya existen
+        try { await pool.query('CREATE INDEX idx_historial_estados_orden ON orden_trabajo_historial_estados(orden_id)'); } catch(e) {}
+        try { await pool.query('CREATE INDEX idx_historial_estados_estado ON orden_trabajo_historial_estados(estado_nuevo)'); } catch(e) {}
+        try { await pool.query('CREATE INDEX idx_historial_estados_fecha ON orden_trabajo_historial_estados(created_at)'); } catch(e) {}
     }
 
     /**

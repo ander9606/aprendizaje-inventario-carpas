@@ -19,13 +19,15 @@ import { useGetUbicacionesActivas } from '../../hooks/Useubicaciones'
  * @param {Function} props.onSave - Recibe los datos del evento
  * @param {Object} props.evento - Evento a editar (opcional)
  * @param {number} props.clientePreseleccionado - ID del cliente preseleccionado
+ * @param {Object} props.eventoReferencia - Evento base para repetir (pre-llena todo excepto fechas)
  */
 const EventoFormModal = ({
     isOpen,
     onClose,
     onSave,
     evento = null,
-    clientePreseleccionado = null
+    clientePreseleccionado = null,
+    eventoReferencia = null
 }) => {
     const [formData, setFormData] = useState({
         cliente_id: '',
@@ -65,6 +67,18 @@ const EventoFormModal = ({
                 ciudad_id: evento.ciudad_id || '',
                 notas: evento.notas || ''
             })
+        } else if (eventoReferencia) {
+            // Repetir evento: pre-llenar todo excepto fechas
+            setFormData({
+                cliente_id: eventoReferencia.cliente_id || '',
+                nombre: eventoReferencia.nombre || '',
+                descripcion: eventoReferencia.descripcion || '',
+                fecha_inicio: '',
+                fecha_fin: '',
+                direccion: eventoReferencia.direccion || '',
+                ciudad_id: eventoReferencia.ciudad_id || '',
+                notas: eventoReferencia.notas || ''
+            })
         } else {
             setFormData({
                 cliente_id: clientePreseleccionado || '',
@@ -78,7 +92,7 @@ const EventoFormModal = ({
             })
         }
         setErrors({})
-    }, [evento, clientePreseleccionado, isOpen])
+    }, [evento, eventoReferencia, clientePreseleccionado, isOpen])
 
     // Manejar cambios
     const handleChange = (e) => {
@@ -180,7 +194,7 @@ const EventoFormModal = ({
                 <div className="p-6 border-b border-slate-200">
                     <div className="flex items-center justify-between">
                         <h3 className="text-lg font-semibold text-slate-900">
-                            {isEditing ? 'Editar Evento' : 'Nuevo Evento'}
+                            {isEditing ? 'Editar Evento' : eventoReferencia ? 'Repetir Evento' : 'Nuevo Evento'}
                         </h3>
                         <button
                             onClick={onClose}
@@ -254,9 +268,16 @@ const EventoFormModal = ({
                     </div>
 
                     {/* Fechas */}
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className={`rounded-xl p-3 -mx-1 ${eventoReferencia ? 'bg-amber-50 border-2 border-amber-300 ring-2 ring-amber-100' : ''}`}>
+                        {eventoReferencia && (
+                            <p className="text-xs font-medium text-amber-700 mb-2 flex items-center gap-1">
+                                <Calendar className="w-3.5 h-3.5" />
+                                Selecciona las nuevas fechas para este evento
+                            </p>
+                        )}
+                        <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">
+                            <label className={`block text-sm font-medium mb-1 ${eventoReferencia ? 'text-amber-800' : 'text-slate-700'}`}>
                                 <Calendar className="w-4 h-4 inline mr-1" />
                                 Fecha Inicio *
                             </label>
@@ -265,8 +286,11 @@ const EventoFormModal = ({
                                 name="fecha_inicio"
                                 value={formData.fecha_inicio}
                                 onChange={handleChange}
-                                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 ${
-                                    errors.fecha_inicio ? 'border-red-300' : 'border-slate-200'
+                                autoFocus={!!eventoReferencia}
+                                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
+                                    errors.fecha_inicio ? 'border-red-300 focus:ring-red-500/20 focus:border-red-500' :
+                                    eventoReferencia ? 'border-amber-300 bg-white focus:ring-amber-500/20 focus:border-amber-500' :
+                                    'border-slate-200 focus:ring-blue-500/20 focus:border-blue-500'
                                 }`}
                             />
                             {errors.fecha_inicio && (
@@ -274,7 +298,7 @@ const EventoFormModal = ({
                             )}
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">
+                            <label className={`block text-sm font-medium mb-1 ${eventoReferencia ? 'text-amber-800' : 'text-slate-700'}`}>
                                 <Calendar className="w-4 h-4 inline mr-1" />
                                 Fecha Fin *
                             </label>
@@ -283,14 +307,17 @@ const EventoFormModal = ({
                                 name="fecha_fin"
                                 value={formData.fecha_fin}
                                 onChange={handleChange}
-                                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 ${
-                                    errors.fecha_fin ? 'border-red-300' : 'border-slate-200'
+                                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
+                                    errors.fecha_fin ? 'border-red-300 focus:ring-red-500/20 focus:border-red-500' :
+                                    eventoReferencia ? 'border-amber-300 bg-white focus:ring-amber-500/20 focus:border-amber-500' :
+                                    'border-slate-200 focus:ring-blue-500/20 focus:border-blue-500'
                                 }`}
                             />
                             {errors.fecha_fin && (
                                 <p className="text-xs text-red-500 mt-1">{errors.fecha_fin}</p>
                             )}
                         </div>
+                    </div>
                     </div>
 
                     {/* Ciudad y Ubicación */}

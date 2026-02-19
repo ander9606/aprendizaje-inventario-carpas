@@ -210,11 +210,18 @@ router.put(
     ordenTrabajoController.verificarElementoCargue
 );
 
-// Toggle verificación de descargue de un elemento
+// Toggle verificación de recogida (en sitio del evento) de un elemento
 router.put(
     '/ordenes/:id/elementos/:elemId/verificar-descargue',
     verificarRol(['admin', 'gerente', 'operaciones']),
     ordenTrabajoController.verificarElementoDescargue
+);
+
+// Toggle verificación en bodega de un elemento
+router.put(
+    '/ordenes/:id/elementos/:elemId/verificar-bodega',
+    verificarRol(['admin', 'gerente', 'operaciones']),
+    ordenTrabajoController.verificarElementoBodega
 );
 
 // ============================================

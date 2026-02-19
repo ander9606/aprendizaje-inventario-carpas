@@ -520,11 +520,23 @@ export const useGetChecklist = (ordenId, options = {}) => {
         elementos: data?.data?.elementos || [],
         totalElementos: data?.data?.totalElementos || 0,
         verificadosCargue: data?.data?.verificadosCargue || 0,
-        verificadosDescargue: data?.data?.verificadosDescargue || 0,
+        verificadosRecogida: data?.data?.verificadosRecogida || 0,
+        verificadosBodega: data?.data?.verificadosBodega || 0,
+        // Alias compatibilidad
+        verificadosDescargue: data?.data?.verificadosRecogida || 0,
         isLoading,
         error,
         refetch
     }
+}
+
+const _invalidateChecklist = (queryClient, id) => {
+    queryClient.invalidateQueries({ queryKey: ['ordenes', id, 'checklist'] })
+    queryClient.invalidateQueries({ queryKey: ['ordenes', id, 'elementos'] })
+    queryClient.invalidateQueries({ queryKey: ['ordenes', id, 'completa'] })
+    queryClient.invalidateQueries({ queryKey: ['ordenes', String(id), 'checklist'] })
+    queryClient.invalidateQueries({ queryKey: ['ordenes', String(id), 'elementos'] })
+    queryClient.invalidateQueries({ queryKey: ['ordenes', String(id), 'completa'] })
 }
 
 /**
@@ -538,38 +550,40 @@ export const useVerificarElementoCargue = () => {
         mutationFn: ({ ordenId, elementoId, verificado, notas }) =>
             ordenesAPI.verificarElementoCargue(ordenId, elementoId, { verificado, notas }),
         retry: 0,
-        onSuccess: (_, variables) => {
-            const id = variables.ordenId
-            queryClient.invalidateQueries({ queryKey: ['ordenes', id, 'checklist'] })
-            queryClient.invalidateQueries({ queryKey: ['ordenes', id, 'elementos'] })
-            queryClient.invalidateQueries({ queryKey: ['ordenes', id, 'completa'] })
-            queryClient.invalidateQueries({ queryKey: ['ordenes', String(id), 'checklist'] })
-            queryClient.invalidateQueries({ queryKey: ['ordenes', String(id), 'elementos'] })
-            queryClient.invalidateQueries({ queryKey: ['ordenes', String(id), 'completa'] })
-        }
+        onSuccess: (_, variables) => _invalidateChecklist(queryClient, variables.ordenId)
     })
 }
 
 /**
- * Hook: useVerificarElementoDescargue
- * Toggle verificación de descargue de un elemento individual
+ * Hook: useVerificarElementoRecogida
+ * Toggle verificación de recogida (en sitio del evento) de un elemento
  */
-export const useVerificarElementoDescargue = () => {
+export const useVerificarElementoRecogida = () => {
     const queryClient = useQueryClient()
 
     return useMutation({
         mutationFn: ({ ordenId, elementoId, verificado, notas }) =>
-            ordenesAPI.verificarElementoDescargue(ordenId, elementoId, { verificado, notas }),
+            ordenesAPI.verificarElementoRecogida(ordenId, elementoId, { verificado, notas }),
         retry: 0,
-        onSuccess: (_, variables) => {
-            const id = variables.ordenId
-            queryClient.invalidateQueries({ queryKey: ['ordenes', id, 'checklist'] })
-            queryClient.invalidateQueries({ queryKey: ['ordenes', id, 'elementos'] })
-            queryClient.invalidateQueries({ queryKey: ['ordenes', id, 'completa'] })
-            queryClient.invalidateQueries({ queryKey: ['ordenes', String(id), 'checklist'] })
-            queryClient.invalidateQueries({ queryKey: ['ordenes', String(id), 'elementos'] })
-            queryClient.invalidateQueries({ queryKey: ['ordenes', String(id), 'completa'] })
-        }
+        onSuccess: (_, variables) => _invalidateChecklist(queryClient, variables.ordenId)
+    })
+}
+
+// Alias para compatibilidad
+export const useVerificarElementoDescargue = useVerificarElementoRecogida
+
+/**
+ * Hook: useVerificarElementoBodega
+ * Toggle verificación en bodega de un elemento
+ */
+export const useVerificarElementoBodega = () => {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: ({ ordenId, elementoId, verificado, notas }) =>
+            ordenesAPI.verificarElementoBodega(ordenId, elementoId, { verificado, notas }),
+        retry: 0,
+        onSuccess: (_, variables) => _invalidateChecklist(queryClient, variables.ordenId)
     })
 }
 

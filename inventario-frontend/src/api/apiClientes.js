@@ -38,6 +38,11 @@ export const apiClientes = {
   eliminar: async (id) => {
     const response = await api.delete(`/clientes/${id}`);
     return response.data;
+  },
+
+  obtenerHistorialEventos: async (id) => {
+    const response = await api.get(`/clientes/${id}/historial-eventos`);
+    return response.data;
   }
 };
 

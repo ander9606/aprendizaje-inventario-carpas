@@ -93,6 +93,18 @@ export const Button = ({
       hover:bg-slate-700
       focus:ring-slate-500
       active:bg-slate-800
+    `,
+    purple: `
+      bg-purple-600 text-white
+      hover:bg-purple-700
+      focus:ring-purple-500
+      active:bg-purple-800
+    `,
+    teal: `
+      bg-teal-600 text-white
+      hover:bg-teal-700
+      focus:ring-teal-500
+      active:bg-teal-800
     `
   }
 

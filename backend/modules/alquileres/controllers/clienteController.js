@@ -194,6 +194,32 @@ exports.eliminar = async (req, res, next) => {
 };
 
 // ============================================
+// HISTORIAL DE EVENTOS
+// ============================================
+exports.obtenerHistorialEventos = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const cliente = await ClienteModel.obtenerPorId(id);
+    if (!cliente) {
+      throw new AppError('Cliente no encontrado', 404);
+    }
+
+    const historial = await ClienteModel.obtenerHistorialEventos(id);
+
+    res.json({
+      success: true,
+      data: {
+        cliente,
+        ...historial
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ============================================
 // BUSCAR
 // ============================================
 exports.buscar = async (req, res, next) => {

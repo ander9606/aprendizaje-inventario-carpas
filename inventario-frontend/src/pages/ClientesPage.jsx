@@ -5,15 +5,20 @@
 
 import { useState } from 'react'
 import { Plus, Users } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import {
   useGetClientes,
   useDeleteCliente
 } from '../hooks/UseClientes'
+import { useRepetirEvento } from '../hooks/useEventos'
 import ClienteCard from '../components/cards/ClienteCard'
 import ClienteFormModal from '../components/forms/ClienteFormModal'
+import ClienteHistorialModal from '../components/modals/ClienteHistorialModal'
+import EventoFormModal from '../components/modals/EventoFormModal'
 import Button from '../components/common/Button'
 import Spinner from '../components/common/Spinner'
 import EmptyState from '../components/common/EmptyState'
+import { toast } from 'sonner'
 
 /**
  * Página ClientesPage
@@ -25,6 +30,8 @@ import EmptyState from '../components/common/EmptyState'
  * - Crear nuevo cliente
  * - Editar cliente existente
  * - Eliminar cliente
+ * - Ver historial de eventos de un cliente
+ * - Repetir un evento pasado (crear nuevo evento con mismo cliente)
  */
 export default function ClientesPage() {
 
@@ -32,8 +39,10 @@ export default function ClientesPage() {
   // HOOKS: Obtener datos
   // ============================================
 
+  const navigate = useNavigate()
   const { clientes, isLoading, error, refetch } = useGetClientes()
   const { mutateAsync: deleteCliente, isLoading: isDeleting } = useDeleteCliente()
+  const repetirEvento = useRepetirEvento()
 
   // ============================================
   // STATE: Control de modales
@@ -45,6 +54,8 @@ export default function ClientesPage() {
   })
 
   const [selectedCliente, setSelectedCliente] = useState(null)
+  const [historialClienteId, setHistorialClienteId] = useState(null)
+  const [eventoRepetir, setEventoRepetir] = useState(null)
 
   // ============================================
   // HANDLERS
@@ -78,7 +89,36 @@ export default function ClientesPage() {
     }
   }
 
-  
+  const handleVerHistorial = (cliente) => {
+    setHistorialClienteId(cliente.id)
+  }
+
+  const handleRepetirEvento = (evento, cliente) => {
+    setHistorialClienteId(null)
+    setEventoRepetir({
+      ...evento,
+      cliente_id: cliente.id
+    })
+  }
+
+  const handleCrearEventoRepetido = async (datos) => {
+    try {
+      const resultado = await repetirEvento.mutateAsync({
+        id: eventoRepetir.id,
+        fecha_inicio: datos.fecha_inicio,
+        fecha_fin: datos.fecha_fin
+      })
+      const productosCopiados = resultado?.data?.productos_copiados || 0
+      toast.success(`Evento repetido con ${productosCopiados} producto${productosCopiados !== 1 ? 's' : ''}`)
+      setEventoRepetir(null)
+      navigate('/alquileres/cotizaciones')
+    } catch (error) {
+      toast.error(error?.response?.data?.message || 'Error al repetir evento')
+      throw error
+    }
+  }
+
+
   // ============================================
   // RENDER: Estados de carga y error
   // ============================================
@@ -149,6 +189,7 @@ export default function ClientesPage() {
               cliente={cliente}
               onEdit={handleEdit}
               onDelete={handleDelete}
+              onVerHistorial={handleVerHistorial}
             />
           ))}
         </div>
@@ -179,6 +220,22 @@ export default function ClientesPage() {
         onClose={handleCloseModal}
         mode="editar"
         cliente={selectedCliente}
+      />
+
+      {/* Modal historial de eventos */}
+      <ClienteHistorialModal
+        isOpen={!!historialClienteId}
+        onClose={() => setHistorialClienteId(null)}
+        clienteId={historialClienteId}
+        onRepetirEvento={handleRepetirEvento}
+      />
+
+      {/* Modal repetir evento */}
+      <EventoFormModal
+        isOpen={!!eventoRepetir}
+        onClose={() => setEventoRepetir(null)}
+        onSave={handleCrearEventoRepetido}
+        eventoReferencia={eventoRepetir}
       />
 
       {/* Indicador de carga al eliminar */}

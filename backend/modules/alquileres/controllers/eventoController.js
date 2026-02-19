@@ -5,7 +5,10 @@
 
 const EventoModel = require('../models/EventoModel');
 const ClienteModel = require('../models/ClienteModel');
+const CotizacionModel = require('../models/CotizacionModel');
+const CotizacionProductoModel = require('../models/CotizacionProductoModel');
 const AppError = require('../../../utils/AppError');
+const logger = require('../../../utils/logger');
 
 // ============================================
 // OBTENER TODOS
@@ -270,6 +273,103 @@ exports.puedeAgregarCotizacion = async (req, res, next) => {
       data: resultado
     });
   } catch (error) {
+    next(error);
+  }
+};
+
+// ============================================
+// REPETIR EVENTO
+// Crea nuevo evento con nuevas fechas y cotización
+// con los mismos productos aprobados del original
+// ============================================
+exports.repetir = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { fecha_inicio, fecha_fin } = req.body;
+
+    if (!fecha_inicio) {
+      throw new AppError('La fecha de inicio es requerida', 400);
+    }
+
+    // Obtener evento original
+    const eventoOriginal = await EventoModel.obtenerPorId(id);
+    if (!eventoOriginal) {
+      throw new AppError('Evento original no encontrado', 404);
+    }
+
+    // Crear nuevo evento con mismos datos pero nuevas fechas
+    const resultadoEvento = await EventoModel.crear({
+      cliente_id: eventoOriginal.cliente_id,
+      nombre: eventoOriginal.nombre,
+      descripcion: eventoOriginal.descripcion,
+      fecha_inicio,
+      fecha_fin: fecha_fin || fecha_inicio,
+      direccion: eventoOriginal.direccion,
+      ciudad_id: eventoOriginal.ciudad_id,
+      notas: eventoOriginal.notas
+    });
+
+    const nuevoEventoId = resultadoEvento.insertId;
+
+    // Obtener productos de cotizaciones aprobadas del evento original
+    // MySQL DECIMAL retorna strings, convertir a números para evitar NaN en cálculos
+    const productosOriginales = (await EventoModel.obtenerProductosAprobados(id)).map(p => ({
+      ...p,
+      cantidad: parseInt(p.cantidad) || 1,
+      precio_base: parseFloat(p.precio_base) || 0,
+      deposito: parseFloat(p.deposito) || 0,
+      precio_adicionales: parseFloat(p.precio_adicionales) || 0
+    }));
+
+    let cotizacionId = null;
+
+    if (productosOriginales.length > 0) {
+      // Crear cotización para el nuevo evento
+      const resultadoCotizacion = await CotizacionModel.crear({
+        cliente_id: eventoOriginal.cliente_id,
+        evento_id: nuevoEventoId,
+        fecha_evento: fecha_inicio,
+        fecha_montaje: fecha_inicio,
+        fecha_desmontaje: fecha_fin || fecha_inicio,
+        evento_nombre: eventoOriginal.nombre,
+        evento_direccion: eventoOriginal.direccion,
+        evento_ciudad: eventoOriginal.ciudad_nombre,
+        subtotal: 0,
+        descuento: 0,
+        total: 0,
+        notas: `Repetición del evento original #${id}`,
+        fechas_confirmadas: true
+      });
+
+      cotizacionId = resultadoCotizacion.insertId;
+
+      // Agregar los mismos productos
+      await CotizacionProductoModel.agregarMultiples(cotizacionId, productosOriginales);
+
+      // Recalcular totales
+      await CotizacionModel.recalcularTotales(cotizacionId);
+    }
+
+    const nuevoEvento = await EventoModel.obtenerPorId(nuevoEventoId);
+
+    logger.info('eventoController.repetir', 'Evento repetido', {
+      evento_original: id,
+      nuevo_evento: nuevoEventoId,
+      cotizacion: cotizacionId,
+      productos: productosOriginales.length
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Evento repetido exitosamente',
+      data: {
+        evento: nuevoEvento,
+        cotizacion_id: cotizacionId,
+        productos_copiados: productosOriginales.length
+      }
+    });
+  } catch (error) {
+    logger.error('eventoController.repetir', error);
     next(error);
   }
 };
