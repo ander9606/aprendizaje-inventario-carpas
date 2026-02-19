@@ -257,11 +257,13 @@ class SincronizacionAlquilerService {
               l.id AS lote_id,
               l.lote_numero,
               l.cantidad,
+              l.estado,
               u.nombre AS ubicacion,
               u.id AS ubicacion_id
             FROM lotes l
             LEFT JOIN ubicaciones u ON l.ubicacion_id = u.id
             WHERE l.elemento_id = ?
+              AND l.estado IN ('bueno', 'disponible')
               AND l.cantidad > 0
             ORDER BY l.cantidad DESC
           `, [componente.elemento_id]);
@@ -270,10 +272,11 @@ class SincronizacionAlquilerService {
             tipo: 'lote',
             id: l.lote_id,
             identificador: l.lote_numero,
-            estado: 'disponible',
+            estado: l.estado,
             ubicacion: l.ubicacion,
             ubicacion_id: l.ubicacion_id,
-            cantidad: l.cantidad
+            cantidad: l.cantidad,
+            cantidad_total: l.cantidad
           }));
         }
 
