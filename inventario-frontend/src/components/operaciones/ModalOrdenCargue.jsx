@@ -137,7 +137,7 @@ const ProductoItem = ({ producto, elementos, expanded, onToggle }) => {
 
             {expanded && elementosProducto.length > 0 && (
                 <div className="border-t border-slate-200 bg-white">
-                    <div className="px-4 py-2 bg-slate-100 border-b border-slate-200">
+                    <div className="px-4 py-2 bg-slate-100 border-b border-slate-200 hidden sm:block">
                         <div className="grid grid-cols-12 gap-2 text-xs font-medium text-slate-600">
                             <div className="col-span-5">Elemento</div>
                             <div className="col-span-3">Serie</div>
@@ -147,29 +147,51 @@ const ProductoItem = ({ producto, elementos, expanded, onToggle }) => {
                     </div>
                     <div className="divide-y divide-slate-100">
                         {elementosProducto.map((elem, idx) => (
-                            <div key={idx} className="px-4 py-2 grid grid-cols-12 gap-2 items-center text-sm">
-                                <div className="col-span-5 flex items-center gap-2">
+                            <div key={idx} className="px-4 py-2 text-sm">
+                                {/* Desktop: grid layout */}
+                                <div className="hidden sm:grid grid-cols-12 gap-2 items-center">
+                                    <div className="col-span-5 flex items-center gap-2">
+                                        <Box className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                                        <span className="truncate">{elem.elemento_nombre}</span>
+                                        <BotonVerFoto
+                                            imagenUrl={elem.elemento_imagen}
+                                            nombreElemento={elem.elemento_nombre}
+                                        />
+                                    </div>
+                                    <div className="col-span-3">
+                                        {elem.serie_codigo ? (
+                                            <span className="flex items-center gap-1 text-xs">
+                                                <Hash className="w-3 h-3 text-slate-400" />
+                                                {elem.serie_codigo}
+                                            </span>
+                                        ) : (
+                                            <span className="text-xs text-slate-400">-</span>
+                                        )}
+                                    </div>
+                                    <div className="col-span-2 text-center">
+                                        {elem.cantidad_lote || elem.cantidad || 1}
+                                    </div>
+                                    <div className="col-span-2 text-center">
+                                        <EstadoBadge estado={elem.estado_salida || elem.estado} />
+                                    </div>
+                                </div>
+                                {/* Mobile: stacked layout */}
+                                <div className="sm:hidden flex items-center gap-3">
                                     <Box className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                                    <span className="truncate">{elem.elemento_nombre}</span>
-                                    <BotonVerFoto
-                                        imagenUrl={elem.elemento_imagen}
-                                        nombreElemento={elem.elemento_nombre}
-                                    />
-                                </div>
-                                <div className="col-span-3">
-                                    {elem.serie_codigo ? (
-                                        <span className="flex items-center gap-1 text-xs">
-                                            <Hash className="w-3 h-3 text-slate-400" />
-                                            {elem.serie_codigo}
-                                        </span>
-                                    ) : (
-                                        <span className="text-xs text-slate-400">-</span>
-                                    )}
-                                </div>
-                                <div className="col-span-2 text-center">
-                                    {elem.cantidad_lote || elem.cantidad || 1}
-                                </div>
-                                <div className="col-span-2 text-center">
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2">
+                                            <span className="truncate font-medium">{elem.elemento_nombre}</span>
+                                            <BotonVerFoto imagenUrl={elem.elemento_imagen} nombreElemento={elem.elemento_nombre} />
+                                        </div>
+                                        <div className="flex items-center gap-3 mt-0.5 text-xs text-slate-500">
+                                            {elem.serie_codigo && (
+                                                <span className="flex items-center gap-1">
+                                                    <Hash className="w-3 h-3" />{elem.serie_codigo}
+                                                </span>
+                                            )}
+                                            <span>x{elem.cantidad_lote || elem.cantidad || 1}</span>
+                                        </div>
+                                    </div>
                                     <EstadoBadge estado={elem.estado_salida || elem.estado} />
                                 </div>
                             </div>

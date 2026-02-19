@@ -245,10 +245,10 @@ const ElementoLoteRetornoItem = ({ elemento, retorno, onChange }) => {
             </div>
 
             {/* Inputs para dividir cantidades */}
-            <div className="grid grid-cols-3 gap-2 mb-2">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-2">
                 {/* Bueno */}
-                <div className="flex flex-col">
-                    <label className="flex items-center gap-1 text-xs font-medium text-green-700 mb-1">
+                <div className="flex sm:flex-col items-center sm:items-stretch gap-2 sm:gap-0">
+                    <label className="flex items-center gap-1 text-xs font-medium text-green-700 sm:mb-1 min-w-[70px] sm:min-w-0">
                         <CheckCircle className="w-3 h-3" />
                         Buenos
                     </label>
@@ -258,13 +258,13 @@ const ElementoLoteRetornoItem = ({ elemento, retorno, onChange }) => {
                         max={cantidadTotal}
                         value={cantidadBueno}
                         onChange={(e) => handleCantidadChange('cantidad_bueno', e.target.value)}
-                        className="w-full px-2 py-1.5 text-sm text-center border border-green-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 bg-white"
+                        className="flex-1 sm:w-full px-2 py-1.5 text-sm text-center border border-green-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 bg-white"
                     />
                 </div>
 
                 {/* Dañado */}
-                <div className="flex flex-col">
-                    <label className="flex items-center gap-1 text-xs font-medium text-amber-700 mb-1">
+                <div className="flex sm:flex-col items-center sm:items-stretch gap-2 sm:gap-0">
+                    <label className="flex items-center gap-1 text-xs font-medium text-amber-700 sm:mb-1 min-w-[70px] sm:min-w-0">
                         <AlertTriangle className="w-3 h-3" />
                         Dañados
                     </label>
@@ -274,13 +274,13 @@ const ElementoLoteRetornoItem = ({ elemento, retorno, onChange }) => {
                         max={cantidadTotal}
                         value={cantidadDanado}
                         onChange={(e) => handleCantidadChange('cantidad_danado', e.target.value)}
-                        className="w-full px-2 py-1.5 text-sm text-center border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 bg-white"
+                        className="flex-1 sm:w-full px-2 py-1.5 text-sm text-center border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 bg-white"
                     />
                 </div>
 
                 {/* Perdido */}
-                <div className="flex flex-col">
-                    <label className="flex items-center gap-1 text-xs font-medium text-red-700 mb-1">
+                <div className="flex sm:flex-col items-center sm:items-stretch gap-2 sm:gap-0">
+                    <label className="flex items-center gap-1 text-xs font-medium text-red-700 sm:mb-1 min-w-[70px] sm:min-w-0">
                         <XCircle className="w-3 h-3" />
                         Perdidos
                     </label>
@@ -290,7 +290,7 @@ const ElementoLoteRetornoItem = ({ elemento, retorno, onChange }) => {
                         max={cantidadTotal}
                         value={cantidadPerdido}
                         onChange={(e) => handleCantidadChange('cantidad_perdido', e.target.value)}
-                        className="w-full px-2 py-1.5 text-sm text-center border border-red-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 bg-white"
+                        className="flex-1 sm:w-full px-2 py-1.5 text-sm text-center border border-red-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 bg-white"
                     />
                 </div>
             </div>
@@ -739,7 +739,7 @@ const ModalRetornoElementos = ({
                 </div>
 
                 {/* Lista de productos con elementos */}
-                <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1">
+                <div className="space-y-3 max-h-[50vh] overflow-y-auto pr-1">
                     {productosConElementos.map(producto => (
                         <ProductoGroup
                             key={producto.id}
@@ -805,7 +805,7 @@ const ModalRetornoElementos = ({
                         }`} />
                         <span className="font-medium text-slate-900">Resumen Financiero</span>
                     </div>
-                    <div className="grid grid-cols-3 gap-4 text-sm">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 text-sm">
                         <div>
                             <p className="text-slate-500">Depósito</p>
                             <p className="font-semibold text-slate-900">

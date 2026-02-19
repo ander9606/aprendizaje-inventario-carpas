@@ -587,7 +587,30 @@ export default function OrdenDetallePage() {
             {/* BARRA DE PROGRESO */}
             {!esCancelado && (
                 <div className="bg-white rounded-xl border border-slate-200 p-4 mb-6">
-                    <div className="flex items-center justify-between">
+                    {/* Vista móvil: indicador compacto */}
+                    <div className="sm:hidden">
+                        <div className="flex items-center justify-between mb-2">
+                            <span className="text-xs font-medium text-slate-500">
+                                Paso {pasoActualIndex + 1} de {pasos.length}
+                            </span>
+                            <span className={`text-xs font-bold ${esCompletado ? 'text-green-600' : 'text-orange-600'}`}>
+                                {pasos[pasoActualIndex]?.label || orden.estado}
+                            </span>
+                        </div>
+                        <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
+                            <div
+                                className={`h-full rounded-full transition-all duration-500 ${esCompletado ? 'bg-green-500' : 'bg-orange-500'}`}
+                                style={{ width: `${pasos.length > 1 ? Math.round((pasoActualIndex / (pasos.length - 1)) * 100) : 100}%` }}
+                            />
+                        </div>
+                        <div className="flex items-center justify-between mt-2 text-[10px] text-slate-400">
+                            <span>{pasos[0]?.short}</span>
+                            <span>{pasos[pasos.length - 1]?.short}</span>
+                        </div>
+                    </div>
+
+                    {/* Vista desktop: stepper completo */}
+                    <div className="hidden sm:flex items-center justify-between">
                         {pasos.map((paso, idx) => {
                             const esActual = paso.key === orden.estado
                             const esCompletadoPaso = idx < pasoActualIndex || esCompletado
@@ -610,8 +633,7 @@ export default function OrdenDetallePage() {
                                         <span className={`text-[10px] mt-1 text-center leading-tight ${
                                             esActual ? 'font-bold text-orange-600' : esCompletadoPaso ? 'text-green-600' : 'text-slate-400'
                                         }`}>
-                                            <span className="hidden sm:inline">{paso.label}</span>
-                                            <span className="sm:hidden">{paso.short}</span>
+                                            {paso.label}
                                         </span>
                                     </div>
                                     {idx < pasos.length - 1 && (

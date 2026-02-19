@@ -948,6 +948,17 @@ const ejecutarRetorno = async (req, res, next) => {
         const ordenAntes = await OrdenTrabajoModel.obtenerPorId(parseInt(id));
         const estadoAnterior = ordenAntes?.estado;
 
+        // Validar que el checklist en bodega esté completo antes de ejecutar retorno
+        if (ordenAntes?.tipo === 'desmontaje') {
+            const checklistData = await OrdenElementoModel.obtenerChecklistOrden(parseInt(id));
+            if (checklistData.totalElementos > 0 && checklistData.verificadosBodega < checklistData.totalElementos) {
+                throw new AppError(
+                    `Debes completar el Checklist en Bodega antes de ejecutar el retorno (${checklistData.verificadosBodega}/${checklistData.totalElementos} verificados)`,
+                    409
+                );
+            }
+        }
+
         const resultado = await SincronizacionAlquilerService.ejecutarRetorno(
             parseInt(id),
             retornos

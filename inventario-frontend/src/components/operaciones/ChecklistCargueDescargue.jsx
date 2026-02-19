@@ -55,69 +55,71 @@ const ElementoCheckItem = ({ elemento, modo, onToggle, isPending }) => {
     }
 
     return (
-        <div className={`px-4 py-3 flex items-center gap-3 transition-colors ${
+        <div className={`px-4 py-3 transition-colors ${
             verificado ? 'bg-green-50/60' : 'hover:bg-slate-50'
         }`}>
-            {/* Checkbox */}
-            <button
-                onClick={handleToggle}
-                disabled={isPending}
-                className={`shrink-0 transition-all ${isPending ? 'opacity-50' : ''}`}
-            >
-                {verificado ? (
-                    <CheckCircle className="w-6 h-6 text-green-500" />
-                ) : (
-                    <Circle className="w-6 h-6 text-slate-300 hover:text-slate-400" />
-                )}
-            </button>
+            <div className="flex items-center gap-3">
+                {/* Checkbox */}
+                <button
+                    onClick={handleToggle}
+                    disabled={isPending}
+                    className={`shrink-0 transition-all ${isPending ? 'opacity-50' : ''}`}
+                >
+                    {verificado ? (
+                        <CheckCircle className="w-6 h-6 text-green-500" />
+                    ) : (
+                        <Circle className="w-6 h-6 text-slate-300 hover:text-slate-400" />
+                    )}
+                </button>
 
-            {/* Info del elemento */}
-            <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                    <span className={`text-sm font-medium ${verificado ? 'text-green-800 line-through' : 'text-slate-900'}`}>
-                        {elemento.elemento_nombre}
-                    </span>
-                    {elemento.cantidad > 1 && (
-                        <span className="px-1.5 py-0.5 bg-blue-100 text-blue-700 text-xs rounded font-medium">
-                            x{elemento.cantidad}
+                {/* Info del elemento */}
+                <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                        <span className={`text-sm font-medium ${verificado ? 'text-green-800 line-through' : 'text-slate-900'}`}>
+                            {elemento.elemento_nombre}
                         </span>
+                        {elemento.cantidad > 1 && (
+                            <span className="px-1.5 py-0.5 bg-blue-100 text-blue-700 text-xs rounded font-medium">
+                                x{elemento.cantidad}
+                            </span>
+                        )}
+                    </div>
+                    {(elemento.serie_codigo || elemento.lote_codigo) && (
+                        <div className="flex items-center gap-1 mt-0.5">
+                            <Hash className="w-3 h-3 text-slate-400" />
+                            <span className="text-xs text-slate-500">
+                                {elemento.serie_codigo || elemento.lote_codigo}
+                            </span>
+                        </div>
+                    )}
+                    {/* Notas inline preview */}
+                    {elemento.notas && !showNotas && (
+                        <p className="text-xs text-slate-400 mt-0.5 italic truncate">
+                            {elemento.notas}
+                        </p>
                     )}
                 </div>
-                {(elemento.serie_codigo || elemento.lote_codigo) && (
-                    <div className="flex items-center gap-1 mt-0.5">
-                        <Hash className="w-3 h-3 text-slate-400" />
-                        <span className="text-xs text-slate-500">
-                            {elemento.serie_codigo || elemento.lote_codigo}
-                        </span>
-                    </div>
-                )}
-                {/* Notas inline */}
-                {elemento.notas && !showNotas && (
-                    <p className="text-xs text-slate-400 mt-0.5 italic truncate">
-                        {elemento.notas}
-                    </p>
-                )}
+
+                {/* Botón notas */}
+                <button
+                    onClick={() => setShowNotas(!showNotas)}
+                    className={`shrink-0 p-1.5 rounded-lg transition-colors ${
+                        showNotas || elemento.notas
+                            ? 'text-blue-600 bg-blue-50'
+                            : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'
+                    }`}
+                    title="Agregar observación"
+                >
+                    <MessageSquare className="w-4 h-4" />
+                </button>
             </div>
 
-            {/* Botón notas */}
-            <button
-                onClick={() => setShowNotas(!showNotas)}
-                className={`shrink-0 p-1.5 rounded-lg transition-colors ${
-                    showNotas || elemento.notas
-                        ? 'text-blue-600 bg-blue-50'
-                        : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'
-                }`}
-                title="Agregar observación"
-            >
-                <MessageSquare className="w-4 h-4" />
-            </button>
-
-            {/* Input de notas expandido */}
+            {/* Notas expandidas inline (debajo del elemento, no como popover) */}
             {showNotas && (
-                <div className="absolute right-4 mt-20 z-10 w-64 bg-white border border-slate-200 rounded-lg shadow-lg p-3">
-                    <div className="flex items-center justify-between mb-2">
+                <div className="mt-2 ml-9 bg-slate-50 border border-slate-200 rounded-lg p-2.5">
+                    <div className="flex items-center justify-between mb-1.5">
                         <span className="text-xs font-medium text-slate-600">Observación</span>
-                        <button onClick={() => setShowNotas(false)} className="text-slate-400 hover:text-slate-600">
+                        <button onClick={() => setShowNotas(false)} className="text-slate-400 hover:text-slate-600 p-0.5">
                             <X className="w-3.5 h-3.5" />
                         </button>
                     </div>
@@ -125,9 +127,11 @@ const ElementoCheckItem = ({ elemento, modo, onToggle, isPending }) => {
                         value={notas}
                         onChange={(e) => setNotas(e.target.value)}
                         onBlur={handleNotasBlur}
-                        className="w-full text-sm border border-slate-200 rounded-lg p-2 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400"
+                        onKeyDown={(e) => { if (e.key === 'Escape') setShowNotas(false) }}
+                        className="w-full text-sm border border-slate-200 rounded-lg p-2 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 bg-white"
                         rows={2}
                         placeholder="Ej: Elemento con marca visible..."
+                        autoFocus
                     />
                 </div>
             )}

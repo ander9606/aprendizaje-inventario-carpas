@@ -1,5 +1,6 @@
 const { pool } = require('../../../config/database');
 const AppError = require('../../../utils/AppError');
+const { ESTADOS_ORDEN_LISTA } = require('../constants/estadosOperaciones');
 
 class OrdenTrabajoModel {
     // Flag para evitar ejecutar ALTER TABLE múltiples veces
@@ -639,11 +640,7 @@ class OrdenTrabajoModel {
         // Asegurar que el ENUM de la BD incluye los nuevos estados
         await this._ensureEstadosEnum();
 
-        const estadosValidos = [
-            'pendiente', 'confirmado', 'en_preparacion', 'en_ruta',
-            'en_sitio', 'en_proceso', 'en_retorno', 'descargue',
-            'completado', 'cancelado'
-        ];
+        const estadosValidos = ESTADOS_ORDEN_LISTA;
 
         if (!estadosValidos.includes(estado)) {
             throw new AppError(`Estado inválido. Valores permitidos: ${estadosValidos.join(', ')}`, 400);

@@ -82,68 +82,13 @@ const logger = require('../../../utils/logger');
 const AlertaModel = require('../models/AlertaModel');
 const DisponibilidadModel = require('../../alquileres/models/DisponibilidadModel');
 const EventoModel = require('../../alquileres/models/EventoModel');
-
-// ============================================================================
-// CONSTANTES: Estados válidos para máquinas de estado
-// ============================================================================
-
-/**
- * Estados válidos para órdenes de trabajo
- * @constant {Object}
- */
-const ESTADOS_ORDEN = {
-  PENDIENTE: 'pendiente',
-  CONFIRMADO: 'confirmado',
-  EN_PREPARACION: 'en_preparacion',
-  EN_RUTA: 'en_ruta',
-  EN_SITIO: 'en_sitio',
-  EN_PROCESO: 'en_proceso',
-  EN_RETORNO: 'en_retorno',
-  DESCARGUE: 'descargue',
-  COMPLETADO: 'completado',
-  CANCELADO: 'cancelado'
-};
-
-/**
- * Estados válidos para alquileres
- * @constant {Object}
- */
-const ESTADOS_ALQUILER = {
-  PROGRAMADO: 'programado',
-  ACTIVO: 'activo',
-  FINALIZADO: 'finalizado',
-  CANCELADO: 'cancelado'
-};
-
-/**
- * Estados válidos para series (items individuales)
- * @constant {Object}
- */
-const ESTADOS_SERIE = {
-  BUENO: 'bueno',
-  ALQUILADO: 'alquilado',
-  MANTENIMIENTO: 'mantenimiento',
-  DANADO: 'dañado'
-};
-
-/**
- * Estados de retorno válidos
- * @constant {Object}
- */
-const ESTADOS_RETORNO = {
-  BUENO: 'bueno',
-  DANADO: 'dañado',
-  PERDIDO: 'perdido'
-};
-
-/**
- * Tipos de órdenes de trabajo
- * @constant {Object}
- */
-const TIPOS_ORDEN = {
-  MONTAJE: 'montaje',
-  DESMONTAJE: 'desmontaje'
-};
+const {
+    ESTADOS_ORDEN,
+    TIPOS_ORDEN,
+    ESTADOS_ALQUILER,
+    ESTADOS_SERIE,
+    ESTADOS_RETORNO
+} = require('../constants/estadosOperaciones');
 
 // ============================================================================
 // CLASE PRINCIPAL
@@ -311,15 +256,14 @@ class SincronizacionAlquilerService {
             SELECT
               l.id AS lote_id,
               l.lote_numero,
-              l.cantidad_disponible,
-              l.cantidad_total,
+              l.cantidad,
               u.nombre AS ubicacion,
               u.id AS ubicacion_id
             FROM lotes l
             LEFT JOIN ubicaciones u ON l.ubicacion_id = u.id
             WHERE l.elemento_id = ?
-              AND l.cantidad_disponible > 0
-            ORDER BY l.cantidad_disponible DESC
+              AND l.cantidad > 0
+            ORDER BY l.cantidad DESC
           `, [componente.elemento_id]);
 
           disponibles = lotes.map(l => ({
@@ -329,8 +273,7 @@ class SincronizacionAlquilerService {
             estado: 'disponible',
             ubicacion: l.ubicacion,
             ubicacion_id: l.ubicacion_id,
-            cantidad: l.cantidad_disponible,
-            cantidad_total: l.cantidad_total
+            cantidad: l.cantidad
           }));
         }
 
@@ -492,7 +435,7 @@ class SincronizacionAlquilerService {
           const cantidadRequerida = elem.cantidad || 1;
 
           const [loteRows] = await connection.query(`
-            SELECT id, lote_numero, cantidad_disponible
+            SELECT id, lote_numero, cantidad
             FROM lotes
             WHERE id = ?
             FOR UPDATE
@@ -503,15 +446,15 @@ class SincronizacionAlquilerService {
           }
 
           const lote = loteRows[0];
-          if (lote.cantidad_disponible < cantidadRequerida) {
+          if (lote.cantidad < cantidadRequerida) {
             throw new AppError(
               `Lote ${lote.lote_numero} no tiene suficiente cantidad. ` +
-              `Disponible: ${lote.cantidad_disponible}, Requerido: ${cantidadRequerida}`,
+              `Disponible: ${lote.cantidad}, Requerido: ${cantidadRequerida}`,
               400
             );
           }
 
-          logger.debug(`[SincronizacionAlquilerService] Lote ${lote.lote_numero} validado (disponible: ${lote.cantidad_disponible})`);
+          logger.debug(`[SincronizacionAlquilerService] Lote ${lote.lote_numero} validado (disponible: ${lote.cantidad})`);
         }
 
         // -------------------------------------------------------------------
@@ -1012,10 +955,12 @@ class SincronizacionAlquilerService {
       }
 
       // Validar estado de la orden
-      const estadosPermitidos = [ESTADOS_ORDEN.EN_SITIO, ESTADOS_ORDEN.EN_PROCESO];
+      // Flujo nuevo: la orden debe estar en "descargue" (ya pasó por recogida y retorno)
+      // Compatibilidad: también acepta en_sitio/en_proceso para órdenes creadas antes de la migración
+      const estadosPermitidos = [ESTADOS_ORDEN.DESCARGUE, ESTADOS_ORDEN.EN_SITIO, ESTADOS_ORDEN.EN_PROCESO];
       if (!estadosPermitidos.includes(orden.estado)) {
         throw new AppError(
-          `La orden debe estar en estado "${estadosPermitidos.join('" o "')}" para registrar retorno. ` +
+          `La orden debe estar en estado "descargue" para registrar retorno. ` +
           `Estado actual: ${orden.estado}`,
           400
         );
