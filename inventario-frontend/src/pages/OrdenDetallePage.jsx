@@ -41,6 +41,7 @@ import {
     useCambiarEstadoOrden,
     useAsignarEquipo,
     useUpdateOrden,
+    useCambiarFechaOrden,
     useEjecutarSalida,
     useEjecutarRetorno,
     useGetDuracionesOrden
@@ -113,6 +114,7 @@ export default function OrdenDetallePage() {
     const cambiarEstado = useCambiarEstadoOrden()
     const asignarEquipo = useAsignarEquipo()
     const actualizarOrden = useUpdateOrden()
+    const cambiarFecha = useCambiarFechaOrden()
     const prepararElementos = usePrepararElementos()
     const ejecutarSalida = useEjecutarSalida()
     const ejecutarRetorno = useEjecutarRetorno()
@@ -227,10 +229,17 @@ export default function OrdenDetallePage() {
         refetch()
     }
 
-    const handleActualizarOrden = async (data) => {
+    const handleActualizarOrdenGeneral = async (data) => {
         await actualizarOrden.mutateAsync({ id: orden.id, data })
         toast.success('Orden actualizada correctamente')
         refetch()
+    }
+
+    const handleCambiarFechaOrden = async (data) => {
+        const result = await cambiarFecha.mutateAsync({ id: orden.id, data })
+        toast.success('Fecha actualizada correctamente')
+        refetch()
+        return result
     }
 
     const handleAsignarInventario = async (elementosSeleccionados) => {
@@ -1383,7 +1392,8 @@ export default function OrdenDetallePage() {
                 <ModalEditarOrden
                     orden={orden}
                     onClose={() => setShowModalEditar(false)}
-                    onSave={handleActualizarOrden}
+                    onSaveFecha={handleCambiarFechaOrden}
+                    onSaveGeneral={handleActualizarOrdenGeneral}
                 />
             )}
             {showModalRetorno && (
