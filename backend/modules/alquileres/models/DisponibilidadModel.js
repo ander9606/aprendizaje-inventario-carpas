@@ -40,14 +40,16 @@ class DisponibilidadModel {
     console.log(`📦 obtenerStockTotal(elementoId=${elementoId}, requiereSeries=${requiereSeries})`);
 
     if (requiereSeries) {
-      // Contar series disponibles (estado: bueno)
+      // Contar TODAS las series utilizables (incluye 'alquilado' para evitar doble descuento
+      // cuando el alquiler está activo y la serie ya fue marcada como 'alquilado').
+      // obtenerCantidadOcupada se encarga de restar las que están en uso en la fecha dada.
       const [result] = await pool.query(`
         SELECT COUNT(*) AS total
         FROM series
-        WHERE id_elemento = ? AND estado IN ('bueno', 'disponible')
+        WHERE id_elemento = ? AND estado NOT IN ('mantenimiento', 'dañado')
       `, [elementoId]);
       const totalSeries = parseInt(result[0].total);
-      console.log(`   📊 Series disponibles: ${totalSeries}`);
+      console.log(`   📊 Series utilizables: ${totalSeries}`);
 
       // Si hay series, usarlas
       if (totalSeries > 0) {
@@ -60,14 +62,16 @@ class DisponibilidadModel {
       console.log(`   🔄 Fallback elementos.cantidad: ${cantidadElemento}`);
       return cantidadElemento;
     } else {
-      // Sumar cantidad de lotes disponibles (estado: bueno)
+      // Sumar cantidad de lotes utilizables. Se incluye 'alquilado' para evitar doble
+      // descuento: al marcar salida, la cantidad se mueve a un lote 'alquilado' pero
+      // obtenerCantidadOcupada sigue restando via alquiler_elementos.
       const [result] = await pool.query(`
         SELECT COALESCE(SUM(cantidad), 0) AS total
         FROM lotes
-        WHERE elemento_id = ? AND estado IN ('bueno', 'disponible')
+        WHERE elemento_id = ? AND estado IN ('bueno', 'disponible', 'alquilado')
       `, [elementoId]);
       const totalLotes = parseInt(result[0].total);
-      console.log(`   📊 Lotes disponibles: ${totalLotes}`);
+      console.log(`   📊 Lotes utilizables: ${totalLotes}`);
 
       // Si hay lotes, usarlos
       if (totalLotes > 0) {
