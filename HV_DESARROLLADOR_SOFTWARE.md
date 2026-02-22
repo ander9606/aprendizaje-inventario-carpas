@@ -1,208 +1,193 @@
-# HOJA DE VIDA - DESARROLLADOR DE SOFTWARE
-
-> **Nota:** Este es un borrador/plantilla. Reemplaza [TU NOMBRE], datos de contacto
-> y ajusta la experiencia según tu trayectoria real completa.
-
----
-
-## [TU NOMBRE COMPLETO]
+# ANDERSON MORENO
 
 **Desarrollador de Software Full-Stack**
 
-- Ubicación: Bogotá, Colombia
-- Teléfono: [Tu teléfono]
-- Email: [Tu email profesional]
-- LinkedIn: [Tu perfil LinkedIn]
+- Teléfono: 320 414 3661
+- Email: anderson960616@gmail.com
+- Ubicación: Tenjo, Cundinamarca
 - GitHub: github.com/ander9606
 
 ---
 
 ## PERFIL PROFESIONAL
 
-Desarrollador de Software con experiencia en diseño, desarrollo y mantenimiento de
-aplicaciones web full-stack. Sólidos conocimientos en JavaScript, SQL y arquitectura
-MVC. Experiencia comprobada en desarrollo de sistemas empresariales complejos,
-incluyendo gestión de inventarios, operaciones y flujos de negocio. Capacidad
-demostrada para resolver problemas técnicos, documentar procesos y colaborar
-efectivamente en equipos de desarrollo ágil.
+Desarrollador Full-Stack con experiencia en diseño, desarrollo y mantenimiento de
+aplicaciones web empresariales. Creador de un sistema de gestión de inventario y
+alquileres con +86.000 líneas de código, 261 endpoints REST y 106 componentes React.
+Dominio avanzado de JavaScript (Node.js, Express, React 19), bases de datos relacionales
+(MySQL) y arquitectura MVC. Experiencia previa en coordinación logística de eventos
+(+100 eventos/año), lo que aporta una visión integral del negocio al desarrollo de
+software. Actualmente cursando Tecnología en Análisis y Desarrollo de Software en el SENA.
 
 ---
 
 ## COMPETENCIAS TÉCNICAS
 
-### Lenguajes de Programación
-- **JavaScript** (avanzado) — Node.js, ES6+, programación asíncrona
-- **SQL** (avanzado) — Diseño de esquemas, optimización de consultas, índices
-- **Python** (mencionar nivel real)
-- **PHP** (mencionar nivel real — si has trabajado con PHP inclúyelo aquí)
-
-### Frameworks y Librerías
-- **Backend:** Express.js, JWT Auth, REST API Design
-- **Frontend:** React 19, React Query, React Hook Form, Zustand, React Router
-- **CSS/UI:** TailwindCSS, diseño responsivo
-- **Symfony** (si tienes experiencia, inclúyelo aquí con nivel)
-
-### Bases de Datos
-- **MySQL 8.0** — Diseño relacional, migraciones, indexación, optimización de rendimiento
-- Modelado de datos complejos con integridad referencial
-
-### Patrones y Arquitectura
-- Modelo-Vista-Controlador (MVC)
-- Programación Orientada a Objetos (POO)
-- Arquitectura modular y por capas
-- API RESTful con versionado y documentación
-
-### Herramientas y Metodologías
-- **Control de versiones:** Git, GitHub (workflow con PRs y code review)
-- **Gestión de proyectos:** Metodologías ágiles (Scrum), seguimiento de tareas
-- **Testing:** Pruebas unitarias, pruebas de integración, validación de APIs
-- **Documentación:** Documentación técnica, guías de implementación, diagnósticos
+**Lenguajes:** JavaScript (ES6+, avanzado), SQL (avanzado), HTML5, CSS3
+**Backend:** Node.js, Express.js 5, API RESTful, JWT (access/refresh tokens), bcrypt, Multer
+**Frontend:** React 19, React Query, React Hook Form, Zustand, React Router, Recharts, FullCalendar
+**UI/CSS:** TailwindCSS, Lucide Icons, diseño responsivo
+**Bases de Datos:** MySQL 8.0 — diseño relacional, migraciones, indexación, optimización de consultas
+**Arquitectura:** MVC, POO, diseño modular por capas, middleware, rate limiting
+**Herramientas:** Git, GitHub (workflow con PRs y code review), Vite, npm
+**Metodologías:** Scrum/Agile, documentación técnica, pruebas de API
+**Reportes:** Generación de Excel (ExcelJS) y PDF (PDFKit)
 
 ---
 
 ## EXPERIENCIA PROFESIONAL
 
-### Desarrollador Full-Stack — Sistema de Inventario y Alquileres
-*[Nombre de la empresa o "Proyecto profesional"] — [Fechas]*
+### Desarrollador Full-Stack — Sistema de Gestión de Inventario y Alquileres
+**Proyecto profesional (Carpas Vento SAS)** | Diciembre 2025 – Presente
 
-Desarrollo integral de un sistema empresarial para gestión de inventario y
-operaciones de alquiler de carpas y equipos para eventos.
+Diseño y desarrollo integral de una aplicación web empresarial para gestión de
+inventario, cotizaciones, alquileres y operaciones logísticas de carpas y equipos
+para eventos.
 
-**Responsabilidades y logros:**
+**Arquitectura y backend:**
+- Diseñé e implementé una arquitectura backend MVC modular con 24 controladores,
+  31 modelos de datos, 24 archivos de rutas y 5 middleware especializados.
+- Desarrollé 261 endpoints REST organizados en 6 módulos de negocio: alquileres (93),
+  inventario (61), configuración (40), operaciones (36), productos (24) y
+  autenticación (7).
+- Implementé sistema de autenticación completo con JWT (access/refresh tokens),
+  hashing con bcrypt y middleware de autorización por roles.
+- Diseñé base de datos relacional MySQL con 31 tablas, 29+ índices optimizados y
+  sistema de 11 migraciones automatizadas.
 
-- Diseño e implementación de arquitectura backend modular con patrón MVC usando
-  Node.js y Express.js, con 15+ controladores y 20+ modelos de datos.
-- Desarrollo de frontend completo con React 19 incluyendo 60+ componentes
-  reutilizables, 30+ custom hooks y 30+ páginas.
-- Diseño de base de datos relacional MySQL con 20+ tablas, 29+ índices optimizados
-  y sistema de migraciones automatizado.
-- Implementación de sistema de autenticación con JWT (access/refresh tokens),
-  hashing de contraseñas con bcrypt y middleware de autorización.
-- Desarrollo de módulos de negocio complejos:
-  - **Inventario:** Sistema dual de seguimiento (por serie individual y por lotes),
-    historial de movimientos, disponibilidad en tiempo real.
-  - **Alquileres:** Cotizaciones, calendario de reservas, gestión de descuentos,
-    cálculo de tarifas de transporte.
-  - **Operaciones:** Órdenes de trabajo con cronómetros en vivo para montaje y
-    desmontaje, gestión de empleados y vehículos.
-- Implementación de generación de reportes en Excel (ExcelJS) y PDF (PDFKit).
-- Desarrollo de suite de pruebas para validación de APIs con verificación de
-  estructura de respuestas y tipos de datos.
-- Gestión de 83+ Pull Requests con práctica de code review.
-- Documentación técnica completa: guías de API, planes de módulos, diagnósticos
-  de bugs y optimizaciones de rendimiento.
+**Frontend y experiencia de usuario:**
+- Desarrollé 106 componentes React reutilizables, 36 custom hooks y 31 páginas/vistas
+  usando React 19.
+- Implementé gestión de estado con Zustand, caché de servidor con React Query,
+  formularios con React Hook Form y calendario interactivo con FullCalendar.
+- Diseñé interfaz responsiva completa con TailwindCSS.
+- Integré gráficos y dashboards con Recharts para visualización de datos del negocio.
 
-**Stack tecnológico:** JavaScript, Node.js, Express.js, React 19, MySQL 8.0,
-TailwindCSS, JWT, React Query, Zustand, Vite, Git/GitHub.
+**Módulos de negocio desarrollados:**
+- **Inventario:** Sistema dual de seguimiento (por serie individual y por lotes),
+  historial de movimientos y disponibilidad en tiempo real.
+- **Alquileres:** Cotizaciones, calendario de reservas, gestión de descuentos y
+  cálculo automático de tarifas de transporte.
+- **Operaciones:** Órdenes de trabajo con cronómetros en vivo para montaje/desmontaje,
+  gestión de empleados y vehículos.
+- **Reportes:** Generación de reportes en Excel y PDF con datos del sistema.
+
+**Métricas del proyecto:**
+- +86.700 líneas de código (315 archivos JS/JSX)
+- 81 commits personales + 68 Pull Requests con code review
+- Repositorio: github.com/ander9606/aprendizaje-inventario-carpas
+
+**Stack:** JavaScript, Node.js, Express 5, React 19, MySQL 8.0, TailwindCSS,
+JWT, React Query, Zustand, Vite, ExcelJS, PDFKit, Git/GitHub.
 
 ---
 
-### [EXPERIENCIA ANTERIOR - AGREGAR TUS OTROS ROLES]
-*[Empresa] — [Fechas]*
+### Coordinador Logístico
+**Carpas Vento SAS** | 2019
 
-> Agrega aquí tu experiencia previa. Si has trabajado con PHP, Symfony u otras
-> tecnologías relevantes para la oferta, destácalo prominentemente.
+- Gestioné y capacité personal para la ejecución de más de 100 eventos al año.
+- Reduje los tiempos de entrega de servicios en un 50% mediante optimización de procesos.
+- Diseñé nuevos productos para el portafolio, ampliando el alcance comercial de la empresa.
+- Esta experiencia me dio conocimiento directo del dominio de negocio que ahora
+  digitalizo como desarrollador.
 
 ---
 
 ## EDUCACIÓN
 
-### [Tu título] — [Tu universidad]
-*[Año de inicio] - [Año de finalización]*
+### Tecnología en Análisis y Desarrollo de Software
+**SENA** | 2023 – Actualidad
 
-Ingeniería de Sistemas / Ingeniería de Software / Informática
-(ajustar según tu carrera real)
+### Técnico en Desarrollo Web y Aplicaciones Móviles
+**Universidad Autónoma de Bucaramanga (UNAB) — Programa MINTIC** | 2021 – 2022
+
+### Formación complementaria (Udemy)
+- Máster en SQL Server: Desde Cero a Nivel Profesional
+- JavaScript: Desde cero con Node.JS
+- JavaScript: Desde 0 hasta Proyectos Reales
 
 ---
 
 ## IDIOMAS
 
-- Español: Nativo
-- Inglés: [Tu nivel real — básico/intermedio/avanzado]
+- **Español:** Nativo
+- **Inglés:** Intermedio (lectura técnica y documentación)
 
 ---
 
 ## HABILIDADES BLANDAS
 
-- **Comunicación efectiva:** Documentación técnica clara y detallada de todos los
-  desarrollos realizados.
 - **Resolución de problemas:** Diagnóstico sistemático de bugs complejos con
-  documentación de soluciones.
-- **Trabajo en equipo:** Experiencia con flujos de trabajo colaborativos usando
-  Git, code review y metodologías ágiles.
-- **Organización:** Registro constante de avances, uso de PRs descriptivos y
-  seguimiento de tareas.
-- **Pensamiento crítico:** Optimización proactiva de rendimiento (indexación de BD,
-  refactorización de código).
+  documentación de soluciones y optimizaciones de rendimiento.
+- **Autonomía y aprendizaje continuo:** Proyecto de +86.000 líneas desarrollado
+  de forma autónoma, aprendiendo tecnologías según las necesidades del sistema.
+- **Organización:** Uso disciplinado de Git con PRs descriptivos, branches por
+  feature y documentación técnica de cada módulo.
+- **Comunicación:** Documentación clara de APIs, planes de módulos y guías de
+  implementación.
+- **Visión de negocio:** Experiencia previa en operaciones logísticas que permite
+  entender las necesidades reales del usuario final.
 
 ---
 
-## PROYECTOS DESTACADOS
+## TEXTOS PARA PLATAFORMAS DE EMPLEO
 
-### Sistema de Inventario y Alquileres de Carpas
-**Aplicación web full-stack** para gestión empresarial de inventario y operaciones
-de alquiler.
+> **Instrucciones:** Usa estos textos listos para copiar y pegar en plataformas
+> como Computrabajo, elempleo, LinkedIn, etc. NO incluir esta sección en una
+> HV impresa.
 
-- +200 archivos de código fuente
-- Arquitectura MVC modular
-- Base de datos relacional optimizada con 29+ índices
-- Sistema de autenticación y autorización completo
-- Generación de reportes en múltiples formatos
-- Repositorio: github.com/ander9606/aprendizaje-inventario-carpas
+### "Sobre mí" — Versión completa (para perfil de plataforma)
+
+Desarrollador Full-Stack con experiencia en JavaScript, Node.js, Express, React 19
+y MySQL. He diseñado y desarrollado de forma integral un sistema empresarial de
+gestión de inventario y alquileres con más de 86.000 líneas de código, 261 endpoints
+REST, 106 componentes React y una base de datos relacional con 31 tablas optimizadas.
+Manejo arquitectura MVC, autenticación con JWT, generación de reportes (Excel/PDF) y
+metodologías ágiles con Git/GitHub (81 commits, 68+ PRs). Actualmente cursando
+Tecnología en Análisis y Desarrollo de Software en el SENA. Busco oportunidades para
+seguir creciendo profesionalmente y aportar valor con soluciones técnicas eficientes
+y escalables.
+
+### "Sobre mí" — Versión corta (si hay límite de caracteres)
+
+Desarrollador Full-Stack JavaScript (Node.js, Express, React 19, MySQL). Creador de
+un sistema empresarial de +86.000 líneas de código con 261 endpoints REST y 106
+componentes React. Experiencia en arquitectura MVC, JWT, Git/GitHub y metodologías
+ágiles. Estudiante de Tecnología en Análisis y Desarrollo de Software — SENA.
+
+### Título profesional (para el encabezado del perfil)
+
+Desarrollador Full-Stack | JavaScript, Node.js, React, MySQL | +86.000 LOC en proyecto empresarial
 
 ---
 
-# NOTAS ESTRATÉGICAS PARA LA APLICACIÓN
+## NOTAS PARA OFERTAS ESPECÍFICAS
 
-> Las siguientes notas son para tu referencia personal — NO incluir en la HV final.
+> **Instrucciones:** Estas notas son de referencia personal. NO incluir en la HV.
 
-## Fortalezas frente a la oferta
+### Para ofertas que pidan PHP/Laravel (ej: Par Servicios Integrales)
 
-1. **JavaScript** ✅ — Tienes experiencia sólida demostrable en JS tanto backend
-   como frontend.
-2. **SQL/MySQL** ✅ — Diseño de BD complejo, optimización, migraciones.
-3. **MVC** ✅ — Tu backend sigue arquitectura modular MVC claramente.
-4. **Scrum/Agile** ✅ — Workflow con PRs, iteraciones, documentación de avances.
-5. **Testing** ✅ — Suite de pruebas de API, validación de respuestas.
-6. **Comunicación** ✅ — Documentación técnica extensa y organizada.
-7. **POO** ✅ — Aplicada en la estructura modular del proyecto.
-8. **Resolución de problemas** ✅ — Evidencia en diagnósticos y optimizaciones.
+**Qué destacar:**
+- Tu dominio de MVC es directamente transferible a Laravel (misma arquitectura).
+- Tu experiencia con Express.js se traduce 1:1 a Laravel: routing, controllers,
+  middleware, ORM (Eloquent ≈ tus modelos), migraciones, validación.
+- jQuery/AJAX son conceptos que ya manejas (fetch, async/await, React Query).
+- Tus 261 endpoints demuestran que sabes diseñar APIs complejas en cualquier lenguaje.
 
-## Brechas a considerar
+**Plan de aprendizaje rápido:**
+1. PHP básico (1-2 semanas): variables, funciones, clases, Composer
+2. Laravel (2-3 semanas): routing, controllers, Eloquent, Blade, migrations
+3. jQuery (2-3 días): selectores, eventos, $.ajax()
 
-1. **PHP** ⚠️ — Es requisito principal. Si no tienes experiencia:
-   - Opción A: Hacer un curso intensivo de PHP antes de la entrevista.
-     La sintaxis es similar a JavaScript en muchos aspectos.
-   - Opción B: Si tienes algo de experiencia previa con PHP (universidad,
-     proyectos pequeños), inclúyelo aunque sea básico.
+### Para ofertas que pidan PHP/Symfony
 
-2. **Symfony** ⚠️ — Es el framework específico que piden. Si no lo conoces:
-   - Tu experiencia con Express.js y MVC es directamente transferible.
-   - Symfony usa el mismo patrón MVC que ya aplicas.
-   - En la entrevista puedes explicar que dominas MVC y que Symfony sería
-     una transición natural.
-   - Considera hacer el tutorial oficial de Symfony para tener nociones básicas.
+**Mismo enfoque que Laravel** pero enfocado en:
+1. Symfony routing, controllers, Twig templates
+2. Doctrine ORM (equivalente a tus modelos)
+3. Services y dependency injection
 
-3. **Python** — Lo mencionan como deseable. Si tienes experiencia, inclúyelo.
+### Para ofertas que pidan Python
 
-## Recomendaciones para la carta de presentación
-
-- Enfatiza tu experiencia con arquitectura MVC y cómo aplica directamente a
-  Symfony.
-- Destaca tu capacidad de aprendizaje rápido — el proyecto muestra que dominas
-  múltiples tecnologías.
-- Menciona tu experiencia con JIRA o herramientas similares de seguimiento
-  (tu uso de PRs y documentación demuestra esta disciplina).
-- Subraya que trabajas con modelo híbrido cómodamente.
-- Si no tienes experiencia con PHP/Symfony, sé honesto pero muestra disposición
-  y plan de aprendizaje concreto.
-
-## Preparación para la entrevista técnica
-
-Si te llaman, prepárate en:
-1. **PHP básico:** Variables, funciones, clases, namespaces, Composer.
-2. **Symfony:** Routing, controllers, Twig templates, Doctrine ORM, services.
-3. **SQL:** JOINs complejos, subqueries, optimización — esto ya lo dominas.
-4. **JavaScript:** Closures, promises, async/await — esto ya lo dominas.
-5. **POO:** Principios SOLID, herencia, polimorfismo, interfaces.
-6. **Testing:** PHPUnit para Symfony (equivalente a tu suite de pruebas actual).
+- Mencionar cursos de Udemy si los tienes.
+- Tu lógica de programación y POO es transferible a Python/Django/Flask.
+- Django usa MVC (llamado MVT) que ya dominas.
