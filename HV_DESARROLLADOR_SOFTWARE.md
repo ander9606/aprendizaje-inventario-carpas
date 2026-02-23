@@ -165,29 +165,9 @@ Desarrollador Full-Stack | JavaScript, Node.js, React, MySQL | +86.000 LOC en pr
 
 > **Instrucciones:** Estas notas son de referencia personal. NO incluir en la HV.
 
-### Para ofertas que pidan PHP/Laravel (ej: Par Servicios Integrales)
-
-**Qué destacar:**
-- Tu dominio de MVC es directamente transferible a Laravel (misma arquitectura).
-- Tu experiencia con Express.js se traduce 1:1 a Laravel: routing, controllers,
-  middleware, ORM (Eloquent ≈ tus modelos), migraciones, validación.
-- jQuery/AJAX son conceptos que ya manejas (fetch, async/await, React Query).
-- Tus 261 endpoints demuestran que sabes diseñar APIs complejas en cualquier lenguaje.
-
-**Plan de aprendizaje rápido:**
-1. PHP básico (1-2 semanas): variables, funciones, clases, Composer
-2. Laravel (2-3 semanas): routing, controllers, Eloquent, Blade, migrations
-3. jQuery (2-3 días): selectores, eventos, $.ajax()
-
-### Para ofertas que pidan PHP/Symfony
-
-**Mismo enfoque que Laravel** pero enfocado en:
-1. Symfony routing, controllers, Twig templates
-2. Doctrine ORM (equivalente a tus modelos)
-3. Services y dependency injection
-
 ### Para ofertas que pidan Python
 
-- Mencionar cursos de Udemy si los tienes.
 - Tu lógica de programación y POO es transferible a Python/Django/Flask.
 - Django usa MVC (llamado MVT) que ya dominas.
+- Tu experiencia con Express.js se traduce bien a Flask/Django: routing, controllers,
+  middleware, ORM, migraciones, validación.
