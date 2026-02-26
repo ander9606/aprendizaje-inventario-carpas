@@ -217,7 +217,7 @@ const InventarioDashboard = () => {
           {/* BarChart - Top Categorias */}
           <div className="bg-white rounded-xl border border-slate-200 p-6">
             <h3 className="text-lg font-semibold text-slate-900 mb-4">
-              Top Categorias por Cantidad
+              Top Categorías por Cantidad
             </h3>
             {datosCategorias.length > 0 ? (
               <ResponsiveContainer width="100%" height={280}>
@@ -241,7 +241,7 @@ const InventarioDashboard = () => {
               </ResponsiveContainer>
             ) : (
               <div className="h-[280px] flex items-center justify-center text-slate-400">
-                Sin datos de categorias
+                Sin datos de categorías
               </div>
             )}
           </div>
@@ -254,7 +254,7 @@ const InventarioDashboard = () => {
           {/* BarChart - Inventario por Ubicacion */}
           <div className="bg-white rounded-xl border border-slate-200 p-6">
             <h3 className="text-lg font-semibold text-slate-900 mb-4">
-              Inventario por Ubicacion
+              Inventario por Ubicación
             </h3>
             {datosUbicacion.length > 0 ? (
               <ResponsiveContainer width="100%" height={280}>
@@ -272,7 +272,7 @@ const InventarioDashboard = () => {
               </ResponsiveContainer>
             ) : (
               <div className="h-[280px] flex items-center justify-center text-slate-400">
-                Sin datos de ubicacion
+                Sin datos de ubicación
               </div>
             )}
           </div>
@@ -280,7 +280,7 @@ const InventarioDashboard = () => {
           {/* Donut - Tipo de Gestion */}
           <div className="bg-white rounded-xl border border-slate-200 p-6">
             <h3 className="text-lg font-semibold text-slate-900 mb-4">
-              Tipo de Gestion
+              Tipo de Gestión
             </h3>
             {datosGestion.length > 0 ? (
               <ResponsiveContainer width="100%" height={280}>
@@ -329,9 +329,9 @@ const InventarioDashboard = () => {
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-200">
                     <th className="text-left px-6 py-3 text-sm font-medium text-slate-600">Elemento</th>
-                    <th className="text-left px-6 py-3 text-sm font-medium text-slate-600">Categoria</th>
+                    <th className="text-left px-6 py-3 text-sm font-medium text-slate-600">Categoría</th>
                     <th className="text-center px-6 py-3 text-sm font-medium text-slate-600">Stock Disponible</th>
-                    <th className="text-center px-6 py-3 text-sm font-medium text-slate-600">Stock Minimo</th>
+                    <th className="text-center px-6 py-3 text-sm font-medium text-slate-600">Stock Mínimo</th>
                     <th className="text-center px-6 py-3 text-sm font-medium text-slate-600">Deficit</th>
                   </tr>
                 </thead>

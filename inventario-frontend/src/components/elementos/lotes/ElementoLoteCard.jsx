@@ -128,7 +128,7 @@ export const ElementoLoteCard = ({
                   <h3 className="text-lg font-bold text-slate-900 truncate">{nombre}</h3>
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
                     <Layers className="w-3 h-3" />
-                    Lotes
+                    {isLoadingLotes ? '…' : cantidad_total} Lotes
                   </span>
                 </div>
 
@@ -225,6 +225,21 @@ export const ElementoLoteCard = ({
                 <div className="bg-amber-500 transition-all duration-500" style={{ width: `${pctOtros}%` }} />
               )}
             </div>
+            {/* Leyenda de colores */}
+            <div className="flex items-center gap-4 mt-1.5 text-xs text-slate-500">
+              <span className="flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                Disponible
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-blue-500" />
+                Alquilado
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-amber-500" />
+                Mant./Dañado
+              </span>
+            </div>
           </div>
         )}
       </div>
@@ -288,6 +303,7 @@ export const ElementoLoteCard = ({
               <LoteUbicacionGroup
                 key={ubicacion.nombre || idx}
                 ubicacion={ubicacion}
+                defaultExpanded={idx === 0}
                 onDevolverBodega={(lote, ubicacion) => onDevolverBodega && onDevolverBodega(lote, ubicacion, elemento)}
                 onMoveLote={(lote, ubicacion) => onMoveLote && onMoveLote(lote, ubicacion, elemento)}
                 onDeleteLote={onDeleteLote}
