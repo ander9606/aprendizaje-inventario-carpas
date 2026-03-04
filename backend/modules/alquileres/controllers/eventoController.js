@@ -4,7 +4,7 @@
 // ============================================
 
 const EventoModel = require('../models/EventoModel');
-const ClienteModel = require('../models/ClienteModel');
+const ClienteModel = require('../../clientes/models/ClienteModel');
 const CotizacionModel = require('../models/CotizacionModel');
 const CotizacionProductoModel = require('../models/CotizacionProductoModel');
 const AppError = require('../../../utils/AppError');
