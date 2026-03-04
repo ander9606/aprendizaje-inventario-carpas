@@ -465,7 +465,7 @@ export default function Dashboard() {
 
             {/* Grid de categorías (2 columnas) */}
             {categoriasPadre.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                 {categoriasPadre.map((categoria) => (
                   <CategoriaPadreCard
                     key={categoria.id}

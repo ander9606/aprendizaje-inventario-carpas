@@ -354,8 +354,8 @@ export const useGetTodosElementos = () => {
         ...elemento,
         // Calcular cantidad disponible según tipo
         cantidad_disponible: elemento.requiere_series
-          ? (elemento.series_disponibles || elemento.total_series || 0)
-          : (elemento.cantidad_total || elemento.total_cantidad || 0)
+          ? (elemento.series_disponibles || elemento.total_series || elemento.cantidad || 0)
+          : (elemento.cantidad_total || elemento.total_cantidad || elemento.cantidad || 0)
       }))
     }
   })
