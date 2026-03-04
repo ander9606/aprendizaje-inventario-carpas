@@ -12,8 +12,8 @@ import App from './App.jsx'
 import './index.css'
 
 // Importar configuración de auth
-import useAuthStore from './stores/authStore'
-import { configureAuthInterceptor } from './api/Axios.config'
+import useAuthStore from '@shared/stores/authStore'
+import { configureAuthInterceptor } from '@shared/api/Axios.config'
 
 /**
  * ¿QUÉ HACE ESTE ARCHIVO?
