@@ -18,7 +18,7 @@ const EventoModel = require('../models/EventoModel');
 const AppError = require('../../../utils/AppError');
 const logger = require('../../../utils/logger');
 const CotizacionPDFService = require('../services/CotizacionPDFService');
-const ConfiguracionModel = require('../models/ConfiguracionModel');
+const ConfiguracionModel = require('../../configuracion/models/ConfiguracionModel');
 
 // ============================================
 // HELPER: Enriquecer transporte con precios
