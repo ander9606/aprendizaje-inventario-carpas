@@ -95,7 +95,7 @@ const SubcategoriaCard = ({
   }
 
   return (
-    <Card variant="outlined" className="hover:shadow-lg transition-all duration-200">
+    <Card variant="outlined" className="shadow-sm hover:shadow-lg transition-all duration-200 border-slate-300">
 
       {/* HEADER */}
       <Card.Header>
@@ -137,10 +137,8 @@ const SubcategoriaCard = ({
       {/* FOOTER */}
       <Card.Footer>
         {/* Botones principales */}
-        <div className="space-y-2 mb-4">
-
-          {/* Ver elementos */}
-          <Button 
+        <div className="space-y-2 mb-3">
+          <Button
             variant="primary"
             fullWidth
             icon={<ChevronRight />}
@@ -149,9 +147,9 @@ const SubcategoriaCard = ({
             Ver elementos ({subcategoria.total_elementos || 0})
           </Button>
 
-          {/* Crear elemento */}
-          <Button 
-            variant="secondary"
+          <Button
+            variant="outline"
+            color="green"
             fullWidth
             icon={<Plus />}
             onClick={handleCreateElemento}
@@ -161,11 +159,9 @@ const SubcategoriaCard = ({
         </div>
 
         {/* Botones secundarios */}
-        <div className="flex gap-2 justify-between">
-          
-          {/* Editar */}
-          <Button 
-            variant="ghost"
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
             size="sm"
             icon={<Edit className="w-4 h-4" />}
             onClick={handleEdit}
@@ -174,9 +170,9 @@ const SubcategoriaCard = ({
             Editar
           </Button>
 
-          {/* Eliminar */}
           <Button
-            variant="danger"
+            variant="outline"
+            color="red"
             size="sm"
             icon={<Trash2 className="w-4 h-4" />}
             onClick={handleDelete}

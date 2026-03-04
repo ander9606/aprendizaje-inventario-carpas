@@ -186,9 +186,9 @@ const CategoriaPadreCard = ({
   // ============================================
   
   return (
-    <Card 
+    <Card
       variant="outlined"
-      className="hover:shadow-lg transition-shadow duration-200"
+      className="shadow-sm hover:shadow-lg transition-shadow duration-200 border-slate-300"
     >
       {/* ============================================
           HEADER: Emoji en caja coloreada + nombre
@@ -238,20 +238,19 @@ const CategoriaPadreCard = ({
           FOOTER: Botones de acción
           ============================================ */}
       <Card.Footer>
-  {/* Botones principales - ancho completo */}
-  <div className="space-y-2 mb-4">
-    {/* Botón: Ver subcategorías */}
-    <Button 
-      variant="primary" 
+  {/* Botones principales */}
+  <div className="space-y-2 mb-3">
+    <Button
+      variant="primary"
       fullWidth
       onClick={handleVerSubcategorias}
     >
       Ver subcategorías
     </Button>
-    
-    {/* Botón: Nueva subcategoría */}
-    <Button 
-      variant="secondary" 
+
+    <Button
+      variant="outline"
+      color="green"
       fullWidth
       icon={<Plus />}
       onClick={handleCreateSubcategoria}
@@ -259,23 +258,22 @@ const CategoriaPadreCard = ({
       Nueva subcategoría
     </Button>
   </div>
-  
-  {/* Botones secundarios - lado a lado */}
-  <div className="flex gap-2 justify-between">
-    {/* Botón: Editar */}
-    <Button 
-      variant="ghost" 
-      size="sm" 
+
+  {/* Botones secundarios */}
+  <div className="flex gap-2">
+    <Button
+      variant="outline"
+      size="sm"
       icon={<Edit className="w-4 h-4" />}
       onClick={handleEdit}
       className="flex-1"
     >
       Editar
     </Button>
-    
-    {/* Botón: Eliminar */}
+
     <Button
-      variant="danger"
+      variant="outline"
+      color="red"
       size="sm"
       icon={<Trash2 className="w-4 h-4" />}
       onClick={handleDelete}
