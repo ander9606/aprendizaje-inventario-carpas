@@ -8,7 +8,7 @@ const CotizacionProductoModel = require('../models/CotizacionProductoModel');
 const CotizacionTransporteModel = require('../models/CotizacionTransporteModel');
 const CotizacionProductoRecargoModel = require('../models/CotizacionProductoRecargoModel');
 const CotizacionDescuentoModel = require('../models/CotizacionDescuentoModel');
-const ClienteModel = require('../models/ClienteModel');
+const ClienteModel = require('../../clientes/models/ClienteModel');
 const TarifaTransporteModel = require('../models/TarifaTransporteModel');
 const AlquilerModel = require('../models/AlquilerModel');
 const AlquilerElementoModel = require('../models/AlquilerElementoModel');
@@ -18,7 +18,7 @@ const EventoModel = require('../models/EventoModel');
 const AppError = require('../../../utils/AppError');
 const logger = require('../../../utils/logger');
 const CotizacionPDFService = require('../services/CotizacionPDFService');
-const ConfiguracionModel = require('../models/ConfiguracionModel');
+const ConfiguracionModel = require('../../configuracion/models/ConfiguracionModel');
 
 // ============================================
 // HELPER: Enriquecer transporte con precios

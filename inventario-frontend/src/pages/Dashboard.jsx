@@ -6,20 +6,20 @@
 import { useState, useMemo } from 'react'
 import { Plus, Package, ArrowLeft, Search, X, Layers, ChevronRight, BarChart3, FileSpreadsheet } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import { useNavigation } from '../hooks/UseNavigation'  
+import { useNavigation } from '@shared/hooks/useNavigation'  
 import {
   useGetCategoriasPadre,
   useDeleteCategoria
-} from '../hooks/Usecategorias'
-import { useGetTodosElementos } from '../hooks/Useelementos'
-import CategoriaPadreCard from '../components/cards/CategoriaPadreCard'
-import CategoriaFormModal from '../components/forms/CategoriaFormModal'
-import SubcategoriaFormModal from '../components/forms/SubcategoriaFormModal'
-import Button from '../components/common/Button'
-import Spinner from '../components/common/Spinner'
-import EmptyState from '../components/common/EmptyState'
-import { IconoCategoria } from '../components/common/IconoCategoria'
-import { exportarInventarioExcel } from '../api/apiExport'
+} from '@inventario/hooks/useCategorias'
+import { useGetTodosElementos } from '@inventario/hooks/useElementos'
+import CategoriaPadreCard from '@inventario/components/cards/CategoriaPadreCard'
+import CategoriaFormModal from '@inventario/components/forms/CategoriaFormModal'
+import SubcategoriaFormModal from '@inventario/components/forms/SubcategoriaFormModal'
+import Button from '@shared/components/Button'
+import Spinner from '@shared/components/Spinner'
+import EmptyState from '@shared/components/EmptyState'
+import { IconoCategoria } from '@shared/components/IconoCategoria'
+import { exportarInventarioExcel } from '@inventario/api/apiExport'
 import { toast } from 'sonner'
 
 

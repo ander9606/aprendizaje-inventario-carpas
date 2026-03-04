@@ -6,52 +6,56 @@
 
 import { Routes, Route } from 'react-router-dom'
 
-// Importar componentes de autenticación
-import ProtectedRoute from './components/auth/ProtectedRoute'
-import LoginPage from './pages/LoginPage'
+// Auth
+import ProtectedRoute from './modules/auth/components/ProtectedRoute'
+import LoginPage from './modules/auth/pages/LoginPage'
 
-// Importar páginas - Dashboard principal
+// Dashboard (top-level)
 import ModulosDashboard from './pages/ModulosDashboard'
-
-// Importar páginas - Inventario Individual
 import Dashboard from './pages/Dashboard'
-import Subcategorias from './pages/Subcategorias'
-import ElementosPage from './pages/ElementosPage'
-import ElementoDetallePage from './pages/ElementoDetallePage'
-import UbicacionesPage from './pages/UbicacionesPage'
-import InventarioDashboard from './pages/InventarioDashboard'
 
-// Importar páginas - Productos de Alquiler
-import ProductosPage from './pages/ProductosPage'
-import ElementosCompuestosPage from './pages/ElementosCompuestosPage'
+// Inventario
+import Subcategorias from './modules/inventario/pages/Subcategorias'
+import ElementosPage from './modules/inventario/pages/ElementosPage'
+import ElementoDetallePage from './modules/inventario/pages/ElementoDetallePage'
+import UbicacionesPage from './modules/inventario/pages/UbicacionesPage'
+import InventarioDashboard from './modules/inventario/pages/InventarioDashboard'
 
-// Importar páginas - Alquileres
-import ClientesPage from './pages/ClientesPage'
-import CotizacionesPage from './pages/CotizacionesPage'
-import CalendarioPage from './pages/CalendarioPage'
-import DescuentosPage from './pages/DescuentosPage'
-import ConfiguracionAlquileresPage from './pages/ConfiguracionAlquileresPage'
-import AlquileresPage from './pages/AlquileresPage'
-import AlquilerDetallePage from './pages/AlquilerDetallePage'
-import AlquileresLayout from './components/layouts/AlquileresLayout'
-import OperacionesLayout from './components/layouts/OperacionesLayout'
-import ReportesAlquileresPage from './pages/ReportesAlquileresPage'
-import TransportePage from './pages/TransportePage'
+// Productos
+import ProductosPage from './modules/productos/pages/ProductosPage'
+import ElementosCompuestosPage from './modules/productos/pages/ElementosCompuestosPage'
 
-// Importar páginas - Configuración
-import ConfiguracionPage from './pages/ConfiguracionPage'
-import CiudadesPage from './pages/CiudadesPage'
-import EmpleadosPage from './pages/EmpleadosPage'
+// Alquileres
+import AlquileresLayout from './modules/alquileres/components/AlquileresLayout'
+import AlquileresPage from './modules/alquileres/pages/AlquileresPage'
+import AlquilerDetallePage from './modules/alquileres/pages/AlquilerDetallePage'
+import CotizacionesPage from './modules/alquileres/pages/CotizacionesPage'
+import DescuentosPage from './modules/alquileres/pages/DescuentosPage'
+import ConfiguracionAlquileresPage from './modules/alquileres/pages/ConfiguracionAlquileresPage'
+import ReportesAlquileresPage from './modules/alquileres/pages/ReportesAlquileresPage'
+import TransportePage from './modules/alquileres/pages/TransportePage'
+import HistorialAlquileresPage from './modules/alquileres/pages/HistorialAlquileresPage'
+import HistorialEventosPage from './modules/alquileres/pages/HistorialEventosPage'
 
-// Importar páginas - Operaciones
-import OperacionesDashboard from './pages/OperacionesDashboard'
-import OrdenesTrabajoPage from './pages/OrdenesTrabajoPage'
-import OrdenDetallePage from './pages/OrdenDetallePage'
-import CalendarioOperaciones from './pages/CalendarioOperaciones'
-import AlertasPage from './pages/AlertasPage'
-import HistorialOrdenesPage from './pages/HistorialOrdenesPage'
-import HistorialAlquileresPage from './pages/HistorialAlquileresPage'
-import HistorialEventosPage from './pages/HistorialEventosPage'
+// Clientes
+import ClientesPage from './modules/clientes/pages/ClientesPage'
+import CiudadesPage from './modules/clientes/pages/CiudadesPage'
+
+// Operaciones
+import OperacionesLayout from './modules/operaciones/components/OperacionesLayout'
+import OperacionesDashboard from './modules/operaciones/pages/OperacionesDashboard'
+import OrdenesTrabajoPage from './modules/operaciones/pages/OrdenesTrabajoPage'
+import OrdenDetallePage from './modules/operaciones/pages/OrdenDetallePage'
+import HistorialOrdenesPage from './modules/operaciones/pages/HistorialOrdenesPage'
+import EmpleadosPage from './modules/operaciones/pages/EmpleadosPage'
+
+// Calendario
+import CalendarioPage from './modules/calendario/pages/CalendarioPage'
+import CalendarioOperaciones from './modules/calendario/pages/CalendarioOperaciones'
+
+// Configuracion
+import ConfiguracionPage from './modules/configuracion/pages/ConfiguracionPage'
+import AlertasPage from './modules/configuracion/pages/AlertasPage'
 
 /**
  * COMPONENTE: App

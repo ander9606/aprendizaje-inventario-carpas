@@ -13,8 +13,8 @@ import {
   Truck,
   LogOut
 } from 'lucide-react'
-import { useGetConfiguracionCompleta } from '../hooks/useConfiguracion'
-import { useAuth } from '../hooks/auth/useAuth'
+import { useGetConfiguracionCompleta } from '@configuracion/hooks/useConfiguracion'
+import { useAuth } from '@auth/hooks/useAuth'
 
 // URL base del backend (sin /api)
 const BACKEND_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api').replace('/api', '')

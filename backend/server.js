@@ -11,41 +11,14 @@ const { testConnection } = require('./config/database');
 const { errorHandler, notFound } = require('./middleware/errorHandler');
 const httpLogger = require('./middleware/httpLogger');
 
-// Importar rutas - Inventario (Stock físico)
-const categoriasRoutes = require('./modules/inventario/routes/categorias');
-const elementosRoutes = require('./modules/inventario/routes/elementos');
-const seriesRoutes = require('./modules/inventario/routes/series');
-const lotesRoutes = require('./modules/inventario/routes/lotes');
-const materialesRoutes = require('./modules/inventario/routes/materiales');
-const unidadesRoutes = require('./modules/inventario/routes/unidades');
-const inventarioExportRoutes = require('./modules/inventario/routes/export');
-
-// Importar rutas - Productos (Plantillas/Elementos Compuestos)
-const categoriasProductosRoutes = require('./modules/productos/routes/categoriasProductos');
-const elementosCompuestosRoutes = require('./modules/productos/routes/elementosCompuestos');
-
-// Importar rutas - Alquileres (Operación comercial)
-const clientesRoutes = require('./modules/alquileres/routes/clientes');
-const cotizacionesRoutes = require('./modules/alquileres/routes/cotizaciones');
-const alquileresRoutes = require('./modules/alquileres/routes/alquileres');
-const tarifasTransporteRoutes = require('./modules/alquileres/routes/tarifasTransporte');
-const disponibilidadRoutes = require('./modules/alquileres/routes/disponibilidad');
-const descuentosRoutes = require('./modules/alquileres/routes/descuentos');
-const configuracionAlquileresRoutes = require('./modules/alquileres/routes/configuracion');
-const eventosRoutes = require('./modules/alquileres/routes/eventos');
-const alertasAlquileresRoutes = require('./modules/alquileres/routes/alertas');
-
-// Importar rutas - Configuración (Datos maestros)
-const ciudadesRoutes = require('./modules/configuracion/routes/ciudades');
-const empleadosRoutes = require('./modules/configuracion/routes/empleados');
-const vehiculosRoutes = require('./modules/configuracion/routes/vehiculos');
-const ubicacionesRoutes = require('./modules/configuracion/routes/ubicaciones');
-
-// Importar rutas - Autenticación
-const authRoutes = require('./modules/auth/routes/auth');
-
-// Importar rutas - Operaciones
-const operacionesRoutes = require('./modules/operaciones/routes/operaciones');
+// Importar módulos
+const inventarioModule = require('./modules/inventario');
+const productosModule = require('./modules/productos');
+const alquileresModule = require('./modules/alquileres');
+const clientesModule = require('./modules/clientes');
+const operacionesModule = require('./modules/operaciones');
+const configuracionModule = require('./modules/configuracion');
+const authModule = require('./modules/auth');
 
 const path = require('path');
 const fs = require('fs');
@@ -114,6 +87,7 @@ app.get('/', (req, res) => {
                 '/api/lotes',
                 '/api/materiales',
                 '/api/unidades',
+                '/api/ubicaciones',
                 '/api/inventario/export/excel'
             ],
             productos: [
@@ -121,21 +95,28 @@ app.get('/', (req, res) => {
                 '/api/elementos-compuestos'
             ],
             alquileres: [
-                '/api/clientes',
                 '/api/cotizaciones',
                 '/api/alquileres',
                 '/api/tarifas-transporte',
                 '/api/disponibilidad',
                 '/api/descuentos',
-                '/api/configuracion-alquileres',
-                '/api/eventos',
-                '/api/alertas/alquileres'
+                '/api/eventos'
+            ],
+            clientes: [
+                '/api/clientes',
+                '/api/ciudades'
+            ],
+            operaciones: [
+                '/api/operaciones/ordenes',
+                '/api/operaciones/calendario',
+                '/api/operaciones/alertas',
+                '/api/operaciones/estadisticas',
+                '/api/empleados',
+                '/api/vehiculos'
             ],
             configuracion: [
-                '/api/ciudades',
-                '/api/empleados',
-                '/api/vehiculos',
-                '/api/ubicaciones'
+                '/api/alertas/alquileres',
+                '/api/configuracion-alquileres'
             ],
             auth: [
                 '/api/auth/login',
@@ -143,52 +124,19 @@ app.get('/', (req, res) => {
                 '/api/auth/refresh',
                 '/api/auth/me',
                 '/api/auth/password'
-            ],
-            operaciones: [
-                '/api/operaciones/ordenes',
-                '/api/operaciones/calendario',
-                '/api/operaciones/alertas',
-                '/api/operaciones/estadisticas'
             ]
         }
     });
 });
 
-// Registrar rutas - Inventario (Stock físico)
-app.use('/api/categorias', categoriasRoutes);
-app.use('/api/elementos', elementosRoutes);
-app.use('/api/series', seriesRoutes);
-app.use('/api/lotes', lotesRoutes);
-app.use('/api/materiales', materialesRoutes);
-app.use('/api/unidades', unidadesRoutes);
-app.use('/api/inventario', inventarioExportRoutes);
-
-// Registrar rutas - Productos (Plantillas)
-app.use('/api/categorias-productos', categoriasProductosRoutes);
-app.use('/api/elementos-compuestos', elementosCompuestosRoutes);
-
-// Registrar rutas - Alquileres (Operación comercial)
-app.use('/api/clientes', clientesRoutes);
-app.use('/api/cotizaciones', cotizacionesRoutes);
-app.use('/api/alquileres', alquileresRoutes);
-app.use('/api/tarifas-transporte', tarifasTransporteRoutes);
-app.use('/api/disponibilidad', disponibilidadRoutes);
-app.use('/api/descuentos', descuentosRoutes);
-app.use('/api/configuracion-alquileres', configuracionAlquileresRoutes);
-app.use('/api/eventos', eventosRoutes);
-app.use('/api/alertas/alquileres', alertasAlquileresRoutes);
-
-// Registrar rutas - Configuración (Datos maestros)
-app.use('/api/ciudades', ciudadesRoutes);
-app.use('/api/empleados', empleadosRoutes);
-app.use('/api/vehiculos', vehiculosRoutes);
-app.use('/api/ubicaciones', ubicacionesRoutes);
-
-// Registrar rutas - Autenticación
-app.use('/api/auth', authRoutes);
-
-// Registrar rutas - Operaciones
-app.use('/api/operaciones', operacionesRoutes);
+// Registrar módulos
+app.use('/api', inventarioModule);
+app.use('/api', productosModule);
+app.use('/api', alquileresModule);
+app.use('/api', clientesModule);
+app.use('/api', operacionesModule);
+app.use('/api', configuracionModule);
+app.use('/api', authModule);
 
 // ============================================
 // MANEJO DE ERRORES
@@ -208,12 +156,13 @@ const startServer = async () => {
         app.listen(PORT, () => {
             console.log('\n✅ Servidor iniciado');
             console.log(`🌐 http://localhost:${PORT}`);
-            console.log(`📦 Inventario: Categorías, Elementos, Series, Lotes`);
+            console.log(`📦 Inventario: Categorías, Elementos, Series, Lotes, Ubicaciones`);
             console.log(`🏗️  Productos: Categorías Productos, Elementos Compuestos`);
-            console.log(`🏷️  Alquileres: Clientes, Cotizaciones, Alquileres, Descuentos`);
-            console.log(`⚙️  Configuración: Ciudades, Empleados, Vehículos, Ubicaciones`);
-            console.log(`🔐 Auth: Login, Logout, Refresh, Me`);
-            console.log(`🔧 Operaciones: Órdenes, Calendario, Alertas\n`);
+            console.log(`🏷️  Alquileres: Cotizaciones, Alquileres, Descuentos, Eventos`);
+            console.log(`👥 Clientes: Clientes, Ciudades`);
+            console.log(`🔧 Operaciones: Órdenes, Empleados, Vehículos`);
+            console.log(`⚙️  Configuración: Alertas, Configuración Alquileres`);
+            console.log(`🔐 Auth: Login, Logout, Refresh, Me\n`);
         });
     } catch (error) {
         console.error('\n❌ Error al iniciar:', error.message);
