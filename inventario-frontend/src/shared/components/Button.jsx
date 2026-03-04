@@ -214,12 +214,12 @@ export const Button = ({
       {/* Ícono (solo si no está cargando) */}
       {!loading && icon && (
         React.isValidElement(icon)
-          ? <span className={iconSizes[size]}>{icon}</span>
-          : <span className={iconSizes[size]}>{React.createElement(icon, { className: iconSizes[size] })}</span>
+          ? <span className={`${iconSizes[size]} inline-flex items-center justify-center flex-shrink-0`}>{icon}</span>
+          : <span className={`${iconSizes[size]} inline-flex items-center justify-center flex-shrink-0`}>{React.createElement(icon, { className: iconSizes[size] })}</span>
       )}
-      
+
       {/* Texto del botón */}
-      {children}
+      {children && <span>{children}</span>}
     </button>
   )
 }

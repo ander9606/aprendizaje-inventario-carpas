@@ -6,6 +6,8 @@
 import { useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Plus, FileSpreadsheet, Search, X } from 'lucide-react'
+import ViewTabs from '@shared/components/ViewTabs'
+import ElementosListView from '../components/ElementosListView'
 import { toast } from 'sonner'
 import { exportarInventarioExcel } from '../api/apiExport'
 
@@ -91,6 +93,9 @@ function ElementosPage() {
 
   // Estado para descarga Excel
   const [isExporting, setIsExporting] = useState(false)
+
+  // Vista activa (cards o listado)
+  const [viewMode, setViewMode] = useState('cards')
 
   // Búsqueda local de elementos
   const [searchTerm, setSearchTerm] = useState('')
@@ -315,13 +320,10 @@ function ElementosPage() {
       {/* HEADER */}
       <div className="bg-white border-b border-slate-200 sticky top-0 z-10">
         <div className="container mx-auto px-6 py-4">
-          {/* Back link */}
-          <button
-            onClick={handleGoBack}
-            className="text-blue-600 hover:text-blue-700 font-medium text-sm mb-3 transition-colors"
-          >
-            &larr; Volver
-          </button>
+          {/* Breadcrumb */}
+          <div className="mb-3">
+            <Breadcrumb items={breadcrumbItems} />
+          </div>
 
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
@@ -335,6 +337,16 @@ function ElementosPage() {
                 <p className="text-sm text-slate-500">
                   {elementos.length} {elementos.length === 1 ? 'elemento' : 'elementos'}
                 </p>
+              </div>
+              <div className="ml-2 hidden sm:block">
+                <ViewTabs
+                  tabs={[
+                    { label: 'Cards', value: 'cards' },
+                    { label: 'Listado', value: 'listado' }
+                  ]}
+                  activeTab={viewMode}
+                  onChange={setViewMode}
+                />
               </div>
             </div>
 
@@ -360,11 +372,6 @@ function ElementosPage() {
             </div>
           </div>
 
-          {/* Breadcrumb */}
-          <div className="mt-3">
-            <Breadcrumb items={breadcrumbItems} />
-          </div>
-
           {/* Búsqueda */}
           {elementos.length >= 4 && (
             <div className="mt-3 relative">
@@ -386,6 +393,18 @@ function ElementosPage() {
               )}
             </div>
           )}
+
+          {/* ViewTabs mobile */}
+          <div className="mt-3 sm:hidden">
+            <ViewTabs
+              tabs={[
+                { label: 'Cards', value: 'cards' },
+                { label: 'Listado', value: 'listado' }
+              ]}
+              activeTab={viewMode}
+              onChange={setViewMode}
+            />
+          </div>
         </div>
       </div>
 
@@ -424,10 +443,9 @@ function ElementosPage() {
             icon: <X />
           }}
         />
-      ) : (
-        <div className="grid grid-cols-1 gap-6">
+      ) : viewMode === 'cards' ? (
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
           {elementosFiltrados.map((elemento) => {
-            // Pasar datos completos del elemento a las cards
             const elementoData = {
               ...elemento,
               icono: subcategoria?.emoji || '📦',
@@ -466,6 +484,13 @@ function ElementosPage() {
             }
           })}
         </div>
+      ) : (
+        <ElementosListView
+          elementos={elementosFiltrados}
+          onEdit={handleEditElemento}
+          onDelete={handleDeleteElemento}
+          disabled={isDeleting || isDeletingLote || isDeletingSerie}
+        />
       )}
 
       {/* ============================================

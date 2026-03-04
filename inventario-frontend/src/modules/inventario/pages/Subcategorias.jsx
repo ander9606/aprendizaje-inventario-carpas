@@ -234,13 +234,10 @@ export default function Subcategorias() {
           ============================================ */}
       <div className="bg-white border-b border-slate-200 sticky top-0 z-10">
         <div className="container mx-auto px-6 py-4">
-          {/* Back link */}
-          <button
-            onClick={handleGoBack}
-            className="text-blue-600 hover:text-blue-700 font-medium text-sm mb-3 transition-colors"
-          >
-            &larr; Volver a Inventario
-          </button>
+          {/* Breadcrumb */}
+          <div className="mb-3">
+            <Breadcrumb items={breadcrumbItems} />
+          </div>
 
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             {/* Título con emoji en caja */}

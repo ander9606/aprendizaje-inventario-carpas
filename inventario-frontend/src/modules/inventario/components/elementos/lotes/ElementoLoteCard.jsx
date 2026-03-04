@@ -3,7 +3,7 @@
 // Card para elementos gestionados por lotes
 // ============================================
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import LoteUbicacionGroup from './LoteUbicacionGroup'
 import EmptyState from '@shared/components/EmptyState'
 import Button from '@shared/components/Button'
@@ -100,7 +100,7 @@ export const ElementoLoteCard = ({
   // ============================================
   return (
     <div
-      className={`bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow ${className}`}
+      className={`bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow ${className}`}
       {...props}
     >
       {/* ============================================
@@ -108,7 +108,7 @@ export const ElementoLoteCard = ({
           ============================================ */}
       <div className="border-b border-slate-200">
         {/* Barra de acento esmeralda */}
-        <div className="h-1 bg-gradient-to-r from-emerald-500 to-teal-500" />
+        <div className="h-1 bg-emerald-300" />
 
         <div className="px-6 py-4">
           <div className="flex items-start justify-between">
@@ -118,17 +118,17 @@ export const ElementoLoteCard = ({
                 <img
                   src={`${BACKEND_URL}${imagen}`}
                   alt={nombre}
-                  className="w-[80px] h-[80px] rounded-[10px] object-cover flex-shrink-0"
+                  className="w-14 h-14 rounded-[10px] object-cover flex-shrink-0"
                 />
               ) : (
-                <div className="w-[80px] h-[80px] bg-blue-50 rounded-[10px] flex items-center justify-center flex-shrink-0">
-                  <span className="text-3xl">{icono}</span>
+                <div className="w-14 h-14 bg-blue-50 rounded-[10px] flex items-center justify-center flex-shrink-0">
+                  <span className="text-2xl">{icono}</span>
                 </div>
               )}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <h3 className="text-lg font-bold text-slate-900 truncate">{nombre}</h3>
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-600">
                     <Layers className="w-3 h-3" />
                     {isLoadingLotes ? '…' : cantidad_total} Lotes
                   </span>
@@ -432,11 +432,23 @@ function StatMini({ label, value, color }) {
 // ============================================
 function MenuButton({ options }) {
   const [open, setOpen] = useState(false)
+  const [menuPos, setMenuPos] = useState({ top: 0, left: 0 })
+  const btnRef = useRef(null)
+
+  const handleToggle = (e) => {
+    e.stopPropagation()
+    if (!open && btnRef.current) {
+      const rect = btnRef.current.getBoundingClientRect()
+      setMenuPos({ top: rect.bottom + 4, left: rect.right - 192 })
+    }
+    setOpen(!open)
+  }
 
   return (
-    <div className="relative flex-shrink-0">
+    <div className="flex-shrink-0">
       <button
-        onClick={(e) => { e.stopPropagation(); setOpen(!open) }}
+        ref={btnRef}
+        onClick={handleToggle}
         className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors"
         aria-label="Opciones"
       >
@@ -446,13 +458,16 @@ function MenuButton({ options }) {
       </button>
       {open && (
         <>
-          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 mt-1 w-48 bg-white shadow-lg rounded-lg border border-slate-200 py-1 z-20">
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div
+            className="fixed w-48 bg-white shadow-lg rounded-lg border border-slate-200 py-1 z-50"
+            style={{ top: menuPos.top, left: Math.max(8, menuPos.left) }}
+          >
             {options.map((opt, idx) => (
               <button
                 key={idx}
                 onClick={(e) => { e.stopPropagation(); setOpen(false); opt.onClick() }}
-                className={`w-full text-left px-4 py-2 text-sm transition-colors ${
+                className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${
                   opt.danger ? 'text-red-600 hover:bg-red-50' : 'text-slate-700 hover:bg-slate-50'
                 }`}
               >
