@@ -4,7 +4,7 @@
 // ============================================
 
 import { useState, useMemo } from 'react'
-import { Plus, Package, ArrowLeft, Search, X, Layers, ChevronRight, BarChart3, FileSpreadsheet } from 'lucide-react'
+import { Plus, Package, Search, X, Layers, ChevronRight, BarChart3, FileSpreadsheet } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useNavigation } from '@shared/hooks/useNavigation'  
 import {
@@ -18,7 +18,9 @@ import SubcategoriaFormModal from '@inventario/components/forms/SubcategoriaForm
 import Button from '@shared/components/Button'
 import Spinner from '@shared/components/Spinner'
 import EmptyState from '@shared/components/EmptyState'
+import InventarioListView from '@inventario/components/InventarioListView'
 import { IconoCategoria } from '@shared/components/IconoCategoria'
+import ViewTabs from '@shared/components/ViewTabs'
 import { exportarInventarioExcel } from '@inventario/api/apiExport'
 import { toast } from 'sonner'
 
@@ -83,6 +85,9 @@ export default function Dashboard() {
 
   // Estado para exportar Excel
   const [isExporting, setIsExporting] = useState(false)
+
+  // Vista activa (categorías o listado)
+  const [viewMode, setViewMode] = useState('categorias')
 
   // ============================================
   // BÚSQUEDA: Filtrar categorías y elementos
@@ -250,36 +255,44 @@ export default function Dashboard() {
       {/* ============================================
           HEADER DE LA PÁGINA
           ============================================ */}
-      <div className="bg-white border-b border-slate-200 sticky top-0 z-10 shadow-sm">
+      <div className="bg-white border-b border-slate-200 sticky top-0 z-10">
         <div className="container mx-auto px-6 py-4">
-          {/* Navegación superior */}
+          {/* Back link */}
           <button
             onClick={volverAModulos}
-            className="flex items-center gap-2 text-slate-600 hover:text-slate-900 mb-3 transition-colors text-sm"
+            className="text-blue-600 hover:text-blue-700 font-medium text-sm mb-3 transition-colors"
           >
-            <ArrowLeft className="w-4 h-4" />
-            <span>Volver a Módulos</span>
+            &larr; Volver a Módulos
           </button>
 
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            {/* Título */}
+            {/* Título + toggle */}
             <div className="flex items-center gap-3">
-              <Package className="w-7 h-7 sm:w-8 sm:h-8 text-blue-600" />
+              <Package className="w-6 h-6 text-blue-600" />
               <div>
-                <h1 className="text-xl sm:text-2xl font-bold text-slate-900">
+                <h1 className="text-[22px] font-bold text-slate-900">
                   Inventario Individual
                 </h1>
-                <p className="text-sm text-slate-600">
+                <p className="text-sm text-slate-500">
                   Gestiona tus categorías y elementos
                 </p>
+              </div>
+              <div className="ml-4 hidden sm:block">
+                <ViewTabs
+                  tabs={[
+                    { label: 'Categorías', value: 'categorias' },
+                    { label: 'Listado', value: 'listado' }
+                  ]}
+                  activeTab={viewMode}
+                  onChange={setViewMode}
+                />
               </div>
             </div>
 
             {/* Botones de acciones */}
             <div className="flex gap-2 sm:gap-3 flex-wrap">
-              {/* Botón: Exportar Excel */}
               <Button
-                variant="secondary"
+                variant="outline-light"
                 size="sm"
                 icon={<FileSpreadsheet />}
                 onClick={handleExportExcel}
@@ -288,7 +301,6 @@ export default function Dashboard() {
                 <span className="hidden sm:inline">{isExporting ? 'Exportando...' : 'Excel'}</span>
               </Button>
 
-              {/* Botón: Dashboard de inventario */}
               <Button
                 variant="secondary"
                 size="sm"
@@ -298,7 +310,6 @@ export default function Dashboard() {
                 <span className="hidden sm:inline">Dashboard</span>
               </Button>
 
-              {/* Botón: Crear categoría */}
               <Button
                 variant="primary"
                 size="sm"
@@ -308,6 +319,18 @@ export default function Dashboard() {
                 Nueva Categoría
               </Button>
             </div>
+          </div>
+
+          {/* ViewTabs mobile */}
+          <div className="mt-3 sm:hidden">
+            <ViewTabs
+              tabs={[
+                { label: 'Categorías', value: 'categorias' },
+                { label: 'Listado', value: 'listado' }
+              ]}
+              activeTab={viewMode}
+              onChange={setViewMode}
+            />
           </div>
         </div>
       </div>
@@ -321,33 +344,32 @@ export default function Dashboard() {
             BUSCADOR GLOBAL
             ============================================ */}
         <div className="mb-6 relative">
-          <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Buscar categorías o elementos..."
-                value={searchTerm}
-                onChange={(e) => {
-                  setSearchTerm(e.target.value)
-                  setShowSearchResults(e.target.value.length >= 2)
-                }}
-                onFocus={() => searchTerm.length >= 2 && setShowSearchResults(true)}
-                className="w-full pl-11 pr-10 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg"
-              />
-              {searchTerm && (
-                <button
-                  onClick={handleClearSearch}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-slate-100 rounded-full transition-colors"
-                >
-                  <X className="w-4 h-4 text-slate-400" />
-                </button>
-              )}
-            </div>
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Buscar categorías o elementos..."
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value)
+                setShowSearchResults(e.target.value.length >= 2)
+              }}
+              onFocus={() => searchTerm.length >= 2 && setShowSearchResults(true)}
+              className="w-full pl-12 pr-10 py-2.5 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base"
+            />
+            {searchTerm && (
+              <button
+                onClick={handleClearSearch}
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-slate-100 rounded-full transition-colors"
+              >
+                <X className="w-4 h-4 text-slate-400" />
+              </button>
+            )}
+          </div>
 
-            {/* Resultados de búsqueda */}
-            {showSearchResults && searchTerm.length >= 2 && (
-              <div className="mt-3 border-t border-slate-200 pt-3">
+          {/* Resultados de búsqueda */}
+          {showSearchResults && searchTerm.length >= 2 && (
+            <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-20 p-3">
                 {loadingElementos ? (
                   <div className="flex items-center justify-center py-4">
                     <Spinner size="sm" />
@@ -425,50 +447,55 @@ export default function Dashboard() {
                     <p>No se encontraron resultados para "{searchTerm}"</p>
                   </div>
                 )}
-              </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
 
-        {/* Título de sección */}
-        <div className="mb-6">
-          <h2 className="text-xl font-semibold text-slate-900 mb-1">
-            🏷️ Categorías Principales
-          </h2>
-          <p className="text-slate-600">
-            {categoriasPadre.length} categoría{categoriasPadre.length !== 1 ? 's' : ''} registrada{categoriasPadre.length !== 1 ? 's' : ''}
-          </p>
-        </div>
-        
         {/* ============================================
-            GRID DE CATEGORÍAS
+            CONTENIDO: CATEGORÍAS O LISTADO
             ============================================ */}
-        {categoriasPadre.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {categoriasPadre.map((categoria) => (
-              <CategoriaPadreCard
-                key={categoria.id}
-                categoria={categoria}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
-                onCreateSubcategoria={handleCreateSubcategoria}
+        {viewMode === 'categorias' ? (
+          <>
+            {/* Título de sección */}
+            <div className="mb-6">
+              <p className="text-slate-600">
+                {categoriasPadre.length} categoría{categoriasPadre.length !== 1 ? 's' : ''} registrada{categoriasPadre.length !== 1 ? 's' : ''}
+              </p>
+            </div>
+
+            {/* Grid de categorías (2 columnas) */}
+            {categoriasPadre.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {categoriasPadre.map((categoria) => (
+                  <CategoriaPadreCard
+                    key={categoria.id}
+                    categoria={categoria}
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
+                    onCreateSubcategoria={handleCreateSubcategoria}
+                  />
+                ))}
+              </div>
+            ) : (
+              <EmptyState
+                type="no-data"
+                title="No hay categorías creadas"
+                description="Crea tu primera categoría para comenzar a organizar tu inventario"
+                icon={Package}
+                action={{
+                  label: "Crear primera categoría",
+                  icon: <Plus />,
+                  onClick: handleOpenCrear
+                }}
               />
-            ))}
-          </div>
+            )}
+          </>
         ) : (
-          /* ============================================
-              ESTADO VACÍO: No hay categorías
-              ============================================ */
-          <EmptyState
-            type="no-data"
-            title="No hay categorías creadas"
-            description="Crea tu primera categoría para comenzar a organizar tu inventario"
-            icon={Package}
-            action={{
-              label: "Crear primera categoría",
-              icon: <Plus />,
-              onClick: handleOpenCrear
-            }}
+          /* Vista listado */
+          <InventarioListView
+            elementos={todosElementos}
+            isLoading={loadingElementos}
+            onGoToElemento={handleGoToElemento}
           />
         )}
       </div>

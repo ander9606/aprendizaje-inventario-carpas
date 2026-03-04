@@ -6,7 +6,8 @@
 import { useGetEstadisticasInventario } from '../hooks/useElementos'
 import { formatearMoneda, formatearNumero } from '@shared/utils/helpers'
 import Spinner from '@shared/components/Spinner'
-import { Package, Boxes, DollarSign, AlertTriangle, BarChart3, ArrowLeft, FileSpreadsheet } from 'lucide-react'
+import { Package, Boxes, DollarSign, AlertTriangle, BarChart3, FileSpreadsheet } from 'lucide-react'
+import Button from '@shared/components/Button'
 import { useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 import { exportarInventarioExcel } from '../api/apiExport'
@@ -101,35 +102,38 @@ const InventarioDashboard = () => {
   ].filter(d => d.value > 0)
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+    <div className="min-h-screen bg-slate-50">
       {/* Header */}
-      <div className="bg-white border-b border-slate-200 px-6 py-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => navigate('/inventario')}
-              className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5 text-slate-600" />
-            </button>
-            <div>
-              <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-3">
-                <BarChart3 className="w-7 h-7 text-blue-600" />
-                Dashboard de Inventario
-              </h1>
-              <p className="text-sm text-slate-500 mt-1">
-                Vista general del inventario y alertas
-              </p>
-            </div>
-          </div>
+      <div className="bg-white border-b border-slate-200 sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto px-6 py-4">
           <button
-            onClick={handleExportExcel}
-            disabled={isExporting}
-            className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+            onClick={() => navigate('/inventario')}
+            className="text-blue-600 hover:text-blue-700 font-medium text-sm mb-3 transition-colors"
           >
-            <FileSpreadsheet className="w-4 h-4" />
-            {isExporting ? 'Exportando...' : 'Exportar Excel'}
+            &larr; Volver
           </button>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <BarChart3 className="w-6 h-6 text-blue-600" />
+              <div>
+                <h1 className="text-[18px] font-bold text-slate-900">
+                  Dashboard de Inventario
+                </h1>
+                <p className="text-sm text-slate-500">
+                  Vista general del inventario y alertas
+                </p>
+              </div>
+            </div>
+            <Button
+              variant="success"
+              size="sm"
+              icon={<FileSpreadsheet className="w-4 h-4" />}
+              onClick={handleExportExcel}
+              disabled={isExporting}
+            >
+              {isExporting ? 'Exportando...' : 'Exportar Excel'}
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -389,14 +393,6 @@ const InventarioDashboard = () => {
 // SUB-COMPONENTE: KPI CARD
 // ============================================
 const KPICard = ({ titulo, valor, subtitulo, icono: Icon, color = 'blue' }) => {
-  const colorClasses = {
-    blue: 'bg-blue-50 text-blue-600 border-blue-200',
-    green: 'bg-green-50 text-green-600 border-green-200',
-    purple: 'bg-purple-50 text-purple-600 border-purple-200',
-    red: 'bg-red-50 text-red-600 border-red-200',
-    yellow: 'bg-yellow-50 text-yellow-600 border-yellow-200'
-  }
-
   const iconBg = {
     blue: 'bg-blue-100',
     green: 'bg-green-100',
@@ -405,16 +401,32 @@ const KPICard = ({ titulo, valor, subtitulo, icono: Icon, color = 'blue' }) => {
     yellow: 'bg-yellow-100'
   }
 
+  const iconColor = {
+    blue: 'text-blue-600',
+    green: 'text-green-600',
+    purple: 'text-purple-600',
+    red: 'text-red-600',
+    yellow: 'text-yellow-600'
+  }
+
+  const valueColor = {
+    blue: 'text-blue-700',
+    green: 'text-green-700',
+    purple: 'text-purple-700',
+    red: 'text-red-700',
+    yellow: 'text-yellow-700'
+  }
+
   return (
-    <div className={`bg-white rounded-xl border ${colorClasses[color] || colorClasses.blue} p-5`}>
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <p className="text-sm font-medium text-slate-500">{titulo}</p>
-          <p className="text-2xl font-bold text-slate-900 mt-1">{valor}</p>
-          <p className="text-xs text-slate-500 mt-1">{subtitulo}</p>
+    <div className="bg-white rounded-xl border border-slate-200 p-5">
+      <div className="flex items-start gap-3">
+        <div className={`w-8 h-8 rounded-lg ${iconBg[color]} flex items-center justify-center flex-shrink-0`}>
+          <Icon className={`w-4 h-4 ${iconColor[color]}`} />
         </div>
-        <div className={`p-3 rounded-lg ${iconBg[color] || iconBg.blue}`}>
-          <Icon className={`w-6 h-6 ${colorClasses[color]?.split(' ')[1] || 'text-blue-600'}`} />
+        <div className="flex-1">
+          <p className="text-[13px] font-medium text-slate-500">{titulo}</p>
+          <p className={`text-[32px] font-bold leading-tight ${valueColor[color]}`}>{valor}</p>
+          <p className="text-xs text-slate-500 mt-0.5">{subtitulo}</p>
         </div>
       </div>
     </div>

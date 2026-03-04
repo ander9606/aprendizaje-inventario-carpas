@@ -117,10 +117,12 @@ export const ElementoSerieCard = ({
                 <img
                   src={`${BACKEND_URL}${imagen}`}
                   alt={nombre}
-                  className="w-12 h-12 rounded-lg object-cover flex-shrink-0 mt-0.5"
+                  className="w-[80px] h-[80px] rounded-[10px] object-cover flex-shrink-0"
                 />
               ) : (
-                <span className="text-3xl flex-shrink-0 mt-0.5">{icono}</span>
+                <div className="w-[80px] h-[80px] bg-blue-50 rounded-[10px] flex items-center justify-center flex-shrink-0">
+                  <span className="text-3xl">{icono}</span>
+                </div>
               )}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">

@@ -191,42 +191,34 @@ const CategoriaPadreCard = ({
       className="hover:shadow-lg transition-shadow duration-200"
     >
       {/* ============================================
-          HEADER: Emoji y nombre
+          HEADER: Emoji en caja coloreada + nombre
           ============================================ */}
       <Card.Header>
-        <div className="flex items-center gap-3">
-          {/*
-            EMOJI/ICONO CLICKEABLE
-            - Muestra emojiActual (para actualización optimista)
-            - Soporta emojis Unicode e iconos Lucide
-            - Al hacer clic, abre el EmojiPicker
-            - Efecto hover para indicar que es clickeable
-          */}
+        <div className="flex items-start gap-3">
           <button
             onClick={() => setMostrarEmojiPicker(true)}
-            className="cursor-pointer hover:scale-110 transition-transform flex items-center justify-center"
+            className="w-11 h-11 bg-blue-50 rounded-[10px] flex items-center justify-center flex-shrink-0 cursor-pointer hover:bg-blue-100 transition-colors"
             title="Click para cambiar el icono"
             type="button"
           >
             <IconoCategoria
               value={emojiActual}
-              className="text-4xl text-slate-700"
-              size={40}
+              className="text-2xl text-slate-700"
+              size={24}
             />
           </button>
-          
-          {/* Nombre de la categoría */}
-          <Card.Title className="flex-1">
-            {categoria.nombre}
-          </Card.Title>
+
+          <div className="flex-1 min-w-0">
+            <h3 className="text-[17px] font-bold text-slate-900 truncate">
+              {categoria.nombre}
+            </h3>
+            {categoria.descripcion && (
+              <p className="text-[13px] text-slate-500 mt-0.5 line-clamp-2">
+                {categoria.descripcion}
+              </p>
+            )}
+          </div>
         </div>
-        
-        {/* Descripción opcional */}
-        {categoria.descripcion && (
-          <Card.Description>
-            {categoria.descripcion}
-          </Card.Description>
-        )}
       </Card.Header>
       
       {/* ============================================

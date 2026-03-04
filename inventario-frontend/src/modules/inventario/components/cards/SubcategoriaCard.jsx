@@ -99,30 +99,28 @@ const SubcategoriaCard = ({
 
       {/* HEADER */}
       <Card.Header>
-        <div className="flex items-center gap-3">
-
-          {/* Emoji/Icono */}
+        <div className="flex items-start gap-3">
           <button
             onClick={(e) => {
               e.stopPropagation()
               setMostrarEmojiPicker(true)
             }}
-            className="cursor-pointer hover:scale-110 transition-transform flex items-center justify-center"
+            className="w-11 h-11 bg-blue-50 rounded-[10px] flex items-center justify-center flex-shrink-0 cursor-pointer hover:bg-blue-100 transition-colors"
             title="Cambiar icono"
             type="button"
           >
             <IconoCategoria
               value={emojiActual}
-              className="text-4xl text-slate-700"
-              size={40}
+              className="text-2xl text-slate-700"
+              size={24}
             />
           </button>
 
-          {/* Nombre */}
-          <Card.Title className="flex-1">
-            {subcategoria.nombre}
-          </Card.Title>
-
+          <div className="flex-1 min-w-0">
+            <h3 className="text-[17px] font-bold text-slate-900 truncate">
+              {subcategoria.nombre}
+            </h3>
+          </div>
         </div>
       </Card.Header>
 
