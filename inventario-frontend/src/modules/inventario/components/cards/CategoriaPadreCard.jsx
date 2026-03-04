@@ -6,8 +6,10 @@
 import { useState } from 'react'
 import { Folder, Plus, Edit, Trash2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import { toast } from 'sonner'
 import Card from '@shared/components/Card'
 import Button from '@shared/components/Button'
+import ConfirmModal from '@shared/components/ConfirmModal'
 import SymbolPicker from '@shared/components/picker/SymbolPicker'
 import { IconoCategoria } from '@shared/components/IconoCategoria'
 import { useUpdateCategoria, useDeleteCategoria } from '../../hooks/useCategorias'
@@ -39,9 +41,12 @@ const CategoriaPadreCard = ({
   
   // Controla si el EmojiPicker está visible
   const [mostrarEmojiPicker, setMostrarEmojiPicker] = useState(false)
-  
+
   // Emoji actual (para actualización optimista en la UI)
   const [emojiActual, setEmojiActual] = useState(categoria.emoji || '📦')
+
+  // Modal de confirmación para eliminar
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   
   // ============================================
   // REACT QUERY HOOKS
@@ -134,7 +139,7 @@ const CategoriaPadreCard = ({
           
           // Mostrar mensaje al usuario
           const mensaje = error.response?.data?.mensaje || 'No se pudo actualizar el emoji.'
-          alert(mensaje)
+          toast.error(mensaje)
           
           // Revertir al emoji original
           setEmojiActual(categoria.emoji || '📦')
@@ -148,33 +153,32 @@ const CategoriaPadreCard = ({
   // ============================================
   
   /**
-   * Eliminar categoría con confirmación
+   * Abrir modal de confirmación para eliminar
    */
   const handleDelete = (e) => {
     e.stopPropagation()
-    
-    // Confirmar antes de eliminar
-    const confirmacion = confirm(
-      `¿Estás seguro de eliminar la categoría "${categoria.nombre}"?\n\n` +
-      `Esta acción no se puede deshacer.`
-    )
-    
-    if (confirmacion) {
-      deleteCategoria.deleteCategoriaSync(
-        categoria.id,
-        {
-          onSuccess: () => {
-            console.log('✅ Categoría eliminada exitosamente')
-          },
-          onError: (error) => {
-            console.error('❌ Error al eliminar:', error)
-            const mensaje = error.response?.data?.mensaje || 
-              'No se pudo eliminar la categoría. Puede tener subcategorías o elementos.'
-            alert(mensaje)
-          }
+    setShowDeleteConfirm(true)
+  }
+
+  /**
+   * Confirmar eliminación de categoría
+   */
+  const handleConfirmDelete = () => {
+    deleteCategoria.deleteCategoriaSync(
+      categoria.id,
+      {
+        onSuccess: () => {
+          setShowDeleteConfirm(false)
+          toast.success(`Categoría "${categoria.nombre}" eliminada`)
+        },
+        onError: (error) => {
+          setShowDeleteConfirm(false)
+          const mensaje = error.response?.data?.mensaje ||
+            'No se pudo eliminar la categoría. Puede tener subcategorías o elementos.'
+          toast.error(mensaje)
         }
-      )
-    }
+      }
+    )
   }
   
   // ============================================
@@ -278,9 +282,9 @@ const CategoriaPadreCard = ({
     </Button>
     
     {/* Botón: Eliminar */}
-    <Button 
-      variant="ghost" 
-      size="sm" 
+    <Button
+      variant="danger"
+      size="sm"
       icon={<Trash2 className="w-4 h-4" />}
       onClick={handleDelete}
       loading={deleteCategoria.isLoading}
@@ -304,6 +308,18 @@ const CategoriaPadreCard = ({
           onClose={() => setMostrarEmojiPicker(false)}
         />
       )}
+
+      {/* Modal de confirmación para eliminar */}
+      <ConfirmModal
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={handleConfirmDelete}
+        title={`¿Eliminar "${categoria.nombre}"?`}
+        message="Se eliminarán todos los datos asociados a esta categoría. Esta acción no se puede deshacer."
+        variant="danger"
+        confirmText="Eliminar"
+        loading={deleteCategoria.isLoading}
+      />
     </Card>
   )
 }

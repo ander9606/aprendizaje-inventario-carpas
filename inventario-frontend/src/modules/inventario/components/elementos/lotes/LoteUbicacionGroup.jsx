@@ -20,6 +20,7 @@ import { useState } from 'react'
  * @param {function} onMoveLote - Callback para mover cantidad
  * @param {function} onDeleteLote - Callback para eliminar un lote
  * @param {boolean} compact - Vista compacta
+ * @param {boolean} defaultExpanded - Si inicia expandido
  */
 export const LoteUbicacionGroup = ({
   ubicacion,
@@ -27,10 +28,11 @@ export const LoteUbicacionGroup = ({
   onMoveLote,
   onDeleteLote,
   compact = false,
+  defaultExpanded = false,
   className = '',
   ...props
 }) => {
-  const [expandido, setExpandido] = useState(false)
+  const [expandido, setExpandido] = useState(defaultExpanded)
 
   const {
     nombre,

@@ -5,7 +5,7 @@
 
 import { useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Edit, Trash2, Plus, Calendar, User, Clock, MapPin } from 'lucide-react'
+import { ArrowLeft, Edit, Trash2, Plus, Calendar, User, Clock, MapPin, BarChart3, Layers, Settings } from 'lucide-react'
 import { toast } from 'sonner'
 
 // Hooks personalizados
@@ -23,6 +23,7 @@ import Breadcrumb from '@shared/components/Breadcrum'
 import Card from '@shared/components/Card'
 import StatCard from '@shared/components/StatCard'
 import ImageUpload from '@shared/components/ImageUpload'
+import ConfirmModal from '@shared/components/ConfirmModal'
 import SerieItem from '../components/elementos/series/SerieItem'
 import LoteUbicacionGroup from '../components/elementos/lotes/LoteUbicacionGroup'
 import EmptyState from '@shared/components/EmptyState'
@@ -90,6 +91,7 @@ function ElementoDetallePage() {
   const [showAddSerieModal, setShowAddSerieModal] = useState(false)
   const [serieParaEditar, setSerieParaEditar] = useState(null)
   const [loteParaMover, setLoteParaMover] = useState(null)
+  const [deleteConfirm, setDeleteConfirm] = useState(null)
 
   // ============================================
   // 3. HOOKS DE DATOS
@@ -263,27 +265,58 @@ function ElementoDetallePage() {
    */
   const handleDeleteElemento = () => {
     // Validar que no tenga series/lotes
-    const tieneSeries = elemento?.requiere_series && totalSeries > 0
-    const tieneLotes = !elemento?.requiere_series && cantidad_total > 0
+    const tieneSeries = elemento?.requiere_series && series.length > 0
+    const tieneLotes = !elemento?.requiere_series && lotes.reduce((sum, l) => sum + (l.cantidad || 0), 0) > 0
 
     if (tieneSeries || tieneLotes) {
       toast.error('No se puede eliminar un elemento que tiene series o lotes asociados')
       return
     }
 
-    // Confirmación
-    const confirmar = window.confirm(
-      `¿Estás seguro de eliminar "${elemento?.nombre}"?\n\nEsta acción no se puede deshacer.`
-    )
+    setDeleteConfirm({
+      type: 'elemento',
+      title: `¿Eliminar "${elemento?.nombre}"?`,
+      message: 'Se eliminará este elemento del inventario. Esta acción no se puede deshacer.'
+    })
+  }
 
-    if (confirmar) {
+  const handleConfirmDelete = () => {
+    const { type, data } = deleteConfirm
+    if (type === 'elemento') {
       deleteElemento.mutate(elementoId, {
         onSuccess: () => {
+          setDeleteConfirm(null)
           toast.success('Elemento eliminado exitosamente')
           navigate(`/inventario/categorias/${categoriaId}/subcategorias/${subcategoriaId}/elementos`)
         },
         onError: (error) => {
+          setDeleteConfirm(null)
           toast.error(error.message || 'Error al eliminar elemento')
+        }
+      })
+    } else if (type === 'serie') {
+      deleteSerie.mutate(data.id, {
+        onSuccess: () => {
+          setDeleteConfirm(null)
+          toast.success(`Serie "${data.numero_serie}" eliminada`)
+          refetchElemento()
+          refetchSeries()
+        },
+        onError: (error) => {
+          setDeleteConfirm(null)
+          toast.error(error.message || 'Error al eliminar serie')
+        }
+      })
+    } else if (type === 'lote') {
+      deleteLote.mutate(data.id, {
+        onSuccess: () => {
+          setDeleteConfirm(null)
+          toast.success('Lote eliminado exitosamente')
+          refetchElemento()
+        },
+        onError: (error) => {
+          setDeleteConfirm(null)
+          toast.error(error.message || 'Error al eliminar lote')
         }
       })
     }
@@ -312,22 +345,12 @@ function ElementoDetallePage() {
    * Handler: Eliminar serie
    */
   const handleDeleteSerie = (serie) => {
-    const confirmar = window.confirm(
-      `¿Eliminar serie ${serie.numero_serie}?`
-    )
-
-    if (confirmar) {
-      deleteSerie.mutate(serie.id, {
-        onSuccess: () => {
-          toast.success('Serie eliminada exitosamente')
-          refetchElemento()
-          refetchSeries()
-        },
-        onError: (error) => {
-          toast.error(error.message || 'Error al eliminar serie')
-        }
-      })
-    }
+    setDeleteConfirm({
+      type: 'serie',
+      data: serie,
+      title: `¿Eliminar serie "${serie.numero_serie}"?`,
+      message: 'Se eliminará esta unidad del inventario. Esta acción no se puede deshacer.'
+    })
   }
 
   /**
@@ -357,21 +380,12 @@ function ElementoDetallePage() {
    * Handler: Eliminar lote
    */
   const handleDeleteLote = (lote, ubicacion) => {
-    const confirmar = window.confirm(
-      `¿Eliminar ${lote.cantidad} unidades en estado ${lote.estado} de ${ubicacion}?`
-    )
-
-    if (confirmar) {
-      deleteLote.mutate(lote.id, {
-        onSuccess: () => {
-          toast.success('Lote eliminado exitosamente')
-          refetchElemento()
-        },
-        onError: (error) => {
-          toast.error(error.message || 'Error al eliminar lote')
-        }
-      })
-    }
+    setDeleteConfirm({
+      type: 'lote',
+      data: lote,
+      title: '¿Eliminar lote?',
+      message: `Se eliminarán ${lote.cantidad} unidades en estado "${lote.estado}" de "${ubicacion || 'Sin ubicación'}". Esta acción no se puede deshacer.`
+    })
   }
 
   /**
@@ -466,7 +480,51 @@ function ElementoDetallePage() {
   // ============================================
 
   return (
-    <div className="container mx-auto px-4 py-6">
+    <div className="flex min-h-screen bg-slate-50">
+
+      {/* ============================================
+          SIDEBAR DE NAVEGACIÓN
+          ============================================ */}
+      <aside className="w-52 bg-slate-900 flex-shrink-0 flex flex-col">
+        {/* Header */}
+        <div className="px-4 py-5 border-b border-slate-700/50">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
+              <Layers className="w-4 h-4 text-white" />
+            </div>
+            <span className="font-bold text-white text-sm">Inventario</span>
+          </div>
+        </div>
+
+        {/* Navegación */}
+        <nav className="flex-1 px-2 py-4 space-y-1">
+          {[
+            { icon: Layers, label: 'Categorías', path: '/inventario', active: true },
+            { icon: BarChart3, label: 'Analítica', path: '/inventario/dashboard' },
+            { icon: MapPin, label: 'Ubicaciones', path: '/configuracion/ubicaciones' },
+            { icon: Settings, label: 'Configuración', path: '/configuracion' },
+          ].map(({ icon: Icon, label, path, active }) => (
+            <button
+              key={label}
+              onClick={() => navigate(path)}
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                active
+                  ? 'bg-blue-600 text-white'
+                  : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+              }`}
+            >
+              <Icon className="w-4 h-4 flex-shrink-0" />
+              {label}
+            </button>
+          ))}
+        </nav>
+      </aside>
+
+      {/* ============================================
+          CONTENIDO PRINCIPAL
+          ============================================ */}
+      <main className="flex-1 overflow-auto">
+      <div className="container mx-auto px-4 py-6">
 
       {/* ============================================
           HEADER
@@ -530,22 +588,31 @@ function ElementoDetallePage() {
                     </p>
                   </div>
 
-                  {/* Acciones principales - PROMINENTES */}
+                  {/* Acciones principales */}
                   <div className="flex items-center gap-2 flex-shrink-0">
                     <Button
-                      variant="primary"
+                      variant="danger"
+                      size="sm"
+                      icon={<Trash2 className="w-4 h-4" />}
+                      onClick={handleDeleteElemento}
+                    >
+                      Eliminar
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       icon={<Edit className="w-4 h-4" />}
                       onClick={handleEditElemento}
                     >
-                      Editar elemento
+                      Editar
                     </Button>
                     <Button
-                      variant="outline"
-                      icon={<Trash2 className="w-4 h-4" />}
-                      onClick={handleDeleteElemento}
-                      className="text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300"
+                      variant="primary"
+                      size="sm"
+                      icon={<Plus className="w-4 h-4" />}
+                      onClick={handleAdd}
                     >
-                      Eliminar
+                      {elemento.requiere_series ? 'Agregar serie' : 'Agregar lote'}
                     </Button>
                   </div>
                 </div>
@@ -588,7 +655,7 @@ function ElementoDetallePage() {
       {/* ============================================
           ESTADÍSTICAS - Click para filtrar
           ============================================ */}
-      <div className="grid grid-cols-5 gap-3 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
         <StatCard
           label="Total"
           value={elemento.requiere_series ? series.length : lotes.reduce((sum, l) => sum + (l.cantidad || 0), 0)}
@@ -763,6 +830,7 @@ function ElementoDetallePage() {
                     <LoteUbicacionGroup
                       key={ubicacion.nombre || idx}
                       ubicacion={ubicacion}
+                      defaultExpanded
                       onEditLote={handleEditLote}
                       onMoveLote={handleMoveLote}
                       onDeleteLote={handleDeleteLote}
@@ -840,6 +908,20 @@ function ElementoDetallePage() {
           elemento={loteParaMover.elemento}
         />
       )}
+
+      {/* Modal: Confirmación de eliminación */}
+      <ConfirmModal
+        isOpen={!!deleteConfirm}
+        onClose={() => setDeleteConfirm(null)}
+        onConfirm={handleConfirmDelete}
+        title={deleteConfirm?.title || '¿Confirmar eliminación?'}
+        message={deleteConfirm?.message || ''}
+        variant="danger"
+        confirmText="Eliminar"
+        loading={deleteElemento.isPending || deleteSerie.isPending || deleteLote.isPending}
+      />
+    </div>
+      </main>
     </div>
   )
 }

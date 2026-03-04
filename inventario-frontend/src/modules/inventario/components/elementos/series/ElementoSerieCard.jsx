@@ -127,7 +127,7 @@ export const ElementoSerieCard = ({
                   <h3 className="text-lg font-bold text-slate-900 truncate">{nombre}</h3>
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-700">
                     <Hash className="w-3 h-3" />
-                    Series
+                    {isLoadingSeries ? '…' : total} Series
                   </span>
                 </div>
 
@@ -247,6 +247,21 @@ export const ElementoSerieCard = ({
                   style={{ width: `${pctMantenimiento}%` }}
                 />
               )}
+            </div>
+            {/* Leyenda de colores */}
+            <div className="flex items-center gap-4 mt-1.5 text-xs text-slate-500">
+              <span className="flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                Disponible
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-blue-500" />
+                Alquilado
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-amber-500" />
+                Mant./Dañado
+              </span>
             </div>
           </div>
         )}

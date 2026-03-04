@@ -241,8 +241,8 @@ export default function Subcategorias() {
           </div>
           
           {/* Header principal */}
-          <div className="flex items-center justify-between">
-            
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+
             {/* Botón volver + Título */}
             <div className="flex items-center gap-4">
               {/* Botón volver */}
@@ -253,12 +253,12 @@ export default function Subcategorias() {
               >
                 <ArrowLeft className="w-5 h-5 text-slate-600" />
               </button>
-              
+
               {/* Título con emoji */}
               <div className="flex items-center gap-3">
-                <IconoCategoria value={categoria.emoji} className="text-4xl" size={40} />
+                <IconoCategoria value={categoria.emoji} className="text-3xl sm:text-4xl" size={36} />
                 <div>
-                  <h1 className="text-2xl font-bold text-slate-900">
+                  <h1 className="text-xl sm:text-2xl font-bold text-slate-900">
                     {categoria.nombre}
                   </h1>
                   <p className="text-sm text-slate-600">
@@ -267,10 +267,11 @@ export default function Subcategorias() {
                 </div>
               </div>
             </div>
-            
+
             {/* Botón crear subcategoría */}
-            <Button 
+            <Button
               variant="primary"
+              size="sm"
               icon={<Plus />}
               onClick={handleOpenCrear}
             >

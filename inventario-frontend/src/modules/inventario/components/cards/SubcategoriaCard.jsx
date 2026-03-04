@@ -5,8 +5,10 @@
 import { useState } from 'react'
 import { Box, Plus, Edit, Trash2, ChevronRight } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import { toast } from 'sonner'
 import Card from '@shared/components/Card'
 import Button from '@shared/components/Button'
+import ConfirmModal from '@shared/components/ConfirmModal'
 import SymbolPicker from '@shared/components/picker/SymbolPicker'
 import { IconoCategoria } from '@shared/components/IconoCategoria'
 import { useUpdateCategoria, useDeleteCategoria } from '../../hooks/useCategorias'
@@ -23,6 +25,7 @@ const SubcategoriaCard = ({
   // Estado
   const [mostrarEmojiPicker, setMostrarEmojiPicker] = useState(false)
   const [emojiActual, setEmojiActual] = useState(subcategoria.emoji || '📦')
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   // React Query
   const updateCategoria = useUpdateCategoria()
@@ -60,27 +63,32 @@ const SubcategoriaCard = ({
       {
         onSuccess: () => console.log('Emoji actualizado'),
         onError: () => {
-          alert('No se pudo actualizar el emoji.')
+          toast.error('No se pudo actualizar el emoji.')
           setEmojiActual(subcategoria.emoji || '📦')
         }
       }
     )
   }
 
-  // Eliminar
+  // Abrir modal de confirmación para eliminar
   const handleDelete = (e) => {
     e.stopPropagation()
+    setShowDeleteConfirm(true)
+  }
 
-    if (!confirm(`¿Eliminar subcategoría "${subcategoria.nombre}"?`)) return
-
+  // Confirmar eliminación
+  const handleConfirmDelete = () => {
     deleteCategoria.deleteCategoriaSync(
       subcategoria.id,
       {
-        onSuccess: () => console.log('Subcategoría eliminada'),
+        onSuccess: () => {
+          setShowDeleteConfirm(false)
+          toast.success(`Subcategoría "${subcategoria.nombre}" eliminada`)
+        },
         onError: (error) => {
-            console.error('Error al eliminar subcategoría:', error)
-            const mensaje = error.response?.data?.mensaje || 'Error al eliminar subcategoría'
-            alert(mensaje)
+          setShowDeleteConfirm(false)
+          const mensaje = error.response?.data?.mensaje || 'Error al eliminar subcategoría'
+          toast.error(mensaje)
         }
       }
     )
@@ -170,7 +178,7 @@ const SubcategoriaCard = ({
 
           {/* Eliminar */}
           <Button
-            variant="ghost"
+            variant="danger"
             size="sm"
             icon={<Trash2 className="w-4 h-4" />}
             onClick={handleDelete}
@@ -193,6 +201,18 @@ const SubcategoriaCard = ({
           onClose={() => setMostrarEmojiPicker(false)}
         />
       )}
+
+      {/* Modal de confirmación para eliminar */}
+      <ConfirmModal
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={handleConfirmDelete}
+        title={`¿Eliminar "${subcategoria.nombre}"?`}
+        message="Se eliminarán todos los elementos asociados a esta subcategoría. Esta acción no se puede deshacer."
+        variant="danger"
+        confirmText="Eliminar"
+        loading={deleteCategoria.isLoading}
+      />
 
     </Card>
   )

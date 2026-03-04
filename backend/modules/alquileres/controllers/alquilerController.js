@@ -498,11 +498,58 @@ exports.marcarRetorno = async (req, res, next) => {
       notas_retorno
     });
 
-    // TODO: Restaurar estado y ubicación de todos los elementos
+    // Restaurar estado y ubicación de todos los elementos asignados al alquiler
+    const elementosAsignados = alquiler.elementos || [];
+    let seriesRestauradas = 0;
+    let lotesRestaurados = 0;
+
+    for (const elem of elementosAsignados) {
+      // Determinar estado de retorno para este elemento
+      let estadoRetornoElem = 'bueno';
+      if (retornos && retornos.length > 0) {
+        const retornoEspecifico = retornos.find(r => r.elemento_id === elem.id);
+        if (retornoEspecifico) {
+          estadoRetornoElem = retornoEspecifico.estado_retorno || 'bueno';
+        }
+      }
+
+      if (elem.serie_id) {
+        let nuevoEstadoSerie = 'disponible';
+        if (estadoRetornoElem === 'dañado') nuevoEstadoSerie = 'mantenimiento';
+        else if (estadoRetornoElem === 'perdido') nuevoEstadoSerie = 'baja';
+
+        await SerieModel.cambiarEstado(
+          elem.serie_id,
+          nuevoEstadoSerie,
+          null,
+          elem.ubicacion_original_id
+        );
+        seriesRestauradas++;
+      }
+
+      if (elem.lote_alquilado_id && elem.cantidad_lote) {
+        await LoteModel.retornarDeAlquiler(
+          elem.lote_alquilado_id,
+          elem.cantidad_lote,
+          estadoRetornoElem,
+          elem.ubicacion_original_id,
+          id
+        );
+        lotesRestaurados++;
+      }
+    }
+
+    logger.info('alquilerController.marcarRetorno', 'Estados restaurados', {
+      id,
+      seriesRestauradas,
+      lotesRestaurados
+    });
 
     logger.info('alquilerController.marcarRetorno', 'Alquiler finalizado', {
       id,
-      costo_danos: totalDanos
+      costo_danos: totalDanos,
+      seriesRestauradas,
+      lotesRestaurados
     });
 
     const alquilerActualizado = await AlquilerModel.obtenerCompleto(id);
@@ -510,6 +557,8 @@ exports.marcarRetorno = async (req, res, next) => {
     res.json({
       success: true,
       mensaje: 'Retorno registrado exitosamente',
+      series_restauradas: seriesRestauradas,
+      lotes_restaurados: lotesRestaurados,
       data: alquilerActualizado
     });
   } catch (error) {

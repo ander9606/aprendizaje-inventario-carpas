@@ -6,7 +6,7 @@
 // Con verificación de disponibilidad por fechas
 // ============================================
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import { ArrowLeft, Package, Search, Loader2, Calendar } from 'lucide-react'
 import { useGetCategoriasConConteo } from '@productos/hooks/useCategoriasProductos'
 import { useGetProductosPorCategoria } from '@productos/hooks/useProductosAlquiler'
@@ -37,63 +37,80 @@ const ProductoSelectorTarjetas = ({
     categoriaSeleccionada?.id
   )
 
-  // Hook para verificar disponibilidad
-  const { verificar, resultado: disponibilidadResultado, isLoading: loadingDisponibilidad, limpiar } = useVerificarDisponibilidadProductos()
+  // Estado local para disponibilidad por producto
+  const [disponibilidadPorProducto, setDisponibilidadPorProducto] = useState({})
+  const [loadingDisponibilidad, setLoadingDisponibilidad] = useState(false)
 
   // ============================================
-  // DISPONIBILIDAD: Verificar cuando hay productos y fechas
+  // DISPONIBILIDAD: Verificar cada producto individualmente
+  // Se hace una llamada separada por producto para que los elementos
+  // de un producto no contaminen la disponibilidad de otros
   // ============================================
   useEffect(() => {
-    if (paso === 'productos' && productos.length > 0 && fechaMontaje) {
-      // Preparar productos para verificación (1 de cada uno)
-      const productosParaVerificar = productos.map(p => ({
-        compuesto_id: p.id,
-        cantidad: 1
-      }))
-      verificar(productosParaVerificar, fechaMontaje, fechaDesmontaje || fechaMontaje)
-    } else {
-      limpiar()
+    if (paso !== 'productos' || !fechaMontaje || productos.length === 0) {
+      setDisponibilidadPorProducto({})
+      setLoadingDisponibilidad(false)
+      return
     }
-  }, [paso, productos.length, fechaMontaje, fechaDesmontaje])
 
-  // Crear mapa de disponibilidad por producto_id
-  const disponibilidadPorProducto = useMemo(() => {
-    if (!disponibilidadResultado?.elementos) return {}
+    let cancelled = false
+    setLoadingDisponibilidad(true)
 
-    // El resultado tiene elementos por elemento_id, necesitamos mapearlo por producto
-    // Para cada producto, encontramos el elemento más limitante
-    const mapa = {}
+    const timer = setTimeout(async () => {
+      try {
+        // Verificar cada producto por separado en paralelo
+        const promesas = productos.map(async (producto) => {
+          try {
+            const response = await apiDisponibilidad.verificarProductos(
+              [{ compuesto_id: producto.id, cantidad: 1 }],
+              fechaMontaje,
+              fechaDesmontaje || fechaMontaje
+            )
+            const elementos = response?.data?.elementos || response?.elementos || []
 
-    productos.forEach(producto => {
-      // Buscar si algún elemento del resultado corresponde a este producto
-      // Como verificamos con cantidad 1, el disponible es el mínimo entre componentes
-      const elementosDelProducto = disponibilidadResultado.elementos
+            if (elementos.length === 0) {
+              return { id: producto.id, disponibles: Infinity, estado: 'ok' }
+            }
 
-      if (elementosDelProducto && elementosDelProducto.length > 0) {
-        // Encontrar el componente más limitante
-        let minDisponibles = Infinity
-        let hayInsuficiente = false
+            let minDisponibles = Infinity
+            let hayInsuficiente = false
 
-        elementosDelProducto.forEach(elem => {
-          if (elem.disponibles < minDisponibles) {
-            minDisponibles = elem.disponibles
-          }
-          if (elem.estado === 'insuficiente') {
-            hayInsuficiente = true
+            elementos.forEach(elem => {
+              if (elem.disponibles < minDisponibles) minDisponibles = elem.disponibles
+              if (elem.estado === 'insuficiente') hayInsuficiente = true
+            })
+
+            return {
+              id: producto.id,
+              disponibles: minDisponibles === Infinity ? 0 : minDisponibles,
+              estado: hayInsuficiente ? 'insuficiente' : 'ok'
+            }
+          } catch {
+            return { id: producto.id, disponibles: 0, estado: 'error' }
           }
         })
 
-        // Como todos los productos verificados comparten elementos, distribuimos proporcionalmente
-        // Pero por ahora mostramos el mínimo disponible global
-        mapa[producto.id] = {
-          disponibles: minDisponibles === Infinity ? 0 : minDisponibles,
-          estado: hayInsuficiente ? 'insuficiente' : 'ok'
-        }
-      }
-    })
+        const resultados = await Promise.all(promesas)
 
-    return mapa
-  }, [disponibilidadResultado, productos])
+        if (!cancelled) {
+          const mapa = {}
+          resultados.forEach(r => {
+            mapa[r.id] = { disponibles: r.disponibles, estado: r.estado }
+          })
+          setDisponibilidadPorProducto(mapa)
+          setLoadingDisponibilidad(false)
+        }
+      } catch (error) {
+        console.error('Error verificando disponibilidad:', error)
+        if (!cancelled) setLoadingDisponibilidad(false)
+      }
+    }, 600)
+
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+    }
+  }, [paso, productos.length, fechaMontaje, fechaDesmontaje])
 
   // ============================================
   // HANDLERS

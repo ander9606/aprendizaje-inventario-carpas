@@ -193,7 +193,7 @@ export default function Dashboard() {
       // gracias a queryClient.invalidateQueries en el hook
     } catch (error) {
       console.error('Error al eliminar:', error)
-      alert('No se pudo eliminar la categoría. Verifica que no tenga subcategorías.')
+      toast.error('No se pudo eliminar la categoría. Verifica que no tenga subcategorías.')
     }
   }
   
@@ -261,12 +261,12 @@ export default function Dashboard() {
             <span>Volver a Módulos</span>
           </button>
 
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             {/* Título */}
             <div className="flex items-center gap-3">
-              <Package className="w-8 h-8 text-blue-600" />
+              <Package className="w-7 h-7 sm:w-8 sm:h-8 text-blue-600" />
               <div>
-                <h1 className="text-2xl font-bold text-slate-900">
+                <h1 className="text-xl sm:text-2xl font-bold text-slate-900">
                   Inventario Individual
                 </h1>
                 <p className="text-sm text-slate-600">
@@ -276,29 +276,32 @@ export default function Dashboard() {
             </div>
 
             {/* Botones de acciones */}
-            <div className="flex gap-3">
+            <div className="flex gap-2 sm:gap-3 flex-wrap">
               {/* Botón: Exportar Excel */}
               <Button
                 variant="secondary"
+                size="sm"
                 icon={<FileSpreadsheet />}
                 onClick={handleExportExcel}
                 disabled={isExporting}
               >
-                {isExporting ? 'Exportando...' : 'Excel'}
+                <span className="hidden sm:inline">{isExporting ? 'Exportando...' : 'Excel'}</span>
               </Button>
 
               {/* Botón: Dashboard de inventario */}
               <Button
                 variant="secondary"
+                size="sm"
                 icon={<BarChart3 />}
                 onClick={() => navigate('/inventario/dashboard')}
               >
-                Dashboard
+                <span className="hidden sm:inline">Dashboard</span>
               </Button>
 
               {/* Botón: Crear categoría */}
               <Button
                 variant="primary"
+                size="sm"
                 icon={<Plus />}
                 onClick={handleOpenCrear}
               >
