@@ -4,7 +4,7 @@
 // ============================================
 
 import { useState, useEffect, useMemo } from 'react'
-import { Plus, Trash2, Package, Truck, MapPin, CalendarDays, Calendar, Clock, Percent, ChevronDown, ChevronUp, CheckCircle, User, AlertCircle, FileEdit } from 'lucide-react'
+import { Plus, Trash2, Package, Truck, MapPin, CalendarDays, Calendar, Clock, Percent, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, CheckCircle, User, AlertCircle, FileEdit, ClipboardList } from 'lucide-react'
 import Modal from '@shared/components/Modal'
 import Button from '@shared/components/Button'
 import ProductoSelector from '@shared/components/ProductoSelector'
@@ -67,6 +67,17 @@ const CotizacionFormModal = ({
 
   // Estado para el modal de disponibilidad
   const [showDisponibilidadModal, setShowDisponibilidadModal] = useState(false)
+
+  // Estado del wizard
+  const [pasoActual, setPasoActual] = useState(1)
+  const [direccionAnimacion, setDireccionAnimacion] = useState('right')
+
+  const PASOS = [
+    { numero: 1, titulo: 'Evento', icono: Calendar },
+    { numero: 2, titulo: 'Productos', icono: Package },
+    { numero: 3, titulo: 'Transporte', icono: Truck },
+    { numero: 4, titulo: 'Resumen', icono: ClipboardList }
+  ]
 
   // ============================================
   // HOOKS
@@ -631,6 +642,71 @@ const CotizacionFormModal = ({
     if (!isLoading) onClose()
   }
 
+  // ============================================
+  // WIZARD: Validación y navegación por pasos
+  // ============================================
+
+  const validarPaso = (paso) => {
+    const newErrors = {}
+    if (paso === 1) {
+      if (!eventoPreseleccionado && !formData.cliente_id) {
+        newErrors.cliente_id = 'Seleccione un cliente'
+      }
+      if (!fechasPorConfirmar && !formData.fecha_evento) {
+        newErrors.fecha_evento = 'La fecha del evento es obligatoria'
+      }
+      if (!eventoPreseleccionado && !formData.evento_ciudad) {
+        newErrors.evento_ciudad = 'Seleccione una ciudad'
+      }
+    } else if (paso === 2) {
+      if (productosSeleccionados.length === 0) {
+        newErrors.productos = 'Debe agregar al menos un producto'
+      }
+      if (productosSeleccionados.some(p => !p.compuesto_id)) {
+        newErrors.productos = 'Seleccione un producto para cada linea'
+      }
+    }
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(prev => ({ ...prev, ...newErrors }))
+      return false
+    }
+    return true
+  }
+
+  const irAPaso = (paso) => {
+    if (paso === pasoActual) return
+    // En modo editar, permitir navegación libre
+    if (mode === 'editar') {
+      setDireccionAnimacion(paso > pasoActual ? 'right' : 'left')
+      setPasoActual(paso)
+      return
+    }
+    // Ir hacia atrás siempre permitido
+    if (paso < pasoActual) {
+      setDireccionAnimacion('left')
+      setPasoActual(paso)
+      return
+    }
+    // Ir hacia adelante: validar todos los pasos intermedios
+    for (let i = pasoActual; i < paso; i++) {
+      if (!validarPaso(i)) return
+    }
+    setDireccionAnimacion('right')
+    setPasoActual(paso)
+  }
+
+  const siguiente = () => {
+    if (validarPaso(pasoActual)) {
+      setDireccionAnimacion('right')
+      setPasoActual(prev => Math.min(prev + 1, 4))
+    }
+  }
+
+  const anterior = () => {
+    setDireccionAnimacion('left')
+    setPasoActual(prev => Math.max(prev - 1, 1))
+  }
+
   const formatearMoneda = (valor) => {
     return new Intl.NumberFormat('es-CO', {
       style: 'currency',
@@ -660,14 +736,53 @@ const CotizacionFormModal = ({
       title={mode === 'crear' ? 'Nueva Cotizacion' : 'Editar Cotizacion'}
       size="xl"
     >
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="flex flex-col h-full">
+
+        {/* STEPPER */}
+        <div className="flex items-center justify-between px-2 pb-4 mb-4 border-b border-slate-200">
+          {PASOS.map((paso, idx) => {
+            const Icono = paso.icono
+            const esActivo = paso.numero === pasoActual
+            const esCompletado = paso.numero < pasoActual
+            const esPendiente = paso.numero > pasoActual
+            return (
+              <div key={paso.numero} className="flex items-center flex-1">
+                <button
+                  type="button"
+                  onClick={() => irAPaso(paso.numero)}
+                  className={`
+                    flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-sm font-medium
+                    ${esActivo ? 'bg-blue-50 text-blue-700 border border-blue-200' : ''}
+                    ${esCompletado ? 'text-blue-600 hover:bg-blue-50' : ''}
+                    ${esPendiente ? 'text-slate-400' : ''}
+                    ${!esPendiente ? 'cursor-pointer' : 'cursor-default'}
+                  `}
+                >
+                  <Icono className={`w-4 h-4 ${esActivo ? 'text-blue-600' : esCompletado ? 'text-blue-500' : 'text-slate-300'}`} />
+                  <span className="hidden sm:inline">{paso.titulo}</span>
+                </button>
+                {idx < PASOS.length - 1 && (
+                  <div className={`flex-1 h-px mx-2 ${esCompletado ? 'bg-blue-300' : 'bg-slate-200'}`} />
+                )}
+              </div>
+            )
+          })}
+        </div>
 
         {/* ERROR GENERAL */}
         {errors.submit && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">
             <p className="text-sm font-medium">{errors.submit}</p>
           </div>
         )}
+
+        {/* CONTENIDO ANIMADO POR PASO */}
+        <div key={pasoActual} className={`space-y-6 flex-1 ${direccionAnimacion === 'right' ? 'animate-slideInRight' : 'animate-slideInLeft'}`}>
+
+        {/* ============================================
+            PASO 1: DATOS DEL EVENTO
+            ============================================ */}
+        {pasoActual === 1 && (<>
 
         {/* RESUMEN DEL EVENTO - Cuando viene de un evento preseleccionado */}
         {eventoPreseleccionado && (
@@ -976,6 +1091,13 @@ const CotizacionFormModal = ({
             )}
           </div>
         )}
+
+        </>)}
+
+        {/* ============================================
+            PASO 2: PRODUCTOS
+            ============================================ */}
+        {pasoActual === 2 && (<>
 
         {/* PRODUCTOS */}
         <div className="space-y-4">
@@ -1289,6 +1411,13 @@ const CotizacionFormModal = ({
           )}
         </div>
 
+        </>)}
+
+        {/* ============================================
+            PASO 3: TRANSPORTE Y EXTRAS
+            ============================================ */}
+        {pasoActual === 3 && (<>
+
         {/* TRANSPORTE */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
@@ -1374,6 +1503,105 @@ const CotizacionFormModal = ({
           )}
         </div>
 
+        {/* NOTAS */}
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-2">
+            Notas
+          </label>
+          <textarea
+            name="notas"
+            value={formData.notas}
+            onChange={handleChange}
+            placeholder="Notas adicionales..."
+            rows={2}
+            disabled={isLoading}
+            className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-100 resize-none"
+          />
+        </div>
+
+        </>)}
+
+        {/* ============================================
+            PASO 4: RESUMEN Y TOTALES
+            ============================================ */}
+        {pasoActual === 4 && (<>
+
+        {/* RESUMEN COMPACTO */}
+        <div className="space-y-4">
+          {/* Datos del evento */}
+          <div className="bg-slate-50 rounded-lg p-4">
+            <h4 className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
+              <Calendar className="w-4 h-4" />
+              Evento
+            </h4>
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              {formData.evento_nombre && (
+                <div><span className="text-slate-500">Nombre:</span> <span className="font-medium">{formData.evento_nombre}</span></div>
+              )}
+              <div><span className="text-slate-500">Ciudad:</span> <span className="font-medium">{formData.evento_ciudad || '-'}</span></div>
+              {fechasPorConfirmar ? (
+                <div className="col-span-2 text-amber-600 italic">Fechas por confirmar (borrador)</div>
+              ) : (
+                <>
+                  <div><span className="text-slate-500">Evento:</span> <span className="font-medium">{formData.fecha_evento || '-'}</span></div>
+                  {formData.fecha_montaje && formData.fecha_montaje !== formData.fecha_evento && (
+                    <div><span className="text-slate-500">Montaje:</span> <span className="font-medium">{formData.fecha_montaje}</span></div>
+                  )}
+                  {formData.fecha_desmontaje && formData.fecha_desmontaje !== formData.fecha_evento && (
+                    <div><span className="text-slate-500">Desmontaje:</span> <span className="font-medium">{formData.fecha_desmontaje}</span></div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Productos resumen */}
+          <div className="bg-slate-50 rounded-lg p-4">
+            <h4 className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
+              <Package className="w-4 h-4" />
+              Productos ({productosSeleccionados.length})
+            </h4>
+            <div className="space-y-1">
+              {productosSeleccionados.map((prod, idx) => {
+                const info = productos.find(p => p.id === parseInt(prod.compuesto_id))
+                const subtotal = ((parseFloat(prod.precio_base) || 0) + (parseFloat(prod.precio_adicionales) || 0)) * (parseInt(prod.cantidad) || 1)
+                const desc = calcularDescuentoProducto(prod)
+                return (
+                  <div key={idx} className="flex justify-between text-sm">
+                    <span className="text-slate-600">
+                      {info?.categoria_emoji || ''} {info?.nombre || 'Producto'} x{prod.cantidad}
+                      {desc > 0 && <span className="text-green-600 ml-1">(-{prod.descuento_porcentaje}%)</span>}
+                    </span>
+                    <span className="font-medium">{formatearMoneda(subtotal - desc)}</span>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Transporte resumen */}
+          {transporteSeleccionado.length > 0 && (
+            <div className="bg-slate-50 rounded-lg p-4">
+              <h4 className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
+                <Truck className="w-4 h-4" />
+                Transporte
+              </h4>
+              <div className="space-y-1">
+                {transporteSeleccionado.map((trans, idx) => {
+                  const tarifa = tarifas.find(t => t.id === parseInt(trans.tarifa_id))
+                  if (!tarifa) return null
+                  return (
+                    <div key={idx} className="flex justify-between text-sm">
+                      <span className="text-slate-600">{tarifa.tipo_camion} x{trans.cantidad}</span>
+                      <span className="font-medium">{formatearMoneda(tarifa.precio * (parseInt(trans.cantidad) || 1))}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* TOTALES CON DESGLOSE IVA */}
         {(() => {
           const totales = calcularTotalesConIVA()
@@ -1448,46 +1676,61 @@ const CotizacionFormModal = ({
           )
         })()}
 
-        {/* NOTAS */}
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-2">
-            Notas
-          </label>
-          <textarea
-            name="notas"
-            value={formData.notas}
-            onChange={handleChange}
-            placeholder="Notas adicionales..."
-            rows={2}
-            disabled={isLoading}
-            className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-100 resize-none"
-          />
-        </div>
+        </>)}
 
-        {/* BOTONES */}
-        <div className="flex gap-3 pt-4 border-t">
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={handleClose}
-            disabled={isLoading}
-            fullWidth
-          >
-            Cancelar
-          </Button>
+        </div>{/* Fin contenido animado */}
 
-          <Button
-            type="submit"
-            variant="primary"
-            loading={isLoading}
-            disabled={isLoading}
-            fullWidth
-          >
-            {mode === 'crear'
-              ? (fechasPorConfirmar ? 'Crear Borrador' : 'Crear Cotizacion')
-              : 'Guardar Cambios'
-            }
-          </Button>
+        {/* FOOTER FIJO: Navegación del wizard */}
+        <div className="flex items-center justify-between pt-4 mt-4 border-t border-slate-200">
+          <div>
+            {pasoActual > 1 && (
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                icon={<ChevronLeft className="w-4 h-4" />}
+                onClick={anterior}
+              >
+                Anterior
+              </Button>
+            )}
+          </div>
+
+          <div className="flex items-center gap-3">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={handleClose}
+              disabled={isLoading}
+            >
+              Cancelar
+            </Button>
+
+            {pasoActual < 4 ? (
+              <Button
+                type="button"
+                variant="primary"
+                size="sm"
+                onClick={siguiente}
+              >
+                Siguiente
+                <ChevronRight className="w-4 h-4 ml-1" />
+              </Button>
+            ) : (
+              <Button
+                type="submit"
+                variant="primary"
+                loading={isLoading}
+                disabled={isLoading}
+              >
+                {mode === 'crear'
+                  ? (fechasPorConfirmar ? 'Crear Borrador' : 'Crear Cotizacion')
+                  : 'Guardar Cambios'
+                }
+              </Button>
+            )}
+          </div>
         </div>
       </form>
 
