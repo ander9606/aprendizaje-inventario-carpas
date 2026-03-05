@@ -734,7 +734,7 @@ const CotizacionFormModal = ({
       isOpen={isOpen}
       onClose={handleClose}
       title={mode === 'crear' ? 'Nueva Cotizacion' : 'Editar Cotizacion'}
-      size="xl"
+      size={pasoActual === 2 ? 'full' : 'xl'}
     >
       <form onSubmit={handleSubmit} className="flex flex-col h-full">
 
@@ -1099,7 +1099,7 @@ const CotizacionFormModal = ({
             ============================================ */}
         {pasoActual === 2 && (<>
 
-        {/* PRODUCTOS */}
+        {/* PRODUCTOS - Layout dos paneles */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="font-semibold text-slate-900 flex items-center gap-2">
@@ -1111,10 +1111,12 @@ const CotizacionFormModal = ({
                 </span>
               )}
             </h3>
+            {/* Toggle solo visible en mobile */}
             <Button
               type="button"
               variant="ghost"
               size="sm"
+              className="lg:hidden"
               icon={mostrarSelectorProductos ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
               onClick={() => setMostrarSelectorProductos(!mostrarSelectorProductos)}
             >
@@ -1126,9 +1128,11 @@ const CotizacionFormModal = ({
             <p className="text-sm text-red-600">{errors.productos}</p>
           )}
 
-          {/* SELECTOR DE PRODUCTOS CON TARJETAS */}
-          {mostrarSelectorProductos && (
-            <div className="border border-slate-200 rounded-lg p-4 bg-slate-50">
+          {/* LAYOUT DOS PANELES (desktop) / APILADO (mobile) */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+            {/* PANEL IZQUIERDO: Selector de productos */}
+            <div className={`border border-slate-200 rounded-lg p-4 bg-slate-50 lg:max-h-[60vh] lg:overflow-y-auto custom-scrollbar ${!mostrarSelectorProductos ? 'hidden lg:block' : ''}`}>
               <ProductoSelectorTarjetas
                 onProductoAgregado={agregarProductoDesdeTarjetas}
                 disabled={isLoading}
@@ -1136,14 +1140,16 @@ const CotizacionFormModal = ({
                 fechaDesmontaje={formData.fecha_desmontaje || formData.fecha_evento}
               />
             </div>
-          )}
+
+            {/* PANEL DERECHO: Productos seleccionados */}
+            <div className="lg:max-h-[60vh] lg:overflow-y-auto custom-scrollbar space-y-3">
 
           {/* LISTA DE PRODUCTOS SELECCIONADOS */}
           {productosSeleccionados.length === 0 ? (
             <div className="py-8 text-center border-2 border-dashed border-slate-200 rounded-xl bg-slate-50/50">
               <Package className="w-10 h-10 mx-auto text-slate-300 mb-2" />
               <p className="text-sm text-slate-500">No hay productos agregados</p>
-              <p className="text-xs text-slate-400 mt-1">Seleccione productos de las categorías arriba</p>
+              <p className="text-xs text-slate-400 mt-1">Seleccione productos de las categorías a la izquierda</p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -1198,7 +1204,7 @@ const CotizacionFormModal = ({
                   </div>
 
                   {/* Inputs con labels - fila separada */}
-                  <div className="px-3 pb-3 flex items-end gap-3">
+                  <div className="px-3 pb-3 flex flex-wrap items-end gap-2">
                     {/* Cantidad */}
                     <div className="flex-shrink-0">
                       <label className="text-[11px] font-medium text-slate-500 mb-1 block">Cantidad</label>
@@ -1425,6 +1431,9 @@ const CotizacionFormModal = ({
               </Button>
             </div>
           )}
+
+            </div>{/* Fin panel derecho */}
+          </div>{/* Fin grid dos paneles */}
         </div>
 
         </>)}
