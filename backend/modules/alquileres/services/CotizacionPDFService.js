@@ -188,15 +188,16 @@ class CotizacionPDFService {
       itemNum++;
       x = left;
       const rowY = doc.y;
+      const descPct = parseFloat(prod.descuento_porcentaje) || 0;
+      const rowHeight = descPct > 0 ? 22 : 13;
 
       if (i % 2 === 0) {
-        doc.rect(x, rowY - 1, pageWidth, 13).fill('#F8FAFC');
+        doc.rect(x, rowY - 1, pageWidth, rowHeight).fill('#F8FAFC');
         doc.fillColor('#1E293B');
       }
 
       doc.font('Helvetica').text(String(itemNum), x + 3, rowY, { width: cols[0].width - 6, align: 'center' });
       x += cols[0].width;
-      const descPct = parseFloat(prod.descuento_porcentaje) || 0;
       const nombreProducto = prod.producto_nombre || `Producto #${prod.compuesto_id}`;
       const descripcion = descPct > 0 ? `${nombreProducto} (Desc. ${descPct}%)` : nombreProducto;
       doc.text(descripcion, x + 3, rowY, { width: cols[1].width - 6 });
@@ -205,9 +206,27 @@ class CotizacionPDFService {
       x += cols[2].width;
       doc.text(this._formatMoney(prod.precio_base), x + 3, rowY, { width: cols[3].width - 6, align: 'right' });
       x += cols[3].width;
-      doc.text(this._formatMoney(prod.subtotal), x + 3, rowY, { width: cols[4].width - 6, align: 'right' });
 
-      doc.y = rowY + 13;
+      if (descPct > 0) {
+        const bruto = (parseFloat(prod.precio_base || 0) + parseFloat(prod.precio_adicionales || 0)) * parseInt(prod.cantidad || 1);
+        // Precio original tachado
+        doc.save();
+        doc.fillColor('#94A3B8').text(this._formatMoney(bruto), x + 3, rowY, { width: cols[4].width - 6, align: 'right' });
+        // Línea de tachado sobre el texto
+        const textWidth = doc.widthOfString(this._formatMoney(bruto));
+        const textX = x + cols[4].width - 3 - textWidth;
+        doc.moveTo(textX, rowY + 4).lineTo(textX + textWidth, rowY + 4)
+          .strokeColor('#94A3B8').lineWidth(0.5).stroke();
+        doc.restore();
+        // Precio con descuento en verde
+        doc.fillColor('#16A34A').font('Helvetica-Bold')
+          .text(this._formatMoney(prod.subtotal), x + 3, rowY + 10, { width: cols[4].width - 6, align: 'right' });
+        doc.font('Helvetica').fillColor('#1E293B');
+      } else {
+        doc.text(this._formatMoney(prod.subtotal), x + 3, rowY, { width: cols[4].width - 6, align: 'right' });
+      }
+
+      doc.y = rowY + rowHeight;
     });
 
     // Filas de transporte

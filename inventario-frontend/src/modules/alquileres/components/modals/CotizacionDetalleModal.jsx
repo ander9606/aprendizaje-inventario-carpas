@@ -302,15 +302,32 @@ const CotizacionDetalleModal = ({
                   <tbody>
                     {/* Productos */}
                     {cotizacion.productos?.length > 0 ? (
-                      cotizacion.productos.map((producto, index) => (
+                      cotizacion.productos.map((producto, index) => {
+                        const descPct = parseFloat(producto.descuento_porcentaje) || 0
+                        const bruto = (parseFloat(producto.precio_base || 0) + parseFloat(producto.precio_adicionales || 0)) * parseInt(producto.cantidad || 1)
+                        return (
                           <tr key={`prod-${index}`} className="border-t border-slate-100">
                             <td className="px-4 py-3">
                               <p className="font-medium text-slate-900">{producto.producto_nombre}</p>
+                              {descPct > 0 && (
+                                <p className="text-xs text-green-600 font-medium mt-0.5">Desc. {descPct}%</p>
+                              )}
                             </td>
                             <td className="text-center px-4 py-3 text-slate-600">{producto.cantidad}</td>
-                            <td className="text-right px-4 py-3 font-medium text-slate-900">{formatearMoneda(producto.subtotal)}</td>
+                            <td className="text-right px-4 py-3">
+                              {descPct > 0 ? (
+                                <div>
+                                  <p className="text-sm text-slate-400 line-through">{formatearMoneda(bruto)}</p>
+                                  <p className="font-medium text-green-700">{formatearMoneda(producto.subtotal)}</p>
+                                </div>
+                              ) : (
+                                <p className="font-medium text-slate-900">{formatearMoneda(producto.subtotal)}</p>
+                              )}
+                            </td>
                           </tr>
-                        ))
+                        )
+                      })
+                    )
                     ) : (
                       <tr>
                         <td colSpan="3" className="px-4 py-6 text-center text-slate-500 italic">
