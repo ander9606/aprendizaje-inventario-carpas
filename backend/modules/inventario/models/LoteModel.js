@@ -482,9 +482,11 @@ class LoteModel {
             }
 
             // Mapear estado de retorno a estado de lote
-            let estadoLote = 'disponible';
-            if (estadoRetorno === 'dañado') estadoLote = 'mantenimiento';
-            if (estadoRetorno === 'perdido') estadoLote = 'baja';
+            // Nota: 'disponible' no es un estado válido del ENUM (migración 28).
+            // El estado correcto para stock retornado en buen estado es 'bueno'.
+            let estadoLote = 'bueno';
+            if (estadoRetorno === 'dañado') estadoLote = 'dañado';
+            if (estadoRetorno === 'perdido') estadoLote = 'agotado';
 
             // Obtener nombre de ubicación
             let ubicacionNombre = null;

@@ -402,11 +402,11 @@ exports.registrarRetornoElemento = async (req, res, next) => {
 
     // Restaurar estado y ubicación de SERIES
     if (asignacion.serie_id) {
-      let nuevoEstadoSerie = 'disponible';
+      let nuevoEstadoSerie = 'bueno';
       if (estado_retorno === 'dañado') {
-        nuevoEstadoSerie = 'mantenimiento';
+        nuevoEstadoSerie = 'dañado';
       } else if (estado_retorno === 'perdido') {
-        nuevoEstadoSerie = 'baja';
+        nuevoEstadoSerie = 'dañado';
       }
 
       await SerieModel.cambiarEstado(
@@ -514,9 +514,9 @@ exports.marcarRetorno = async (req, res, next) => {
       }
 
       if (elem.serie_id) {
-        let nuevoEstadoSerie = 'disponible';
-        if (estadoRetornoElem === 'dañado') nuevoEstadoSerie = 'mantenimiento';
-        else if (estadoRetornoElem === 'perdido') nuevoEstadoSerie = 'baja';
+        let nuevoEstadoSerie = 'bueno';
+        if (estadoRetornoElem === 'dañado') nuevoEstadoSerie = 'dañado';
+        else if (estadoRetornoElem === 'perdido') nuevoEstadoSerie = 'dañado';
 
         await SerieModel.cambiarEstado(
           elem.serie_id,

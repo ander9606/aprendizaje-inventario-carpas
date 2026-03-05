@@ -163,13 +163,13 @@ class ExportModel {
             LEFT JOIN (
                 SELECT id_elemento, COUNT(*) AS total
                 FROM series
-                WHERE estado IN ('disponible', 'bueno')
+                WHERE estado IN ('bueno')
                 GROUP BY id_elemento
             ) series_disp ON e.id = series_disp.id_elemento
             LEFT JOIN (
                 SELECT elemento_id, SUM(cantidad) AS total
                 FROM lotes
-                WHERE estado IN ('disponible', 'bueno')
+                WHERE estado IN ('bueno')
                 GROUP BY elemento_id
             ) lotes_disp ON e.id = lotes_disp.elemento_id
             WHERE e.stock_minimo > 0

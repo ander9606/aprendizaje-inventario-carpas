@@ -389,8 +389,8 @@ class ValidadorFechasService {
                     SELECT
                         el.nombre,
                         el.codigo,
-                        (SELECT COUNT(*) FROM series WHERE elemento_id = el.id AND estado = 'disponible') as total_series,
-                        (SELECT SUM(cantidad_actual) FROM lotes WHERE elemento_id = el.id AND estado = 'disponible') as total_lotes
+                        (SELECT COUNT(*) FROM series WHERE elemento_id = el.id AND estado = 'bueno') as total_series,
+                        (SELECT SUM(cantidad) FROM lotes WHERE elemento_id = el.id AND estado = 'bueno') as total_lotes
                     FROM elementos el
                     WHERE el.id = ?
                 `, [elementoId]);
