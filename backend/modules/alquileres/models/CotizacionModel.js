@@ -154,6 +154,8 @@ class CotizacionModel {
         cp.precio_base,
         cp.deposito,
         cp.precio_adicionales,
+        COALESCE(cp.descuento_porcentaje, 0) AS descuento_porcentaje,
+        COALESCE(cp.descuento_monto, 0) AS descuento_monto,
         cp.subtotal,
         COALESCE(cp.total_recargos, 0) AS total_recargos,
         cp.notas,
@@ -209,6 +211,7 @@ class CotizacionModel {
     const subtotalTransporte = transporte.reduce((sum, t) => sum + parseFloat(t.subtotal), 0);
     const totalDeposito = productos.reduce((sum, p) => sum + (parseFloat(p.deposito) * p.cantidad), 0);
     const totalDescuentosAplicados = descuentos.reduce((sum, d) => sum + parseFloat(d.monto_calculado || 0), 0);
+    const totalDescuentosProductos = productos.reduce((sum, p) => sum + parseFloat(p.descuento_monto || 0), 0);
 
     // Calcular días extra
     const totalDiasExtra = (cotizacion.dias_montaje_extra || 0) + (cotizacion.dias_desmontaje_extra || 0);
@@ -230,6 +233,7 @@ class CotizacionModel {
         porcentaje_dias_extra: cotizacion.porcentaje_dias_extra || this.PORCENTAJE_DIAS_EXTRA_DEFAULT,
         cobro_dias_extra: parseFloat(cotizacion.cobro_dias_extra || 0),
         descuento_manual: parseFloat(cotizacion.descuento || 0),
+        total_descuentos_productos: totalDescuentosProductos,
         total_descuentos_aplicados: totalDescuentosAplicados,
         total_descuentos: parseFloat(cotizacion.total_descuentos || 0),
         base_gravable: parseFloat(cotizacion.base_gravable || 0),
@@ -671,7 +675,7 @@ class CotizacionModel {
     if (original.productos && original.productos.length > 0) {
       const queryProductos = `
         INSERT INTO cotizacion_productos
-          (cotizacion_id, compuesto_id, cantidad, precio_base, deposito, precio_adicionales, subtotal, notas)
+          (cotizacion_id, compuesto_id, cantidad, precio_base, deposito, precio_adicionales, descuento_porcentaje, descuento_monto, subtotal, notas)
         VALUES ?
       `;
       const valoresProductos = original.productos.map(p => [
@@ -681,6 +685,8 @@ class CotizacionModel {
         p.precio_base,
         p.deposito,
         p.precio_adicionales,
+        p.descuento_porcentaje || 0,
+        p.descuento_monto || 0,
         p.subtotal,
         p.notas
       ]);

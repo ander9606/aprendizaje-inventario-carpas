@@ -20,6 +20,8 @@ class CotizacionProductoModel {
         cp.precio_base,
         cp.deposito,
         cp.precio_adicionales,
+        COALESCE(cp.descuento_porcentaje, 0) AS descuento_porcentaje,
+        COALESCE(cp.descuento_monto, 0) AS descuento_monto,
         cp.subtotal,
         cp.notas,
         cp.created_at,
@@ -44,6 +46,8 @@ class CotizacionProductoModel {
     const query = `
       SELECT
         cp.*,
+        COALESCE(cp.descuento_porcentaje, 0) AS descuento_porcentaje,
+        COALESCE(cp.descuento_monto, 0) AS descuento_monto,
         ec.nombre AS producto_nombre,
         ec.codigo AS producto_codigo
       FROM cotizacion_productos cp
@@ -57,13 +61,16 @@ class CotizacionProductoModel {
   // ============================================
   // AGREGAR PRODUCTO A COTIZACIÓN
   // ============================================
-  static async agregar({ cotizacion_id, compuesto_id, cantidad, precio_base, deposito, precio_adicionales, notas }) {
-    const subtotal = ((precio_base || 0) + (precio_adicionales || 0)) * (cantidad || 1);
+  static async agregar({ cotizacion_id, compuesto_id, cantidad, precio_base, deposito, precio_adicionales, descuento_porcentaje, notas }) {
+    const bruto = ((precio_base || 0) + (precio_adicionales || 0)) * (cantidad || 1);
+    const descPct = parseFloat(descuento_porcentaje) || 0;
+    const descMonto = descPct > 0 ? bruto * (descPct / 100) : 0;
+    const subtotal = bruto - descMonto;
 
     const query = `
       INSERT INTO cotizacion_productos
-        (cotizacion_id, compuesto_id, cantidad, precio_base, deposito, precio_adicionales, subtotal, notas)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        (cotizacion_id, compuesto_id, cantidad, precio_base, deposito, precio_adicionales, descuento_porcentaje, descuento_monto, subtotal, notas)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     const [result] = await pool.query(query, [
       cotizacion_id,
@@ -72,6 +79,8 @@ class CotizacionProductoModel {
       precio_base || 0,
       deposito || 0,
       precio_adicionales || 0,
+      descPct,
+      descMonto,
       subtotal,
       notas || null
     ]);
@@ -86,12 +95,15 @@ class CotizacionProductoModel {
 
     const query = `
       INSERT INTO cotizacion_productos
-        (cotizacion_id, compuesto_id, cantidad, precio_base, deposito, precio_adicionales, subtotal, notas)
+        (cotizacion_id, compuesto_id, cantidad, precio_base, deposito, precio_adicionales, descuento_porcentaje, descuento_monto, subtotal, notas)
       VALUES ?
     `;
 
     const valores = productos.map(p => {
-      const subtotal = ((p.precio_base || 0) + (p.precio_adicionales || 0)) * (p.cantidad || 1);
+      const bruto = ((p.precio_base || 0) + (p.precio_adicionales || 0)) * (p.cantidad || 1);
+      const descPct = parseFloat(p.descuento_porcentaje) || 0;
+      const descMonto = descPct > 0 ? bruto * (descPct / 100) : 0;
+      const subtotal = bruto - descMonto;
       return [
         cotizacionId,
         p.compuesto_id,
@@ -99,6 +111,8 @@ class CotizacionProductoModel {
         p.precio_base || 0,
         p.deposito || 0,
         p.precio_adicionales || 0,
+        descPct,
+        descMonto,
         subtotal,
         p.notas || null
       ];
@@ -111,12 +125,16 @@ class CotizacionProductoModel {
   // ============================================
   // ACTUALIZAR PRODUCTO
   // ============================================
-  static async actualizar(id, { cantidad, precio_base, deposito, precio_adicionales, notas }) {
-    const subtotal = ((precio_base || 0) + (precio_adicionales || 0)) * (cantidad || 1);
+  static async actualizar(id, { cantidad, precio_base, deposito, precio_adicionales, descuento_porcentaje, notas }) {
+    const bruto = ((precio_base || 0) + (precio_adicionales || 0)) * (cantidad || 1);
+    const descPct = parseFloat(descuento_porcentaje) || 0;
+    const descMonto = descPct > 0 ? bruto * (descPct / 100) : 0;
+    const subtotal = bruto - descMonto;
 
     const query = `
       UPDATE cotizacion_productos
-      SET cantidad = ?, precio_base = ?, deposito = ?, precio_adicionales = ?, subtotal = ?, notas = ?
+      SET cantidad = ?, precio_base = ?, deposito = ?, precio_adicionales = ?,
+          descuento_porcentaje = ?, descuento_monto = ?, subtotal = ?, notas = ?
       WHERE id = ?
     `;
     const [result] = await pool.query(query, [
@@ -124,6 +142,8 @@ class CotizacionProductoModel {
       precio_base || 0,
       deposito || 0,
       precio_adicionales || 0,
+      descPct,
+      descMonto,
       subtotal,
       notas || null,
       id

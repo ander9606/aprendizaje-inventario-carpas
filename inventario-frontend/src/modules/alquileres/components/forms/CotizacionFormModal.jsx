@@ -128,6 +128,7 @@ const CotizacionFormModal = ({
           precio_base: p.precio_base || 0,
           deposito: p.deposito || 0,
           precio_adicionales: p.precio_adicionales || 0,
+          descuento_porcentaje: p.descuento_porcentaje || 0,
           configuracion: p.configuracion || null,
           recargos: (p.recargos || []).map(r => ({
             id: r.id,
@@ -230,6 +231,7 @@ const CotizacionFormModal = ({
       precio_base: 0,
       deposito: 0,
       precio_adicionales: 0,
+      descuento_porcentaje: 0,
       configuracion: null,
       recargos: []
     }])
@@ -243,6 +245,7 @@ const CotizacionFormModal = ({
       precio_base: producto.precio_base || 0,
       deposito: producto.deposito || 0,
       precio_adicionales: 0,
+      descuento_porcentaje: 0,
       configuracion: null,
       recargos: []
     }])
@@ -395,19 +398,34 @@ const CotizacionFormModal = ({
     setTransporteSeleccionado(prev => prev.filter((_, i) => i !== index))
   }
 
+  // Calcular descuento de un producto individual
+  const calcularDescuentoProducto = (p) => {
+    const bruto = (parseFloat(p.precio_base) + parseFloat(p.precio_adicionales || 0)) * parseInt(p.cantidad || 1)
+    const descPct = parseFloat(p.descuento_porcentaje) || 0
+    return descPct > 0 ? bruto * (descPct / 100) : 0
+  }
+
   const calcularSubtotalProductos = () => {
     return productosSeleccionados.reduce((total, p) => {
-      const subtotal = (parseFloat(p.precio_base) + parseFloat(p.precio_adicionales || 0)) * parseInt(p.cantidad || 1)
+      const bruto = (parseFloat(p.precio_base) + parseFloat(p.precio_adicionales || 0)) * parseInt(p.cantidad || 1)
+      const descuento = calcularDescuentoProducto(p)
       const recargos = calcularTotalRecargosProducto(p)
-      return total + subtotal + recargos
+      return total + bruto - descuento + recargos
     }, 0)
   }
 
-  // Calcular subtotal de productos sin recargos (para mostrar)
+  // Calcular subtotal de productos sin recargos ni descuentos (para mostrar)
   const calcularSubtotalProductosSinRecargos = () => {
     return productosSeleccionados.reduce((total, p) => {
-      const subtotal = (parseFloat(p.precio_base) + parseFloat(p.precio_adicionales || 0)) * parseInt(p.cantidad || 1)
-      return total + subtotal
+      const bruto = (parseFloat(p.precio_base) + parseFloat(p.precio_adicionales || 0)) * parseInt(p.cantidad || 1)
+      return total + bruto
+    }, 0)
+  }
+
+  // Calcular total de descuentos de productos
+  const calcularTotalDescuentosProductos = () => {
+    return productosSeleccionados.reduce((total, p) => {
+      return total + calcularDescuentoProducto(p)
     }, 0)
   }
 
@@ -577,6 +595,7 @@ const CotizacionFormModal = ({
         precio_base: parseFloat(p.precio_base) || 0,
         deposito: parseFloat(p.deposito) || 0,
         precio_adicionales: parseFloat(p.precio_adicionales) || 0,
+        descuento_porcentaje: parseFloat(p.descuento_porcentaje) || 0,
         configuracion: p.configuracion || null,
         recargos: (p.recargos || []).map(r => ({
           tipo: r.tipo,
@@ -1127,9 +1146,30 @@ const CotizacionFormModal = ({
                       />
                     </div>
 
+                    {/* Descuento % del producto */}
+                    <div className="w-20">
+                      <div className="relative">
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          step="1"
+                          value={prod.descuento_porcentaje || ''}
+                          onChange={(e) => actualizarProducto(index, 'descuento_porcentaje', e.target.value)}
+                          disabled={isLoading}
+                          placeholder="0"
+                          className="w-full px-2 py-1.5 pr-6 border border-slate-200 rounded-lg text-sm text-right font-medium focus:border-green-400 focus:ring-1 focus:ring-green-400"
+                        />
+                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-slate-400">%</span>
+                      </div>
+                    </div>
+
                     {/* Subtotal del producto */}
-                    <div className="w-24 text-right">
-                      <p className="text-sm font-semibold text-slate-800">{formatearMoneda(subtotalProducto)}</p>
+                    <div className="w-28 text-right">
+                      <p className="text-sm font-semibold text-slate-800">{formatearMoneda(subtotalProducto - calcularDescuentoProducto(prod))}</p>
+                      {calcularDescuentoProducto(prod) > 0 && (
+                        <p className="text-xs text-green-600">-{formatearMoneda(calcularDescuentoProducto(prod))}</p>
+                      )}
                       {prod.precio_adicionales > 0 && (
                         <p className="text-xs text-blue-600">+{formatearMoneda(prod.precio_adicionales)}</p>
                       )}
@@ -1251,6 +1291,12 @@ const CotizacionFormModal = ({
               <span className="text-slate-600">Subtotal productos: </span>
               <span className="font-medium">{formatearMoneda(calcularSubtotalProductosSinRecargos())}</span>
             </div>
+            {calcularTotalDescuentosProductos() > 0 && (
+              <div>
+                <span className="text-slate-600">Descuentos productos: </span>
+                <span className="font-medium text-green-600">-{formatearMoneda(calcularTotalDescuentosProductos())}</span>
+              </div>
+            )}
             {calcularTotalRecargos() > 0 && (
               <div>
                 <span className="text-slate-600">Total recargos: </span>

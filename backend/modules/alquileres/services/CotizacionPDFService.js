@@ -196,7 +196,10 @@ class CotizacionPDFService {
 
       doc.font('Helvetica').text(String(itemNum), x + 3, rowY, { width: cols[0].width - 6, align: 'center' });
       x += cols[0].width;
-      doc.text(prod.producto_nombre || `Producto #${prod.compuesto_id}`, x + 3, rowY, { width: cols[1].width - 6 });
+      const descPct = parseFloat(prod.descuento_porcentaje) || 0;
+      const nombreProducto = prod.producto_nombre || `Producto #${prod.compuesto_id}`;
+      const descripcion = descPct > 0 ? `${nombreProducto} (Desc. ${descPct}%)` : nombreProducto;
+      doc.text(descripcion, x + 3, rowY, { width: cols[1].width - 6 });
       x += cols[1].width;
       doc.text(String(prod.cantidad), x + 3, rowY, { width: cols[2].width - 6, align: 'center' });
       x += cols[2].width;
