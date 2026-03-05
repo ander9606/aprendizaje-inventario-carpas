@@ -263,7 +263,7 @@ class SincronizacionAlquilerService {
             FROM lotes l
             LEFT JOIN ubicaciones u ON l.ubicacion_id = u.id
             WHERE l.elemento_id = ?
-              AND l.estado IN ('bueno', 'disponible')
+              AND l.estado IN ('bueno')
               AND l.cantidad > 0
             ORDER BY l.cantidad DESC
           `, [componente.elemento_id]);

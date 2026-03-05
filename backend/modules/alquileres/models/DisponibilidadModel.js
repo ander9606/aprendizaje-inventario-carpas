@@ -33,57 +33,59 @@ class DisponibilidadModel {
 
   // ============================================
   // OBTENER STOCK TOTAL POR ELEMENTO
+  // Revisa AMBAS fuentes (series y lotes) sin importar requiere_series,
+  // para cubrir elementos cuyo flag no coincida con la forma de registro.
   // Prioridad: series > lotes > cantidad en tabla elementos
-  // Estados disponibles: 'bueno' (no 'mantenimiento', 'alquilado', 'dañado')
   // ============================================
   static async obtenerStockTotal(elementoId, requiereSeries) {
     console.log(`📦 obtenerStockTotal(elementoId=${elementoId}, requiereSeries=${requiereSeries})`);
 
-    if (requiereSeries) {
-      // Contar TODAS las series utilizables (incluye 'alquilado' para evitar doble descuento
-      // cuando el alquiler está activo y la serie ya fue marcada como 'alquilado').
-      // obtenerCantidadOcupada se encarga de restar las que están en uso en la fecha dada.
-      const [result] = await pool.query(`
-        SELECT COUNT(*) AS total
-        FROM series
-        WHERE id_elemento = ? AND estado NOT IN ('mantenimiento', 'dañado')
-      `, [elementoId]);
-      const totalSeries = parseInt(result[0].total);
-      console.log(`   📊 Series utilizables: ${totalSeries}`);
+    // 1. Contar series utilizables (incluye 'alquilado' para evitar doble descuento;
+    //    obtenerCantidadOcupada se encarga de restar las que están en uso).
+    const [seriesResult] = await pool.query(`
+      SELECT COUNT(*) AS total
+      FROM series
+      WHERE id_elemento = ? AND estado NOT IN ('mantenimiento', 'dañado')
+    `, [elementoId]);
+    const totalSeries = parseInt(seriesResult[0].total);
+    console.log(`   📊 Series utilizables: ${totalSeries}`);
 
-      // Si hay series, usarlas
-      if (totalSeries > 0) {
-        console.log(`   ✅ Usando series: ${totalSeries}`);
-        return totalSeries;
-      }
+    // 2. Sumar cantidad de lotes utilizables (incluye 'alquilado' para evitar doble descuento).
+    //    Estados válidos: 'bueno', 'alquilado' (los demás no están disponibles).
+    const [lotesResult] = await pool.query(`
+      SELECT COALESCE(SUM(cantidad), 0) AS total
+      FROM lotes
+      WHERE elemento_id = ? AND estado IN ('bueno', 'alquilado')
+    `, [elementoId]);
+    const totalLotes = parseInt(lotesResult[0].total);
+    console.log(`   📊 Lotes utilizables: ${totalLotes}`);
 
-      // Fallback: usar cantidad de la tabla elementos
-      const cantidadElemento = await this.obtenerCantidadElemento(elementoId);
-      console.log(`   🔄 Fallback elementos.cantidad: ${cantidadElemento}`);
-      return cantidadElemento;
-    } else {
-      // Sumar cantidad de lotes utilizables. Se incluye 'alquilado' para evitar doble
-      // descuento: al marcar salida, la cantidad se mueve a un lote 'alquilado' pero
-      // obtenerCantidadOcupada sigue restando via alquiler_elementos.
-      const [result] = await pool.query(`
-        SELECT COALESCE(SUM(cantidad), 0) AS total
-        FROM lotes
-        WHERE elemento_id = ? AND estado IN ('bueno', 'disponible', 'alquilado')
-      `, [elementoId]);
-      const totalLotes = parseInt(result[0].total);
-      console.log(`   📊 Lotes utilizables: ${totalLotes}`);
-
-      // Si hay lotes, usarlos
-      if (totalLotes > 0) {
-        console.log(`   ✅ Usando lotes: ${totalLotes}`);
-        return totalLotes;
-      }
-
-      // Fallback: usar cantidad de la tabla elementos
-      const cantidadElemento = await this.obtenerCantidadElemento(elementoId);
-      console.log(`   🔄 Fallback elementos.cantidad: ${cantidadElemento}`);
-      return cantidadElemento;
+    // 3. Elegir la fuente: respetar requiere_series si hay datos, sino usar la otra fuente
+    if (requiereSeries && totalSeries > 0) {
+      console.log(`   ✅ Usando series (requiere_series=true): ${totalSeries}`);
+      return totalSeries;
     }
+
+    if (!requiereSeries && totalLotes > 0) {
+      console.log(`   ✅ Usando lotes (requiere_series=false): ${totalLotes}`);
+      return totalLotes;
+    }
+
+    // Fallback: si la fuente preferida está vacía, usar la otra
+    if (totalSeries > 0) {
+      console.log(`   🔄 Fallback a series (no hay lotes): ${totalSeries}`);
+      return totalSeries;
+    }
+
+    if (totalLotes > 0) {
+      console.log(`   🔄 Fallback a lotes (no hay series): ${totalLotes}`);
+      return totalLotes;
+    }
+
+    // Último recurso: usar cantidad de la tabla elementos
+    const cantidadElemento = await this.obtenerCantidadElemento(elementoId);
+    console.log(`   🔄 Fallback elementos.cantidad: ${cantidadElemento}`);
+    return cantidadElemento;
   }
 
   // ============================================
@@ -102,36 +104,39 @@ class DisponibilidadModel {
 
   // ============================================
   // OBTENER CANTIDAD OCUPADA EN RANGO DE FECHAS
-  // Respeta requiere_series: TRUE = series, FALSE = lotes
+  // Suma AMBAS fuentes (series + lotes) para cubrir todos los casos
   // ============================================
   static async obtenerCantidadOcupada(elementoId, requiereSeries, fechaInicio, fechaFin) {
-    if (requiereSeries) {
-      // Contar series ocupadas en el rango
-      const [result] = await pool.query(`
-        SELECT COUNT(DISTINCT ae.serie_id) AS total
-        FROM alquiler_elementos ae
-        INNER JOIN alquileres a ON ae.alquiler_id = a.id
-        WHERE ae.elemento_id = ?
-          AND ae.serie_id IS NOT NULL
-          AND a.estado IN ('programado', 'activo')
-          AND a.fecha_salida <= ?
-          AND a.fecha_retorno_esperado >= ?
-      `, [elementoId, fechaFin, fechaInicio]);
-      return parseInt(result[0].total);
-    } else {
-      // Sumar cantidad de lotes ocupada en el rango
-      const [result] = await pool.query(`
-        SELECT COALESCE(SUM(ae.cantidad_lote), 0) AS total
-        FROM alquiler_elementos ae
-        INNER JOIN alquileres a ON ae.alquiler_id = a.id
-        WHERE ae.elemento_id = ?
-          AND ae.lote_id IS NOT NULL
-          AND a.estado IN ('programado', 'activo')
-          AND a.fecha_salida <= ?
-          AND a.fecha_retorno_esperado >= ?
-      `, [elementoId, fechaFin, fechaInicio]);
-      return parseInt(result[0].total);
-    }
+    // Contar series ocupadas en el rango
+    const [seriesResult] = await pool.query(`
+      SELECT COUNT(DISTINCT ae.serie_id) AS total
+      FROM alquiler_elementos ae
+      INNER JOIN alquileres a ON ae.alquiler_id = a.id
+      WHERE ae.elemento_id = ?
+        AND ae.serie_id IS NOT NULL
+        AND a.estado IN ('programado', 'activo')
+        AND a.fecha_salida <= ?
+        AND a.fecha_retorno_esperado >= ?
+    `, [elementoId, fechaFin, fechaInicio]);
+    const ocupadosSeries = parseInt(seriesResult[0].total);
+
+    // Sumar cantidad de lotes ocupada en el rango
+    const [lotesResult] = await pool.query(`
+      SELECT COALESCE(SUM(ae.cantidad_lote), 0) AS total
+      FROM alquiler_elementos ae
+      INNER JOIN alquileres a ON ae.alquiler_id = a.id
+      WHERE ae.elemento_id = ?
+        AND ae.lote_id IS NOT NULL
+        AND a.estado IN ('programado', 'activo')
+        AND a.fecha_salida <= ?
+        AND a.fecha_retorno_esperado >= ?
+    `, [elementoId, fechaFin, fechaInicio]);
+    const ocupadosLotes = parseInt(lotesResult[0].total);
+
+    // Un elemento usa series O lotes, no ambos. Retornar el que tenga datos.
+    const total = ocupadosSeries + ocupadosLotes;
+    console.log(`   🔒 Ocupados elemento ${elementoId}: series=${ocupadosSeries}, lotes=${ocupadosLotes}, total=${total}`);
+    return total;
   }
 
   // ============================================
@@ -204,7 +209,7 @@ class DisponibilidadModel {
       FROM series s
       LEFT JOIN ubicaciones u ON s.ubicacion_id = u.id
       WHERE s.id_elemento = ?
-        AND s.estado IN ('bueno', 'disponible')
+        AND s.estado IN ('bueno')
         AND s.id NOT IN (
           SELECT ae.serie_id
           FROM alquiler_elementos ae
@@ -253,7 +258,7 @@ class DisponibilidadModel {
       FROM lotes l
       LEFT JOIN ubicaciones u ON l.ubicacion_id = u.id
       WHERE l.elemento_id = ?
-        AND l.estado IN ('bueno', 'disponible')
+        AND l.estado IN ('bueno')
       HAVING (l.cantidad - cantidad_ocupada) > 0
       ORDER BY (l.cantidad - cantidad_ocupada) DESC
     `;
