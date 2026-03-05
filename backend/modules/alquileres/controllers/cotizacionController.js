@@ -269,6 +269,7 @@ exports.crear = async (req, res, next) => {
         precio_base: producto.precio_base,
         deposito: producto.deposito,
         precio_adicionales: producto.precio_adicionales,
+        descuento_porcentaje: producto.descuento_porcentaje,
         notas: producto.notas
       });
 
@@ -420,7 +421,7 @@ exports.actualizar = async (req, res, next) => {
 exports.agregarProducto = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { compuesto_id, cantidad, precio_base, deposito, precio_adicionales, notas } = req.body;
+    const { compuesto_id, cantidad, precio_base, deposito, precio_adicionales, descuento_porcentaje, notas } = req.body;
 
     const cotizacion = await CotizacionModel.obtenerPorId(id);
     if (!cotizacion) {
@@ -438,6 +439,7 @@ exports.agregarProducto = async (req, res, next) => {
       precio_base,
       deposito,
       precio_adicionales,
+      descuento_porcentaje,
       notas
     });
 

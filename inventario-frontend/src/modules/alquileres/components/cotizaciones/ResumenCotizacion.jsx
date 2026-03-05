@@ -30,6 +30,7 @@ const ResumenCotizacion = ({
     porcentaje_dias_extra = 15,
     cobro_dias_extra = 0,
     descuento_manual = 0,
+    total_descuentos_productos = 0,
     total_descuentos_aplicados = 0,
     total_descuentos = 0,
     base_gravable = 0,
@@ -53,6 +54,17 @@ const ResumenCotizacion = ({
           <span className="text-slate-600">Subtotal productos:</span>
           <span className="font-medium">{formatearMoneda(subtotal_productos)}</span>
         </div>
+
+        {/* Descuentos por producto */}
+        {total_descuentos_productos > 0 && (
+          <div className="flex justify-between text-green-600">
+            <span className="flex items-center gap-1 text-xs">
+              <Percent className="w-3 h-3" />
+              Descuentos en productos:
+            </span>
+            <span className="font-medium text-xs">(incluidos en subtotal)</span>
+          </div>
+        )}
 
         {/* Subtotal transporte */}
         {subtotal_transporte > 0 && (
