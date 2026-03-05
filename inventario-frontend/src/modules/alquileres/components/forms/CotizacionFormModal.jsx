@@ -1152,9 +1152,6 @@ const CotizacionFormModal = ({
                 <span className="text-xs font-medium text-slate-500 uppercase tracking-wide">
                   {productosSeleccionados.length} producto{productosSeleccionados.length !== 1 ? 's' : ''} seleccionado{productosSeleccionados.length !== 1 ? 's' : ''}
                 </span>
-                <span className="text-xs text-slate-500">
-                  Subtotal: {formatearMoneda(calcularSubtotalProductos())}
-                </span>
               </div>
 
               {productosSeleccionados.map((prod, index) => {
@@ -1163,9 +1160,8 @@ const CotizacionFormModal = ({
 
                 return (
                 <div key={index} className="bg-white border border-slate-200 rounded-xl overflow-hidden hover:border-slate-300 transition-colors">
-                  {/* Header del producto - siempre visible */}
-                  <div className="p-3 flex gap-3 items-center">
-                    {/* Emoji y nombre */}
+                  {/* Header del producto - nombre y eliminar */}
+                  <div className="px-3 pt-3 pb-2 flex items-center justify-between">
                     <div className="flex-1 min-w-0">
                       {productoInfo ? (
                         <div className="flex items-center gap-2">
@@ -1190,37 +1186,53 @@ const CotizacionFormModal = ({
                         />
                       )}
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => eliminarProducto(index)}
+                      className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors ml-2"
+                      disabled={isLoading}
+                      title="Eliminar producto"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
 
-                    {/* Cantidad - compacto */}
-                    <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-1">
-                      <button
-                        type="button"
-                        onClick={() => actualizarProducto(index, 'cantidad', Math.max(1, (parseInt(prod.cantidad) || 1) - 1).toString())}
-                        disabled={isLoading || parseInt(prod.cantidad) <= 1}
-                        className="w-7 h-7 flex items-center justify-center text-slate-600 hover:bg-white rounded disabled:opacity-40"
-                      >
-                        -
-                      </button>
-                      <input
-                        type="number"
-                        min="1"
-                        value={prod.cantidad}
-                        onChange={(e) => actualizarProducto(index, 'cantidad', e.target.value)}
-                        disabled={isLoading}
-                        className="w-10 text-center text-sm font-medium bg-transparent border-none focus:outline-none"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => actualizarProducto(index, 'cantidad', ((parseInt(prod.cantidad) || 1) + 1).toString())}
-                        disabled={isLoading}
-                        className="w-7 h-7 flex items-center justify-center text-slate-600 hover:bg-white rounded"
-                      >
-                        +
-                      </button>
+                  {/* Inputs con labels - fila separada */}
+                  <div className="px-3 pb-3 flex items-end gap-3">
+                    {/* Cantidad */}
+                    <div className="flex-shrink-0">
+                      <label className="text-[11px] font-medium text-slate-500 mb-1 block">Cantidad</label>
+                      <div className="flex items-center gap-0.5 bg-slate-100 rounded-lg p-0.5">
+                        <button
+                          type="button"
+                          onClick={() => actualizarProducto(index, 'cantidad', Math.max(1, (parseInt(prod.cantidad) || 1) - 1).toString())}
+                          disabled={isLoading || parseInt(prod.cantidad) <= 1}
+                          className="w-7 h-7 flex items-center justify-center text-slate-600 hover:bg-white rounded disabled:opacity-40"
+                        >
+                          -
+                        </button>
+                        <input
+                          type="number"
+                          min="1"
+                          value={prod.cantidad}
+                          onChange={(e) => actualizarProducto(index, 'cantidad', e.target.value)}
+                          disabled={isLoading}
+                          className="w-10 text-center text-sm font-medium bg-transparent border-none focus:outline-none"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => actualizarProducto(index, 'cantidad', ((parseInt(prod.cantidad) || 1) + 1).toString())}
+                          disabled={isLoading}
+                          className="w-7 h-7 flex items-center justify-center text-slate-600 hover:bg-white rounded"
+                        >
+                          +
+                        </button>
+                      </div>
                     </div>
 
                     {/* Precio unitario */}
                     <div className="w-28">
+                      <label className="text-[11px] font-medium text-slate-500 mb-1 block">Precio unit.</label>
                       <input
                         type="number"
                         min="0"
@@ -1231,8 +1243,9 @@ const CotizacionFormModal = ({
                       />
                     </div>
 
-                    {/* Descuento % del producto */}
+                    {/* Descuento % */}
                     <div className="w-20">
+                      <label className="text-[11px] font-medium text-slate-500 mb-1 block">Desc. %</label>
                       <div className="relative">
                         <input
                           type="number"
@@ -1249,27 +1262,17 @@ const CotizacionFormModal = ({
                       </div>
                     </div>
 
-                    {/* Subtotal del producto */}
-                    <div className="w-28 text-right">
-                      <p className="text-sm font-semibold text-slate-800">{formatearMoneda(subtotalProducto - calcularDescuentoProducto(prod))}</p>
+                    {/* Subtotal */}
+                    <div className="flex-1 text-right">
+                      <label className="text-[11px] font-medium text-slate-500 mb-1 block">Subtotal</label>
+                      <p className="text-sm font-semibold text-slate-800 py-1.5">{formatearMoneda(subtotalProducto - calcularDescuentoProducto(prod))}</p>
                       {calcularDescuentoProducto(prod) > 0 && (
-                        <p className="text-xs text-green-600">-{formatearMoneda(calcularDescuentoProducto(prod))}</p>
+                        <p className="text-[10px] text-green-600 -mt-1">-{formatearMoneda(calcularDescuentoProducto(prod))}</p>
                       )}
                       {prod.precio_adicionales > 0 && (
-                        <p className="text-xs text-blue-600">+{formatearMoneda(prod.precio_adicionales)}</p>
+                        <p className="text-[10px] text-blue-600 -mt-0.5">+{formatearMoneda(prod.precio_adicionales)} config.</p>
                       )}
                     </div>
-
-                    {/* Boton eliminar */}
-                    <button
-                      type="button"
-                      onClick={() => eliminarProducto(index)}
-                      className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                      disabled={isLoading}
-                      title="Eliminar producto"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
                   </div>
 
                   {/* Configuracion de componentes - colapsable */}
@@ -1285,68 +1288,69 @@ const CotizacionFormModal = ({
                     />
                   )}
 
-                  {/* SECCIÓN DE RECARGOS */}
+                  {/* SECCIÓN DE RECARGOS - solo visible si hay recargos o como botón para agregar */}
                   {prod.compuesto_id && (
-                    <div className="mt-3 pt-3 border-t border-slate-200">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-medium text-slate-600 flex items-center gap-1">
-                          <Clock className="w-3.5 h-3.5" />
-                          Recargos (adelanto/extensión)
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => abrirModalRecargo(index)}
-                          className="text-xs text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1"
-                          disabled={isLoading}
-                        >
-                          <Plus className="w-3 h-3" />
-                          Agregar recargo
-                        </button>
-                      </div>
-
-                      {/* Lista de recargos del producto */}
+                    <div className="px-3 pb-2">
                       {(prod.recargos || []).length > 0 ? (
-                        <div className="space-y-1">
-                          {prod.recargos.map((recargo, recargoIndex) => (
-                            <div
-                              key={recargoIndex}
-                              className={`flex items-center justify-between p-2 rounded text-xs ${
-                                recargo.tipo === 'adelanto'
-                                  ? 'bg-blue-50 border border-blue-100'
-                                  : 'bg-orange-50 border border-orange-100'
-                              }`}
+                        <div className="pt-2 border-t border-slate-100">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-xs font-medium text-slate-600 flex items-center gap-1">
+                              <Clock className="w-3.5 h-3.5" />
+                              Recargos ({prod.recargos.length})
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => abrirModalRecargo(index)}
+                              className="text-xs text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1"
+                              disabled={isLoading}
                             >
-                              <div className="flex items-center gap-2">
-                                <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                              <Plus className="w-3 h-3" />
+                              Agregar
+                            </button>
+                          </div>
+
+                          {/* Lista de recargos del producto */}
+                          <div className="space-y-1">
+                            {prod.recargos.map((recargo, recargoIndex) => (
+                              <div
+                                key={recargoIndex}
+                                className={`flex items-center justify-between p-2 rounded text-xs ${
                                   recargo.tipo === 'adelanto'
-                                    ? 'bg-blue-100 text-blue-700'
-                                    : 'bg-orange-100 text-orange-700'
-                                }`}>
-                                  {recargo.tipo === 'adelanto' ? 'Adelanto' : 'Extensión'}
-                                </span>
-                                <span className="text-slate-600">
-                                  {recargo.dias} día{recargo.dias > 1 ? 's' : ''} @ {recargo.porcentaje}%
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <span className={`font-medium ${
-                                  recargo.tipo === 'adelanto' ? 'text-blue-700' : 'text-orange-700'
-                                }`}>
-                                  +{formatearMoneda(recargo.monto_recargo)}
-                                </span>
-                                <button
-                                  type="button"
-                                  onClick={() => abrirModalRecargo(index, recargoIndex)}
-                                  className="p-1 hover:bg-white rounded"
-                                  title="Editar recargo"
-                                >
-                                  <Percent className="w-3 h-3 text-slate-400" />
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => eliminarRecargo(index, recargoIndex)}
-                                  className="p-1 hover:bg-white rounded text-red-400 hover:text-red-600"
-                                  title="Eliminar recargo"
+                                    ? 'bg-blue-50 border border-blue-100'
+                                    : 'bg-orange-50 border border-orange-100'
+                                }`}
+                              >
+                                <div className="flex items-center gap-2">
+                                  <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                                    recargo.tipo === 'adelanto'
+                                      ? 'bg-blue-100 text-blue-700'
+                                      : 'bg-orange-100 text-orange-700'
+                                  }`}>
+                                    {recargo.tipo === 'adelanto' ? 'Adelanto' : 'Extensión'}
+                                  </span>
+                                  <span className="text-slate-600">
+                                    {recargo.dias} día{recargo.dias > 1 ? 's' : ''} @ {recargo.porcentaje}%
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className={`font-medium ${
+                                    recargo.tipo === 'adelanto' ? 'text-blue-700' : 'text-orange-700'
+                                  }`}>
+                                    +{formatearMoneda(recargo.monto_recargo)}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => abrirModalRecargo(index, recargoIndex)}
+                                    className="p-1 hover:bg-white rounded"
+                                    title="Editar recargo"
+                                  >
+                                    <Percent className="w-3 h-3 text-slate-400" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => eliminarRecargo(index, recargoIndex)}
+                                    className="p-1 hover:bg-white rounded text-red-400 hover:text-red-600"
+                                    title="Eliminar recargo"
                                 >
                                   <Trash2 className="w-3 h-3" />
                                 </button>
@@ -1361,8 +1365,20 @@ const CotizacionFormModal = ({
                             </span>
                           </div>
                         </div>
+                      </div>
                       ) : (
-                        <p className="text-xs text-slate-400 italic">Sin recargos</p>
+                        /* Sin recargos: solo mostrar botón discreto para agregar */
+                        <div className="pt-2 border-t border-slate-100">
+                          <button
+                            type="button"
+                            onClick={() => abrirModalRecargo(index)}
+                            className="text-xs text-slate-400 hover:text-blue-600 font-medium flex items-center gap-1 transition-colors"
+                            disabled={isLoading}
+                          >
+                            <Plus className="w-3 h-3" />
+                            Agregar recargo
+                          </button>
+                        </div>
                       )}
                     </div>
                   )}
