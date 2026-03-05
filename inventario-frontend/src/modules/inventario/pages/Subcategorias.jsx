@@ -5,7 +5,7 @@
 
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Plus, ArrowLeft, Package } from 'lucide-react'
+import { Plus, Package } from 'lucide-react'
 import { 
   useGetCategoria, 
   useGetSubcategorias 
@@ -230,45 +230,31 @@ export default function Subcategorias() {
     <div className="min-h-screen bg-slate-50">
       
       {/* ============================================
-          HEADER CON BREADCRUMB
+          HEADER
           ============================================ */}
-      <div className="bg-white border-b border-slate-200 sticky top-0 z-10 shadow-sm">
+      <div className="bg-white border-b border-slate-200 sticky top-0 z-10">
         <div className="container mx-auto px-6 py-4">
-          
           {/* Breadcrumb */}
-          <div className="mb-4">
+          <div className="mb-3">
             <Breadcrumb items={breadcrumbItems} />
           </div>
-          
-          {/* Header principal */}
+
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-
-            {/* Botón volver + Título */}
-            <div className="flex items-center gap-4">
-              {/* Botón volver */}
-              <button
-                onClick={handleGoBack}
-                className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
-                title="Volver al inicio"
-              >
-                <ArrowLeft className="w-5 h-5 text-slate-600" />
-              </button>
-
-              {/* Título con emoji */}
-              <div className="flex items-center gap-3">
-                <IconoCategoria value={categoria.emoji} className="text-3xl sm:text-4xl" size={36} />
-                <div>
-                  <h1 className="text-xl sm:text-2xl font-bold text-slate-900">
-                    {categoria.nombre}
-                  </h1>
-                  <p className="text-sm text-slate-600">
-                    Subcategorías y elementos
-                  </p>
-                </div>
+            {/* Título con emoji en caja */}
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 bg-blue-50 rounded-[10px] flex items-center justify-center flex-shrink-0">
+                <IconoCategoria value={categoria.emoji} className="text-2xl" size={24} />
+              </div>
+              <div>
+                <h1 className="text-[22px] font-bold text-slate-900">
+                  {categoria.nombre}
+                </h1>
+                <p className="text-sm text-slate-500">
+                  {subcategorias.length} subcategoría{subcategorias.length !== 1 ? 's' : ''}
+                </p>
               </div>
             </div>
 
-            {/* Botón crear subcategoría */}
             <Button
               variant="primary"
               size="sm"
@@ -286,21 +272,11 @@ export default function Subcategorias() {
           ============================================ */}
       <div className="container mx-auto px-6 py-8">
         
-        {/* Título de sección */}
-        <div className="mb-6">
-          <h2 className="text-xl font-semibold text-slate-900 mb-1">
-            📂 Subcategorías
-          </h2>
-          <p className="text-slate-600">
-            {subcategorias.length} subcategoría{subcategorias.length !== 1 ? 's' : ''} registrada{subcategorias.length !== 1 ? 's' : ''}
-          </p>
-        </div>
-        
         {/* ============================================
             GRID DE SUBCATEGORÍAS
             ============================================ */}
         {subcategorias.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {subcategorias.map((subcategoria) => (
               <SubcategoriaCard
                 key={subcategoria.id}
