@@ -29,7 +29,8 @@ const CotizacionFormModal = ({
   onClose,
   mode = 'crear',
   cotizacion = null,
-  eventoPreseleccionado = null
+  eventoPreseleccionado = null,
+  fechasPorConfirmarInicial = false
 }) => {
 
   // ============================================
@@ -55,7 +56,7 @@ const CotizacionFormModal = ({
   const [descuentosAplicados, setDescuentosAplicados] = useState([])
   const [errors, setErrors] = useState({})
   const [mostrarSelectorProductos, setMostrarSelectorProductos] = useState(true)
-  const [fechasPorConfirmar, setFechasPorConfirmar] = useState(false)
+  const [fechasPorConfirmar, setFechasPorConfirmar] = useState(fechasPorConfirmarInicial)
 
   // Estado para el modal de recargos
   const [recargoModal, setRecargoModal] = useState({
@@ -770,44 +771,6 @@ const CotizacionFormModal = ({
             </div>
           </div>
         )}
-
-        {/* TOGGLE: Fechas por confirmar */}
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => {
-              setFechasPorConfirmar(!fechasPorConfirmar)
-              if (!fechasPorConfirmar) {
-                // Limpiar fechas al activar borrador
-                setFormData(prev => ({
-                  ...prev,
-                  fecha_montaje: '',
-                  fecha_evento: '',
-                  fecha_desmontaje: ''
-                }))
-              }
-            }}
-            className={`
-              relative inline-flex h-6 w-11 items-center rounded-full transition-colors
-              ${fechasPorConfirmar ? 'bg-amber-500' : 'bg-slate-300'}
-            `}
-          >
-            <span
-              className={`
-                inline-block h-4 w-4 transform rounded-full bg-white transition-transform
-                ${fechasPorConfirmar ? 'translate-x-6' : 'translate-x-1'}
-              `}
-            />
-          </button>
-          <div>
-            <span className="text-sm font-medium text-slate-700">
-              Fechas por confirmar
-            </span>
-            <p className="text-xs text-slate-500">
-              El cliente aun no define fecha exacta. Se crea como borrador con precio estimado.
-            </p>
-          </div>
-        </div>
 
         {/* BANNER: Borrador sin fechas */}
         {fechasPorConfirmar && (

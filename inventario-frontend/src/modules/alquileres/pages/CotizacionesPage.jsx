@@ -260,6 +260,7 @@ export default function CotizacionesPage() {
   const [showModalCotizacion, setShowModalCotizacion] = useState(false)
   const [eventoParaCotizacion, setEventoParaCotizacion] = useState(null)
   const [cotizacionEditar, setCotizacionEditar] = useState(null)
+  const [fechasPorConfirmarInicial, setFechasPorConfirmarInicial] = useState(false)
 
   // ============================================
   // FILTRAR EVENTOS
@@ -335,9 +336,10 @@ export default function CotizacionesPage() {
     setEventoDetalle(evento.id)
   }
 
-  const handleCrearCotizacionDesdeEvento = (evento) => {
+  const handleCrearCotizacionDesdeEvento = (evento, opciones = {}) => {
     setEventoParaCotizacion(evento)
     setCotizacionEditar(null)
+    setFechasPorConfirmarInicial(opciones.fechasPorConfirmar || false)
     setEventoDetalle(null)
     setShowModalCotizacion(true)
   }
@@ -353,6 +355,7 @@ export default function CotizacionesPage() {
     setShowModalCotizacion(false)
     setEventoParaCotizacion(null)
     setCotizacionEditar(null)
+    setFechasPorConfirmarInicial(false)
     refetch()
   }
 
@@ -506,6 +509,7 @@ export default function CotizacionesPage() {
           mode={cotizacionEditar ? 'editar' : 'crear'}
           cotizacion={cotizacionEditar}
           eventoPreseleccionado={eventoParaCotizacion}
+          fechasPorConfirmarInicial={fechasPorConfirmarInicial}
         />
       )}
 

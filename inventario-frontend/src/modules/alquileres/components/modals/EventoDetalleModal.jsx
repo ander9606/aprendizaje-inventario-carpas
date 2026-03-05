@@ -140,9 +140,9 @@ const EventoDetalleModal = ({ isOpen, onClose, eventoId, onCrearCotizacion, onEd
         }
     }
 
-    const handleCrearCotizacion = () => {
+    const handleCrearCotizacion = (fechasPorConfirmar = false) => {
         if (onCrearCotizacion) {
-            onCrearCotizacion(evento)
+            onCrearCotizacion(evento, { fechasPorConfirmar })
         }
         onClose()
     }
@@ -330,14 +330,25 @@ const EventoDetalleModal = ({ isOpen, onClose, eventoId, onCrearCotizacion, onEd
                                         Cotizaciones del Evento
                                     </h4>
                                     {puedeAgregarCotizacion ? (
-                                        <Button
-                                            size="sm"
-                                            variant="secondary"
-                                            icon={Plus}
-                                            onClick={handleCrearCotizacion}
-                                        >
-                                            Nueva Cotización
-                                        </Button>
+                                        <div className="flex items-center gap-2">
+                                            <Button
+                                                size="sm"
+                                                variant="secondary"
+                                                icon={Plus}
+                                                onClick={() => handleCrearCotizacion(false)}
+                                            >
+                                                Nueva Cotización
+                                            </Button>
+                                            <Button
+                                                size="sm"
+                                                variant="secondary"
+                                                icon={CalendarCheck}
+                                                onClick={() => handleCrearCotizacion(true)}
+                                                className="!text-amber-700 !bg-amber-50 !border-amber-200 hover:!bg-amber-100"
+                                            >
+                                                Sin fechas
+                                            </Button>
+                                        </div>
                                     ) : (
                                         <span className="text-xs text-slate-400 flex items-center gap-1">
                                             <Lock className="w-3 h-3" />
@@ -470,13 +481,24 @@ const EventoDetalleModal = ({ isOpen, onClose, eventoId, onCrearCotizacion, onEd
                                             Este evento no tiene cotizaciones
                                         </p>
                                         {puedeAgregarCotizacion && (
-                                            <Button
-                                                size="sm"
-                                                icon={Plus}
-                                                onClick={handleCrearCotizacion}
-                                            >
-                                                Crear Primera Cotización
-                                            </Button>
+                                            <div className="flex items-center gap-2 justify-center">
+                                                <Button
+                                                    size="sm"
+                                                    icon={Plus}
+                                                    onClick={() => handleCrearCotizacion(false)}
+                                                >
+                                                    Crear Primera Cotización
+                                                </Button>
+                                                <Button
+                                                    size="sm"
+                                                    variant="secondary"
+                                                    icon={CalendarCheck}
+                                                    onClick={() => handleCrearCotizacion(true)}
+                                                    className="!text-amber-700 !bg-amber-50 !border-amber-200 hover:!bg-amber-100"
+                                                >
+                                                    Sin fechas
+                                                </Button>
+                                            </div>
                                         )}
                                     </div>
                                 )}
