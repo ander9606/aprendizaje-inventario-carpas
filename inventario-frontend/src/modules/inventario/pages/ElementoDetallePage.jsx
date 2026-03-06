@@ -5,7 +5,7 @@
 
 import { useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Edit, Trash2, Plus, Calendar, User, Clock, MapPin, BarChart3, Layers, Settings } from 'lucide-react'
+import { ArrowLeft, Edit, Trash2, Plus, Calendar, User, Clock, MapPin, BarChart3, Layers, Settings, Package, ArrowRightLeft } from 'lucide-react'
 import { toast } from 'sonner'
 
 // Hooks personalizados
@@ -21,7 +21,6 @@ import Button from '@shared/components/Button'
 import Spinner from '@shared/components/Spinner'
 import Breadcrumb from '@shared/components/Breadcrum'
 import Card from '@shared/components/Card'
-import StatCard from '@shared/components/StatCard'
 import ImageUpload from '@shared/components/ImageUpload'
 import ConfirmModal from '@shared/components/ConfirmModal'
 import SerieItem from '../components/elementos/series/SerieItem'
@@ -219,6 +218,35 @@ function ElementoDetallePage() {
       }, { bueno: 0, alquilado: 0, mantenimiento: 0, dañado: 0 })
     }
   }, [elemento?.requiere_series, series, lotes])
+
+  /**
+   * Cálculos de disponibilidad para la barra de progreso
+   */
+  const disponibilidad = useMemo(() => {
+    const total = elemento?.requiere_series
+      ? series.length
+      : lotes.reduce((sum, l) => sum + (l.cantidad || 0), 0)
+
+    if (total === 0) return { total: 0, disponibles: 0, alquilados: 0, otros: 0, pctDisponible: 0, pctAlquilado: 0, pctOtros: 0 }
+
+    const disponibles = elemento?.requiere_series
+      ? (estadisticas.bueno || 0) + (estadisticas.disponible || 0) + (estadisticas.nuevo || 0)
+      : (estadisticas.bueno || 0) + (estadisticas.nuevo || 0)
+    const alquilados = estadisticas.alquilado || 0
+    const mantenimiento = estadisticas.mantenimiento || 0
+    const danados = estadisticas['dañado'] || 0
+    const otros = mantenimiento + danados
+
+    return {
+      total,
+      disponibles,
+      alquilados,
+      otros,
+      pctDisponible: Math.round((disponibles / total) * 100),
+      pctAlquilado: Math.round((alquilados / total) * 100),
+      pctOtros: Math.round((otros / total) * 100),
+    }
+  }, [elemento?.requiere_series, series, lotes, estadisticas])
 
   /**
    * itemsFiltrados: Series o lotes filtrados por estado
@@ -653,49 +681,113 @@ function ElementoDetallePage() {
       </div>
 
       {/* ============================================
-          ESTADÍSTICAS - Click para filtrar
+          ESTADÍSTICAS + BARRA DE DISPONIBILIDAD
           ============================================ */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
-        <StatCard
-          label="Total"
-          value={elemento.requiere_series ? series.length : lotes.reduce((sum, l) => sum + (l.cantidad || 0), 0)}
-          color="gray"
-          size="md"
-          onClick={() => setFiltroEstado(null)}
-          active={!filtroEstado}
-        />
-        <StatCard
-          label="Bueno"
-          value={estadisticas?.bueno || 0}
-          color="green"
-          size="md"
-          onClick={() => handleFiltroEstado('bueno')}
-          active={filtroEstado === 'bueno'}
-        />
-        <StatCard
-          label="Alquilado"
-          value={estadisticas?.alquilado || 0}
-          color="blue"
-          size="md"
-          onClick={() => handleFiltroEstado('alquilado')}
-          active={filtroEstado === 'alquilado'}
-        />
-        <StatCard
-          label="Mantenimiento"
-          value={estadisticas?.mantenimiento || 0}
-          color="yellow"
-          size="md"
-          onClick={() => handleFiltroEstado('mantenimiento')}
-          active={filtroEstado === 'mantenimiento'}
-        />
-        <StatCard
-          label="Dañado"
-          value={estadisticas?.['dañado'] || 0}
-          color="red"
-          size="md"
-          onClick={() => handleFiltroEstado('dañado')}
-          active={filtroEstado === 'dañado'}
-        />
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 mb-6">
+        {/* Stats compactos - clickeables para filtrar */}
+        <div className={`grid gap-2 mb-4 ${elemento.requiere_series ? 'grid-cols-4' : 'grid-cols-5'}`}>
+          <button
+            onClick={() => setFiltroEstado(null)}
+            className={`rounded-lg border p-2.5 text-center transition-all ${
+              !filtroEstado
+                ? 'bg-slate-100 border-slate-400 ring-2 ring-slate-300'
+                : 'bg-slate-50 border-slate-200 hover:border-slate-300'
+            }`}
+          >
+            <p className="text-xl font-bold text-slate-900">{disponibilidad.total}</p>
+            <p className="text-xs text-slate-500 font-medium">Total</p>
+          </button>
+          <button
+            onClick={() => handleFiltroEstado('bueno')}
+            className={`rounded-lg border p-2.5 text-center transition-all ${
+              filtroEstado === 'bueno'
+                ? 'bg-green-100 border-green-400 ring-2 ring-green-300'
+                : 'bg-green-50 border-green-200 hover:border-green-300'
+            }`}
+          >
+            <p className="text-xl font-bold text-green-800">{elemento.requiere_series ? disponibilidad.disponibles : (estadisticas?.bueno || 0)}</p>
+            <p className="text-xs text-green-700 font-medium">{elemento.requiere_series ? 'Disponible' : 'Bueno'}</p>
+          </button>
+          <button
+            onClick={() => handleFiltroEstado('alquilado')}
+            className={`rounded-lg border p-2.5 text-center transition-all ${
+              filtroEstado === 'alquilado'
+                ? 'bg-amber-100 border-amber-400 ring-2 ring-amber-300'
+                : 'bg-amber-50 border-amber-200 hover:border-amber-300'
+            }`}
+          >
+            <p className="text-xl font-bold text-amber-800">{estadisticas?.alquilado || 0}</p>
+            <p className="text-xs text-amber-700 font-medium">Alquilado</p>
+          </button>
+          <button
+            onClick={() => handleFiltroEstado('mantenimiento')}
+            className={`rounded-lg border p-2.5 text-center transition-all ${
+              filtroEstado === 'mantenimiento'
+                ? 'bg-orange-100 border-orange-400 ring-2 ring-orange-300'
+                : 'bg-orange-50 border-orange-200 hover:border-orange-300'
+            }`}
+          >
+            <p className="text-xl font-bold text-orange-800">{estadisticas?.mantenimiento || 0}</p>
+            <p className="text-xs text-orange-700 font-medium">Mant.</p>
+          </button>
+          {!elemento.requiere_series && (
+            <button
+              onClick={() => handleFiltroEstado('dañado')}
+              className={`rounded-lg border p-2.5 text-center transition-all ${
+                filtroEstado === 'dañado'
+                  ? 'bg-red-100 border-red-400 ring-2 ring-red-300'
+                  : 'bg-red-50 border-red-200 hover:border-red-300'
+              }`}
+            >
+              <p className="text-xl font-bold text-red-800">{estadisticas?.['dañado'] || 0}</p>
+              <p className="text-xs text-red-700 font-medium">Dañado</p>
+            </button>
+          )}
+        </div>
+
+        {/* Barra de disponibilidad */}
+        {disponibilidad.total > 0 && (
+          <div>
+            <div className="flex items-center justify-between text-xs text-slate-500 mb-1.5">
+              <span>Disponibilidad</span>
+              <span className="font-medium text-slate-700">{disponibilidad.pctDisponible}% disponible</span>
+            </div>
+            <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden flex">
+              {disponibilidad.pctDisponible > 0 && (
+                <div
+                  className="bg-emerald-500 transition-all duration-500"
+                  style={{ width: `${disponibilidad.pctDisponible}%` }}
+                />
+              )}
+              {disponibilidad.pctAlquilado > 0 && (
+                <div
+                  className="bg-amber-400 transition-all duration-500"
+                  style={{ width: `${disponibilidad.pctAlquilado}%` }}
+                />
+              )}
+              {disponibilidad.pctOtros > 0 && (
+                <div
+                  className="bg-orange-400 transition-all duration-500"
+                  style={{ width: `${disponibilidad.pctOtros}%` }}
+                />
+              )}
+            </div>
+            <div className="flex items-center gap-4 mt-1.5 text-xs text-slate-500">
+              <span className="flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                Disponible
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-amber-400" />
+                Alquilado
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-orange-400" />
+                Mant./Dañado
+              </span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ============================================
@@ -754,20 +846,26 @@ function ElementoDetallePage() {
         <Card.Header>
           <div className="flex items-center justify-between">
             <Card.Title>
-              {elemento.requiere_series ? 'Series' : 'Lotes por Ubicación'}
-              {filtroEstado
-                ? ` — ${filtroEstado.charAt(0).toUpperCase() + filtroEstado.slice(1)} (${itemsFiltrados.length})`
-                : ''
-              }
+              <span className="flex items-center gap-2">
+                {elemento.requiere_series
+                  ? <Package className="w-4 h-4 text-slate-500" />
+                  : <MapPin className="w-4 h-4 text-slate-500" />
+                }
+                {elemento.requiere_series ? 'Números de serie' : 'Por ubicación'}
+                {filtroEstado
+                  ? ` — ${filtroEstado.charAt(0).toUpperCase() + filtroEstado.slice(1)} (${itemsFiltrados.length})`
+                  : ''
+                }
+              </span>
             </Card.Title>
 
             <Button
-              variant="primary"
+              variant="outline"
               size="sm"
               icon={<Plus className="w-4 h-4" />}
               onClick={handleAdd}
             >
-              {elemento.requiere_series ? 'Agregar Serie' : 'Agregar Lote'}
+              {elemento.requiere_series ? 'Agregar' : 'Agregar'}
             </Button>
           </div>
         </Card.Header>
