@@ -62,7 +62,7 @@ const InventarioListView = ({ elementos = [], isLoading, onGoToElemento }) => {
               </td>
               <td className="px-6 py-3 text-center">
                 <span className="font-semibold text-slate-900">
-                  {el.cantidad_disponible || 0}
+                  {el.cantidad_disponible || el.cantidad || 0}
                 </span>
               </td>
             </tr>
