@@ -4,7 +4,7 @@
 // ============================================
 
 import { useState, useEffect, useMemo } from 'react'
-import { Plus, Trash2, Package, Truck, MapPin, CalendarDays, Calendar, Clock, Percent, ChevronDown, ChevronUp, CheckCircle, User, AlertCircle, FileEdit } from 'lucide-react'
+import { Plus, Trash2, Package, Truck, MapPin, CalendarDays, Calendar, Clock, Percent, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, CheckCircle, User, AlertCircle, FileEdit, ClipboardList } from 'lucide-react'
 import Modal from '@shared/components/Modal'
 import Button from '@shared/components/Button'
 import ProductoSelector from '@shared/components/ProductoSelector'
@@ -29,7 +29,8 @@ const CotizacionFormModal = ({
   onClose,
   mode = 'crear',
   cotizacion = null,
-  eventoPreseleccionado = null
+  eventoPreseleccionado = null,
+  fechasPorConfirmarInicial = false
 }) => {
 
   // ============================================
@@ -55,7 +56,7 @@ const CotizacionFormModal = ({
   const [descuentosAplicados, setDescuentosAplicados] = useState([])
   const [errors, setErrors] = useState({})
   const [mostrarSelectorProductos, setMostrarSelectorProductos] = useState(true)
-  const [fechasPorConfirmar, setFechasPorConfirmar] = useState(false)
+  const [fechasPorConfirmar, setFechasPorConfirmar] = useState(fechasPorConfirmarInicial)
 
   // Estado para el modal de recargos
   const [recargoModal, setRecargoModal] = useState({
@@ -66,6 +67,17 @@ const CotizacionFormModal = ({
 
   // Estado para el modal de disponibilidad
   const [showDisponibilidadModal, setShowDisponibilidadModal] = useState(false)
+
+  // Estado del wizard
+  const [pasoActual, setPasoActual] = useState(1)
+  const [direccionAnimacion, setDireccionAnimacion] = useState('right')
+
+  const PASOS = [
+    { numero: 1, titulo: 'Evento', icono: Calendar },
+    { numero: 2, titulo: 'Productos', icono: Package },
+    { numero: 3, titulo: 'Transporte', icono: Truck },
+    { numero: 4, titulo: 'Resumen', icono: ClipboardList }
+  ]
 
   // ============================================
   // HOOKS
@@ -630,6 +642,71 @@ const CotizacionFormModal = ({
     if (!isLoading) onClose()
   }
 
+  // ============================================
+  // WIZARD: Validación y navegación por pasos
+  // ============================================
+
+  const validarPaso = (paso) => {
+    const newErrors = {}
+    if (paso === 1) {
+      if (!eventoPreseleccionado && !formData.cliente_id) {
+        newErrors.cliente_id = 'Seleccione un cliente'
+      }
+      if (!fechasPorConfirmar && !formData.fecha_evento) {
+        newErrors.fecha_evento = 'La fecha del evento es obligatoria'
+      }
+      if (!eventoPreseleccionado && !formData.evento_ciudad) {
+        newErrors.evento_ciudad = 'Seleccione una ciudad'
+      }
+    } else if (paso === 2) {
+      if (productosSeleccionados.length === 0) {
+        newErrors.productos = 'Debe agregar al menos un producto'
+      }
+      if (productosSeleccionados.some(p => !p.compuesto_id)) {
+        newErrors.productos = 'Seleccione un producto para cada linea'
+      }
+    }
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(prev => ({ ...prev, ...newErrors }))
+      return false
+    }
+    return true
+  }
+
+  const irAPaso = (paso) => {
+    if (paso === pasoActual) return
+    // En modo editar, permitir navegación libre
+    if (mode === 'editar') {
+      setDireccionAnimacion(paso > pasoActual ? 'right' : 'left')
+      setPasoActual(paso)
+      return
+    }
+    // Ir hacia atrás siempre permitido
+    if (paso < pasoActual) {
+      setDireccionAnimacion('left')
+      setPasoActual(paso)
+      return
+    }
+    // Ir hacia adelante: validar todos los pasos intermedios
+    for (let i = pasoActual; i < paso; i++) {
+      if (!validarPaso(i)) return
+    }
+    setDireccionAnimacion('right')
+    setPasoActual(paso)
+  }
+
+  const siguiente = () => {
+    if (validarPaso(pasoActual)) {
+      setDireccionAnimacion('right')
+      setPasoActual(prev => Math.min(prev + 1, 4))
+    }
+  }
+
+  const anterior = () => {
+    setDireccionAnimacion('left')
+    setPasoActual(prev => Math.max(prev - 1, 1))
+  }
+
   const formatearMoneda = (valor) => {
     return new Intl.NumberFormat('es-CO', {
       style: 'currency',
@@ -657,16 +734,55 @@ const CotizacionFormModal = ({
       isOpen={isOpen}
       onClose={handleClose}
       title={mode === 'crear' ? 'Nueva Cotizacion' : 'Editar Cotizacion'}
-      size="xl"
+      size={pasoActual === 2 ? 'full' : 'xl'}
     >
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="flex flex-col h-full">
+
+        {/* STEPPER */}
+        <div className="flex items-center justify-between px-2 pb-4 mb-4 border-b border-slate-200">
+          {PASOS.map((paso, idx) => {
+            const Icono = paso.icono
+            const esActivo = paso.numero === pasoActual
+            const esCompletado = paso.numero < pasoActual
+            const esPendiente = paso.numero > pasoActual
+            return (
+              <div key={paso.numero} className="flex items-center flex-1">
+                <button
+                  type="button"
+                  onClick={() => irAPaso(paso.numero)}
+                  className={`
+                    flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-sm font-medium
+                    ${esActivo ? 'bg-blue-50 text-blue-700 border border-blue-200' : ''}
+                    ${esCompletado ? 'text-blue-600 hover:bg-blue-50' : ''}
+                    ${esPendiente ? 'text-slate-400' : ''}
+                    ${!esPendiente ? 'cursor-pointer' : 'cursor-default'}
+                  `}
+                >
+                  <Icono className={`w-4 h-4 ${esActivo ? 'text-blue-600' : esCompletado ? 'text-blue-500' : 'text-slate-300'}`} />
+                  <span className="hidden sm:inline">{paso.titulo}</span>
+                </button>
+                {idx < PASOS.length - 1 && (
+                  <div className={`flex-1 h-px mx-2 ${esCompletado ? 'bg-blue-300' : 'bg-slate-200'}`} />
+                )}
+              </div>
+            )
+          })}
+        </div>
 
         {/* ERROR GENERAL */}
         {errors.submit && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">
             <p className="text-sm font-medium">{errors.submit}</p>
           </div>
         )}
+
+        {/* CONTENIDO ANIMADO POR PASO */}
+        <div key={pasoActual} className={`space-y-6 flex-1 ${direccionAnimacion === 'right' ? 'animate-slideInRight' : 'animate-slideInLeft'}`}>
+
+        {/* ============================================
+            PASO 1: DATOS DEL EVENTO
+            ============================================ */}
+        {pasoActual === 1 && (<>
 
         {/* RESUMEN DEL EVENTO - Cuando viene de un evento preseleccionado */}
         {eventoPreseleccionado && (
@@ -770,44 +886,6 @@ const CotizacionFormModal = ({
             </div>
           </div>
         )}
-
-        {/* TOGGLE: Fechas por confirmar */}
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => {
-              setFechasPorConfirmar(!fechasPorConfirmar)
-              if (!fechasPorConfirmar) {
-                // Limpiar fechas al activar borrador
-                setFormData(prev => ({
-                  ...prev,
-                  fecha_montaje: '',
-                  fecha_evento: '',
-                  fecha_desmontaje: ''
-                }))
-              }
-            }}
-            className={`
-              relative inline-flex h-6 w-11 items-center rounded-full transition-colors
-              ${fechasPorConfirmar ? 'bg-amber-500' : 'bg-slate-300'}
-            `}
-          >
-            <span
-              className={`
-                inline-block h-4 w-4 transform rounded-full bg-white transition-transform
-                ${fechasPorConfirmar ? 'translate-x-6' : 'translate-x-1'}
-              `}
-            />
-          </button>
-          <div>
-            <span className="text-sm font-medium text-slate-700">
-              Fechas por confirmar
-            </span>
-            <p className="text-xs text-slate-500">
-              El cliente aun no define fecha exacta. Se crea como borrador con precio estimado.
-            </p>
-          </div>
-        </div>
 
         {/* BANNER: Borrador sin fechas */}
         {fechasPorConfirmar && (
@@ -1014,7 +1092,14 @@ const CotizacionFormModal = ({
           </div>
         )}
 
-        {/* PRODUCTOS */}
+        </>)}
+
+        {/* ============================================
+            PASO 2: PRODUCTOS
+            ============================================ */}
+        {pasoActual === 2 && (<>
+
+        {/* PRODUCTOS - Layout dos paneles */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="font-semibold text-slate-900 flex items-center gap-2">
@@ -1026,10 +1111,12 @@ const CotizacionFormModal = ({
                 </span>
               )}
             </h3>
+            {/* Toggle solo visible en mobile */}
             <Button
               type="button"
               variant="ghost"
               size="sm"
+              className="lg:hidden"
               icon={mostrarSelectorProductos ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
               onClick={() => setMostrarSelectorProductos(!mostrarSelectorProductos)}
             >
@@ -1041,9 +1128,11 @@ const CotizacionFormModal = ({
             <p className="text-sm text-red-600">{errors.productos}</p>
           )}
 
-          {/* SELECTOR DE PRODUCTOS CON TARJETAS */}
-          {mostrarSelectorProductos && (
-            <div className="border border-slate-200 rounded-lg p-4 bg-slate-50">
+          {/* LAYOUT DOS PANELES (desktop) / APILADO (mobile) */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+            {/* PANEL IZQUIERDO: Selector de productos */}
+            <div className={`border border-slate-200 rounded-lg p-4 bg-slate-50 lg:max-h-[60vh] lg:overflow-y-auto custom-scrollbar ${!mostrarSelectorProductos ? 'hidden lg:block' : ''}`}>
               <ProductoSelectorTarjetas
                 onProductoAgregado={agregarProductoDesdeTarjetas}
                 disabled={isLoading}
@@ -1051,14 +1140,16 @@ const CotizacionFormModal = ({
                 fechaDesmontaje={formData.fecha_desmontaje || formData.fecha_evento}
               />
             </div>
-          )}
+
+            {/* PANEL DERECHO: Productos seleccionados */}
+            <div className="lg:max-h-[60vh] lg:overflow-y-auto custom-scrollbar space-y-3">
 
           {/* LISTA DE PRODUCTOS SELECCIONADOS */}
           {productosSeleccionados.length === 0 ? (
             <div className="py-8 text-center border-2 border-dashed border-slate-200 rounded-xl bg-slate-50/50">
               <Package className="w-10 h-10 mx-auto text-slate-300 mb-2" />
               <p className="text-sm text-slate-500">No hay productos agregados</p>
-              <p className="text-xs text-slate-400 mt-1">Seleccione productos de las categorías arriba</p>
+              <p className="text-xs text-slate-400 mt-1">Seleccione productos de las categorías a la izquierda</p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -1066,9 +1157,6 @@ const CotizacionFormModal = ({
               <div className="flex items-center justify-between px-1">
                 <span className="text-xs font-medium text-slate-500 uppercase tracking-wide">
                   {productosSeleccionados.length} producto{productosSeleccionados.length !== 1 ? 's' : ''} seleccionado{productosSeleccionados.length !== 1 ? 's' : ''}
-                </span>
-                <span className="text-xs text-slate-500">
-                  Subtotal: {formatearMoneda(calcularSubtotalProductos())}
                 </span>
               </div>
 
@@ -1078,9 +1166,8 @@ const CotizacionFormModal = ({
 
                 return (
                 <div key={index} className="bg-white border border-slate-200 rounded-xl overflow-hidden hover:border-slate-300 transition-colors">
-                  {/* Header del producto - siempre visible */}
-                  <div className="p-3 flex gap-3 items-center">
-                    {/* Emoji y nombre */}
+                  {/* Header del producto - nombre y eliminar */}
+                  <div className="px-3 pt-3 pb-2 flex items-center justify-between">
                     <div className="flex-1 min-w-0">
                       {productoInfo ? (
                         <div className="flex items-center gap-2">
@@ -1105,37 +1192,53 @@ const CotizacionFormModal = ({
                         />
                       )}
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => eliminarProducto(index)}
+                      className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors ml-2"
+                      disabled={isLoading}
+                      title="Eliminar producto"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
 
-                    {/* Cantidad - compacto */}
-                    <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-1">
-                      <button
-                        type="button"
-                        onClick={() => actualizarProducto(index, 'cantidad', Math.max(1, (parseInt(prod.cantidad) || 1) - 1).toString())}
-                        disabled={isLoading || parseInt(prod.cantidad) <= 1}
-                        className="w-7 h-7 flex items-center justify-center text-slate-600 hover:bg-white rounded disabled:opacity-40"
-                      >
-                        -
-                      </button>
-                      <input
-                        type="number"
-                        min="1"
-                        value={prod.cantidad}
-                        onChange={(e) => actualizarProducto(index, 'cantidad', e.target.value)}
-                        disabled={isLoading}
-                        className="w-10 text-center text-sm font-medium bg-transparent border-none focus:outline-none"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => actualizarProducto(index, 'cantidad', ((parseInt(prod.cantidad) || 1) + 1).toString())}
-                        disabled={isLoading}
-                        className="w-7 h-7 flex items-center justify-center text-slate-600 hover:bg-white rounded"
-                      >
-                        +
-                      </button>
+                  {/* Inputs con labels - fila separada */}
+                  <div className="px-3 pb-3 flex flex-wrap items-end gap-2">
+                    {/* Cantidad */}
+                    <div className="flex-shrink-0">
+                      <label className="text-[11px] font-medium text-slate-500 mb-1 block">Cantidad</label>
+                      <div className="flex items-center gap-0.5 bg-slate-100 rounded-lg p-0.5">
+                        <button
+                          type="button"
+                          onClick={() => actualizarProducto(index, 'cantidad', Math.max(1, (parseInt(prod.cantidad) || 1) - 1).toString())}
+                          disabled={isLoading || parseInt(prod.cantidad) <= 1}
+                          className="w-7 h-7 flex items-center justify-center text-slate-600 hover:bg-white rounded disabled:opacity-40"
+                        >
+                          -
+                        </button>
+                        <input
+                          type="number"
+                          min="1"
+                          value={prod.cantidad}
+                          onChange={(e) => actualizarProducto(index, 'cantidad', e.target.value)}
+                          disabled={isLoading}
+                          className="w-10 text-center text-sm font-medium bg-transparent border-none focus:outline-none"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => actualizarProducto(index, 'cantidad', ((parseInt(prod.cantidad) || 1) + 1).toString())}
+                          disabled={isLoading}
+                          className="w-7 h-7 flex items-center justify-center text-slate-600 hover:bg-white rounded"
+                        >
+                          +
+                        </button>
+                      </div>
                     </div>
 
                     {/* Precio unitario */}
                     <div className="w-28">
+                      <label className="text-[11px] font-medium text-slate-500 mb-1 block">Precio unit.</label>
                       <input
                         type="number"
                         min="0"
@@ -1146,8 +1249,9 @@ const CotizacionFormModal = ({
                       />
                     </div>
 
-                    {/* Descuento % del producto */}
+                    {/* Descuento % */}
                     <div className="w-20">
+                      <label className="text-[11px] font-medium text-slate-500 mb-1 block">Desc. %</label>
                       <div className="relative">
                         <input
                           type="number"
@@ -1164,27 +1268,17 @@ const CotizacionFormModal = ({
                       </div>
                     </div>
 
-                    {/* Subtotal del producto */}
-                    <div className="w-28 text-right">
-                      <p className="text-sm font-semibold text-slate-800">{formatearMoneda(subtotalProducto - calcularDescuentoProducto(prod))}</p>
+                    {/* Subtotal */}
+                    <div className="flex-1 text-right">
+                      <label className="text-[11px] font-medium text-slate-500 mb-1 block">Subtotal</label>
+                      <p className="text-sm font-semibold text-slate-800 py-1.5">{formatearMoneda(subtotalProducto - calcularDescuentoProducto(prod))}</p>
                       {calcularDescuentoProducto(prod) > 0 && (
-                        <p className="text-xs text-green-600">-{formatearMoneda(calcularDescuentoProducto(prod))}</p>
+                        <p className="text-[10px] text-green-600 -mt-1">-{formatearMoneda(calcularDescuentoProducto(prod))}</p>
                       )}
                       {prod.precio_adicionales > 0 && (
-                        <p className="text-xs text-blue-600">+{formatearMoneda(prod.precio_adicionales)}</p>
+                        <p className="text-[10px] text-blue-600 -mt-0.5">+{formatearMoneda(prod.precio_adicionales)} config.</p>
                       )}
                     </div>
-
-                    {/* Boton eliminar */}
-                    <button
-                      type="button"
-                      onClick={() => eliminarProducto(index)}
-                      className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                      disabled={isLoading}
-                      title="Eliminar producto"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
                   </div>
 
                   {/* Configuracion de componentes - colapsable */}
@@ -1200,68 +1294,69 @@ const CotizacionFormModal = ({
                     />
                   )}
 
-                  {/* SECCIÓN DE RECARGOS */}
+                  {/* SECCIÓN DE RECARGOS - solo visible si hay recargos o como botón para agregar */}
                   {prod.compuesto_id && (
-                    <div className="mt-3 pt-3 border-t border-slate-200">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-medium text-slate-600 flex items-center gap-1">
-                          <Clock className="w-3.5 h-3.5" />
-                          Recargos (adelanto/extensión)
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => abrirModalRecargo(index)}
-                          className="text-xs text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1"
-                          disabled={isLoading}
-                        >
-                          <Plus className="w-3 h-3" />
-                          Agregar recargo
-                        </button>
-                      </div>
-
-                      {/* Lista de recargos del producto */}
+                    <div className="px-3 pb-2">
                       {(prod.recargos || []).length > 0 ? (
-                        <div className="space-y-1">
-                          {prod.recargos.map((recargo, recargoIndex) => (
-                            <div
-                              key={recargoIndex}
-                              className={`flex items-center justify-between p-2 rounded text-xs ${
-                                recargo.tipo === 'adelanto'
-                                  ? 'bg-blue-50 border border-blue-100'
-                                  : 'bg-orange-50 border border-orange-100'
-                              }`}
+                        <div className="pt-2 border-t border-slate-100">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-xs font-medium text-slate-600 flex items-center gap-1">
+                              <Clock className="w-3.5 h-3.5" />
+                              Recargos ({prod.recargos.length})
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => abrirModalRecargo(index)}
+                              className="text-xs text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1"
+                              disabled={isLoading}
                             >
-                              <div className="flex items-center gap-2">
-                                <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                              <Plus className="w-3 h-3" />
+                              Agregar
+                            </button>
+                          </div>
+
+                          {/* Lista de recargos del producto */}
+                          <div className="space-y-1">
+                            {prod.recargos.map((recargo, recargoIndex) => (
+                              <div
+                                key={recargoIndex}
+                                className={`flex items-center justify-between p-2 rounded text-xs ${
                                   recargo.tipo === 'adelanto'
-                                    ? 'bg-blue-100 text-blue-700'
-                                    : 'bg-orange-100 text-orange-700'
-                                }`}>
-                                  {recargo.tipo === 'adelanto' ? 'Adelanto' : 'Extensión'}
-                                </span>
-                                <span className="text-slate-600">
-                                  {recargo.dias} día{recargo.dias > 1 ? 's' : ''} @ {recargo.porcentaje}%
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <span className={`font-medium ${
-                                  recargo.tipo === 'adelanto' ? 'text-blue-700' : 'text-orange-700'
-                                }`}>
-                                  +{formatearMoneda(recargo.monto_recargo)}
-                                </span>
-                                <button
-                                  type="button"
-                                  onClick={() => abrirModalRecargo(index, recargoIndex)}
-                                  className="p-1 hover:bg-white rounded"
-                                  title="Editar recargo"
-                                >
-                                  <Percent className="w-3 h-3 text-slate-400" />
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => eliminarRecargo(index, recargoIndex)}
-                                  className="p-1 hover:bg-white rounded text-red-400 hover:text-red-600"
-                                  title="Eliminar recargo"
+                                    ? 'bg-blue-50 border border-blue-100'
+                                    : 'bg-orange-50 border border-orange-100'
+                                }`}
+                              >
+                                <div className="flex items-center gap-2">
+                                  <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                                    recargo.tipo === 'adelanto'
+                                      ? 'bg-blue-100 text-blue-700'
+                                      : 'bg-orange-100 text-orange-700'
+                                  }`}>
+                                    {recargo.tipo === 'adelanto' ? 'Adelanto' : 'Extensión'}
+                                  </span>
+                                  <span className="text-slate-600">
+                                    {recargo.dias} día{recargo.dias > 1 ? 's' : ''} @ {recargo.porcentaje}%
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className={`font-medium ${
+                                    recargo.tipo === 'adelanto' ? 'text-blue-700' : 'text-orange-700'
+                                  }`}>
+                                    +{formatearMoneda(recargo.monto_recargo)}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => abrirModalRecargo(index, recargoIndex)}
+                                    className="p-1 hover:bg-white rounded"
+                                    title="Editar recargo"
+                                  >
+                                    <Percent className="w-3 h-3 text-slate-400" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => eliminarRecargo(index, recargoIndex)}
+                                    className="p-1 hover:bg-white rounded text-red-400 hover:text-red-600"
+                                    title="Eliminar recargo"
                                 >
                                   <Trash2 className="w-3 h-3" />
                                 </button>
@@ -1276,8 +1371,20 @@ const CotizacionFormModal = ({
                             </span>
                           </div>
                         </div>
+                      </div>
                       ) : (
-                        <p className="text-xs text-slate-400 italic">Sin recargos</p>
+                        /* Sin recargos: solo mostrar botón discreto para agregar */
+                        <div className="pt-2 border-t border-slate-100">
+                          <button
+                            type="button"
+                            onClick={() => abrirModalRecargo(index)}
+                            className="text-xs text-slate-400 hover:text-blue-600 font-medium flex items-center gap-1 transition-colors"
+                            disabled={isLoading}
+                          >
+                            <Plus className="w-3 h-3" />
+                            Agregar recargo
+                          </button>
+                        </div>
                       )}
                     </div>
                   )}
@@ -1324,7 +1431,17 @@ const CotizacionFormModal = ({
               </Button>
             </div>
           )}
+
+            </div>{/* Fin panel derecho */}
+          </div>{/* Fin grid dos paneles */}
         </div>
+
+        </>)}
+
+        {/* ============================================
+            PASO 3: TRANSPORTE Y EXTRAS
+            ============================================ */}
+        {pasoActual === 3 && (<>
 
         {/* TRANSPORTE */}
         <div className="space-y-4">
@@ -1411,6 +1528,105 @@ const CotizacionFormModal = ({
           )}
         </div>
 
+        {/* NOTAS */}
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-2">
+            Notas
+          </label>
+          <textarea
+            name="notas"
+            value={formData.notas}
+            onChange={handleChange}
+            placeholder="Notas adicionales..."
+            rows={2}
+            disabled={isLoading}
+            className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-100 resize-none"
+          />
+        </div>
+
+        </>)}
+
+        {/* ============================================
+            PASO 4: RESUMEN Y TOTALES
+            ============================================ */}
+        {pasoActual === 4 && (<>
+
+        {/* RESUMEN COMPACTO */}
+        <div className="space-y-4">
+          {/* Datos del evento */}
+          <div className="bg-slate-50 rounded-lg p-4">
+            <h4 className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
+              <Calendar className="w-4 h-4" />
+              Evento
+            </h4>
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              {formData.evento_nombre && (
+                <div><span className="text-slate-500">Nombre:</span> <span className="font-medium">{formData.evento_nombre}</span></div>
+              )}
+              <div><span className="text-slate-500">Ciudad:</span> <span className="font-medium">{formData.evento_ciudad || '-'}</span></div>
+              {fechasPorConfirmar ? (
+                <div className="col-span-2 text-amber-600 italic">Fechas por confirmar (borrador)</div>
+              ) : (
+                <>
+                  <div><span className="text-slate-500">Evento:</span> <span className="font-medium">{formData.fecha_evento || '-'}</span></div>
+                  {formData.fecha_montaje && formData.fecha_montaje !== formData.fecha_evento && (
+                    <div><span className="text-slate-500">Montaje:</span> <span className="font-medium">{formData.fecha_montaje}</span></div>
+                  )}
+                  {formData.fecha_desmontaje && formData.fecha_desmontaje !== formData.fecha_evento && (
+                    <div><span className="text-slate-500">Desmontaje:</span> <span className="font-medium">{formData.fecha_desmontaje}</span></div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Productos resumen */}
+          <div className="bg-slate-50 rounded-lg p-4">
+            <h4 className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
+              <Package className="w-4 h-4" />
+              Productos ({productosSeleccionados.length})
+            </h4>
+            <div className="space-y-1">
+              {productosSeleccionados.map((prod, idx) => {
+                const info = productos.find(p => p.id === parseInt(prod.compuesto_id))
+                const subtotal = ((parseFloat(prod.precio_base) || 0) + (parseFloat(prod.precio_adicionales) || 0)) * (parseInt(prod.cantidad) || 1)
+                const desc = calcularDescuentoProducto(prod)
+                return (
+                  <div key={idx} className="flex justify-between text-sm">
+                    <span className="text-slate-600">
+                      {info?.categoria_emoji || ''} {info?.nombre || 'Producto'} x{prod.cantidad}
+                      {desc > 0 && <span className="text-green-600 ml-1">(-{prod.descuento_porcentaje}%)</span>}
+                    </span>
+                    <span className="font-medium">{formatearMoneda(subtotal - desc)}</span>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Transporte resumen */}
+          {transporteSeleccionado.length > 0 && (
+            <div className="bg-slate-50 rounded-lg p-4">
+              <h4 className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
+                <Truck className="w-4 h-4" />
+                Transporte
+              </h4>
+              <div className="space-y-1">
+                {transporteSeleccionado.map((trans, idx) => {
+                  const tarifa = tarifas.find(t => t.id === parseInt(trans.tarifa_id))
+                  if (!tarifa) return null
+                  return (
+                    <div key={idx} className="flex justify-between text-sm">
+                      <span className="text-slate-600">{tarifa.tipo_camion} x{trans.cantidad}</span>
+                      <span className="font-medium">{formatearMoneda(tarifa.precio * (parseInt(trans.cantidad) || 1))}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* TOTALES CON DESGLOSE IVA */}
         {(() => {
           const totales = calcularTotalesConIVA()
@@ -1485,46 +1701,61 @@ const CotizacionFormModal = ({
           )
         })()}
 
-        {/* NOTAS */}
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-2">
-            Notas
-          </label>
-          <textarea
-            name="notas"
-            value={formData.notas}
-            onChange={handleChange}
-            placeholder="Notas adicionales..."
-            rows={2}
-            disabled={isLoading}
-            className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-100 resize-none"
-          />
-        </div>
+        </>)}
 
-        {/* BOTONES */}
-        <div className="flex gap-3 pt-4 border-t">
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={handleClose}
-            disabled={isLoading}
-            fullWidth
-          >
-            Cancelar
-          </Button>
+        </div>{/* Fin contenido animado */}
 
-          <Button
-            type="submit"
-            variant="primary"
-            loading={isLoading}
-            disabled={isLoading}
-            fullWidth
-          >
-            {mode === 'crear'
-              ? (fechasPorConfirmar ? 'Crear Borrador' : 'Crear Cotizacion')
-              : 'Guardar Cambios'
-            }
-          </Button>
+        {/* FOOTER FIJO: Navegación del wizard */}
+        <div className="flex items-center justify-between pt-4 mt-4 border-t border-slate-200">
+          <div>
+            {pasoActual > 1 && (
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                icon={<ChevronLeft className="w-4 h-4" />}
+                onClick={anterior}
+              >
+                Anterior
+              </Button>
+            )}
+          </div>
+
+          <div className="flex items-center gap-3">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={handleClose}
+              disabled={isLoading}
+            >
+              Cancelar
+            </Button>
+
+            {pasoActual < 4 ? (
+              <Button
+                type="button"
+                variant="primary"
+                size="sm"
+                onClick={siguiente}
+              >
+                Siguiente
+                <ChevronRight className="w-4 h-4 ml-1" />
+              </Button>
+            ) : (
+              <Button
+                type="submit"
+                variant="primary"
+                loading={isLoading}
+                disabled={isLoading}
+              >
+                {mode === 'crear'
+                  ? (fechasPorConfirmar ? 'Crear Borrador' : 'Crear Cotizacion')
+                  : 'Guardar Cambios'
+                }
+              </Button>
+            )}
+          </div>
         </div>
       </form>
 
