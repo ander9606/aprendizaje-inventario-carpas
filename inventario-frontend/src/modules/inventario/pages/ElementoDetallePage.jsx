@@ -521,15 +521,6 @@ function ElementoDetallePage() {
   // 8. RENDERIZADO PRINCIPAL
   // ============================================
 
-  // Tabs de filtro para la tabla
-  const tabsFiltro = [
-    { key: null, label: 'Todos' },
-    { key: 'bueno', label: 'Bueno' },
-    { key: 'alquilado', label: 'Alquilado' },
-    { key: 'mantenimiento', label: 'Mantenimiento' },
-    ...(elemento.requiere_series ? [] : [{ key: 'dañado', label: 'Dañado' }])
-  ]
-
   // Colores de stat cards por estado
   const statCards = [
     { key: null, value: disponibilidad.total, label: 'Total', borderColor: 'border-slate-200', textColor: 'text-slate-900' },
@@ -713,23 +704,6 @@ function ElementoDetallePage() {
                   className="w-full pl-8 pr-3 py-1.5 text-sm border border-slate-200 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
-            </div>
-
-            {/* Tab filters */}
-            <div className="bg-slate-100 rounded-full p-1 flex gap-1">
-              {tabsFiltro.map((tab) => (
-                <button
-                  key={tab.label}
-                  onClick={() => handleFiltroEstado(tab.key)}
-                  className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
-                    filtroEstado === tab.key
-                      ? 'bg-white text-slate-900 shadow-sm'
-                      : 'text-slate-500 hover:text-slate-700'
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
             </div>
 
             {/* Table */}
