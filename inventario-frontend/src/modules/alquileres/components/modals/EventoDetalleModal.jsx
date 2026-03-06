@@ -363,7 +363,7 @@ const EventoDetalleModal = ({ isOpen, onClose, eventoId, onCrearCotizacion, onEd
                                             const estadoConfig = getEstadoConfig(cot.estado)
                                             const EstadoIcon = estadoConfig.icon
                                             const puedeEditar = ['pendiente', 'borrador'].includes(cot.estado)
-                                            const puedeEliminar = ['pendiente', 'borrador'].includes(cot.estado) && cot.tiene_alquiler === 0
+                                            const puedeEliminar = ['pendiente', 'borrador', 'rechazada'].includes(cot.estado) && cot.tiene_alquiler === 0
 
                                             return (
                                                 <div
