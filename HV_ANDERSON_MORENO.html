@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HV — Anderson Moreno</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      font-size: 10.5pt;
+      color: #1a1a1a;
+      background: #fff;
+      line-height: 1.5;
+    }
+
+    .page {
+      max-width: 780px;
+      margin: 0 auto;
+      padding: 36px 44px;
+    }
+
+    /* ENCABEZADO */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      border-bottom: 2.5px solid #1a56db;
+      padding-bottom: 14px;
+      margin-bottom: 18px;
+    }
+
+    .header-left h1 {
+      font-size: 22pt;
+      font-weight: 700;
+      color: #1a56db;
+      letter-spacing: -0.5px;
+    }
+
+    .header-left .title {
+      font-size: 11pt;
+      color: #444;
+      margin-top: 2px;
+    }
+
+    .header-right {
+      text-align: right;
+      font-size: 9.5pt;
+      color: #444;
+      line-height: 1.8;
+    }
+
+    .header-right a {
+      color: #1a56db;
+      text-decoration: none;
+    }
+
+    /* SECCIONES */
+    section { margin-bottom: 16px; }
+
+    .section-title {
+      font-size: 10pt;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #1a56db;
+      border-bottom: 1px solid #c7d7f8;
+      padding-bottom: 3px;
+      margin-bottom: 8px;
+    }
+
+    /* PERFIL */
+    .perfil p {
+      color: #222;
+      text-align: justify;
+    }
+
+    /* COMPETENCIAS */
+    .competencias-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px 20px;
+    }
+
+    .competencias-grid .item {
+      font-size: 9.8pt;
+      line-height: 1.6;
+    }
+
+    .competencias-grid .item strong {
+      color: #1a56db;
+    }
+
+    /* EXPERIENCIA */
+    .exp-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 2px;
+    }
+
+    .exp-header .job-title {
+      font-weight: 700;
+      font-size: 10.8pt;
+      color: #111;
+    }
+
+    .exp-header .period {
+      font-size: 9pt;
+      color: #666;
+      white-space: nowrap;
+    }
+
+    .exp-company {
+      font-size: 9.5pt;
+      color: #444;
+      margin-bottom: 6px;
+      font-style: italic;
+    }
+
+    .exp-summary {
+      font-size: 9.8pt;
+      color: #333;
+      margin-bottom: 6px;
+      text-align: justify;
+    }
+
+    .sub-title {
+      font-weight: 700;
+      font-size: 9.5pt;
+      color: #333;
+      margin: 6px 0 2px;
+    }
+
+    ul {
+      padding-left: 16px;
+      margin-bottom: 4px;
+    }
+
+    ul li {
+      font-size: 9.5pt;
+      color: #333;
+      margin-bottom: 2px;
+      line-height: 1.5;
+    }
+
+    .metrics {
+      display: flex;
+      gap: 20px;
+      margin-top: 8px;
+      flex-wrap: wrap;
+    }
+
+    .metric-box {
+      background: #f0f5ff;
+      border: 1px solid #c7d7f8;
+      border-radius: 6px;
+      padding: 6px 14px;
+      text-align: center;
+    }
+
+    .metric-box .value {
+      font-size: 12pt;
+      font-weight: 700;
+      color: #1a56db;
+    }
+
+    .metric-box .label {
+      font-size: 8pt;
+      color: #555;
+    }
+
+    .stack-tags {
+      margin-top: 8px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+    }
+
+    .tag {
+      background: #e8effd;
+      color: #1a56db;
+      font-size: 8.5pt;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-weight: 600;
+    }
+
+    .exp-divider {
+      border: none;
+      border-top: 1px dashed #ddd;
+      margin: 12px 0;
+    }
+
+    /* EDUCACION */
+    .edu-item {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 5px;
+    }
+
+    .edu-item .edu-left strong {
+      font-size: 10pt;
+      color: #111;
+    }
+
+    .edu-item .edu-left span {
+      font-size: 9pt;
+      color: #555;
+      display: block;
+    }
+
+    .edu-item .edu-right {
+      font-size: 9pt;
+      color: #666;
+      white-space: nowrap;
+    }
+
+    /* DOS COLUMNAS INFERIORES */
+    .bottom-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    .soft-item {
+      margin-bottom: 5px;
+    }
+
+    .soft-item strong {
+      font-size: 9.5pt;
+      color: #1a56db;
+    }
+
+    .soft-item p {
+      font-size: 9pt;
+      color: #444;
+      margin-top: 1px;
+    }
+
+    /* IDIOMAS */
+    .idioma {
+      font-size: 9.5pt;
+      margin-bottom: 3px;
+    }
+
+    /* GITHUB LINK */
+    .github-link {
+      font-size: 9pt;
+      margin-top: 8px;
+      color: #444;
+    }
+
+    .github-link a { color: #1a56db; text-decoration: none; }
+
+    @media print {
+      body { background: #fff; }
+      .page { padding: 20px 30px; }
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ENCABEZADO -->
+  <header>
+    <div class="header-left">
+      <h1>Anderson Moreno</h1>
+      <div class="title">Desarrollador de Software Full-Stack</div>
+    </div>
+    <div class="header-right">
+      <div>320 414 3661</div>
+      <div><a href="mailto:anderson960616@gmail.com">anderson960616@gmail.com</a></div>
+      <div>Tenjo, Cundinamarca</div>
+      <div><a href="https://github.com/ander9606">github.com/ander9606</a></div>
+    </div>
+  </header>
+
+  <!-- PERFIL -->
+  <section class="perfil">
+    <div class="section-title">Perfil Profesional</div>
+    <p>
+      Desarrollador Full-Stack con experiencia en diseño, desarrollo y mantenimiento de aplicaciones web empresariales.
+      Creador de un sistema de gestión de inventario y alquileres con +86.000 líneas de código, 261 endpoints REST
+      y 106 componentes React. Dominio avanzado de JavaScript (Node.js, Express, React 19), bases de datos relacionales
+      (MySQL) y arquitectura MVC. Experiencia previa en coordinación logística de eventos (+100 eventos/año), aportando
+      visión integral del negocio al desarrollo de software. Actualmente cursando Tecnología en Análisis y Desarrollo
+      de Software en el SENA.
+    </p>
+  </section>
+
+  <!-- COMPETENCIAS -->
+  <section>
+    <div class="section-title">Competencias Técnicas</div>
+    <div class="competencias-grid">
+      <div class="item"><strong>Lenguajes:</strong> JavaScript (ES6+), SQL, HTML5, CSS3</div>
+      <div class="item"><strong>Arquitectura:</strong> MVC, POO, diseño modular, middleware</div>
+      <div class="item"><strong>Backend:</strong> Node.js, Express.js 5, API RESTful, JWT, bcrypt, Multer</div>
+      <div class="item"><strong>Herramientas:</strong> Git, GitHub (PRs, code review), Vite, npm</div>
+      <div class="item"><strong>Frontend:</strong> React 19, React Query, Zustand, React Hook Form, Recharts, FullCalendar</div>
+      <div class="item"><strong>Metodologías:</strong> Scrum/Agile, documentación técnica, pruebas de API</div>
+      <div class="item"><strong>UI/CSS:</strong> TailwindCSS, Lucide Icons, diseño responsivo</div>
+      <div class="item"><strong>Reportes:</strong> ExcelJS, PDFKit</div>
+      <div class="item"><strong>Base de Datos:</strong> MySQL 8.0 — diseño relacional, migraciones, indexación</div>
+      <div class="item"><strong>Idiomas:</strong> Español (nativo) · Inglés (intermedio técnico)</div>
+    </div>
+  </section>
+
+  <!-- EXPERIENCIA -->
+  <section>
+    <div class="section-title">Experiencia Profesional</div>
+
+    <!-- Proyecto principal -->
+    <div class="exp-header">
+      <span class="job-title">Desarrollador Full-Stack — Sistema de Inventario y Alquileres</span>
+      <span class="period">Dic 2025 – Presente</span>
+    </div>
+    <div class="exp-company">Carpas Vento SAS &nbsp;·&nbsp; Proyecto profesional</div>
+
+    <p class="exp-summary">
+      Diseñé y desarrollé de forma autónoma una aplicación web empresarial full-stack desde cero, digitalizando
+      los procesos de inventario, cotizaciones, alquileres y operaciones logísticas de la empresa.
+    </p>
+
+    <div class="sub-title">Logros principales:</div>
+    <ul>
+      <li>Construí una API REST con <strong>261 endpoints</strong> en 6 módulos de negocio usando arquitectura MVC modular (24 controladores, 31 modelos, 5 middleware especializados).</li>
+      <li>Diseñé base de datos relacional en MySQL con <strong>31 tablas</strong>, 29+ índices optimizados y sistema de 11 migraciones automatizadas.</li>
+      <li>Implementé autenticación segura con <strong>JWT</strong> (access/refresh tokens), bcrypt y control de acceso por roles.</li>
+      <li>Desarrollé <strong>106 componentes React</strong> reutilizables, 36 custom hooks y 31 páginas/vistas con React 19 y TailwindCSS.</li>
+      <li>Integré calendarios de reservas, cronómetros en vivo para órdenes de trabajo y dashboards con Recharts.</li>
+      <li>Automaticé generación de <strong>reportes en Excel y PDF</strong> desde los datos del sistema.</li>
+      <li>Gestioné el ciclo completo con <strong>81 commits + 68 Pull Requests</strong> con code review y documentación técnica por módulo.</li>
+    </ul>
+
+    <div class="metrics">
+      <div class="metric-box">
+        <div class="value">+86.700</div>
+        <div class="label">Líneas de código</div>
+      </div>
+      <div class="metric-box">
+        <div class="value">261</div>
+        <div class="label">Endpoints REST</div>
+      </div>
+      <div class="metric-box">
+        <div class="value">106</div>
+        <div class="label">Componentes React</div>
+      </div>
+      <div class="metric-box">
+        <div class="value">31</div>
+        <div class="label">Tablas MySQL</div>
+      </div>
+      <div class="metric-box">
+        <div class="value">68+</div>
+        <div class="label">Pull Requests</div>
+      </div>
+    </div>
+
+    <div class="stack-tags">
+      <span class="tag">JavaScript</span>
+      <span class="tag">Node.js</span>
+      <span class="tag">Express 5</span>
+      <span class="tag">React 19</span>
+      <span class="tag">MySQL 8.0</span>
+      <span class="tag">TailwindCSS</span>
+      <span class="tag">JWT</span>
+      <span class="tag">React Query</span>
+      <span class="tag">Zustand</span>
+      <span class="tag">Vite</span>
+      <span class="tag">ExcelJS</span>
+      <span class="tag">PDFKit</span>
+      <span class="tag">Git/GitHub</span>
+    </div>
+
+    <div class="github-link">
+      Repositorio: <a href="https://github.com/ander9606/aprendizaje-inventario-carpas">github.com/ander9606/aprendizaje-inventario-carpas</a>
+    </div>
+
+    <hr class="exp-divider" />
+
+    <!-- Coordinador logístico -->
+    <div class="exp-header">
+      <span class="job-title">Coordinador Logístico</span>
+      <span class="period">2019</span>
+    </div>
+    <div class="exp-company">Carpas Vento SAS</div>
+    <ul>
+      <li>Gestioné y capacité personal para la ejecución de más de <strong>100 eventos al año</strong>.</li>
+      <li>Reduje los tiempos de entrega de servicios en un <strong>50%</strong> mediante optimización de procesos.</li>
+      <li>Diseñé nuevos productos para el portafolio, ampliando el alcance comercial de la empresa.</li>
+    </ul>
+  </section>
+
+  <!-- EDUCACION -->
+  <section>
+    <div class="section-title">Educación</div>
+
+    <div class="edu-item">
+      <div class="edu-left">
+        <strong>Tecnología en Análisis y Desarrollo de Software</strong>
+        <span>SENA</span>
+      </div>
+      <div class="edu-right">2023 – Actualidad</div>
+    </div>
+
+    <div class="edu-item">
+      <div class="edu-left">
+        <strong>Técnico en Desarrollo Web y Aplicaciones Móviles</strong>
+        <span>Universidad Autónoma de Bucaramanga (UNAB) — Programa MINTIC</span>
+      </div>
+      <div class="edu-right">2021 – 2022</div>
+    </div>
+
+    <div class="edu-item">
+      <div class="edu-left">
+        <strong>Formación complementaria (Udemy)</strong>
+        <span>Máster en SQL Server · JavaScript con Node.js · JavaScript: Proyectos Reales</span>
+      </div>
+      <div class="edu-right"></div>
+    </div>
+  </section>
+
+  <!-- HABILIDADES BLANDAS + IDIOMAS -->
+  <div class="bottom-grid">
+    <section>
+      <div class="section-title">Habilidades Blandas</div>
+      <div class="soft-item">
+        <strong>Autonomía y aprendizaje:</strong>
+        <p>Proyecto de +86.000 líneas desarrollado de forma independiente, aprendiendo tecnologías según las necesidades del sistema.</p>
+      </div>
+      <div class="soft-item">
+        <strong>Resolución de problemas:</strong>
+        <p>Diagnóstico sistemático de bugs complejos con documentación de soluciones.</p>
+      </div>
+      <div class="soft-item">
+        <strong>Organización:</strong>
+        <p>Uso disciplinado de Git con PRs descriptivos, branches por feature y documentación técnica por módulo.</p>
+      </div>
+      <div class="soft-item">
+        <strong>Visión de negocio:</strong>
+        <p>Experiencia operativa previa que permite entender las necesidades reales del usuario final.</p>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-title">Idiomas</div>
+      <div class="idioma"><strong>Español:</strong> Nativo</div>
+      <div class="idioma"><strong>Inglés:</strong> Intermedio (lectura técnica y documentación)</div>
+    </section>
+  </div>
+
+</div>
+</body>
+</html>
