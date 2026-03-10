@@ -90,11 +90,13 @@ const InventarioDashboard = () => {
   }))
 
   // Datos para gráfica de ubicación (bodegas)
+  // series = cantidad de series individuales en esa bodega
+  // lotes = SUM(cantidad) de lotes en esa bodega (ya viene sumado del backend)
   const datosUbicacion = (distribucionUbicacion || []).map(item => ({
     name: item.ubicacion,
-    total: Number(item.series) + Number(item.lotes),
-    series: Number(item.series),
-    lotes: Number(item.lotes)
+    unidades: Number(item.total || 0),
+    series: Number(item.series || 0),
+    lotes: Number(item.lotes || 0)
   }))
 
   return (
@@ -190,11 +192,9 @@ const InventarioDashboard = () => {
                 <YAxis fontSize={11} stroke="#64748B" />
                 <Tooltip
                   contentStyle={{ borderRadius: 8, border: '1px solid #E2E8F0' }}
-                  formatter={(value, name) => [formatearNumero(value), name === 'series' ? 'Series' : 'Lotes']}
+                  formatter={(value) => [formatearNumero(value), 'Unidades']}
                 />
-                <Legend />
-                <Bar dataKey="series" name="Series" fill="#2563EB" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="lotes" name="Lotes" fill="#8B5CF6" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="unidades" name="Unidades" fill="#2563EB" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           ) : (
@@ -261,13 +261,13 @@ const InventarioDashboard = () => {
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {datosUbicacion
-                      .sort((a, b) => b.total - a.total)
+                      .sort((a, b) => b.unidades - a.unidades)
                       .map((ub) => (
                       <tr key={ub.name} className="hover:bg-slate-50">
                         <td className="py-2.5 pr-4 text-slate-900 font-medium">{ub.name}</td>
                         <td className="py-2.5 px-2 text-center text-blue-600 font-semibold">{ub.series}</td>
                         <td className="py-2.5 px-2 text-center text-purple-600 font-semibold">{ub.lotes}</td>
-                        <td className="py-2.5 pl-2 text-center text-slate-900 font-bold">{ub.total}</td>
+                        <td className="py-2.5 pl-2 text-center text-slate-900 font-bold">{ub.unidades}</td>
                       </tr>
                     ))}
                   </tbody>
