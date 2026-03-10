@@ -5,7 +5,7 @@
 
 import { useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Edit, Trash2, Plus, Calendar, User, Clock, MapPin, BarChart3, Layers, Settings } from 'lucide-react'
+import { ArrowLeft, Edit, Trash2, Plus, Calendar, User, Clock, MapPin, BarChart3, Layers, Settings, Package, ArrowRightLeft, Search, ChevronLeft, ChevronRight, Image as ImageIcon } from 'lucide-react'
 import { toast } from 'sonner'
 
 // Hooks personalizados
@@ -21,9 +21,9 @@ import Button from '@shared/components/Button'
 import Spinner from '@shared/components/Spinner'
 import Breadcrumb from '@shared/components/Breadcrum'
 import Card from '@shared/components/Card'
-import StatCard from '@shared/components/StatCard'
 import ImageUpload from '@shared/components/ImageUpload'
 import ConfirmModal from '@shared/components/ConfirmModal'
+import { EstadoBadge } from '@shared/components/Badge'
 import SerieItem from '../components/elementos/series/SerieItem'
 import LoteUbicacionGroup from '../components/elementos/lotes/LoteUbicacionGroup'
 import EmptyState from '@shared/components/EmptyState'
@@ -83,6 +83,9 @@ function ElementoDetallePage() {
    * 'nuevo', 'bueno', etc = mostrar solo ese estado
    */
   const [filtroEstado, setFiltroEstado] = useState(null)
+  const [busqueda, setBusqueda] = useState('')
+  const [paginaActual, setPaginaActual] = useState(1)
+  const ITEMS_POR_PAGINA = 10
 
   /**
    * Estados de modales
@@ -221,17 +224,56 @@ function ElementoDetallePage() {
   }, [elemento?.requiere_series, series, lotes])
 
   /**
-   * itemsFiltrados: Series o lotes filtrados por estado
+   * Cálculos de disponibilidad para la barra de progreso
    */
-  const itemsFiltrados = elemento?.requiere_series
-    ? (filtroEstado
-        ? series.filter(s => s.estado === filtroEstado)
-        : series
-      )
-    : (filtroEstado
-        ? lotes.filter(l => l.estado === filtroEstado)
-        : lotes
-      )
+  const disponibilidad = useMemo(() => {
+    const total = elemento?.requiere_series
+      ? series.length
+      : lotes.reduce((sum, l) => sum + (l.cantidad || 0), 0)
+
+    if (total === 0) return { total: 0, disponibles: 0, alquilados: 0, otros: 0, pctDisponible: 0, pctAlquilado: 0, pctOtros: 0 }
+
+    const disponibles = elemento?.requiere_series
+      ? (estadisticas.bueno || 0) + (estadisticas.disponible || 0) + (estadisticas.nuevo || 0)
+      : (estadisticas.bueno || 0) + (estadisticas.nuevo || 0)
+    const alquilados = estadisticas.alquilado || 0
+    const mantenimiento = estadisticas.mantenimiento || 0
+    const danados = estadisticas['dañado'] || 0
+    const otros = mantenimiento + danados
+
+    return {
+      total,
+      disponibles,
+      alquilados,
+      otros,
+      pctDisponible: Math.round((disponibles / total) * 100),
+      pctAlquilado: Math.round((alquilados / total) * 100),
+      pctOtros: Math.round((otros / total) * 100),
+    }
+  }, [elemento?.requiere_series, series, lotes, estadisticas])
+
+  /**
+   * itemsFiltrados: Series o lotes filtrados por estado y búsqueda
+   */
+  const itemsFiltrados = useMemo(() => {
+    let items = elemento?.requiere_series ? series : lotes
+    if (filtroEstado) {
+      items = items.filter(item => item.estado === filtroEstado)
+    }
+    if (busqueda.trim()) {
+      const q = busqueda.toLowerCase()
+      items = elemento?.requiere_series
+        ? items.filter(s => s.numero_serie?.toLowerCase().includes(q))
+        : items.filter(l => (l.ubicacion || l.nombre || '').toLowerCase().includes(q))
+    }
+    return items
+  }, [elemento?.requiere_series, series, lotes, filtroEstado, busqueda])
+
+  const totalPaginas = Math.ceil(itemsFiltrados.length / ITEMS_POR_PAGINA)
+  const itemsPaginados = itemsFiltrados.slice(
+    (paginaActual - 1) * ITEMS_POR_PAGINA,
+    paginaActual * ITEMS_POR_PAGINA
+  )
 
   // ============================================
   // 5. HANDLERS
@@ -394,12 +436,12 @@ function ElementoDetallePage() {
    * @param {string} estado - Estado a filtrar (null = todos)
    */
   const handleFiltroEstado = (estado) => {
-    // Si ya está seleccionado, quitarlo (mostrar todos)
     if (filtroEstado === estado) {
       setFiltroEstado(null)
     } else {
       setFiltroEstado(estado)
     }
+    setPaginaActual(1)
   }
 
   // ============================================
@@ -479,25 +521,31 @@ function ElementoDetallePage() {
   // 8. RENDERIZADO PRINCIPAL
   // ============================================
 
+  // Colores de stat cards por estado
+  const statCards = [
+    { key: null, value: disponibilidad.total, label: 'Total', borderColor: 'border-slate-200', textColor: 'text-slate-900' },
+    { key: 'bueno', value: estadisticas?.bueno || 0, label: 'Bueno', borderColor: 'border-green-500', textColor: 'text-green-600' },
+    { key: 'alquilado', value: estadisticas?.alquilado || 0, label: 'Alquilado', borderColor: 'border-amber-500', textColor: 'text-amber-600' },
+    { key: 'mantenimiento', value: estadisticas?.mantenimiento || 0, label: 'Mantenimiento', borderColor: 'border-purple-500', textColor: 'text-purple-600' },
+    { key: 'dañado', value: estadisticas?.['dañado'] || 0, label: 'Dañado', borderColor: 'border-red-500', textColor: 'text-red-600' },
+  ]
+
   return (
     <div className="flex min-h-screen bg-slate-50">
 
       {/* ============================================
           SIDEBAR DE NAVEGACIÓN
           ============================================ */}
-      <aside className="w-52 bg-slate-900 flex-shrink-0 flex flex-col">
-        {/* Header */}
-        <div className="px-4 py-5 border-b border-slate-700/50">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
-              <Layers className="w-4 h-4 text-white" />
-            </div>
-            <span className="font-bold text-white text-sm">Inventario</span>
+      <aside className="w-[280px] bg-sidebar flex-shrink-0 flex flex-col border-r border-slate-200">
+        <div className="px-8 py-6 border-b border-slate-200 flex items-center gap-2">
+          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
+            <Layers className="w-4 h-4 text-white" />
           </div>
+          <span className="font-bold text-slate-900 text-lg">Inventario</span>
         </div>
 
-        {/* Navegación */}
-        <nav className="flex-1 px-2 py-4 space-y-1">
+        <nav className="flex-1 px-4 py-4">
+          <p className="px-4 text-sm text-slate-500 mb-2">Navegación</p>
           {[
             { icon: Layers, label: 'Categorías', path: '/inventario', active: true },
             { icon: BarChart3, label: 'Analítica', path: '/inventario/dashboard' },
@@ -507,13 +555,13 @@ function ElementoDetallePage() {
             <button
               key={label}
               onClick={() => navigate(path)}
-              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+              className={`w-full flex items-center gap-4 px-4 py-3 rounded-full text-base font-normal transition-colors mb-1 ${
                 active
-                  ? 'bg-blue-600 text-white'
-                  : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                  ? 'bg-slate-100 text-slate-900'
+                  : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
               }`}
             >
-              <Icon className="w-4 h-4 flex-shrink-0" />
+              <Icon className="w-5 h-5 flex-shrink-0" />
               {label}
             </button>
           ))}
@@ -523,331 +571,258 @@ function ElementoDetallePage() {
       {/* ============================================
           CONTENIDO PRINCIPAL
           ============================================ */}
-      <main className="flex-1 overflow-auto">
-      <div className="container mx-auto px-4 py-6">
+      <main className="flex-1 overflow-auto flex flex-col">
 
-      {/* ============================================
-          HEADER
-          ============================================ */}
-      <div className="mb-6">
-        {/* Breadcrumb + Volver */}
-        <div className="flex items-center gap-3 mb-4">
-          <button
-            onClick={handleGoBack}
-            className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
-            aria-label="Volver"
-          >
-            <ArrowLeft className="w-5 h-5 text-slate-600" />
-          </button>
-          <Breadcrumb items={breadcrumbItems} />
+        {/* PAGE HEADER */}
+        <div className="bg-white border-b border-slate-200 px-6 py-3">
+          {/* Breadcrumb */}
+          <div className="mb-2">
+            <Breadcrumb items={breadcrumbItems} />
+          </div>
+
+          {/* Title + Action Buttons */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">{elemento.emoji || '🏕️'}</span>
+              <h1 className="text-xl font-bold text-slate-900">{elemento.nombre}</h1>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button variant="danger" size="sm" onClick={handleDeleteElemento}>
+                Eliminar
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleEditElemento}>
+                Editar
+              </Button>
+              <Button variant="primary" size="sm" icon={<Plus className="w-4 h-4" />} onClick={handleAdd}>
+                {elemento.requiere_series ? 'Agregar serie' : 'Agregar lote'}
+              </Button>
+            </div>
+          </div>
         </div>
 
-        {/* Card de info del elemento */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-          {/* Barra de acento */}
-          <div className={`h-1.5 ${elemento.requiere_series
-            ? 'bg-gradient-to-r from-purple-500 to-violet-500'
-            : 'bg-gradient-to-r from-emerald-500 to-teal-500'
-          }`} />
+        {/* STATS ROW */}
+        <div className="flex gap-3 px-6 py-4">
+          {statCards.map((stat) => (
+            <button
+              key={stat.label}
+              onClick={() => handleFiltroEstado(stat.key)}
+              className={`flex-1 bg-white rounded-lg border p-3.5 text-left transition-all ${stat.borderColor} ${
+                filtroEstado === stat.key
+                  ? 'ring-2 ring-blue-200'
+                  : 'hover:shadow-sm'
+              }`}
+            >
+              <p className={`text-2xl font-bold ${stat.textColor}`}>{stat.value}</p>
+              <p className="text-xs text-slate-500">{stat.label}</p>
+            </button>
+          ))}
+        </div>
 
-          <div className="p-6">
-            <div className="flex gap-6">
-              {/* Imagen del elemento */}
-              <div className="flex-shrink-0">
-                <ImageUpload
-                  imagenUrl={elemento.imagen}
-                  onSubir={(archivo) => {
-                    subirImagen.mutate(
-                      { elementoId: elemento.id, archivo },
-                      {
-                        onSuccess: () => { toast.success('Imagen actualizada'); refetchElemento() },
-                        onError: () => toast.error('Error al subir imagen')
-                      }
-                    )
-                  }}
-                  onEliminar={() => {
-                    eliminarImagen.mutate(elemento.id, {
-                      onSuccess: () => { toast.success('Imagen eliminada'); refetchElemento() },
-                      onError: () => toast.error('Error al eliminar imagen')
-                    })
-                  }}
-                  isUploading={subirImagen.isPending}
-                  size="lg"
-                />
-              </div>
+        {/* CONTENT ROW: InfoCol + TableCol */}
+        <div className="flex gap-4 px-6 pb-6 flex-1 min-h-0">
 
-              {/* Información del elemento */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="min-w-0">
-                    <h1 className="text-2xl font-bold text-slate-900 truncate">
-                      {elemento.nombre}
-                    </h1>
-                    <p className="text-sm text-slate-500 mt-0.5">
-                      {elemento.subcategoria_nombre} &middot; {elemento.categoria_padre_nombre}
-                    </p>
-                  </div>
+          {/* INFO COLUMN (LEFT) */}
+          <div className="w-[360px] flex-shrink-0">
+            <div className="bg-white rounded-xl border border-slate-200 overflow-hidden h-full flex flex-col">
+              {/* Image area */}
+              {elemento.imagen ? (
+                <div className="w-full h-[180px] bg-slate-100 overflow-hidden">
+                  <img
+                    src={elemento.imagen}
+                    alt={elemento.nombre}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              ) : (
+                <div className="w-full h-[180px] bg-slate-100 flex items-center justify-center">
+                  <ImageIcon className="w-12 h-12 text-slate-300" />
+                </div>
+              )}
 
-                  {/* Acciones principales */}
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <Button
-                      variant="danger"
-                      size="sm"
-                      icon={<Trash2 className="w-4 h-4" />}
-                      onClick={handleDeleteElemento}
-                    >
-                      Eliminar
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      icon={<Edit className="w-4 h-4" />}
-                      onClick={handleEditElemento}
-                    >
-                      Editar
-                    </Button>
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      icon={<Plus className="w-4 h-4" />}
-                      onClick={handleAdd}
-                    >
-                      {elemento.requiere_series ? 'Agregar serie' : 'Agregar lote'}
-                    </Button>
-                  </div>
+              {/* Body */}
+              <div className="p-5 flex-1 flex flex-col gap-3.5">
+                {/* Name + badge */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h2 className="text-[17px] font-bold text-slate-900">{elemento.nombre}</h2>
+                  <span className="inline-flex items-center px-2 py-1 bg-slate-100 text-slate-600 rounded-full text-sm">
+                    {elemento.requiere_series ? 'Series' : 'Lotes'}
+                  </span>
                 </div>
 
-                {/* Descripción */}
+                {/* Description */}
                 {elemento.descripcion && (
-                  <p className="text-slate-600 mt-2 max-w-2xl text-sm">
+                  <p className="text-[13px] text-slate-500 leading-relaxed">
                     {elemento.descripcion}
                   </p>
                 )}
 
-                {/* Badges: tipo de gestión + material + unidad */}
-                <div className="flex items-center gap-2 flex-wrap mt-3">
-                  {elemento.requiere_series ? (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-medium">
-                      Gestión por Series
+                {/* Divider */}
+                <div className="h-px bg-slate-200" />
+
+                {/* Metadata */}
+                <div className="space-y-2.5">
+                  <div className="flex justify-between text-[13px]">
+                    <span className="text-slate-500">Categoría</span>
+                    <span className="text-slate-900 font-medium">{elemento.categoria_padre_nombre || '-'}</span>
+                  </div>
+                  <div className="flex justify-between text-[13px]">
+                    <span className="text-slate-500">Subcategoría</span>
+                    <span className="text-slate-900 font-medium">{elemento.subcategoria_nombre || '-'}</span>
+                  </div>
+                  <div className="flex justify-between text-[13px]">
+                    <span className="text-slate-500">Registrado</span>
+                    <span className="text-slate-900 font-medium">
+                      {elemento.fecha_ingreso ? formatearFechaCorta(elemento.fecha_ingreso) : '-'}
                     </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-medium">
-                      Gestión por Lotes
+                  </div>
+                  <div className="flex justify-between text-[13px]">
+                    <span className="text-slate-500">Última actualización</span>
+                    <span className="text-slate-900 font-medium">
+                      {elemento.updated_at ? formatearFechaCorta(elemento.updated_at) : '-'}
                     </span>
-                  )}
-                  {elemento.material && (
-                    <span className="inline-flex items-center px-2.5 py-1 bg-slate-100 text-slate-600 rounded-full text-xs">
-                      {elemento.material}
-                    </span>
-                  )}
-                  {elemento.unidad && (
-                    <span className="inline-flex items-center px-2.5 py-1 bg-slate-100 text-slate-600 rounded-full text-xs">
-                      {elemento.unidad}
-                    </span>
-                  )}
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* ============================================
-          ESTADÍSTICAS - Click para filtrar
-          ============================================ */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
-        <StatCard
-          label="Total"
-          value={elemento.requiere_series ? series.length : lotes.reduce((sum, l) => sum + (l.cantidad || 0), 0)}
-          color="gray"
-          size="md"
-          onClick={() => setFiltroEstado(null)}
-          active={!filtroEstado}
-        />
-        <StatCard
-          label="Bueno"
-          value={estadisticas?.bueno || 0}
-          color="green"
-          size="md"
-          onClick={() => handleFiltroEstado('bueno')}
-          active={filtroEstado === 'bueno'}
-        />
-        <StatCard
-          label="Alquilado"
-          value={estadisticas?.alquilado || 0}
-          color="blue"
-          size="md"
-          onClick={() => handleFiltroEstado('alquilado')}
-          active={filtroEstado === 'alquilado'}
-        />
-        <StatCard
-          label="Mantenimiento"
-          value={estadisticas?.mantenimiento || 0}
-          color="yellow"
-          size="md"
-          onClick={() => handleFiltroEstado('mantenimiento')}
-          active={filtroEstado === 'mantenimiento'}
-        />
-        <StatCard
-          label="Dañado"
-          value={estadisticas?.['dañado'] || 0}
-          color="red"
-          size="md"
-          onClick={() => handleFiltroEstado('dañado')}
-          active={filtroEstado === 'dañado'}
-        />
-      </div>
+          {/* TABLE COLUMN (RIGHT) */}
+          <div className="flex-1 flex flex-col gap-3 min-w-0">
 
-      {/* ============================================
-          RESUMEN DE EVENTOS (cuando filtro es alquilado)
-          ============================================ */}
-      {filtroEstado === 'alquilado' && !elemento.requiere_series && en_eventos.length > 0 && (
-        <div className="mb-4 space-y-2">
-          <h3 className="text-sm font-semibold text-slate-700 mb-2">En eventos activos</h3>
-          <div className="grid gap-2 lg:grid-cols-2">
-            {en_eventos.map((evento) => (
-              <div
-                key={evento.alquiler_id}
-                className="bg-blue-50 border border-blue-200 rounded-lg p-3 space-y-1.5"
-              >
-                <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-blue-600 flex-shrink-0" />
-                  <span className="font-medium text-blue-900 text-sm truncate">
-                    {evento.evento_nombre || 'Evento sin nombre'}
-                  </span>
-                  <span className="ml-auto text-lg font-bold text-blue-700 flex-shrink-0">
-                    {evento.cantidad}
-                  </span>
-                </div>
-                <div className="flex items-center gap-4 text-xs text-blue-700">
-                  <div className="flex items-center gap-1">
-                    <User className="w-3 h-3" />
-                    <span>{evento.cliente}</span>
-                  </div>
-                  {evento.fecha_evento && (
-                    <div className="flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
-                      <span>
-                        {formatearFechaCorta(evento.fecha_evento)}
-                        {evento.fecha_desmontaje && <> - {formatearFechaCorta(evento.fecha_desmontaje)}</>}
-                      </span>
-                    </div>
-                  )}
-                </div>
-                {evento.ubicacion && (
-                  <div className="flex items-center gap-1 text-xs text-blue-600">
-                    <MapPin className="w-3 h-3" />
-                    <span className="truncate">{evento.ubicacion}</span>
-                    {evento.ciudad && <span>({evento.ciudad})</span>}
-                  </div>
-                )}
+            {/* Table section header: title + search */}
+            <div className="flex items-center justify-between">
+              <h3 className="text-[15px] font-semibold text-slate-900">
+                {elemento.requiere_series ? 'Series' : 'Lotes'} &middot; {itemsFiltrados.length} unidades
+              </h3>
+              <div className="relative w-[200px]">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Buscar..."
+                  value={busqueda}
+                  onChange={(e) => { setBusqueda(e.target.value); setPaginaActual(1) }}
+                  className="w-full pl-8 pr-3 py-1.5 text-sm border border-slate-200 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                />
               </div>
-            ))}
+            </div>
+
+            {/* Table */}
+            <div className="bg-white rounded-lg border border-slate-200 flex-1 flex flex-col overflow-hidden">
+              {elemento.requiere_series ? (
+                <>
+                  {/* Series Table */}
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-slate-200">
+                        <th className="text-left p-3 text-slate-500 font-normal">Nº de Serie</th>
+                        <th className="text-left p-3 text-slate-500 font-normal">Estado</th>
+                        <th className="text-left p-3 text-slate-500 font-normal">Fecha registro</th>
+                        <th className="text-left p-3 text-slate-500 font-normal">Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {itemsPaginados.length === 0 ? (
+                        <tr>
+                          <td colSpan={4} className="p-8 text-center text-slate-400">
+                            {busqueda ? 'Sin resultados para la búsqueda' : 'No hay series'}
+                          </td>
+                        </tr>
+                      ) : (
+                        itemsPaginados.map((serie) => (
+                          <tr key={serie.id} className="border-b border-slate-100 hover:bg-slate-50">
+                            <td className="p-3 text-slate-900">{serie.numero_serie}</td>
+                            <td className="p-3">
+                              <EstadoBadge estado={serie.estado} size="sm" />
+                            </td>
+                            <td className="p-3 text-slate-500">
+                              {serie.created_at ? formatearFechaCorta(serie.created_at) : '-'}
+                            </td>
+                            <td className="p-3">
+                              <button
+                                onClick={() => handleEditSerie(serie)}
+                                className="text-blue-600 hover:text-blue-800 text-[13px] font-medium"
+                              >
+                                Ver
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </>
+              ) : (
+                <>
+                  {/* Lotes Table */}
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-slate-200">
+                        <th className="text-left p-3 text-slate-500 font-normal">Ubicación</th>
+                        <th className="text-left p-3 text-slate-500 font-normal">Estado</th>
+                        <th className="text-left p-3 text-slate-500 font-normal">Cantidad</th>
+                        <th className="text-left p-3 text-slate-500 font-normal">Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {itemsPaginados.length === 0 ? (
+                        <tr>
+                          <td colSpan={4} className="p-8 text-center text-slate-400">
+                            {busqueda ? 'Sin resultados para la búsqueda' : 'No hay lotes'}
+                          </td>
+                        </tr>
+                      ) : (
+                        itemsPaginados.map((lote, idx) => (
+                          <tr key={lote.id || idx} className="border-b border-slate-100 hover:bg-slate-50">
+                            <td className="p-3 text-slate-900">{lote.ubicacion || 'Sin ubicación'}</td>
+                            <td className="p-3">
+                              <EstadoBadge estado={lote.estado} size="sm" />
+                            </td>
+                            <td className="p-3 text-slate-700">{lote.cantidad}</td>
+                            <td className="p-3">
+                              <button
+                                onClick={() => handleEditLote(lote, lote.ubicacion)}
+                                className="text-blue-600 hover:text-blue-800 text-[13px] font-medium"
+                              >
+                                Ver
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </>
+              )}
+
+              {/* Pagination */}
+              {itemsFiltrados.length > 0 && (
+                <div className="flex items-center justify-between px-3 py-2 border-t border-slate-200 mt-auto">
+                  <span className="text-sm text-slate-500">
+                    Mostrando {itemsFiltrados.length} registros
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setPaginaActual(p => Math.max(1, p - 1))}
+                      disabled={paginaActual <= 1}
+                      className="px-3 py-1.5 text-sm border border-slate-200 rounded hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Anterior
+                    </button>
+                    <button
+                      onClick={() => setPaginaActual(p => Math.min(totalPaginas, p + 1))}
+                      disabled={paginaActual >= totalPaginas}
+                      className="px-3 py-1.5 text-sm border border-slate-200 rounded hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Siguiente
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
-      )}
 
-      {/* ============================================
-          CONTENIDO PRINCIPAL (Series o Lotes)
-          ============================================ */}
-      <Card>
-        <Card.Header>
-          <div className="flex items-center justify-between">
-            <Card.Title>
-              {elemento.requiere_series ? 'Series' : 'Lotes por Ubicación'}
-              {filtroEstado
-                ? ` — ${filtroEstado.charAt(0).toUpperCase() + filtroEstado.slice(1)} (${itemsFiltrados.length})`
-                : ''
-              }
-            </Card.Title>
-
-            <Button
-              variant="primary"
-              size="sm"
-              icon={<Plus className="w-4 h-4" />}
-              onClick={handleAdd}
-            >
-              {elemento.requiere_series ? 'Agregar Serie' : 'Agregar Lote'}
-            </Button>
-          </div>
-        </Card.Header>
-
-        <Card.Content>
-          {/* ==========================================
-              VISTA PARA SERIES
-              ========================================== */}
-          {!!elemento.requiere_series && (
-            <>
-              {itemsFiltrados.length === 0 ? (
-                <EmptyState
-                  type="no-results"
-                  title="No hay series"
-                  description={filtroEstado
-                    ? `No hay series en estado ${filtroEstado}`
-                    : 'Agrega la primera serie'
-                  }
-                  action={!filtroEstado && {
-                    label: 'Agregar serie',
-                    onClick: handleAdd,
-                    icon: <Plus />
-                  }}
-                />
-              ) : (
-                <div className="space-y-2 lg:grid lg:grid-cols-2 lg:gap-3 lg:space-y-0">
-                  {itemsFiltrados.map((serie) => (
-                    <SerieItem
-                      key={serie.id}
-                      serie={serie}
-                      onEdit={handleEditSerie}
-                      onDelete={handleDeleteSerie}
-                      onMove={handleMoveSerie}
-                    />
-                  ))}
-                </div>
-              )}
-            </>
-          )}
-
-          {/* ==========================================
-              VISTA PARA LOTES
-              ========================================== */}
-          {!elemento.requiere_series && (
-            <>
-              {lotes_por_ubicacion.length === 0 ? (
-                <EmptyState
-                  type="no-data"
-                  title="No hay lotes"
-                  description="Agrega el primer lote"
-                  action={{
-                    label: 'Agregar lote',
-                    onClick: handleAdd,
-                    icon: <Plus />
-                  }}
-                />
-              ) : (
-                <div className="space-y-3 lg:grid lg:grid-cols-2 lg:gap-3 lg:space-y-0">
-                  {lotes_por_ubicacion.map((ubicacion, idx) => (
-                    <LoteUbicacionGroup
-                      key={ubicacion.nombre || idx}
-                      ubicacion={ubicacion}
-                      defaultExpanded
-                      onEditLote={handleEditLote}
-                      onMoveLote={handleMoveLote}
-                      onDeleteLote={handleDeleteLote}
-                    />
-                  ))}
-                </div>
-              )}
-            </>
-          )}
-        </Card.Content>
-      </Card>
-
-      {/* ============================================
-          MODALES
-          ============================================ */}
-
-      {/* Modal: Editar Elemento */}
+      {/* MODALES */}
       {showEditElementoModal && (
         <ElementoFormModal
           isOpen={showEditElementoModal}
@@ -865,7 +840,6 @@ function ElementoDetallePage() {
         />
       )}
 
-      {/* Modal: Agregar Serie */}
       {showAddSerieModal && !!elemento?.requiere_series && (
         <SerieFormModal
           isOpen={showAddSerieModal}
@@ -879,7 +853,6 @@ function ElementoDetallePage() {
         />
       )}
 
-      {/* Modal: Editar Serie */}
       {serieParaEditar && (
         <SerieFormModal
           isOpen={!!serieParaEditar}
@@ -894,7 +867,6 @@ function ElementoDetallePage() {
         />
       )}
 
-      {/* Modal: Mover Cantidad (Lotes) */}
       {loteParaMover && (
         <LoteFormModal
           isOpen={!!loteParaMover}
@@ -909,7 +881,6 @@ function ElementoDetallePage() {
         />
       )}
 
-      {/* Modal: Confirmación de eliminación */}
       <ConfirmModal
         isOpen={!!deleteConfirm}
         onClose={() => setDeleteConfirm(null)}
@@ -920,57 +891,10 @@ function ElementoDetallePage() {
         confirmText="Eliminar"
         loading={deleteElemento.isPending || deleteSerie.isPending || deleteLote.isPending}
       />
-    </div>
+
       </main>
     </div>
   )
 }
 
 export default ElementoDetallePage
-
-/**
- * ============================================
- * 🎓 CONCEPTOS CLAVE
- * ============================================
- *
- * 1. CONDITIONAL HOOK CALLS:
- * ──────────────────────────
- * useGetSeries(elementoId, { enabled: elemento?.requiere_series })
- *
- * El parámetro 'enabled' hace que el hook solo se ejecute
- * cuando la condición es true. Esto es importante para
- * no hacer peticiones innecesarias.
- *
- *
- * 2. VARIABLES DERIVADAS:
- * ───────────────────────
- * const estadisticas = elemento?.requiere_series
- *   ? estadisticasSeries
- *   : estadisticasLotes
- *
- * Calculamos valores basados en el estado/props.
- * Se recalculan automáticamente cuando cambian las dependencias.
- *
- *
- * 3. FILTRADO DE ARRAYS:
- * ─────────────────────
- * const filtrados = items.filter(item => item.estado === filtro)
- *
- * filter() crea un nuevo array con los elementos que cumplen
- * la condición. No modifica el array original.
- *
- *
- * 4. OPTIONAL CHAINING:
- * ────────────────────
- * elemento?.nombre
- *
- * Si elemento es null/undefined, devuelve undefined
- * en lugar de lanzar error.
- *
- *
- * 5. RENDERIZADO CONDICIONAL:
- * ──────────────────────────
- * {elemento.requiere_series ? <ComponenteA /> : <ComponenteB />}
- *
- * Muestra un componente u otro según la condición.
- */
