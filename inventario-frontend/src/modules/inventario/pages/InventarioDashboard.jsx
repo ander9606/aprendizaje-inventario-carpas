@@ -192,9 +192,10 @@ const InventarioDashboard = () => {
                 <YAxis fontSize={11} stroke="#64748B" />
                 <Tooltip
                   contentStyle={{ borderRadius: 8, border: '1px solid #E2E8F0' }}
-                  formatter={(value) => [formatearNumero(value), 'Unidades']}
                 />
-                <Bar dataKey="unidades" name="Unidades" fill="#2563EB" radius={[4, 4, 0, 0]} />
+                <Legend />
+                <Bar dataKey="series" name="Series" stackId="a" fill="#2563EB" />
+                <Bar dataKey="lotes" name="Lotes" stackId="a" fill="#8B5CF6" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           ) : (
