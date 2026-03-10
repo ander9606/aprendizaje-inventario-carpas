@@ -514,15 +514,15 @@ class ElementoModel {
                 COALESCE(s_count.total_series, 0) + COALESCE(l_count.total_lotes, 0) AS total
             FROM ubicaciones ub
             LEFT JOIN (
-                SELECT ubicacion_id, COUNT(*) as total_series
-                FROM series WHERE ubicacion_id IS NOT NULL
-                GROUP BY ubicacion_id
-            ) s_count ON ub.id = s_count.ubicacion_id
+                SELECT ubicacion, COUNT(*) as total_series
+                FROM series WHERE ubicacion IS NOT NULL AND ubicacion != ''
+                GROUP BY ubicacion
+            ) s_count ON ub.nombre = s_count.ubicacion
             LEFT JOIN (
-                SELECT ubicacion_id, SUM(cantidad) as total_lotes
-                FROM lotes WHERE ubicacion_id IS NOT NULL
-                GROUP BY ubicacion_id
-            ) l_count ON ub.id = l_count.ubicacion_id
+                SELECT ubicacion, SUM(cantidad) as total_lotes
+                FROM lotes WHERE ubicacion IS NOT NULL AND ubicacion != ''
+                GROUP BY ubicacion
+            ) l_count ON ub.nombre = l_count.ubicacion
             WHERE ub.activo = TRUE
               AND (COALESCE(s_count.total_series, 0) + COALESCE(l_count.total_lotes, 0)) > 0
             ORDER BY total DESC
