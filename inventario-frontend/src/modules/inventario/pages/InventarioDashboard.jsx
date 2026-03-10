@@ -6,7 +6,7 @@
 import { useGetEstadisticasInventario } from '../hooks/useElementos'
 import { formatearMoneda, formatearNumero } from '@shared/utils/helpers'
 import Spinner from '@shared/components/Spinner'
-import { Package, Boxes, DollarSign, AlertTriangle, BarChart3, FileSpreadsheet } from 'lucide-react'
+import { Warehouse, Wrench, DollarSign, AlertTriangle, BarChart3, FileSpreadsheet, ShieldAlert } from 'lucide-react'
 import Button from '@shared/components/Button'
 import { useNavigate } from 'react-router-dom'
 import { useState } from 'react'
@@ -28,8 +28,6 @@ const COLORES_ESTADO = {
   regular: '#F59E0B',
   malo: '#EF4444'
 }
-
-const COLORES_CHART = ['#2563EB', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#14B8A6', '#F97316']
 
 const capitalizar = (texto) => {
   if (!texto) return ''
@@ -65,41 +63,39 @@ const InventarioDashboard = () => {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <p className="text-red-600 text-lg">Error al cargar estadisticas</p>
+          <p className="text-red-600 text-lg">Error al cargar estadísticas</p>
           <p className="text-slate-500 mt-2">{error.message}</p>
         </div>
       </div>
     )
   }
 
-  const { generales, distribucionEstado, topCategorias, distribucionUbicacion, alertasStock } = estadisticas || {}
+  const { generales, distribucionEstado, distribucionUbicacion, alertasStock } = estadisticas || {}
 
-  // Preparar datos para graficas
+  // Extraer cantidades por estado
+  const cantidadPorEstado = (distribucionEstado || []).reduce((acc, item) => {
+    acc[item.estado] = Number(item.cantidad)
+    return acc
+  }, {})
+
+  const totalMantenimiento = cantidadPorEstado['mantenimiento'] || 0
+  const totalDanados = cantidadPorEstado['dañado'] || 0
+  const totalBodegas = (distribucionUbicacion || []).length
+
+  // Datos para gráfica de estado
   const datosEstado = (distribucionEstado || []).map(item => ({
     name: capitalizar(item.estado),
     value: Number(item.cantidad),
     fill: COLORES_ESTADO[item.estado] || '#94A3B8'
   }))
 
-  const datosCategorias = (topCategorias || []).map(item => ({
-    name: item.categoria,
-    cantidad: Number(item.cantidad_total),
-    elementos: Number(item.total_elementos)
-  }))
-
+  // Datos para gráfica de ubicación (bodegas)
   const datosUbicacion = (distribucionUbicacion || []).map(item => ({
     name: item.ubicacion,
+    total: Number(item.series) + Number(item.lotes),
     series: Number(item.series),
     lotes: Number(item.lotes)
   }))
-
-  // Calcular tipo de gestion (series vs lotes)
-  const totalSeriesElementos = Number(generales?.elementos_con_series || 0)
-  const totalLotesElementos = Number(generales?.elementos_con_lotes || 0)
-  const datosGestion = [
-    { name: 'Series', value: totalSeriesElementos, fill: '#2563EB' },
-    { name: 'Lotes', value: totalLotesElementos, fill: '#8B5CF6' }
-  ].filter(d => d.value > 0)
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -117,10 +113,10 @@ const InventarioDashboard = () => {
               <BarChart3 className="w-6 h-6 text-blue-600" />
               <div>
                 <h1 className="text-[18px] font-bold text-slate-900">
-                  Dashboard de Inventario
+                  Analítica de Inventario
                 </h1>
                 <p className="text-sm text-slate-500">
-                  Vista general del inventario y alertas
+                  Distribución por bodegas, estados y alertas
                 </p>
               </div>
             </div>
@@ -142,51 +138,80 @@ const InventarioDashboard = () => {
             KPI CARDS
             ============================================ */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Total Elementos */}
+          {/* Total en Bodegas */}
           <KPICard
-            titulo="Total Elementos"
-            valor={formatearNumero(generales?.total_elementos || 0)}
-            subtitulo="tipos de articulos"
-            icono={Package}
+            titulo="Bodegas Activas"
+            valor={totalBodegas}
+            subtitulo={`${formatearNumero(generales?.total_unidades || 0)} unidades distribuidas`}
+            icono={Warehouse}
             color="blue"
           />
 
-          {/* Total Unidades */}
+          {/* En Mantenimiento */}
           <KPICard
-            titulo="Total Unidades"
-            valor={formatearNumero(generales?.total_unidades || 0)}
-            subtitulo={`${formatearNumero(generales?.total_series || 0)} series + ${formatearNumero(generales?.total_unidades_lotes || 0)} lotes`}
-            icono={Boxes}
-            color="green"
+            titulo="En Mantenimiento"
+            valor={formatearNumero(totalMantenimiento)}
+            subtitulo="unidades en reparación"
+            icono={Wrench}
+            color="yellow"
+          />
+
+          {/* Dañados */}
+          <KPICard
+            titulo="Dañados"
+            valor={formatearNumero(totalDanados)}
+            subtitulo="unidades fuera de servicio"
+            icono={ShieldAlert}
+            color="red"
           />
 
           {/* Valor del Inventario */}
           <KPICard
             titulo="Valor del Inventario"
             valor={formatearMoneda(generales?.valor_precio_unitario || generales?.valor_total || 0)}
-            subtitulo={Number(generales?.valor_precio_unitario) > 0 ? "valor a precio unitario" : "costo de adquisicion total"}
+            subtitulo={Number(generales?.valor_precio_unitario) > 0 ? 'valor a precio unitario' : 'costo de adquisición total'}
             icono={DollarSign}
             color="purple"
-          />
-
-          {/* Alertas Stock Bajo */}
-          <KPICard
-            titulo="Alertas de Stock"
-            valor={alertasStock?.length || 0}
-            subtitulo={alertasStock?.length > 0 ? 'elementos bajo minimo' : 'todo en orden'}
-            icono={AlertTriangle}
-            color={alertasStock?.length > 0 ? 'red' : 'green'}
           />
         </div>
 
         {/* ============================================
-            FILA DE GRAFICAS PRINCIPALES
+            GRÁFICA PRINCIPAL: INVENTARIO POR BODEGA
+            ============================================ */}
+        <div className="bg-white rounded-xl border border-slate-200 p-6">
+          <h3 className="text-lg font-semibold text-slate-900 mb-4">
+            Inventario por Bodega
+          </h3>
+          {datosUbicacion.length > 0 ? (
+            <ResponsiveContainer width="100%" height={320}>
+              <BarChart data={datosUbicacion}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
+                <XAxis dataKey="name" fontSize={12} stroke="#64748B" angle={-25} textAnchor="end" height={60} />
+                <YAxis fontSize={11} stroke="#64748B" />
+                <Tooltip
+                  contentStyle={{ borderRadius: 8, border: '1px solid #E2E8F0' }}
+                  formatter={(value, name) => [formatearNumero(value), name === 'series' ? 'Series' : 'Lotes']}
+                />
+                <Legend />
+                <Bar dataKey="series" name="Series" fill="#2563EB" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="lotes" name="Lotes" fill="#8B5CF6" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="h-[320px] flex items-center justify-center text-slate-400">
+              No hay elementos asignados a bodegas
+            </div>
+          )}
+        </div>
+
+        {/* ============================================
+            FILA SECUNDARIA
             ============================================ */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* PieChart - Distribucion por Estado */}
+          {/* PieChart - Distribución por Estado */}
           <div className="bg-white rounded-xl border border-slate-200 p-6">
             <h3 className="text-lg font-semibold text-slate-900 mb-4">
-              Distribucion por Estado
+              Distribución por Estado
             </h3>
             {datosEstado.length > 0 ? (
               <ResponsiveContainer width="100%" height={280}>
@@ -218,100 +243,39 @@ const InventarioDashboard = () => {
             )}
           </div>
 
-          {/* BarChart - Top Categorias */}
+          {/* Resumen por bodega - tabla */}
           <div className="bg-white rounded-xl border border-slate-200 p-6">
             <h3 className="text-lg font-semibold text-slate-900 mb-4">
-              Top Categorías por Cantidad
-            </h3>
-            {datosCategorias.length > 0 ? (
-              <ResponsiveContainer width="100%" height={280}>
-                <BarChart data={datosCategorias} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
-                  <XAxis type="number" fontSize={11} stroke="#64748B" />
-                  <YAxis
-                    type="category"
-                    dataKey="name"
-                    width={120}
-                    fontSize={11}
-                    stroke="#64748B"
-                    tick={{ fill: '#334155' }}
-                  />
-                  <Tooltip
-                    formatter={(value) => [formatearNumero(value), 'Unidades']}
-                    contentStyle={{ borderRadius: 8, border: '1px solid #E2E8F0' }}
-                  />
-                  <Bar dataKey="cantidad" fill="#2563EB" radius={[0, 4, 4, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="h-[280px] flex items-center justify-center text-slate-400">
-                Sin datos de categorías
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* ============================================
-            FILA DE GRAFICAS SECUNDARIAS
-            ============================================ */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* BarChart - Inventario por Ubicacion */}
-          <div className="bg-white rounded-xl border border-slate-200 p-6">
-            <h3 className="text-lg font-semibold text-slate-900 mb-4">
-              Inventario por Ubicación
+              Detalle por Bodega
             </h3>
             {datosUbicacion.length > 0 ? (
-              <ResponsiveContainer width="100%" height={280}>
-                <BarChart data={datosUbicacion}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
-                  <XAxis dataKey="name" fontSize={11} stroke="#64748B" angle={-25} textAnchor="end" height={60} />
-                  <YAxis fontSize={11} stroke="#64748B" />
-                  <Tooltip
-                    contentStyle={{ borderRadius: 8, border: '1px solid #E2E8F0' }}
-                  />
-                  <Legend />
-                  <Bar dataKey="series" name="Series" fill="#2563EB" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="lotes" name="Lotes" fill="#8B5CF6" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+              <div className="overflow-auto max-h-[280px]">
+                <table className="w-full text-sm">
+                  <thead className="sticky top-0 bg-white">
+                    <tr className="border-b border-slate-200">
+                      <th className="text-left py-2 pr-4 text-slate-500 font-medium">Bodega</th>
+                      <th className="text-center py-2 px-2 text-slate-500 font-medium">Series</th>
+                      <th className="text-center py-2 px-2 text-slate-500 font-medium">Lotes</th>
+                      <th className="text-center py-2 pl-2 text-slate-500 font-medium">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {datosUbicacion
+                      .sort((a, b) => b.total - a.total)
+                      .map((ub) => (
+                      <tr key={ub.name} className="hover:bg-slate-50">
+                        <td className="py-2.5 pr-4 text-slate-900 font-medium">{ub.name}</td>
+                        <td className="py-2.5 px-2 text-center text-blue-600 font-semibold">{ub.series}</td>
+                        <td className="py-2.5 px-2 text-center text-purple-600 font-semibold">{ub.lotes}</td>
+                        <td className="py-2.5 pl-2 text-center text-slate-900 font-bold">{ub.total}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             ) : (
               <div className="h-[280px] flex items-center justify-center text-slate-400">
                 Sin datos de ubicación
-              </div>
-            )}
-          </div>
-
-          {/* Donut - Tipo de Gestion */}
-          <div className="bg-white rounded-xl border border-slate-200 p-6">
-            <h3 className="text-lg font-semibold text-slate-900 mb-4">
-              Tipo de Gestión
-            </h3>
-            {datosGestion.length > 0 ? (
-              <ResponsiveContainer width="100%" height={280}>
-                <PieChart>
-                  <Pie
-                    data={datosGestion}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={100}
-                    dataKey="value"
-                    label={({ name, value }) => `${name}: ${value}`}
-                  >
-                    {datosGestion.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.fill} />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    formatter={(value) => [formatearNumero(value), 'Elementos']}
-                    contentStyle={{ borderRadius: 8, border: '1px solid #E2E8F0' }}
-                  />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="h-[280px] flex items-center justify-center text-slate-400">
-                Sin datos de gestion
               </div>
             )}
           </div>
@@ -336,7 +300,7 @@ const InventarioDashboard = () => {
                     <th className="text-left px-6 py-3 text-sm font-medium text-slate-600">Categoría</th>
                     <th className="text-center px-6 py-3 text-sm font-medium text-slate-600">Stock Disponible</th>
                     <th className="text-center px-6 py-3 text-sm font-medium text-slate-600">Stock Mínimo</th>
-                    <th className="text-center px-6 py-3 text-sm font-medium text-slate-600">Deficit</th>
+                    <th className="text-center px-6 py-3 text-sm font-medium text-slate-600">Déficit</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
