@@ -17,11 +17,11 @@ function ProductosPage() {
   const navigate = useNavigate()
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6">
+    <div className="min-h-screen bg-slate-50 p-4 md:p-6">
       {/* Header */}
       <div className="max-w-6xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">
+        <div className="mb-6 lg:mb-8">
+          <h1 className="text-2xl lg:text-3xl font-bold text-slate-900 mb-2">
             Gestión de Productos
           </h1>
           <p className="text-slate-600">
@@ -30,12 +30,15 @@ function ProductosPage() {
         </div>
 
         {/* Cards de navegación */}
-        <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid md:grid-cols-2 gap-4 lg:gap-6">
 
           {/* Card: Inventario Individual */}
           <div
             onClick={() => navigate('/')}
-            className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 cursor-pointer hover:shadow-md hover:border-blue-300 transition-all group"
+            className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 lg:p-6
+                       cursor-pointer hover:shadow-md hover:border-blue-300
+                       active:scale-[0.98] active:shadow-sm
+                       transition-all duration-150 select-none group"
           >
             <div className="flex items-start gap-4">
               <div className="p-3 bg-blue-100 rounded-lg group-hover:bg-blue-200 transition-colors">
@@ -81,7 +84,10 @@ function ProductosPage() {
           {/* Card: Productos de Alquiler */}
           <div
             onClick={() => navigate('/productos/alquiler')}
-            className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 cursor-pointer hover:shadow-md hover:border-emerald-300 transition-all group"
+            className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 lg:p-6
+                       cursor-pointer hover:shadow-md hover:border-emerald-300
+                       active:scale-[0.98] active:shadow-sm
+                       transition-all duration-150 select-none group"
           >
             <div className="flex items-start gap-4">
               <div className="p-3 bg-emerald-100 rounded-lg group-hover:bg-emerald-200 transition-colors">

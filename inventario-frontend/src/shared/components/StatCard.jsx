@@ -121,12 +121,12 @@ export const StatCard = ({
       onClick={onClick}
       className={`
         ${colors.bg} ${colors.border}
-        border rounded-lg
+        border rounded-xl
         ${sizes.padding}
-        transition-all duration-200
+        transition-all duration-150 select-none
         ${isClickable
-          ? 'cursor-pointer hover:shadow-md hover:scale-[1.02] active:scale-[0.98]'
-          : 'hover:shadow-md'
+          ? 'cursor-pointer hover:shadow-md hover:scale-[1.02] active:scale-[0.97]'
+          : ''
         }
         ${active
           ? 'ring-2 ring-offset-1 ring-current shadow-md scale-[1.02]'

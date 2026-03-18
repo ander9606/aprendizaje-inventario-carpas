@@ -119,7 +119,7 @@ export default function ModulosDashboard() {
           HEADER CON LOGO DE EMPRESA
           ============================================ */}
       <header className="bg-white/80 backdrop-blur-sm border-b border-slate-200/60 sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+        <div className="max-w-6xl mx-auto px-4 lg:px-6 py-3 lg:py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
             {/* Logo */}
             {isLoading ? (
@@ -160,13 +160,13 @@ export default function ModulosDashboard() {
           {/* Usuario y logout */}
           {usuario && (
             <div className="flex items-center gap-2">
-              <div className="hidden sm:flex items-center gap-3 mr-1">
-                <div className="w-9 h-9 rounded-full bg-slate-900 flex items-center justify-center">
+              <div className="flex items-center gap-3 mr-1">
+                <div className="w-9 h-9 rounded-full bg-slate-900 flex items-center justify-center flex-shrink-0">
                   <span className="text-xs font-semibold text-white leading-none">
                     {getIniciales()}
                   </span>
                 </div>
-                <div className="text-right">
+                <div className="text-right hidden sm:block">
                   <p className="text-sm font-medium text-slate-700 leading-tight">
                     {getNombreCompleto() || usuario.email}
                   </p>
@@ -179,10 +179,11 @@ export default function ModulosDashboard() {
               </div>
               <button
                 onClick={logout}
-                className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-slate-600
+                           hover:bg-slate-100 active:bg-slate-200 rounded-xl transition-colors"
                 title="Cerrar sesión"
               >
-                <LogOut className="w-4 h-4" />
+                <LogOut className="w-5 h-5" />
               </button>
             </div>
           )}
@@ -192,7 +193,7 @@ export default function ModulosDashboard() {
       {/* ============================================
           CONTENIDO PRINCIPAL
           ============================================ */}
-      <main className="max-w-6xl mx-auto px-6 py-10">
+      <main className="max-w-6xl mx-auto px-4 lg:px-6 py-6 lg:py-10">
         <div className="mb-8">
           <h2 className="text-2xl font-bold text-slate-900 mb-1">
             Módulos
@@ -205,7 +206,7 @@ export default function ModulosDashboard() {
         {/* ============================================
             GRID DE MÓDULOS
             ============================================ */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-5">
           {modulos.map((modulo) => {
             const Icon = modulo.icon
             const colors = colorConfig[modulo.color] || colorConfig.blue
@@ -215,17 +216,18 @@ export default function ModulosDashboard() {
                 key={modulo.id}
                 onClick={() => navigate(modulo.ruta)}
                 className={`
-                  group relative bg-white rounded-2xl border p-6
-                  cursor-pointer transition-all duration-200
-                  hover:shadow-lg ${colors.card}
+                  group relative bg-white rounded-2xl border p-5 lg:p-6
+                  cursor-pointer transition-all duration-150 select-none
+                  hover:shadow-lg active:scale-[0.97] active:shadow-sm
+                  ${colors.card}
                 `}
               >
                 {/* Icono */}
                 <div className={`
-                  w-12 h-12 rounded-xl ${colors.iconBg}
+                  w-14 h-14 rounded-xl ${colors.iconBg}
                   flex items-center justify-center mb-4 shadow-sm
                 `}>
-                  <Icon className="w-6 h-6 text-white" />
+                  <Icon className="w-7 h-7 text-white" />
                 </div>
 
                 {/* Contenido */}
@@ -237,11 +239,11 @@ export default function ModulosDashboard() {
                 </p>
 
                 {/* Tags */}
-                <div className="flex flex-wrap gap-1.5 mb-4">
+                <div className="flex flex-wrap gap-2 mb-4">
                   {modulo.tags.map(tag => (
                     <span
                       key={tag}
-                      className={`text-xs px-2 py-0.5 rounded-full font-medium ${colors.tag}`}
+                      className={`text-xs px-2.5 py-1 rounded-full font-medium ${colors.tag}`}
                     >
                       {tag}
                     </span>
@@ -262,7 +264,7 @@ export default function ModulosDashboard() {
       </main>
 
       {/* Footer */}
-      <footer className="max-w-6xl mx-auto px-6 pb-8 pt-4">
+      <footer className="max-w-6xl mx-auto px-4 lg:px-6 pb-8 pt-4">
         <p className="text-center text-xs text-slate-400">
           Sistema de gestión integral de alquiler de carpas y eventos
         </p>

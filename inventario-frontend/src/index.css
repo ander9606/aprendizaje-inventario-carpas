@@ -104,6 +104,65 @@
   animation: slideInLeft 0.3s ease-out;
 }
 
+/* ============================================
+   TABLET & TOUCH OPTIMIZATIONS
+   ============================================ */
+
+/* Touch feedback para elementos interactivos */
+.touch-active {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.touch-active:active {
+  transform: scale(0.97);
+  transition: transform 0.1s ease;
+}
+
+/* Prevenir doble tap zoom en botones */
+button, a, [role="button"] {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Safe area insets para dispositivos con notch */
+.safe-area-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Overlay backdrop para sidebar en tablet */
+.sidebar-overlay {
+  background: rgba(0, 0, 0, 0);
+  transition: background 0.3s ease;
+}
+
+.sidebar-overlay.active {
+  background: rgba(0, 0, 0, 0.4);
+}
+
+/* Smooth momentum scrolling en contenedores touch */
+.touch-scroll {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* Bottom sheet animation */
+@keyframes slideUpSheet {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.animate-slideUpSheet {
+  animation: slideUpSheet 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
 /* Mejoras de scroll en modales */
 .custom-scrollbar::-webkit-scrollbar {
   width: 8px;
@@ -121,4 +180,16 @@
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
+}
+
+/* En tablet/touch, scrollbars más delgados */
+@media (pointer: coarse) {
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  /* Inputs más grandes en touch */
+  input, select, textarea {
+    font-size: 16px !important; /* Previene zoom en iOS */
+  }
 }

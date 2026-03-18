@@ -105,14 +105,15 @@ const InventarioDashboard = () => {
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
       <div className="bg-white border-b border-slate-200 sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-6 py-4">
+        <div className="max-w-7xl mx-auto px-4 lg:px-6 py-3 lg:py-4">
           <button
             onClick={() => navigate('/inventario')}
-            className="text-blue-600 hover:text-blue-700 font-medium text-sm mb-3 transition-colors"
+            className="flex items-center gap-1.5 text-blue-600 hover:text-blue-700 active:text-blue-800
+                       font-medium text-sm mb-3 transition-colors py-1.5 -ml-1 px-1 rounded-lg min-h-[36px]"
           >
             &larr; Volver
           </button>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div className="flex items-center gap-3">
               <BarChart3 className="w-6 h-6 text-blue-600" />
               <div>
@@ -126,7 +127,7 @@ const InventarioDashboard = () => {
             </div>
             <Button
               variant="success"
-              size="sm"
+              size="md"
               icon={<FileSpreadsheet className="w-4 h-4" />}
               onClick={handleExportExcel}
               disabled={isExporting}
@@ -137,7 +138,7 @@ const InventarioDashboard = () => {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-6 space-y-6">
+      <div className="max-w-7xl mx-auto px-4 lg:px-6 py-6 space-y-6">
         {/* ============================================
             KPI CARDS
             ============================================ */}

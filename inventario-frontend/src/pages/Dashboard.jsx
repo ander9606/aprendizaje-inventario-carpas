@@ -256,11 +256,12 @@ export default function Dashboard() {
           HEADER DE LA PÁGINA
           ============================================ */}
       <div className="bg-white border-b border-slate-200 sticky top-0 z-10">
-        <div className="container mx-auto px-6 py-4">
+        <div className="container mx-auto px-4 lg:px-6 py-3 lg:py-4">
           {/* Back link */}
           <button
             onClick={volverAModulos}
-            className="text-blue-600 hover:text-blue-700 font-medium text-sm mb-3 transition-colors"
+            className="flex items-center gap-1.5 text-blue-600 hover:text-blue-700 active:text-blue-800
+                       font-medium text-sm mb-3 transition-colors py-1.5 -ml-1 px-1 rounded-lg min-h-[36px]"
           >
             &larr; Volver a Módulos
           </button>
@@ -293,7 +294,7 @@ export default function Dashboard() {
             <div className="flex gap-2 sm:gap-3 flex-wrap">
               <Button
                 variant="outline-light"
-                size="sm"
+                size="md"
                 icon={<FileSpreadsheet />}
                 onClick={handleExportExcel}
                 disabled={isExporting}
@@ -303,7 +304,7 @@ export default function Dashboard() {
 
               <Button
                 variant="secondary"
-                size="sm"
+                size="md"
                 icon={<BarChart3 />}
                 onClick={() => navigate('/inventario/dashboard')}
               >
@@ -312,7 +313,7 @@ export default function Dashboard() {
 
               <Button
                 variant="primary"
-                size="sm"
+                size="md"
                 icon={<Plus />}
                 onClick={handleOpenCrear}
               >
@@ -338,7 +339,7 @@ export default function Dashboard() {
       {/* ============================================
           CONTENIDO PRINCIPAL
           ============================================ */}
-      <div className="container mx-auto px-6 py-8">
+      <div className="container mx-auto px-4 lg:px-6 py-6 lg:py-8">
 
         {/* ============================================
             BUSCADOR GLOBAL
@@ -360,7 +361,8 @@ export default function Dashboard() {
             {searchTerm && (
               <button
                 onClick={handleClearSearch}
-                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-slate-100 rounded-full transition-colors"
+                className="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center
+                           hover:bg-slate-100 active:bg-slate-200 rounded-full transition-colors"
               >
                 <X className="w-4 h-4 text-slate-400" />
               </button>
@@ -388,7 +390,7 @@ export default function Dashboard() {
                             <button
                               key={cat.id}
                               onClick={() => handleGoToCategoria(cat)}
-                              className="w-full flex items-center gap-3 p-2 hover:bg-blue-50 rounded-lg transition-colors text-left"
+                              className="w-full flex items-center gap-3 p-3 hover:bg-blue-50 active:bg-blue-100 rounded-xl transition-colors text-left min-h-[44px]"
                             >
                               <IconoCategoria value={cat.emoji} className="text-2xl" size={28} />
                               <div className="flex-1 min-w-0">
@@ -415,7 +417,7 @@ export default function Dashboard() {
                             <button
                               key={el.id}
                               onClick={() => handleGoToElemento(el)}
-                              className="w-full flex items-center gap-3 p-2 hover:bg-blue-50 rounded-lg transition-colors text-left"
+                              className="w-full flex items-center gap-3 p-3 hover:bg-blue-50 active:bg-blue-100 rounded-xl transition-colors text-left min-h-[44px]"
                             >
                               <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center">
                                 <Layers className="w-5 h-5 text-slate-500" />

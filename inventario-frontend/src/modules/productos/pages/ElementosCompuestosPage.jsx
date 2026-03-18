@@ -284,7 +284,7 @@ function ElementosCompuestosPage() {
   const isLoading = loadingCategorias || loadingElementos
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6">
+    <div className="min-h-screen bg-slate-50 p-4 md:p-6">
       <div className="max-w-7xl mx-auto">
         {/* Breadcrumb */}
         <Breadcrumb items={getBreadcrumbItems()} className="mb-4" />
@@ -293,7 +293,8 @@ function ElementosCompuestosPage() {
         <div className="mb-6">
           <button
             onClick={handleGoBack}
-            className="flex items-center gap-2 text-slate-600 hover:text-slate-900 mb-4 transition-colors"
+            className="flex items-center gap-2 text-slate-600 hover:text-slate-900 active:text-slate-900
+                       mb-4 transition-colors py-1.5 -ml-1 px-1 rounded-lg min-h-[36px]"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>Volver</span>

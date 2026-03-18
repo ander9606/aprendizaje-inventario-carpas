@@ -41,7 +41,8 @@ const DropdownMenu = ({
           e.stopPropagation()
           setMenuOpen(!menuOpen)
         }}
-        className={`p-1 hover:bg-slate-100 rounded transition-colors ${triggerClassName}`}
+        className={`p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center
+                   hover:bg-slate-100 active:bg-slate-200 rounded-xl transition-colors ${triggerClassName}`}
         aria-label="Opciones"
       >
         <MoreVertical className={`${iconSize} text-slate-600`} />
@@ -53,7 +54,7 @@ const DropdownMenu = ({
             className="fixed inset-0 z-40"
             onClick={() => setMenuOpen(false)}
           />
-          <div className={`absolute right-0 mt-2 ${menuClassName} bg-white shadow-xl rounded-lg border border-slate-200 py-2 z-50`}>
+          <div className={`absolute right-0 mt-2 ${menuClassName} bg-white shadow-xl rounded-xl border border-slate-200 py-1.5 z-50`}>
             {visibleOptions.map((option, idx) => {
               const IconComp = option.icon
               return (
@@ -65,12 +66,12 @@ const DropdownMenu = ({
                     option.onClick()
                   }}
                   className={`
-                    w-full text-left px-4 py-2 text-sm
-                    flex items-center gap-2
+                    w-full text-left px-4 py-3 text-sm min-h-[44px]
+                    flex items-center gap-2.5
                     transition-colors
                     ${option.danger
-                      ? 'text-red-600 hover:bg-red-50'
-                      : 'text-slate-700 hover:bg-slate-50'
+                      ? 'text-red-600 hover:bg-red-50 active:bg-red-100'
+                      : 'text-slate-700 hover:bg-slate-50 active:bg-slate-100'
                     }
                   `}
                 >
