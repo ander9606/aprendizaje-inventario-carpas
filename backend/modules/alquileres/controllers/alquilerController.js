@@ -7,6 +7,7 @@ const AlquilerModel = require('../models/AlquilerModel');
 const AlquilerElementoModel = require('../models/AlquilerElementoModel');
 const CotizacionModel = require('../models/CotizacionModel');
 const FotoOperacionModel = require('../../operaciones/models/FotoOperacionModel');
+const NovedadModel = require('../../operaciones/models/NovedadModel');
 const SerieModel = require('../../inventario/models/SerieModel');
 const LoteModel = require('../../inventario/models/LoteModel');
 const AppError = require('../../../utils/AppError');
@@ -805,6 +806,31 @@ exports.obtenerFotosAlquiler = async (req, res, next) => {
     });
   } catch (error) {
     logger.error('alquilerController.obtenerFotosAlquiler', error);
+    next(error);
+  }
+};
+
+/**
+ * GET /alquileres/:id/novedades
+ * Obtener novedades de todas las órdenes del alquiler
+ */
+exports.obtenerNovedadesAlquiler = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const alquiler = await AlquilerModel.obtenerPorId(id);
+    if (!alquiler) {
+      throw new AppError('Alquiler no encontrado', 404);
+    }
+
+    const novedades = await NovedadModel.obtenerPorAlquiler(id);
+
+    res.json({
+      success: true,
+      data: novedades
+    });
+  } catch (error) {
+    logger.error('alquilerController.obtenerNovedadesAlquiler', error);
     next(error);
   }
 };

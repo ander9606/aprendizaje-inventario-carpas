@@ -17,6 +17,7 @@ import {
     CheckCircle,
     XCircle,
     AlertCircle,
+    AlertTriangle,
     Eye,
     Plus,
     ChevronRight,
@@ -29,17 +30,19 @@ import {
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
-import { useGetEvento } from '../../hooks/useEventos'
+import { useGetEvento, useGetNovedadesEvento } from '../../hooks/useEventos'
 import { useDeleteCotizacion, useAprobarCotizacion, useCambiarEstadoCotizacion } from '../../hooks/cotizaciones'
 import Spinner from '@shared/components/Spinner'
 import Button from '@shared/components/Button'
 import CotizacionDetalleModal from './CotizacionDetalleModal'
 import AprobarCotizacionModal from './AprobarCotizacionModal'
+import ListaNovedades from '../../../operaciones/components/ListaNovedades'
 
 const EventoDetalleModal = ({ isOpen, onClose, eventoId, onCrearCotizacion, onEditarCotizacion }) => {
     const navigate = useNavigate()
     const queryClient = useQueryClient()
     const { evento, isLoading, error } = useGetEvento(eventoId)
+    const { novedades: novedadesEvento } = useGetNovedadesEvento(eventoId)
 
     // Estado para modales
     const [cotizacionDetalleId, setCotizacionDetalleId] = useState(null)
@@ -506,6 +509,29 @@ const EventoDetalleModal = ({ isOpen, onClose, eventoId, onCrearCotizacion, onEd
                         </div>
                     ) : null}
                 </div>
+
+                {/* Historial de Novedades */}
+                {novedadesEvento.length > 0 && (
+                    <div className="px-6 pb-4">
+                        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                            <div className="flex items-center gap-2 mb-3">
+                                <AlertTriangle className="w-5 h-5 text-amber-600" />
+                                <h3 className="font-semibold text-slate-900">
+                                    Historial de Novedades
+                                </h3>
+                                <span className="text-xs font-medium px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full">
+                                    {novedadesEvento.length}
+                                </span>
+                            </div>
+                            <ListaNovedades
+                                novedades={novedadesEvento}
+                                showOrdenInfo
+                                canResolve
+                                compact
+                            />
+                        </div>
+                    </div>
+                )}
 
                 {/* Footer */}
                 <div className="p-4 border-t border-slate-200 bg-slate-50 flex justify-end">

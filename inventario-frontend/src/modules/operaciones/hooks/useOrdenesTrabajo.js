@@ -454,6 +454,69 @@ export const useGetAlertasOrden = (ordenId) => {
 }
 
 // ============================================
+// HOOKS: NOVEDADES
+// ============================================
+
+/**
+ * Hook: useGetNovedadesOrden
+ * Obtiene novedades de una orden
+ */
+export const useGetNovedadesOrden = (ordenId, options = {}) => {
+    const { data, isLoading, error, refetch } = useQuery({
+        queryKey: ['ordenes', ordenId, 'novedades'],
+        queryFn: () => ordenesAPI.obtenerNovedadesOrden(ordenId),
+        enabled: !!ordenId && (options.enabled !== false)
+    })
+
+    return {
+        novedades: data?.data || [],
+        isLoading,
+        error,
+        refetch
+    }
+}
+
+/**
+ * Hook: useCrearNovedad
+ * Crea una novedad desde campo
+ */
+export const useCrearNovedad = () => {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: ({ ordenId, formData }) =>
+            ordenesAPI.crearNovedad(ordenId, formData),
+        retry: 0,
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({ queryKey: ['ordenes', variables.ordenId, 'novedades'] })
+            queryClient.invalidateQueries({ queryKey: ['ordenes', String(variables.ordenId), 'novedades'] })
+            queryClient.invalidateQueries({ queryKey: ['alertas'] })
+            queryClient.invalidateQueries({ queryKey: ['alertas-operaciones'] })
+        }
+    })
+}
+
+/**
+ * Hook: useResolverNovedad
+ * Resuelve una novedad (admin)
+ */
+export const useResolverNovedad = () => {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: ({ novedadId, datos }) =>
+            ordenesAPI.resolverNovedad(novedadId, datos),
+        retry: 0,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['ordenes'] })
+            queryClient.invalidateQueries({ queryKey: ['alertas'] })
+            queryClient.invalidateQueries({ queryKey: ['alertas-operaciones'] })
+            queryClient.invalidateQueries({ queryKey: ['alquiler'] })
+        }
+    })
+}
+
+// ============================================
 // HOOKS: FIRMA CLIENTE
 // ============================================
 

@@ -100,6 +100,12 @@ const apiAlquileres = {
     return response.data
   },
 
+  // Obtener novedades de operaciones del alquiler
+  obtenerNovedades: async (id) => {
+    const response = await api.get(`/alquileres/${id}/novedades`)
+    return response.data
+  },
+
   // Reportes completos (con filtro de fechas opcional)
   obtenerReportes: async ({ fechaInicio, fechaFin } = {}) => {
     const params = {}

@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const ordenTrabajoController = require('../controllers/ordenTrabajoController');
+const novedadController = require('../controllers/novedadController');
 const { verificarToken, verificarRol } = require('../../auth/middleware/authMiddleware');
 
 /**
@@ -222,6 +223,38 @@ router.put(
     '/ordenes/:id/elementos/:elemId/verificar-bodega',
     verificarRol(['admin', 'gerente', 'operaciones']),
     ordenTrabajoController.verificarElementoBodega
+);
+
+// ============================================
+// RUTAS DE NOVEDADES
+// ============================================
+
+// Crear novedad desde campo
+router.post(
+    '/ordenes/:id/novedades',
+    verificarRol(['admin', 'gerente', 'operaciones']),
+    novedadController.crearNovedad
+);
+
+// Obtener novedades de una orden
+router.get(
+    '/ordenes/:id/novedades',
+    verificarRol(['admin', 'gerente', 'operaciones']),
+    novedadController.obtenerNovedadesOrden
+);
+
+// Novedades pendientes (dashboard)
+router.get(
+    '/novedades/pendientes',
+    verificarRol(['admin', 'gerente']),
+    novedadController.obtenerNovedadesPendientes
+);
+
+// Resolver novedad
+router.put(
+    '/novedades/:id/resolver',
+    verificarRol(['admin', 'gerente']),
+    novedadController.resolverNovedad
 );
 
 // ============================================

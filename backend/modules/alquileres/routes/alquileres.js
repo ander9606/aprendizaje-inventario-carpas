@@ -64,6 +64,13 @@ router.get('/:id/extensiones', validateId(), alquilerController.obtenerExtension
 router.get('/:id/fotos', validateId(), alquilerController.obtenerFotosAlquiler);
 
 // ============================================
+// NOVEDADES
+// ============================================
+
+// GET /api/alquileres/:id/novedades - Novedades de operaciones del alquiler
+router.get('/:id/novedades', validateId(), alquilerController.obtenerNovedadesAlquiler);
+
+// ============================================
 // ELEMENTOS (Series/Lotes)
 // ============================================
 

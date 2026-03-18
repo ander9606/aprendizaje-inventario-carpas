@@ -202,6 +202,43 @@ const ordenesAPI = {
     },
 
     // ============================================
+    // NOVEDADES
+    // ============================================
+
+    /**
+     * Crear novedad desde campo
+     * @param {number} ordenId
+     * @param {FormData} formData - { tipo_novedad, descripcion, imagen (file), producto_id, etc }
+     */
+    crearNovedad: async (ordenId, formData) => {
+        const response = await api.post(
+            `/operaciones/ordenes/${ordenId}/novedades`,
+            formData,
+            { headers: { 'Content-Type': 'multipart/form-data' } }
+        )
+        return response.data
+    },
+
+    /**
+     * Obtener novedades de una orden
+     * @param {number} ordenId
+     */
+    obtenerNovedadesOrden: async (ordenId) => {
+        const response = await api.get(`/operaciones/ordenes/${ordenId}/novedades`)
+        return response.data
+    },
+
+    /**
+     * Resolver novedad
+     * @param {number} novedadId
+     * @param {Object} datos - { resolucion }
+     */
+    resolverNovedad: async (novedadId, datos) => {
+        const response = await api.put(`/operaciones/novedades/${novedadId}/resolver`, datos)
+        return response.data
+    },
+
+    // ============================================
     // FIRMA CLIENTE
     // ============================================
 

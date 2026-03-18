@@ -25,6 +25,9 @@ router.get('/:id/cotizaciones', validateId(), eventoController.obtenerCotizacion
 // GET /api/eventos/:id/puede-agregar-cotizacion - Verificar si se pueden agregar cotizaciones
 router.get('/:id/puede-agregar-cotizacion', validateId(), eventoController.puedeAgregarCotizacion);
 
+// GET /api/eventos/:id/novedades - Novedades consolidadas del evento
+router.get('/:id/novedades', validateId(), eventoController.obtenerNovedadesEvento);
+
 // POST /api/eventos - Crear
 router.post('/', eventoController.crear);
 

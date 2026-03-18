@@ -220,6 +220,24 @@ export const useAsignarElementosAlquiler = () => {
 }
 
 /**
+ * Obtener novedades de un alquiler
+ */
+export const useGetNovedadesAlquiler = (alquilerId, options = {}) => {
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ['alquiler', alquilerId, 'novedades'],
+    queryFn: () => apiAlquileres.obtenerNovedades(alquilerId),
+    enabled: !!alquilerId && (options.enabled !== false)
+  })
+
+  return {
+    novedades: data?.data || [],
+    isLoading,
+    error,
+    refetch
+  }
+}
+
+/**
  * Obtener fotos operativas de un alquiler
  */
 export const useGetFotosAlquiler = (alquilerId, options = {}) => {

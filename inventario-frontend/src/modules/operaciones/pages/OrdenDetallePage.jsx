@@ -44,7 +44,8 @@ import {
     useCambiarFechaOrden,
     useEjecutarSalida,
     useEjecutarRetorno,
-    useGetDuracionesOrden
+    useGetDuracionesOrden,
+    useGetNovedadesOrden
 } from '../hooks/useOrdenesTrabajo'
 import { useAuth } from '@auth/hooks/useAuth'
 import Button from '@shared/components/Button'
@@ -57,6 +58,8 @@ import ModalAsignarInventario from '../components/ModalAsignarInventario'
 import ChecklistCargueDescargue from '../components/ChecklistCargueDescargue'
 import ModalInventarioCliente from '../components/ModalInventarioCliente'
 import FotosOrden from '../components/FotosOrden'
+import ModalNovedad from '../components/ModalNovedad'
+import ListaNovedades from '../components/ListaNovedades'
 import ConfirmModal from '@shared/components/ConfirmModal'
 import { toast } from 'sonner'
 
@@ -82,6 +85,7 @@ export default function OrdenDetallePage() {
     const [showChecklistRecogida, setShowChecklistRecogida] = useState(false)
     const [showChecklistBodega, setShowChecklistBodega] = useState(false)
     const [showInventarioCliente, setShowInventarioCliente] = useState(false)
+    const [showModalNovedad, setShowModalNovedad] = useState(false)
     const [ejecutandoSalida, setEjecutandoSalida] = useState(false)
 
     // Estado para modales de confirmación
@@ -97,6 +101,7 @@ export default function OrdenDetallePage() {
     const { orden, isLoading, error, refetch } = useGetOrden(id)
     const { elementos, isLoading: loadingElementos } = useGetElementosOrden(id)
     const { alertas: alertasOrden } = useGetAlertasOrden(id)
+    const { novedades: novedadesOrden } = useGetNovedadesOrden(id)
 
     // Obtener orden completa: productos, elementos y depósito
     // Se carga siempre para mostrar productos y validar estado de cargue
@@ -1199,11 +1204,42 @@ export default function OrdenDetallePage() {
                         </div>
 
                         {/* FOTOS DE OPERACIÓN */}
+                        {/* FOTOS DE OPERACIÓN */}
                         <FotosOrden
                             ordenId={id}
                             tipoOrden={orden?.tipo || 'montaje'}
                             readOnly={!canManage || esCompletado || esCancelado}
                         />
+
+                        {/* NOVEDADES */}
+                        {(novedadesOrden.length > 0 || (canManage && ['en_sitio', 'en_proceso', 'en_ruta'].includes(orden.estado))) && (
+                            <div className="bg-white rounded-xl border border-slate-200 p-6">
+                                <div className="flex items-center justify-between mb-4">
+                                    <div className="flex items-center gap-3">
+                                        <AlertTriangle className="w-5 h-5 text-amber-500" />
+                                        <h3 className="text-lg font-semibold text-slate-900">Novedades</h3>
+                                        {novedadesOrden.filter(n => n.estado === 'pendiente').length > 0 && (
+                                            <span className="text-xs font-medium px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full">
+                                                {novedadesOrden.filter(n => n.estado === 'pendiente').length} pendiente{novedadesOrden.filter(n => n.estado === 'pendiente').length !== 1 ? 's' : ''}
+                                            </span>
+                                        )}
+                                    </div>
+                                    {canManage && ['en_sitio', 'en_proceso', 'en_ruta'].includes(orden.estado) && (
+                                        <button
+                                            onClick={() => setShowModalNovedad(true)}
+                                            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-lg transition-colors"
+                                        >
+                                            <AlertTriangle className="w-4 h-4" />
+                                            Reportar
+                                        </button>
+                                    )}
+                                </div>
+                                <ListaNovedades
+                                    novedades={novedadesOrden}
+                                    canResolve={canManage}
+                                />
+                            </div>
+                        )}
 
                     </div>
 
@@ -1479,6 +1515,13 @@ export default function OrdenDetallePage() {
                 <ModalInventarioCliente
                     ordenId={orden.id}
                     onClose={() => setShowInventarioCliente(false)}
+                />
+            )}
+            {showModalNovedad && (
+                <ModalNovedad
+                    ordenId={id}
+                    productos={productos}
+                    onClose={() => setShowModalNovedad(false)}
                 />
             )}
 

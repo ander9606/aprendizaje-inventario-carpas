@@ -7,6 +7,7 @@ const EventoModel = require('../models/EventoModel');
 const ClienteModel = require('../../clientes/models/ClienteModel');
 const CotizacionModel = require('../models/CotizacionModel');
 const CotizacionProductoModel = require('../models/CotizacionProductoModel');
+const NovedadModel = require('../../operaciones/models/NovedadModel');
 const AppError = require('../../../utils/AppError');
 const logger = require('../../../utils/logger');
 
@@ -370,6 +371,35 @@ exports.repetir = async (req, res, next) => {
     });
   } catch (error) {
     logger.error('eventoController.repetir', error);
+    next(error);
+  }
+};
+
+// ============================================
+// NOVEDADES DEL EVENTO
+// ============================================
+
+/**
+ * GET /eventos/:id/novedades
+ * Obtener novedades consolidadas de todos los alquileres del evento
+ */
+exports.obtenerNovedadesEvento = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const evento = await EventoModel.obtenerPorId(id);
+    if (!evento) {
+      throw new AppError('Evento no encontrado', 404);
+    }
+
+    const novedades = await NovedadModel.obtenerPorEvento(id);
+
+    res.json({
+      success: true,
+      data: novedades
+    });
+  } catch (error) {
+    logger.error('eventoController.obtenerNovedadesEvento', error);
     next(error);
   }
 };
