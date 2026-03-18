@@ -536,8 +536,8 @@ function ElementoDetallePage() {
       {/* ============================================
           SIDEBAR DE NAVEGACIÓN
           ============================================ */}
-      <aside className="w-[280px] bg-sidebar flex-shrink-0 flex flex-col border-r border-slate-200">
-        <div className="px-8 py-6 border-b border-slate-200 flex items-center gap-2">
+      <aside className="hidden lg:flex w-[280px] bg-sidebar flex-shrink-0 flex-col border-r border-slate-200">
+        <div className="px-6 lg:px-8 py-6 border-b border-slate-200 flex items-center gap-2">
           <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
             <Layers className="w-4 h-4 text-white" />
           </div>
@@ -574,7 +574,7 @@ function ElementoDetallePage() {
       <main className="flex-1 overflow-auto flex flex-col">
 
         {/* PAGE HEADER */}
-        <div className="bg-white border-b border-slate-200 px-6 py-3">
+        <div className="bg-white border-b border-slate-200 px-4 lg:px-6 py-3">
           {/* Breadcrumb */}
           <div className="mb-2">
             <Breadcrumb items={breadcrumbItems} />
@@ -587,13 +587,13 @@ function ElementoDetallePage() {
               <h1 className="text-xl font-bold text-slate-900">{elemento.nombre}</h1>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="danger" size="sm" onClick={handleDeleteElemento}>
+              <Button variant="danger" size="md" onClick={handleDeleteElemento}>
                 Eliminar
               </Button>
-              <Button variant="outline" size="sm" onClick={handleEditElemento}>
+              <Button variant="outline" size="md" onClick={handleEditElemento}>
                 Editar
               </Button>
-              <Button variant="primary" size="sm" icon={<Plus className="w-4 h-4" />} onClick={handleAdd}>
+              <Button variant="primary" size="md" icon={<Plus className="w-4 h-4" />} onClick={handleAdd}>
                 {elemento.requiere_series ? 'Agregar serie' : 'Agregar lote'}
               </Button>
             </div>
@@ -601,7 +601,7 @@ function ElementoDetallePage() {
         </div>
 
         {/* STATS ROW */}
-        <div className="flex gap-3 px-6 py-4">
+        <div className="flex gap-3 px-4 lg:px-6 py-4 overflow-x-auto">
           {statCards.map((stat) => (
             <button
               key={stat.label}
@@ -619,7 +619,7 @@ function ElementoDetallePage() {
         </div>
 
         {/* CONTENT ROW: InfoCol + TableCol */}
-        <div className="flex gap-4 px-6 pb-6 flex-1 min-h-0">
+        <div className="flex flex-col lg:flex-row gap-4 px-4 lg:px-6 pb-6 flex-1 min-h-0">
 
           {/* INFO COLUMN (LEFT) */}
           <div className="w-[360px] flex-shrink-0">

@@ -58,5 +58,7 @@ function deleteImageFile(relativePath) {
 module.exports = {
   uploadElementoImagen: createUpload('elementos'),
   uploadProductoImagen: createUpload('productos'),
+  uploadOperacionImagen: createUpload('operaciones'),
+  createUpload,
   deleteImageFile
 };

@@ -2,11 +2,15 @@ const { pool } = require('../../../config/database');
 const OrdenTrabajoModel = require('../models/OrdenTrabajoModel');
 const OrdenElementoModel = require('../models/OrdenElementoModel');
 const AlertaModel = require('../models/AlertaModel');
+const FotoOperacionModel = require('../models/FotoOperacionModel');
 const ValidadorFechasService = require('../services/ValidadorFechasService');
 const SincronizacionAlquilerService = require('../services/SincronizacionAlquilerService');
 const AuthModel = require('../../auth/models/AuthModel');
 const AppError = require('../../../utils/AppError');
 const logger = require('../../../utils/logger');
+const { uploadOperacionImagen, deleteImageFile } = require('../../../middleware/upload');
+const path = require('path');
+const fs = require('fs');
 
 // ============================================
 // ÓRDENES DE TRABAJO
@@ -1210,6 +1214,184 @@ const verificarElementoBodega = async (req, res, next) => {
     }
 };
 
+// ============================================
+// FOTOS OPERATIVAS
+// ============================================
+
+/**
+ * POST /api/operaciones/ordenes/:id/fotos
+ * Subir foto de una etapa operativa
+ */
+const subirFotoOrden = async (req, res, next) => {
+    uploadOperacionImagen(req, res, async (err) => {
+        try {
+            if (err) {
+                throw new AppError(err.message || 'Error al subir imagen', 400);
+            }
+
+            const { id } = req.params;
+            const { etapa, notas } = req.body;
+
+            if (!etapa) {
+                throw new AppError('La etapa es requerida', 400);
+            }
+
+            if (!req.file) {
+                throw new AppError('La imagen es requerida', 400);
+            }
+
+            const imagen_url = `/uploads/operaciones/${req.file.filename}`;
+
+            const foto = await FotoOperacionModel.crear({
+                orden_id: parseInt(id),
+                etapa,
+                imagen_url,
+                notas: notas || null,
+                subido_por: req.usuario.id
+            });
+
+            logger.info('operaciones', `Foto subida para orden ${id}, etapa ${etapa} por ${req.usuario.email}`);
+
+            res.status(201).json({
+                success: true,
+                message: 'Foto subida correctamente',
+                data: foto
+            });
+        } catch (error) {
+            next(error);
+        }
+    });
+};
+
+/**
+ * GET /api/operaciones/ordenes/:id/fotos
+ * Obtener fotos de una orden agrupadas por etapa
+ */
+const obtenerFotosOrden = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const resultado = await FotoOperacionModel.obtenerPorOrden(parseInt(id));
+
+        res.json({
+            success: true,
+            data: resultado
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * DELETE /api/operaciones/ordenes/:id/fotos/:fotoId
+ * Eliminar foto de una orden
+ */
+const eliminarFotoOrden = async (req, res, next) => {
+    try {
+        const { fotoId } = req.params;
+        const foto = await FotoOperacionModel.eliminar(parseInt(fotoId));
+
+        if (!foto) {
+            throw new AppError('Foto no encontrada', 404);
+        }
+
+        // Eliminar archivo físico
+        deleteImageFile(foto.imagen_url);
+
+        logger.info('operaciones', `Foto ${fotoId} eliminada por ${req.usuario.email}`);
+
+        res.json({
+            success: true,
+            message: 'Foto eliminada correctamente'
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// ============================================
+// FIRMA CLIENTE
+// ============================================
+
+/**
+ * POST /api/operaciones/ordenes/:id/firma-cliente
+ * Guardar firma digital del cliente
+ */
+const guardarFirmaCliente = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const { firma, nombre } = req.body;
+
+        if (!firma) {
+            throw new AppError('La firma es requerida', 400);
+        }
+
+        if (!nombre || !nombre.trim()) {
+            throw new AppError('El nombre del firmante es requerido', 400);
+        }
+
+        // Guardar firma base64 como archivo
+        const firmasDir = path.join(__dirname, '../../../uploads/operaciones/firmas');
+        if (!fs.existsSync(firmasDir)) {
+            fs.mkdirSync(firmasDir, { recursive: true });
+        }
+
+        const base64Data = firma.replace(/^data:image\/\w+;base64,/, '');
+        const filename = `firma_${id}_${Date.now()}.png`;
+        const filePath = path.join(firmasDir, filename);
+        fs.writeFileSync(filePath, base64Data, 'base64');
+
+        const firma_url = `/uploads/operaciones/firmas/${filename}`;
+
+        // Actualizar orden con firma
+        await pool.query(
+            `UPDATE ordenes_trabajo
+             SET firma_cliente_url = ?, firma_cliente_fecha = NOW(), firma_cliente_nombre = ?
+             WHERE id = ?`,
+            [firma_url, nombre.trim(), parseInt(id)]
+        );
+
+        logger.info('operaciones', `Firma cliente guardada para orden ${id} por ${req.usuario.email}`);
+
+        res.status(201).json({
+            success: true,
+            message: 'Firma guardada correctamente',
+            data: {
+                firma_cliente_url: firma_url,
+                firma_cliente_nombre: nombre.trim(),
+                firma_cliente_fecha: new Date()
+            }
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * GET /api/operaciones/ordenes/:id/firma-cliente
+ * Obtener firma del cliente
+ */
+const obtenerFirmaCliente = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const [rows] = await pool.query(
+            `SELECT firma_cliente_url, firma_cliente_fecha, firma_cliente_nombre
+             FROM ordenes_trabajo WHERE id = ?`,
+            [parseInt(id)]
+        );
+
+        if (rows.length === 0) {
+            throw new AppError('Orden no encontrada', 404);
+        }
+
+        res.json({
+            success: true,
+            data: rows[0]
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 module.exports = {
     // Órdenes
     getOrdenes,
@@ -1263,5 +1445,14 @@ module.exports = {
 
     // Sincronización
     getEstadoSincronizacion,
-    verificarConsistencia
+    verificarConsistencia,
+
+    // Fotos operativas
+    subirFotoOrden,
+    obtenerFotosOrden,
+    eliminarFotoOrden,
+
+    // Firma cliente
+    guardarFirmaCliente,
+    obtenerFirmaCliente
 };

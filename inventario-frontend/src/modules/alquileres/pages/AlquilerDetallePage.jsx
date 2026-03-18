@@ -31,9 +31,12 @@ import {
 import {
   useGetAlquilerCompleto,
   useCancelarAlquiler,
-  useExtenderAlquiler
+  useExtenderAlquiler,
+  useGetNovedadesAlquiler
 } from '../hooks/useAlquileres'
 import AlquilerTimeline from '../components/alquileres/AlquilerTimeline'
+import FotosAlquiler from '../components/alquileres/FotosAlquiler'
+import ListaNovedades from '../../operaciones/components/ListaNovedades'
 import Button from '@shared/components/Button'
 import Spinner from '@shared/components/Spinner'
 import { toast } from 'sonner'
@@ -61,6 +64,7 @@ export default function AlquilerDetallePage() {
   // QUERIES Y MUTATIONS
   // ============================================
   const { alquiler, isLoading, error, refetch } = useGetAlquilerCompleto(id)
+  const { novedades: novedadesAlquiler } = useGetNovedadesAlquiler(id)
   const cancelarAlquiler = useCancelarAlquiler()
   const extenderAlquiler = useExtenderAlquiler()
 
@@ -639,6 +643,27 @@ export default function AlquilerDetallePage() {
               )}
             </div>
           </div>
+
+          {/* Evidencia Fotográfica */}
+          <FotosAlquiler alquilerId={id} />
+
+          {/* Novedades */}
+          {novedadesAlquiler.length > 0 && (
+            <div className="bg-white rounded-xl border border-slate-200 p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <AlertTriangle className="w-5 h-5 text-amber-500" />
+                <h3 className="text-lg font-semibold text-slate-900">Novedades</h3>
+                <span className="text-xs font-medium px-2 py-0.5 bg-slate-100 text-slate-600 rounded-full">
+                  {novedadesAlquiler.length}
+                </span>
+              </div>
+              <ListaNovedades
+                novedades={novedadesAlquiler}
+                showOrdenInfo
+                canResolve
+              />
+            </div>
+          )}
 
           {/* Columna lateral - Timeline */}
           <div className="lg:col-span-1">

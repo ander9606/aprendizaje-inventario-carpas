@@ -220,6 +220,44 @@ export const useAsignarElementosAlquiler = () => {
 }
 
 /**
+ * Obtener novedades de un alquiler
+ */
+export const useGetNovedadesAlquiler = (alquilerId, options = {}) => {
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ['alquiler', alquilerId, 'novedades'],
+    queryFn: () => apiAlquileres.obtenerNovedades(alquilerId),
+    enabled: !!alquilerId && (options.enabled !== false)
+  })
+
+  return {
+    novedades: data?.data || [],
+    isLoading,
+    error,
+    refetch
+  }
+}
+
+/**
+ * Obtener fotos operativas de un alquiler
+ */
+export const useGetFotosAlquiler = (alquilerId, options = {}) => {
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ['alquiler', alquilerId, 'fotos'],
+    queryFn: () => apiAlquileres.obtenerFotos(alquilerId),
+    enabled: !!alquilerId && (options.enabled !== false)
+  })
+
+  return {
+    fotosData: data?.data || null,
+    fotos: data?.data?.fotos || [],
+    porOrden: data?.data?.porOrden || {},
+    isLoading,
+    error,
+    refetch
+  }
+}
+
+/**
  * Extender fecha de retorno de un alquiler
  */
 export const useExtenderAlquiler = () => {

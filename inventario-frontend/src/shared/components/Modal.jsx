@@ -1,14 +1,16 @@
 // ============================================
 // COMPONENTE: MODAL
-// Ventana emergente para formularios
+// Ventana emergente - tablet-first responsive
+// En tablet/mobile: full-screen (bottom sheet style)
+// En desktop: centrado con max-width
 // ============================================
 
 import { X } from 'lucide-react'
-import { useEffect } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 
 /**
- * Componente Modal - Ventana emergente
- * 
+ * Componente Modal - Ventana emergente tablet-first
+ *
  * @param {boolean} isOpen - Si el modal está abierto
  * @param {function} onClose - Función para cerrar el modal
  * @param {string} title - Título del modal
@@ -16,11 +18,6 @@ import { useEffect } from 'react'
  * @param {boolean} showCloseButton - Mostrar botón de cerrar
  * @param {boolean} closeOnOverlay - Cerrar al hacer click fuera
  * @param {ReactNode} children - Contenido del modal
- * 
- * @example
- * <Modal isOpen={isOpen} onClose={closeModal} title="Nueva Categoría" size="md">
- *   <form>...</form>
- * </Modal>
  */
 export const Modal = ({
   isOpen,
@@ -32,21 +29,29 @@ export const Modal = ({
   children,
   className = ''
 }) => {
-  
+  const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024)
+  const contentRef = useRef(null)
+
+  // ============================================
+  // Detectar breakpoint
+  // ============================================
+  useEffect(() => {
+    const mql = window.matchMedia('(min-width: 1024px)')
+    const handler = (e) => setIsDesktop(e.matches)
+    mql.addEventListener('change', handler)
+    return () => mql.removeEventListener('change', handler)
+  }, [])
+
   // ============================================
   // EFECTO: Bloquear scroll cuando modal está abierto
   // ============================================
   useEffect(() => {
     if (isOpen) {
-      // Guardamos el scroll actual
       const scrollY = window.scrollY
-      
-      // Bloqueamos el scroll del body
       document.body.style.position = 'fixed'
       document.body.style.top = `-${scrollY}px`
       document.body.style.width = '100%'
-      
-      // Cleanup: restaurar scroll al cerrar
+
       return () => {
         document.body.style.position = ''
         document.body.style.top = ''
@@ -55,7 +60,7 @@ export const Modal = ({
       }
     }
   }, [isOpen])
-  
+
   // ============================================
   // EFECTO: Cerrar con tecla Escape
   // ============================================
@@ -65,18 +70,15 @@ export const Modal = ({
         onClose()
       }
     }
-    
+
     document.addEventListener('keydown', handleEscape)
     return () => document.removeEventListener('keydown', handleEscape)
   }, [isOpen, onClose])
-  
-  // ============================================
-  // Si no está abierto, no renderizar nada
-  // ============================================
+
   if (!isOpen) return null
-  
+
   // ============================================
-  // TAMAÑOS DEL MODAL
+  // TAMAÑOS DEL MODAL (solo desktop)
   // ============================================
   const sizeStyles = {
     sm: 'max-w-md',
@@ -85,89 +87,109 @@ export const Modal = ({
     xl: 'max-w-4xl',
     full: 'max-w-7xl'
   }
-  
-  // ============================================
-  // HANDLER: Cerrar al hacer click en overlay
-  // ============================================
+
   const handleOverlayClick = (e) => {
-    // Solo cerrar si se hace click directamente en el overlay
-    // (no en el contenido del modal)
     if (closeOnOverlay && e.target === e.currentTarget) {
       onClose()
     }
   }
-  
-  return (
-    <>
-      {/* ============================================
-          OVERLAY - Fondo oscuro
-          ============================================ */}
+
+  // ============================================
+  // MOBILE/TABLET: Full-screen modal
+  // ============================================
+  if (!isDesktop) {
+    return (
       <div
-        className="fixed inset-0 bg-black bg-opacity-50 z-50 
-                   flex items-center justify-center p-4
-                   animate-fadeIn"
-        onClick={handleOverlayClick}
+        className="fixed inset-0 z-50 bg-white flex flex-col animate-slideUpSheet safe-area-top safe-area-bottom"
       >
-        {/* ============================================
-            CONTENEDOR DEL MODAL
-            ============================================ */}
+        {/* Header fijo */}
+        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200 bg-white sticky top-0 z-10 min-h-[56px]">
+          <h2 className="text-lg font-bold text-slate-900 truncate pr-2">
+            {title}
+          </h2>
+
+          {showCloseButton && (
+            <button
+              onClick={onClose}
+              className="w-10 h-10 flex items-center justify-center rounded-xl
+                         text-slate-500 hover:text-slate-700 active:bg-slate-100
+                         transition-colors flex-shrink-0"
+              aria-label="Cerrar modal"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          )}
+        </div>
+
+        {/* Contenido scrollable */}
         <div
-          className={`
-            bg-white rounded-lg shadow-2xl
-            w-full ${sizeStyles[size]}
-            max-h-[90vh] flex flex-col
-            animate-slideUp
-            ${className}
-          `}
+          ref={contentRef}
+          className="flex-1 overflow-y-auto touch-scroll px-4 py-4"
         >
-          {/* ============================================
-              HEADER DEL MODAL
-              ============================================ */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
-            {/* Título */}
-            <h2 className="text-xl font-bold text-slate-900">
-              {title}
-            </h2>
-            
-            {/* Botón de cerrar */}
-            {showCloseButton && (
-              <button
-                onClick={onClose}
-                className="text-slate-400 hover:text-slate-600 
-                         transition-colors p-1 rounded-lg
-                         hover:bg-slate-100"
-                aria-label="Cerrar modal"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            )}
-          </div>
-          
-          {/* ============================================
-              CONTENIDO DEL MODAL (con scroll)
-              ============================================ */}
-          <div className="flex-1 overflow-y-auto px-6 py-4">
-            {children}
-          </div>
+          {children}
         </div>
       </div>
-    </>
+    )
+  }
+
+  // ============================================
+  // DESKTOP: Modal centrado tradicional
+  // ============================================
+  return (
+    <div
+      className="fixed inset-0 bg-black/50 z-50
+                 flex items-center justify-center p-4
+                 animate-fadeIn"
+      onClick={handleOverlayClick}
+    >
+      <div
+        className={`
+          bg-white rounded-xl shadow-2xl
+          w-full ${sizeStyles[size]}
+          max-h-[90vh] flex flex-col
+          animate-slideUp
+          ${className}
+        `}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
+          <h2 className="text-xl font-bold text-slate-900">
+            {title}
+          </h2>
+
+          {showCloseButton && (
+            <button
+              onClick={onClose}
+              className="text-slate-400 hover:text-slate-600
+                       transition-colors p-2 rounded-xl
+                       hover:bg-slate-100 active:bg-slate-200"
+              aria-label="Cerrar modal"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          )}
+        </div>
+
+        {/* Contenido (con scroll) */}
+        <div className="flex-1 overflow-y-auto px-6 py-4">
+          {children}
+        </div>
+      </div>
+    </div>
   )
 }
 
 // ============================================
 // SUB-COMPONENTE: MODAL FOOTER
 // ============================================
-/**
- * Modal.Footer - Pie del modal con botones
- */
 Modal.Footer = ({ children, className = '', ...props }) => {
   return (
     <div
       className={`
-        px-6 py-4 border-t border-slate-200 
-        bg-slate-50 rounded-b-lg
+        px-4 py-4 lg:px-6 border-t border-slate-200
+        bg-slate-50 lg:rounded-b-xl
         flex items-center justify-end gap-3
+        safe-area-bottom
         ${className}
       `}
       {...props}

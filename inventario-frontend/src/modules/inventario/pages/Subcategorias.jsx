@@ -233,7 +233,7 @@ export default function Subcategorias() {
           HEADER
           ============================================ */}
       <div className="bg-white border-b border-slate-200 sticky top-0 z-10">
-        <div className="container mx-auto px-6 py-4">
+        <div className="container mx-auto px-4 lg:px-6 py-3 lg:py-4">
           {/* Breadcrumb */}
           <div className="mb-3">
             <Breadcrumb items={breadcrumbItems} />
@@ -257,7 +257,7 @@ export default function Subcategorias() {
 
             <Button
               variant="primary"
-              size="sm"
+              size="md"
               icon={<Plus />}
               onClick={handleOpenCrear}
             >
@@ -266,17 +266,17 @@ export default function Subcategorias() {
           </div>
         </div>
       </div>
-      
+
       {/* ============================================
           CONTENIDO PRINCIPAL
           ============================================ */}
-      <div className="container mx-auto px-6 py-8">
+      <div className="container mx-auto px-4 lg:px-6 py-6 lg:py-8">
         
         {/* ============================================
             GRID DE SUBCATEGORÍAS
             ============================================ */}
         {subcategorias.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-5">
             {subcategorias.map((subcategoria) => (
               <SubcategoriaCard
                 key={subcategoria.id}

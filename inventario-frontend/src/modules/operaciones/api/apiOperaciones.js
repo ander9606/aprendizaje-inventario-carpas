@@ -202,6 +202,103 @@ const ordenesAPI = {
     },
 
     // ============================================
+    // NOVEDADES
+    // ============================================
+
+    /**
+     * Crear novedad desde campo
+     * @param {number} ordenId
+     * @param {FormData} formData - { tipo_novedad, descripcion, imagen (file), producto_id, etc }
+     */
+    crearNovedad: async (ordenId, formData) => {
+        const response = await api.post(
+            `/operaciones/ordenes/${ordenId}/novedades`,
+            formData,
+            { headers: { 'Content-Type': 'multipart/form-data' } }
+        )
+        return response.data
+    },
+
+    /**
+     * Obtener novedades de una orden
+     * @param {number} ordenId
+     */
+    obtenerNovedadesOrden: async (ordenId) => {
+        const response = await api.get(`/operaciones/ordenes/${ordenId}/novedades`)
+        return response.data
+    },
+
+    /**
+     * Resolver novedad
+     * @param {number} novedadId
+     * @param {Object} datos - { resolucion }
+     */
+    resolverNovedad: async (novedadId, datos) => {
+        const response = await api.put(`/operaciones/novedades/${novedadId}/resolver`, datos)
+        return response.data
+    },
+
+    // ============================================
+    // FIRMA CLIENTE
+    // ============================================
+
+    /**
+     * Guardar firma digital del cliente
+     * @param {number} ordenId
+     * @param {Object} datos - { firma (base64), nombre }
+     */
+    guardarFirmaCliente: async (ordenId, datos) => {
+        const response = await api.post(`/operaciones/ordenes/${ordenId}/firma-cliente`, datos)
+        return response.data
+    },
+
+    /**
+     * Obtener firma del cliente
+     * @param {number} ordenId
+     */
+    obtenerFirmaCliente: async (ordenId) => {
+        const response = await api.get(`/operaciones/ordenes/${ordenId}/firma-cliente`)
+        return response.data
+    },
+
+    // ============================================
+    // FOTOS OPERATIVAS
+    // ============================================
+
+    /**
+     * Subir foto de etapa operativa
+     * @param {number} ordenId - ID de la orden
+     * @param {FormData} formData - { imagen (file), etapa, notas }
+     */
+    subirFotoOrden: async (ordenId, formData) => {
+        const response = await api.post(
+            `/operaciones/ordenes/${ordenId}/fotos`,
+            formData,
+            { headers: { 'Content-Type': 'multipart/form-data' } }
+        )
+        return response.data
+    },
+
+    /**
+     * Obtener fotos de una orden agrupadas por etapa
+     * @param {number} ordenId
+     */
+    obtenerFotosOrden: async (ordenId) => {
+        const response = await api.get(`/operaciones/ordenes/${ordenId}/fotos`)
+        return response.data
+    },
+
+    /**
+     * Eliminar foto de una orden
+     * @param {number} ordenId
+     * @param {number} fotoId
+     */
+    eliminarFotoOrden: async (ordenId, fotoId) => {
+        const response = await api.delete(`/operaciones/ordenes/${ordenId}/fotos/${fotoId}`)
+        return response.data
+    },
+
+    // ============================================
     // INVENTARIO CLIENTE
     // ============================================
 

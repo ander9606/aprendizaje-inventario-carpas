@@ -178,3 +178,21 @@ export const useRepetirEvento = () => {
     }
   })
 }
+
+/**
+ * Hook para obtener novedades consolidadas de un evento
+ */
+export const useGetNovedadesEvento = (eventoId, options = {}) => {
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ['eventos', eventoId, 'novedades'],
+    queryFn: () => apiEventos.obtenerNovedades(eventoId),
+    enabled: !!eventoId && (options.enabled !== false)
+  })
+
+  return {
+    novedades: data?.data || [],
+    isLoading,
+    error,
+    refetch
+  }
+}
