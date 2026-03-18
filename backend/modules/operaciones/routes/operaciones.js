@@ -225,6 +225,24 @@ router.put(
 );
 
 // ============================================
+// RUTAS DE FIRMA CLIENTE
+// ============================================
+
+// Guardar firma digital del cliente
+router.post(
+    '/ordenes/:id/firma-cliente',
+    verificarRol(['admin', 'gerente', 'operaciones']),
+    ordenTrabajoController.guardarFirmaCliente
+);
+
+// Obtener firma del cliente
+router.get(
+    '/ordenes/:id/firma-cliente',
+    verificarRol(['admin', 'gerente', 'operaciones']),
+    ordenTrabajoController.obtenerFirmaCliente
+);
+
+// ============================================
 // RUTAS DE FOTOS OPERATIVAS
 // ============================================
 

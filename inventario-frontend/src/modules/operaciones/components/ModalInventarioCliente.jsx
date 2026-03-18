@@ -1,8 +1,14 @@
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import { toast } from 'sonner'
-import { X, Share2, Printer, Package, Calendar, MapPin, User, CheckCircle, ClipboardList } from 'lucide-react'
-import { useGetInventarioCliente } from '../hooks/useOrdenesTrabajo'
+import {
+    X, Share2, Printer, Package, Calendar, MapPin, User, CheckCircle,
+    ClipboardList, Camera, Image, Pen, MessageCircle, Loader2
+} from 'lucide-react'
+import { useGetInventarioCliente, useGetFotosOrden, useGetFirmaCliente, useGuardarFirmaCliente } from '../hooks/useOrdenesTrabajo'
+import FirmaDigital from '@shared/components/FirmaDigital'
 import Spinner from '@shared/components/Spinner'
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'
 
 const ESTADO_LABELS = {
     nuevo: 'Nuevo',
@@ -28,7 +34,35 @@ function formatFecha(fecha) {
 
 export default function ModalInventarioCliente({ ordenId, onClose }) {
     const { inventario, isLoading, error } = useGetInventarioCliente(ordenId, { enabled: !!ordenId })
+    const { porEtapa } = useGetFotosOrden(ordenId)
+    const { firma } = useGetFirmaCliente(ordenId)
+    const guardarFirma = useGuardarFirmaCliente()
+
     const printRef = useRef(null)
+    const [nombreFirmante, setNombreFirmante] = useState('')
+    const [mostrarFirma, setMostrarFirma] = useState(false)
+    const [visorFoto, setVisorFoto] = useState(null)
+
+    const fotosMontaje = porEtapa?.montaje_terminado || []
+    const tieneFirma = firma?.firma_cliente_url
+
+    const handleConfirmarFirma = async (firmaBase64) => {
+        if (!nombreFirmante.trim()) {
+            toast.error('Ingrese el nombre del receptor')
+            return
+        }
+
+        try {
+            await guardarFirma.mutateAsync({
+                ordenId,
+                datos: { firma: firmaBase64, nombre: nombreFirmante.trim() }
+            })
+            toast.success('Firma guardada correctamente')
+            setMostrarFirma(false)
+        } catch {
+            toast.error('Error al guardar la firma')
+        }
+    }
 
     const handleImprimir = () => {
         const contenido = printRef.current
@@ -63,7 +97,11 @@ export default function ModalInventarioCliente({ ordenId, onClose }) {
                     .footer { margin-top: 32px; text-align: center; color: #94a3b8; font-size: 11px; border-top: 1px solid #e2e8f0; padding-top: 12px; }
                     .desmontaje-box { background: #fff7ed; border: 1px solid #fed7aa; border-radius: 8px; padding: 12px; margin-top: 16px; text-align: center; }
                     .desmontaje-box strong { color: #c2410c; }
-                    @media print { body { padding: 12px; } }
+                    .fotos-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 8px; }
+                    .fotos-grid img { width: 100%; height: 120px; object-fit: cover; border-radius: 6px; }
+                    .firma-section { margin-top: 24px; text-align: center; }
+                    .firma-section img { max-width: 250px; border: 1px solid #e2e8f0; border-radius: 8px; }
+                    @media print { body { padding: 12px; } .fotos-grid img { height: 100px; } }
                 </style>
             </head>
             <body>
@@ -76,29 +114,27 @@ export default function ModalInventarioCliente({ ordenId, onClose }) {
         ventana.print()
     }
 
-    const handleCompartir = async () => {
-        if (!inventario) return
+    const generarTextoCompartir = () => {
+        if (!inventario) return ''
 
-        // Generar texto resumen para compartir
-        let texto = `INVENTARIO DE MONTAJE\n`
-        texto += `${'='.repeat(30)}\n\n`
-        texto += `Cliente: ${inventario.cliente?.nombre || '-'}\n`
-        texto += `Evento: ${inventario.evento?.nombre || '-'}\n`
-        texto += `Lugar: ${inventario.evento?.direccion || '-'}, ${inventario.evento?.ciudad || '-'}\n`
-        texto += `Fecha montaje: ${formatFecha(inventario.fecha_montaje_completado)}\n`
+        let texto = `*INVENTARIO DE MONTAJE*\n`
+        texto += `${'─'.repeat(25)}\n\n`
+        texto += `*Cliente:* ${inventario.cliente?.nombre || '-'}\n`
+        texto += `*Evento:* ${inventario.evento?.nombre || '-'}\n`
+        texto += `*Lugar:* ${inventario.evento?.direccion || '-'}, ${inventario.evento?.ciudad || '-'}\n`
+        texto += `*Fecha montaje:* ${formatFecha(inventario.fecha_montaje_completado)}\n`
 
         if (inventario.evento?.fecha_desmontaje) {
-            texto += `Fecha desmontaje: ${formatFecha(inventario.evento.fecha_desmontaje)}\n`
+            texto += `*Fecha desmontaje:* ${formatFecha(inventario.evento.fecha_desmontaje)}\n`
         }
 
-        texto += `\nPRODUCTOS INSTALADOS:\n`
-        texto += `${'-'.repeat(30)}\n`
+        texto += `\n*PRODUCTOS INSTALADOS:*\n`
 
         inventario.productos?.forEach(p => {
-            texto += `\n${p.categoria_emoji || ''} ${p.nombre} (x${p.cantidad})\n`
+            texto += `\n${p.categoria_emoji || ''} *${p.nombre}* (x${p.cantidad})\n`
             p.componentes?.forEach(c => {
                 const cantTotal = c.cantidad * p.cantidad
-                texto += `  - ${c.elemento_nombre}: ${cantTotal} und`
+                texto += `  • ${c.elemento_nombre}: ${cantTotal} und`
                 if (c.elementos_asignados?.length > 0) {
                     const estado = c.elementos_asignados[0].estado_salida
                     texto += ` [${ESTADO_LABELS[estado] || estado}]`
@@ -107,7 +143,19 @@ export default function ModalInventarioCliente({ ordenId, onClose }) {
             })
         })
 
-        texto += `\nTotal elementos: ${inventario.total_elementos}\n`
+        texto += `\n*Total:* ${inventario.total_elementos} elementos entregados`
+
+        if (tieneFirma) {
+            texto += `\n\n✅ *Firmado por:* ${firma.firma_cliente_nombre}`
+            texto += `\n*Fecha firma:* ${formatFecha(firma.firma_cliente_fecha)}`
+        }
+
+        return texto
+    }
+
+    const handleCompartir = async () => {
+        const texto = generarTextoCompartir()
+        if (!texto) return
 
         if (navigator.share) {
             try {
@@ -116,12 +164,21 @@ export default function ModalInventarioCliente({ ordenId, onClose }) {
                     text: texto
                 })
             } catch {
-                // User cancelled share
+                // User cancelled
             }
         } else {
             await navigator.clipboard.writeText(texto)
             toast.success('Inventario copiado al portapapeles')
         }
+    }
+
+    const handleWhatsApp = () => {
+        const texto = generarTextoCompartir()
+        if (!texto) return
+
+        const telefono = inventario.cliente?.telefono?.replace(/\D/g, '') || ''
+        const url = `https://wa.me/${telefono}?text=${encodeURIComponent(texto)}`
+        window.open(url, '_blank')
     }
 
     return (
@@ -140,12 +197,21 @@ export default function ModalInventarioCliente({ ordenId, onClose }) {
                     </div>
                     <div className="flex items-center gap-2">
                         <button
+                            onClick={handleWhatsApp}
+                            disabled={isLoading || !inventario}
+                            className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-green-700 bg-green-50 hover:bg-green-100 rounded-lg transition-colors disabled:opacity-50"
+                            title="Enviar por WhatsApp"
+                        >
+                            <MessageCircle className="w-4 h-4" />
+                            <span className="hidden sm:inline">WhatsApp</span>
+                        </button>
+                        <button
                             onClick={handleCompartir}
                             disabled={isLoading || !inventario}
                             className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-orange-700 bg-orange-50 hover:bg-orange-100 rounded-lg transition-colors disabled:opacity-50"
                         >
                             <Share2 className="w-4 h-4" />
-                            Compartir
+                            <span className="hidden sm:inline">Compartir</span>
                         </button>
                         <button
                             onClick={handleImprimir}
@@ -153,7 +219,7 @@ export default function ModalInventarioCliente({ ordenId, onClose }) {
                             className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors disabled:opacity-50"
                         >
                             <Printer className="w-4 h-4" />
-                            Imprimir
+                            <span className="hidden sm:inline">Imprimir</span>
                         </button>
                         <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-lg">
                             <X className="w-5 h-5" />
@@ -234,6 +300,32 @@ export default function ModalInventarioCliente({ ordenId, onClose }) {
                                 </div>
                             )}
 
+                            {/* Fotos del montaje terminado */}
+                            {fotosMontaje.length > 0 && (
+                                <div className="section mb-6">
+                                    <h4 className="section-title text-sm font-semibold text-slate-700 mb-3 pb-2 border-b border-slate-200 flex items-center gap-2">
+                                        <Camera className="w-4 h-4" />
+                                        Fotos del Montaje ({fotosMontaje.length})
+                                    </h4>
+                                    <div className="fotos-grid grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                        {fotosMontaje.map((foto) => (
+                                            <div
+                                                key={foto.id}
+                                                className="cursor-pointer rounded-lg overflow-hidden aspect-video group"
+                                                onClick={() => setVisorFoto(foto)}
+                                            >
+                                                <img
+                                                    src={`${API_URL}${foto.imagen_url}`}
+                                                    alt="Montaje terminado"
+                                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                                                    loading="lazy"
+                                                />
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
                             {/* Productos con desglose */}
                             <div className="section mb-4">
                                 <h4 className="section-title text-sm font-semibold text-slate-700 mb-4 pb-2 border-b border-slate-200 flex items-center gap-2">
@@ -302,6 +394,67 @@ export default function ModalInventarioCliente({ ordenId, onClose }) {
                                 </div>
                             </div>
 
+                            {/* Firma del cliente */}
+                            <div className="firma-section mt-6 pt-4 border-t border-slate-200">
+                                {tieneFirma ? (
+                                    <div className="text-center">
+                                        <h4 className="text-sm font-semibold text-slate-700 mb-3 flex items-center justify-center gap-2">
+                                            <Pen className="w-4 h-4" />
+                                            Firma del Receptor
+                                        </h4>
+                                        <img
+                                            src={`${API_URL}${firma.firma_cliente_url}`}
+                                            alt="Firma del cliente"
+                                            className="max-w-[250px] mx-auto border border-slate-200 rounded-lg"
+                                        />
+                                        <p className="text-sm font-medium text-slate-700 mt-2">
+                                            {firma.firma_cliente_nombre}
+                                        </p>
+                                        <p className="text-xs text-slate-400">
+                                            {formatFecha(firma.firma_cliente_fecha)}
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <div>
+                                        {!mostrarFirma ? (
+                                            <button
+                                                onClick={() => setMostrarFirma(true)}
+                                                className="w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-slate-300 rounded-lg text-sm font-medium text-slate-600 hover:border-orange-400 hover:text-orange-600 transition-colors"
+                                            >
+                                                <Pen className="w-4 h-4" />
+                                                Solicitar firma del cliente
+                                            </button>
+                                        ) : (
+                                            <div className="space-y-3">
+                                                <h4 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                                                    <Pen className="w-4 h-4" />
+                                                    Firma del Receptor
+                                                </h4>
+                                                <input
+                                                    type="text"
+                                                    value={nombreFirmante}
+                                                    onChange={(e) => setNombreFirmante(e.target.value)}
+                                                    placeholder="Nombre completo del receptor"
+                                                    className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                                />
+                                                <FirmaDigital
+                                                    onConfirm={handleConfirmarFirma}
+                                                    width={400}
+                                                    height={180}
+                                                    disabled={guardarFirma.isPending}
+                                                />
+                                                {guardarFirma.isPending && (
+                                                    <div className="flex items-center justify-center gap-2 text-sm text-slate-500">
+                                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                                        Guardando firma...
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+
                             {/* Footer */}
                             <div className="footer text-center text-xs text-slate-400 mt-6 pt-4 border-t border-slate-200">
                                 <p>Documento generado el {new Date().toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
@@ -311,6 +464,28 @@ export default function ModalInventarioCliente({ ordenId, onClose }) {
                     )}
                 </div>
             </div>
+
+            {/* Visor de foto ampliada */}
+            {visorFoto && (
+                <div
+                    className="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center p-4"
+                    onClick={() => setVisorFoto(null)}
+                >
+                    <div onClick={(e) => e.stopPropagation()} className="relative max-w-3xl w-full">
+                        <img
+                            src={`${API_URL}${visorFoto.imagen_url}`}
+                            alt="Foto ampliada"
+                            className="w-full max-h-[80vh] object-contain rounded-lg"
+                        />
+                        <button
+                            onClick={() => setVisorFoto(null)}
+                            className="absolute top-2 right-2 p-2 bg-black/50 text-white rounded-full hover:bg-black/70"
+                        >
+                            <X className="w-5 h-5" />
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }

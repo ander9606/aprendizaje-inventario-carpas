@@ -454,6 +454,49 @@ export const useGetAlertasOrden = (ordenId) => {
 }
 
 // ============================================
+// HOOKS: FIRMA CLIENTE
+// ============================================
+
+/**
+ * Hook: useGetFirmaCliente
+ * Obtiene firma del cliente para una orden
+ */
+export const useGetFirmaCliente = (ordenId, options = {}) => {
+    const { data, isLoading, error, refetch } = useQuery({
+        queryKey: ['ordenes', ordenId, 'firma-cliente'],
+        queryFn: () => ordenesAPI.obtenerFirmaCliente(ordenId),
+        enabled: !!ordenId && (options.enabled !== false)
+    })
+
+    return {
+        firma: data?.data || null,
+        isLoading,
+        error,
+        refetch
+    }
+}
+
+/**
+ * Hook: useGuardarFirmaCliente
+ * Guarda la firma digital del cliente
+ */
+export const useGuardarFirmaCliente = () => {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: ({ ordenId, datos }) =>
+            ordenesAPI.guardarFirmaCliente(ordenId, datos),
+        retry: 0,
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({ queryKey: ['ordenes', variables.ordenId, 'firma-cliente'] })
+            queryClient.invalidateQueries({ queryKey: ['ordenes', String(variables.ordenId), 'firma-cliente'] })
+            queryClient.invalidateQueries({ queryKey: ['ordenes', variables.ordenId, 'inventario-cliente'] })
+            queryClient.invalidateQueries({ queryKey: ['ordenes', String(variables.ordenId), 'inventario-cliente'] })
+        }
+    })
+}
+
+// ============================================
 // HOOKS: FOTOS OPERATIVAS
 // ============================================
 

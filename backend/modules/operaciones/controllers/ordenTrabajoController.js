@@ -9,6 +9,8 @@ const AuthModel = require('../../auth/models/AuthModel');
 const AppError = require('../../../utils/AppError');
 const logger = require('../../../utils/logger');
 const { uploadOperacionImagen, deleteImageFile } = require('../../../middleware/upload');
+const path = require('path');
+const fs = require('fs');
 
 // ============================================
 // ÓRDENES DE TRABAJO
@@ -1306,6 +1308,90 @@ const eliminarFotoOrden = async (req, res, next) => {
     }
 };
 
+// ============================================
+// FIRMA CLIENTE
+// ============================================
+
+/**
+ * POST /api/operaciones/ordenes/:id/firma-cliente
+ * Guardar firma digital del cliente
+ */
+const guardarFirmaCliente = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const { firma, nombre } = req.body;
+
+        if (!firma) {
+            throw new AppError('La firma es requerida', 400);
+        }
+
+        if (!nombre || !nombre.trim()) {
+            throw new AppError('El nombre del firmante es requerido', 400);
+        }
+
+        // Guardar firma base64 como archivo
+        const firmasDir = path.join(__dirname, '../../../uploads/operaciones/firmas');
+        if (!fs.existsSync(firmasDir)) {
+            fs.mkdirSync(firmasDir, { recursive: true });
+        }
+
+        const base64Data = firma.replace(/^data:image\/\w+;base64,/, '');
+        const filename = `firma_${id}_${Date.now()}.png`;
+        const filePath = path.join(firmasDir, filename);
+        fs.writeFileSync(filePath, base64Data, 'base64');
+
+        const firma_url = `/uploads/operaciones/firmas/${filename}`;
+
+        // Actualizar orden con firma
+        await pool.query(
+            `UPDATE ordenes_trabajo
+             SET firma_cliente_url = ?, firma_cliente_fecha = NOW(), firma_cliente_nombre = ?
+             WHERE id = ?`,
+            [firma_url, nombre.trim(), parseInt(id)]
+        );
+
+        logger.info('operaciones', `Firma cliente guardada para orden ${id} por ${req.usuario.email}`);
+
+        res.status(201).json({
+            success: true,
+            message: 'Firma guardada correctamente',
+            data: {
+                firma_cliente_url: firma_url,
+                firma_cliente_nombre: nombre.trim(),
+                firma_cliente_fecha: new Date()
+            }
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * GET /api/operaciones/ordenes/:id/firma-cliente
+ * Obtener firma del cliente
+ */
+const obtenerFirmaCliente = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const [rows] = await pool.query(
+            `SELECT firma_cliente_url, firma_cliente_fecha, firma_cliente_nombre
+             FROM ordenes_trabajo WHERE id = ?`,
+            [parseInt(id)]
+        );
+
+        if (rows.length === 0) {
+            throw new AppError('Orden no encontrada', 404);
+        }
+
+        res.json({
+            success: true,
+            data: rows[0]
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 module.exports = {
     // Órdenes
     getOrdenes,
@@ -1364,5 +1450,9 @@ module.exports = {
     // Fotos operativas
     subirFotoOrden,
     obtenerFotosOrden,
-    eliminarFotoOrden
+    eliminarFotoOrden,
+
+    // Firma cliente
+    guardarFirmaCliente,
+    obtenerFirmaCliente
 };

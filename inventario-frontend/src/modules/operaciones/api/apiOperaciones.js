@@ -202,6 +202,29 @@ const ordenesAPI = {
     },
 
     // ============================================
+    // FIRMA CLIENTE
+    // ============================================
+
+    /**
+     * Guardar firma digital del cliente
+     * @param {number} ordenId
+     * @param {Object} datos - { firma (base64), nombre }
+     */
+    guardarFirmaCliente: async (ordenId, datos) => {
+        const response = await api.post(`/operaciones/ordenes/${ordenId}/firma-cliente`, datos)
+        return response.data
+    },
+
+    /**
+     * Obtener firma del cliente
+     * @param {number} ordenId
+     */
+    obtenerFirmaCliente: async (ordenId) => {
+        const response = await api.get(`/operaciones/ordenes/${ordenId}/firma-cliente`)
+        return response.data
+    },
+
+    // ============================================
     // FOTOS OPERATIVAS
     // ============================================
 
