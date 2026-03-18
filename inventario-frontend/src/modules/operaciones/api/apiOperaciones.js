@@ -202,6 +202,43 @@ const ordenesAPI = {
     },
 
     // ============================================
+    // FOTOS OPERATIVAS
+    // ============================================
+
+    /**
+     * Subir foto de etapa operativa
+     * @param {number} ordenId - ID de la orden
+     * @param {FormData} formData - { imagen (file), etapa, notas }
+     */
+    subirFotoOrden: async (ordenId, formData) => {
+        const response = await api.post(
+            `/operaciones/ordenes/${ordenId}/fotos`,
+            formData,
+            { headers: { 'Content-Type': 'multipart/form-data' } }
+        )
+        return response.data
+    },
+
+    /**
+     * Obtener fotos de una orden agrupadas por etapa
+     * @param {number} ordenId
+     */
+    obtenerFotosOrden: async (ordenId) => {
+        const response = await api.get(`/operaciones/ordenes/${ordenId}/fotos`)
+        return response.data
+    },
+
+    /**
+     * Eliminar foto de una orden
+     * @param {number} ordenId
+     * @param {number} fotoId
+     */
+    eliminarFotoOrden: async (ordenId, fotoId) => {
+        const response = await api.delete(`/operaciones/ordenes/${ordenId}/fotos/${fotoId}`)
+        return response.data
+    },
+
+    // ============================================
     // INVENTARIO CLIENTE
     // ============================================
 

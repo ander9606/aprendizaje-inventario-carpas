@@ -94,6 +94,12 @@ const apiAlquileres = {
     return response.data
   },
 
+  // Obtener fotos operativas del alquiler
+  obtenerFotos: async (id) => {
+    const response = await api.get(`/alquileres/${id}/fotos`)
+    return response.data
+  },
+
   // Reportes completos (con filtro de fechas opcional)
   obtenerReportes: async ({ fechaInicio, fechaFin } = {}) => {
     const params = {}

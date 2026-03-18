@@ -34,6 +34,7 @@ import {
   useExtenderAlquiler
 } from '../hooks/useAlquileres'
 import AlquilerTimeline from '../components/alquileres/AlquilerTimeline'
+import FotosAlquiler from '../components/alquileres/FotosAlquiler'
 import Button from '@shared/components/Button'
 import Spinner from '@shared/components/Spinner'
 import { toast } from 'sonner'
@@ -639,6 +640,9 @@ export default function AlquilerDetallePage() {
               )}
             </div>
           </div>
+
+          {/* Evidencia Fotográfica */}
+          <FotosAlquiler alquilerId={id} />
 
           {/* Columna lateral - Timeline */}
           <div className="lg:col-span-1">

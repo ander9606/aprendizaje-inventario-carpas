@@ -454,6 +454,67 @@ export const useGetAlertasOrden = (ordenId) => {
 }
 
 // ============================================
+// HOOKS: FOTOS OPERATIVAS
+// ============================================
+
+/**
+ * Hook: useGetFotosOrden
+ * Obtiene fotos de una orden agrupadas por etapa
+ */
+export const useGetFotosOrden = (ordenId, options = {}) => {
+    const { data, isLoading, error, refetch } = useQuery({
+        queryKey: ['ordenes', ordenId, 'fotos'],
+        queryFn: () => ordenesAPI.obtenerFotosOrden(ordenId),
+        enabled: !!ordenId && (options.enabled !== false)
+    })
+
+    return {
+        fotosData: data?.data || null,
+        fotos: data?.data?.fotos || [],
+        porEtapa: data?.data?.porEtapa || {},
+        isLoading,
+        error,
+        refetch
+    }
+}
+
+/**
+ * Hook: useSubirFotoOrden
+ * Sube foto de etapa operativa
+ */
+export const useSubirFotoOrden = () => {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: ({ ordenId, formData }) =>
+            ordenesAPI.subirFotoOrden(ordenId, formData),
+        retry: 0,
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({ queryKey: ['ordenes', variables.ordenId, 'fotos'] })
+            queryClient.invalidateQueries({ queryKey: ['ordenes', String(variables.ordenId), 'fotos'] })
+        }
+    })
+}
+
+/**
+ * Hook: useEliminarFotoOrden
+ * Elimina foto de una orden
+ */
+export const useEliminarFotoOrden = () => {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: ({ ordenId, fotoId }) =>
+            ordenesAPI.eliminarFotoOrden(ordenId, fotoId),
+        retry: 0,
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({ queryKey: ['ordenes', variables.ordenId, 'fotos'] })
+            queryClient.invalidateQueries({ queryKey: ['ordenes', String(variables.ordenId), 'fotos'] })
+        }
+    })
+}
+
+// ============================================
 // HOOKS: INVENTARIO CLIENTE
 // ============================================
 

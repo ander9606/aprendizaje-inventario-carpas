@@ -57,6 +57,13 @@ router.post('/:id/extender', validateId(), alquilerController.extenderFechaRetor
 router.get('/:id/extensiones', validateId(), alquilerController.obtenerExtensiones);
 
 // ============================================
+// FOTOS OPERATIVAS
+// ============================================
+
+// GET /api/alquileres/:id/fotos - Fotos de operaciones del alquiler
+router.get('/:id/fotos', validateId(), alquilerController.obtenerFotosAlquiler);
+
+// ============================================
 // ELEMENTOS (Series/Lotes)
 // ============================================
 

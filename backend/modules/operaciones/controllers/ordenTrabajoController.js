@@ -2,11 +2,13 @@ const { pool } = require('../../../config/database');
 const OrdenTrabajoModel = require('../models/OrdenTrabajoModel');
 const OrdenElementoModel = require('../models/OrdenElementoModel');
 const AlertaModel = require('../models/AlertaModel');
+const FotoOperacionModel = require('../models/FotoOperacionModel');
 const ValidadorFechasService = require('../services/ValidadorFechasService');
 const SincronizacionAlquilerService = require('../services/SincronizacionAlquilerService');
 const AuthModel = require('../../auth/models/AuthModel');
 const AppError = require('../../../utils/AppError');
 const logger = require('../../../utils/logger');
+const { uploadOperacionImagen, deleteImageFile } = require('../../../middleware/upload');
 
 // ============================================
 // ÓRDENES DE TRABAJO
@@ -1210,6 +1212,100 @@ const verificarElementoBodega = async (req, res, next) => {
     }
 };
 
+// ============================================
+// FOTOS OPERATIVAS
+// ============================================
+
+/**
+ * POST /api/operaciones/ordenes/:id/fotos
+ * Subir foto de una etapa operativa
+ */
+const subirFotoOrden = async (req, res, next) => {
+    uploadOperacionImagen(req, res, async (err) => {
+        try {
+            if (err) {
+                throw new AppError(err.message || 'Error al subir imagen', 400);
+            }
+
+            const { id } = req.params;
+            const { etapa, notas } = req.body;
+
+            if (!etapa) {
+                throw new AppError('La etapa es requerida', 400);
+            }
+
+            if (!req.file) {
+                throw new AppError('La imagen es requerida', 400);
+            }
+
+            const imagen_url = `/uploads/operaciones/${req.file.filename}`;
+
+            const foto = await FotoOperacionModel.crear({
+                orden_id: parseInt(id),
+                etapa,
+                imagen_url,
+                notas: notas || null,
+                subido_por: req.usuario.id
+            });
+
+            logger.info('operaciones', `Foto subida para orden ${id}, etapa ${etapa} por ${req.usuario.email}`);
+
+            res.status(201).json({
+                success: true,
+                message: 'Foto subida correctamente',
+                data: foto
+            });
+        } catch (error) {
+            next(error);
+        }
+    });
+};
+
+/**
+ * GET /api/operaciones/ordenes/:id/fotos
+ * Obtener fotos de una orden agrupadas por etapa
+ */
+const obtenerFotosOrden = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const resultado = await FotoOperacionModel.obtenerPorOrden(parseInt(id));
+
+        res.json({
+            success: true,
+            data: resultado
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * DELETE /api/operaciones/ordenes/:id/fotos/:fotoId
+ * Eliminar foto de una orden
+ */
+const eliminarFotoOrden = async (req, res, next) => {
+    try {
+        const { fotoId } = req.params;
+        const foto = await FotoOperacionModel.eliminar(parseInt(fotoId));
+
+        if (!foto) {
+            throw new AppError('Foto no encontrada', 404);
+        }
+
+        // Eliminar archivo físico
+        deleteImageFile(foto.imagen_url);
+
+        logger.info('operaciones', `Foto ${fotoId} eliminada por ${req.usuario.email}`);
+
+        res.json({
+            success: true,
+            message: 'Foto eliminada correctamente'
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 module.exports = {
     // Órdenes
     getOrdenes,
@@ -1263,5 +1359,10 @@ module.exports = {
 
     // Sincronización
     getEstadoSincronizacion,
-    verificarConsistencia
+    verificarConsistencia,
+
+    // Fotos operativas
+    subirFotoOrden,
+    obtenerFotosOrden,
+    eliminarFotoOrden
 };

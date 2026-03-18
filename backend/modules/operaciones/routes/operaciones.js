@@ -225,6 +225,31 @@ router.put(
 );
 
 // ============================================
+// RUTAS DE FOTOS OPERATIVAS
+// ============================================
+
+// Subir foto de etapa operativa
+router.post(
+    '/ordenes/:id/fotos',
+    verificarRol(['admin', 'gerente', 'operaciones']),
+    ordenTrabajoController.subirFotoOrden
+);
+
+// Obtener fotos de una orden
+router.get(
+    '/ordenes/:id/fotos',
+    verificarRol(['admin', 'gerente', 'operaciones']),
+    ordenTrabajoController.obtenerFotosOrden
+);
+
+// Eliminar foto
+router.delete(
+    '/ordenes/:id/fotos/:fotoId',
+    verificarRol(['admin', 'gerente']),
+    ordenTrabajoController.eliminarFotoOrden
+);
+
+// ============================================
 // RUTAS DE ELEMENTOS DE ÓRDENES
 // ============================================
 

@@ -56,6 +56,7 @@ import ModalEditarOrden from '../components/ModalEditarOrden'
 import ModalAsignarInventario from '../components/ModalAsignarInventario'
 import ChecklistCargueDescargue from '../components/ChecklistCargueDescargue'
 import ModalInventarioCliente from '../components/ModalInventarioCliente'
+import FotosOrden from '../components/FotosOrden'
 import ConfirmModal from '@shared/components/ConfirmModal'
 import { toast } from 'sonner'
 
@@ -1196,6 +1197,14 @@ export default function OrdenDetallePage() {
                                     )}
                                 </div>
                         </div>
+
+                        {/* FOTOS DE OPERACIÓN */}
+                        <FotosOrden
+                            ordenId={id}
+                            tipoOrden={orden?.tipo || 'montaje'}
+                            readOnly={!canManage || esCompletado || esCancelado}
+                        />
+
                     </div>
 
                     {/* COLUMNA LATERAL */}
