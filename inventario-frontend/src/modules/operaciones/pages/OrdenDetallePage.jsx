@@ -30,7 +30,11 @@ import {
     ClipboardCheck,
     Timer,
     Share2,
-    Home
+    Home,
+    ChevronDown,
+    ChevronUp,
+    Info,
+    Wrench
 } from 'lucide-react'
 import {
     useGetOrden,
@@ -86,6 +90,7 @@ export default function OrdenDetallePage() {
     const [showChecklistBodega, setShowChecklistBodega] = useState(false)
     const [showInventarioCliente, setShowInventarioCliente] = useState(false)
     const [showModalNovedad, setShowModalNovedad] = useState(false)
+    const [infoClienteAbierta, setInfoClienteAbierta] = useState(false)
     const [ejecutandoSalida, setEjecutandoSalida] = useState(false)
 
     // Estado para modales de confirmación
@@ -866,101 +871,316 @@ export default function OrdenDetallePage() {
                     {/* COLUMNA PRINCIPAL */}
                     <div className="lg:col-span-2 space-y-6">
 
-                        {/* INFO RÁPIDA: Evento + Cliente unificados */}
-                        <div className="bg-white rounded-xl border border-slate-200 p-5">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                                <div className="flex items-center gap-3">
-                                    <div className="p-2 bg-slate-100 rounded-lg shrink-0">
-                                        <Calendar className="w-4 h-4 text-slate-500" />
-                                    </div>
-                                    <div className="min-w-0">
-                                        <p className="text-[11px] text-slate-400 uppercase tracking-wide">Fecha</p>
-                                        <p className="text-sm font-medium text-slate-900 truncate">
-                                            {orden.fecha_programada
-                                                ? new Date(orden.fecha_programada).toLocaleDateString('es-CO', { weekday: 'short', day: 'numeric', month: 'short' })
-                                                : 'Sin fecha'}
-                                        </p>
-                                    </div>
-                                </div>
-                                <div className="flex items-center gap-3">
-                                    <div className="p-2 bg-slate-100 rounded-lg shrink-0">
-                                        <Clock className="w-4 h-4 text-slate-500" />
-                                    </div>
-                                    <div className="min-w-0">
-                                        <p className="text-[11px] text-slate-400 uppercase tracking-wide">Hora</p>
-                                        <p className="text-sm font-medium text-slate-900 truncate">
-                                            {orden.fecha_programada
-                                                ? new Date(orden.fecha_programada).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })
-                                                : '—'}
-                                        </p>
-                                    </div>
-                                </div>
-                                <div className="flex items-center gap-3">
-                                    <div className="p-2 bg-slate-100 rounded-lg shrink-0">
-                                        <MapPin className="w-4 h-4 text-slate-500" />
-                                    </div>
-                                    <div className="min-w-0">
-                                        <p className="text-[11px] text-slate-400 uppercase tracking-wide">Ubicación</p>
-                                        <p className="text-sm font-medium text-slate-900 truncate">
-                                            {orden.direccion_evento || orden.ciudad_evento || 'Sin ubicación'}
-                                        </p>
-                                    </div>
-                                </div>
-                                <div className="flex items-center gap-3">
-                                    <div className="p-2 bg-slate-100 rounded-lg shrink-0">
-                                        <User className="w-4 h-4 text-slate-500" />
-                                    </div>
-                                    <div className="min-w-0">
-                                        <p className="text-[11px] text-slate-400 uppercase tracking-wide">Cliente</p>
-                                        <p className="text-sm font-medium text-slate-900 truncate">{orden.cliente_nombre || '-'}</p>
-                                    </div>
-                                </div>
-                                {orden.cliente_telefono && (
-                                    <div className="flex items-center gap-3">
-                                        <div className="p-2 bg-slate-100 rounded-lg shrink-0">
-                                            <Phone className="w-4 h-4 text-slate-500" />
-                                        </div>
-                                        <div className="min-w-0">
-                                            <p className="text-[11px] text-slate-400 uppercase tracking-wide">Teléfono</p>
-                                            <a href={`tel:${orden.cliente_telefono}`} className="text-sm font-medium text-orange-600 hover:text-orange-700 hover:underline">
-                                                {orden.cliente_telefono}
-                                            </a>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
+                        {/* ACCIONES OPERATIVAS — visibles primero para el operario */}
+                        {(() => {
+                            const mostrarChecklistCargue = orden.estado === 'en_preparacion' && orden.tipo === 'montaje' && !hayElementosSinInventario && elementos?.length > 0 && canManage
+                            const mostrarConfirmarCargue = orden.estado === 'en_preparacion' && orden.tipo === 'montaje' && !hayElementosSinInventario && elementos?.length > 0 && canManage && (todosVerificadosSalida || todosElementosCargados)
+                            const mostrarChecklistRecogida = orden.estado === 'en_proceso' && orden.tipo === 'desmontaje' && elementos?.length > 0 && canManage
+                            const mostrarChecklistBodega = orden.estado === 'descargue' && orden.tipo === 'desmontaje' && elementos?.length > 0 && canManage
+                            const mostrarAsignarInventario = hayElementosSinInventario && canManage && !esCompletado && !esCancelado
+                            const hayAcciones = mostrarChecklistCargue || mostrarConfirmarCargue || mostrarChecklistRecogida || mostrarChecklistBodega || mostrarAsignarInventario
 
-                            {/* Referencias + notas */}
-                            {(orden.alquiler_id || orden.cotizacion_id || orden.cliente_email) && (
-                                <div className="mt-4 pt-3 border-t border-slate-100 flex flex-wrap items-center gap-2">
-                                    {orden.alquiler_id && (
-                                        <Link
-                                            to={`/alquileres/gestion/${orden.alquiler_id}`}
-                                            className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 hover:bg-slate-200 rounded-lg text-xs text-slate-600 font-medium transition-colors"
-                                        >
-                                            <FileText className="w-3 h-3" />
-                                            Alquiler #{orden.alquiler_id}
-                                            <ExternalLink className="w-3 h-3" />
-                                        </Link>
-                                    )}
-                                    {orden.cotizacion_id && (
-                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 rounded-lg text-xs text-slate-600 font-medium">
-                                            <FileText className="w-3 h-3" />
-                                            Cotización #{orden.cotizacion_id}
-                                        </span>
-                                    )}
-                                    {orden.cliente_email && (
-                                        <a href={`mailto:${orden.cliente_email}`} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 hover:bg-slate-200 rounded-lg text-xs text-slate-600 font-medium transition-colors">
-                                            <Mail className="w-3 h-3" />
-                                            {orden.cliente_email}
-                                        </a>
-                                    )}
+                            if (!hayAcciones) return null
+
+                            return (
+                                <div className="bg-white rounded-xl border border-slate-200 p-5">
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <Wrench className="w-5 h-5 text-slate-400" />
+                                        <h3 className="text-base font-semibold text-slate-900">Acciones</h3>
+                                    </div>
+                                    <div className="space-y-3">
+                                        {/* Checklist de Cargue */}
+                                        {mostrarChecklistCargue && (
+                                            <div className={`p-4 rounded-lg border ${
+                                                todosVerificadosSalida
+                                                    ? 'bg-green-50 border-green-200'
+                                                    : 'bg-indigo-50 border-indigo-200'
+                                            }`}>
+                                                <div className="flex items-center justify-between gap-3">
+                                                    <div className="flex items-center gap-2">
+                                                        <ClipboardCheck className={`w-5 h-5 shrink-0 ${
+                                                            todosVerificadosSalida ? 'text-green-600' : 'text-indigo-600'
+                                                        }`} />
+                                                        <div>
+                                                            <p className={`text-sm font-medium ${
+                                                                todosVerificadosSalida ? 'text-green-800' : 'text-indigo-800'
+                                                            }`}>
+                                                                {todosVerificadosSalida ? 'Checklist completado' : 'Checklist de Cargue'}
+                                                            </p>
+                                                            <p className={`text-xs ${
+                                                                todosVerificadosSalida ? 'text-green-600' : 'text-indigo-600'
+                                                            }`}>
+                                                                {todosVerificadosSalida
+                                                                    ? `${elementos.length} elemento(s) verificados`
+                                                                    : `${verificadosSalidaCount} de ${elementos.length} verificados — completa el checklist para confirmar cargue`
+                                                                }
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    <Button
+                                                        color={todosVerificadosSalida ? 'green' : 'blue'}
+                                                        icon={ClipboardCheck}
+                                                        size="sm"
+                                                        onClick={() => setShowChecklistCargue(true)}
+                                                    >
+                                                        {todosVerificadosSalida ? 'Ver Checklist' : 'Abrir Checklist'}
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Confirmar Cargue */}
+                                        {mostrarConfirmarCargue && (
+                                            <div className={`p-4 rounded-lg border ${
+                                                todosElementosCargados
+                                                    ? 'bg-green-50 border-green-200'
+                                                    : 'bg-blue-50 border-blue-200'
+                                            }`}>
+                                                <div className="flex items-center justify-between gap-3">
+                                                    <div className="flex items-center gap-2">
+                                                        {todosElementosCargados ? (
+                                                            <>
+                                                                <CheckCircle className="w-5 h-5 text-green-600 shrink-0" />
+                                                                <div>
+                                                                    <p className="text-sm font-medium text-green-800">
+                                                                        Cargue confirmado
+                                                                    </p>
+                                                                    <p className="text-xs text-green-600">
+                                                                        {elementos.length} elemento(s) listos para salida
+                                                                    </p>
+                                                                </div>
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <Truck className="w-5 h-5 text-blue-600 shrink-0" />
+                                                                <div>
+                                                                    <p className="text-sm font-medium text-blue-800">
+                                                                        Checklist verificado — listo para confirmar
+                                                                    </p>
+                                                                    <p className="text-xs text-blue-600">
+                                                                        {elementosPendientesCargue.length} de {elementos.length} elemento(s) sin confirmar cargue
+                                                                    </p>
+                                                                </div>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                    <Button
+                                                        color={todosElementosCargados ? 'green' : 'blue'}
+                                                        icon={Truck}
+                                                        size="sm"
+                                                        onClick={() => setShowModalOrdenCargue(true)}
+                                                    >
+                                                        {todosElementosCargados ? 'Ver Detalle' : 'Confirmar Cargue'}
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Checklist de Recogida */}
+                                        {mostrarChecklistRecogida && (
+                                            <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                                                <div className="flex items-center justify-between gap-3">
+                                                    <div className="flex items-center gap-2">
+                                                        <ClipboardCheck className="w-5 h-5 text-orange-600 shrink-0" />
+                                                        <div>
+                                                            <p className="text-sm font-medium text-orange-800">
+                                                                Checklist de Recogida
+                                                            </p>
+                                                            <p className="text-xs text-orange-600">
+                                                                Verifica cada elemento al recoger del sitio del evento. Debe completarse antes de iniciar el retorno.
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    <Button
+                                                        color="orange"
+                                                        icon={ClipboardCheck}
+                                                        size="sm"
+                                                        onClick={() => setShowChecklistRecogida(true)}
+                                                    >
+                                                        Abrir Checklist
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Checklist en Bodega */}
+                                        {mostrarChecklistBodega && (
+                                            <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
+                                                <div className="flex items-center justify-between gap-3">
+                                                    <div className="flex items-center gap-2">
+                                                        <Home className="w-5 h-5 text-purple-600 shrink-0" />
+                                                        <div>
+                                                            <p className="text-sm font-medium text-purple-800">
+                                                                Checklist en Bodega
+                                                            </p>
+                                                            <p className="text-xs text-purple-600">
+                                                                Verifica cada elemento al descargar del vehículo en bodega. Debe completarse para finalizar la orden.
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    <Button
+                                                        color="purple"
+                                                        icon={Home}
+                                                        size="sm"
+                                                        onClick={() => setShowChecklistBodega(true)}
+                                                    >
+                                                        Abrir Checklist
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Asignar Inventario */}
+                                        {mostrarAsignarInventario && (
+                                            <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                                                <div className="flex items-center justify-between gap-3">
+                                                    <div className="flex items-center gap-2">
+                                                        <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0" />
+                                                        <div>
+                                                            <p className="text-sm font-medium text-amber-800">
+                                                                Inventario pendiente
+                                                            </p>
+                                                            <p className="text-xs text-amber-600">
+                                                                {elementosPendientesInv.length} elemento(s) sin asignar del almacen
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    <Button
+                                                        color="orange"
+                                                        icon={Box}
+                                                        size="sm"
+                                                        onClick={() => setShowModalInventario(true)}
+                                                    >
+                                                        Asignar Inventario
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
-                            )}
-                            {orden.notas && (
-                                <div className="mt-3 p-3 bg-slate-50 rounded-lg">
-                                    <p className="text-[11px] text-slate-400 uppercase tracking-wide mb-0.5">Notas</p>
-                                    <p className="text-sm text-slate-700">{orden.notas}</p>
+                            )
+                        })()}
+
+                        {/* INFO DEL EVENTO — colapsable, cerrada por defecto */}
+                        <div className="bg-white rounded-xl border border-slate-200">
+                            <button
+                                type="button"
+                                onClick={() => setInfoClienteAbierta(!infoClienteAbierta)}
+                                className="w-full p-5 flex items-center justify-between gap-3 cursor-pointer hover:bg-slate-50 rounded-xl transition-colors"
+                            >
+                                <div className="flex items-center gap-2 min-w-0">
+                                    <Info className="w-5 h-5 text-slate-400 shrink-0" />
+                                    <h3 className="text-base font-semibold text-slate-900 shrink-0">Info del Evento</h3>
+                                    <span className="text-sm text-slate-500 truncate">
+                                        {orden.fecha_programada
+                                            ? new Date(orden.fecha_programada).toLocaleDateString('es-CO', { weekday: 'short', day: 'numeric', month: 'short' })
+                                            : 'Sin fecha'}
+                                        {' · '}
+                                        {orden.cliente_nombre || 'Sin cliente'}
+                                    </span>
+                                </div>
+                                {infoClienteAbierta
+                                    ? <ChevronUp className="w-5 h-5 text-slate-400 shrink-0" />
+                                    : <ChevronDown className="w-5 h-5 text-slate-400 shrink-0" />
+                                }
+                            </button>
+                            {infoClienteAbierta && (
+                                <div className="px-5 pb-5">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-2 bg-slate-100 rounded-lg shrink-0">
+                                                <Calendar className="w-4 h-4 text-slate-500" />
+                                            </div>
+                                            <div className="min-w-0">
+                                                <p className="text-[11px] text-slate-400 uppercase tracking-wide">Fecha</p>
+                                                <p className="text-sm font-medium text-slate-900 truncate">
+                                                    {orden.fecha_programada
+                                                        ? new Date(orden.fecha_programada).toLocaleDateString('es-CO', { weekday: 'short', day: 'numeric', month: 'short' })
+                                                        : 'Sin fecha'}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-2 bg-slate-100 rounded-lg shrink-0">
+                                                <Clock className="w-4 h-4 text-slate-500" />
+                                            </div>
+                                            <div className="min-w-0">
+                                                <p className="text-[11px] text-slate-400 uppercase tracking-wide">Hora</p>
+                                                <p className="text-sm font-medium text-slate-900 truncate">
+                                                    {orden.fecha_programada
+                                                        ? new Date(orden.fecha_programada).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })
+                                                        : '—'}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-2 bg-slate-100 rounded-lg shrink-0">
+                                                <MapPin className="w-4 h-4 text-slate-500" />
+                                            </div>
+                                            <div className="min-w-0">
+                                                <p className="text-[11px] text-slate-400 uppercase tracking-wide">Ubicación</p>
+                                                <p className="text-sm font-medium text-slate-900 truncate">
+                                                    {orden.direccion_evento || orden.ciudad_evento || 'Sin ubicación'}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-2 bg-slate-100 rounded-lg shrink-0">
+                                                <User className="w-4 h-4 text-slate-500" />
+                                            </div>
+                                            <div className="min-w-0">
+                                                <p className="text-[11px] text-slate-400 uppercase tracking-wide">Cliente</p>
+                                                <p className="text-sm font-medium text-slate-900 truncate">{orden.cliente_nombre || '-'}</p>
+                                            </div>
+                                        </div>
+                                        {orden.cliente_telefono && (
+                                            <div className="flex items-center gap-3">
+                                                <div className="p-2 bg-slate-100 rounded-lg shrink-0">
+                                                    <Phone className="w-4 h-4 text-slate-500" />
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <p className="text-[11px] text-slate-400 uppercase tracking-wide">Teléfono</p>
+                                                    <a href={`tel:${orden.cliente_telefono}`} className="text-sm font-medium text-orange-600 hover:text-orange-700 hover:underline">
+                                                        {orden.cliente_telefono}
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Referencias + notas */}
+                                    {(orden.alquiler_id || orden.cotizacion_id || orden.cliente_email) && (
+                                        <div className="mt-4 pt-3 border-t border-slate-100 flex flex-wrap items-center gap-2">
+                                            {orden.alquiler_id && (
+                                                <Link
+                                                    to={`/alquileres/gestion/${orden.alquiler_id}`}
+                                                    className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 hover:bg-slate-200 rounded-lg text-xs text-slate-600 font-medium transition-colors"
+                                                >
+                                                    <FileText className="w-3 h-3" />
+                                                    Alquiler #{orden.alquiler_id}
+                                                    <ExternalLink className="w-3 h-3" />
+                                                </Link>
+                                            )}
+                                            {orden.cotizacion_id && (
+                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 rounded-lg text-xs text-slate-600 font-medium">
+                                                    <FileText className="w-3 h-3" />
+                                                    Cotización #{orden.cotizacion_id}
+                                                </span>
+                                            )}
+                                            {orden.cliente_email && (
+                                                <a href={`mailto:${orden.cliente_email}`} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 hover:bg-slate-200 rounded-lg text-xs text-slate-600 font-medium transition-colors">
+                                                    <Mail className="w-3 h-3" />
+                                                    {orden.cliente_email}
+                                                </a>
+                                            )}
+                                        </div>
+                                    )}
+                                    {orden.notas && (
+                                        <div className="mt-3 p-3 bg-slate-50 rounded-lg">
+                                            <p className="text-[11px] text-slate-400 uppercase tracking-wide mb-0.5">Notas</p>
+                                            <p className="text-sm text-slate-700">{orden.notas}</p>
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>
@@ -1049,174 +1269,6 @@ export default function OrdenDetallePage() {
                                         <p className="text-slate-500 text-center py-4">
                                             No hay elementos asignados a esta orden
                                         </p>
-                                    )}
-
-                                    {/* Paso 1: Checklist de Cargue - Verificación paso a paso (siempre visible primero) */}
-                                    {orden.estado === 'en_preparacion' && orden.tipo === 'montaje' && !hayElementosSinInventario && elementos?.length > 0 && canManage && (
-                                        <div className={`mt-4 p-4 rounded-lg border ${
-                                            todosVerificadosSalida
-                                                ? 'bg-green-50 border-green-200'
-                                                : 'bg-indigo-50 border-indigo-200'
-                                        }`}>
-                                            <div className="flex items-center justify-between gap-3">
-                                                <div className="flex items-center gap-2">
-                                                    <ClipboardCheck className={`w-5 h-5 shrink-0 ${
-                                                        todosVerificadosSalida ? 'text-green-600' : 'text-indigo-600'
-                                                    }`} />
-                                                    <div>
-                                                        <p className={`text-sm font-medium ${
-                                                            todosVerificadosSalida ? 'text-green-800' : 'text-indigo-800'
-                                                        }`}>
-                                                            {todosVerificadosSalida ? 'Checklist completado' : 'Checklist de Cargue'}
-                                                        </p>
-                                                        <p className={`text-xs ${
-                                                            todosVerificadosSalida ? 'text-green-600' : 'text-indigo-600'
-                                                        }`}>
-                                                            {todosVerificadosSalida
-                                                                ? `${elementos.length} elemento(s) verificados`
-                                                                : `${verificadosSalidaCount} de ${elementos.length} verificados — completa el checklist para confirmar cargue`
-                                                            }
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                                <Button
-                                                    color={todosVerificadosSalida ? 'green' : 'blue'}
-                                                    icon={ClipboardCheck}
-                                                    size="sm"
-                                                    onClick={() => setShowChecklistCargue(true)}
-                                                >
-                                                    {todosVerificadosSalida ? 'Ver Checklist' : 'Abrir Checklist'}
-                                                </Button>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* Paso 2: Confirmar Cargue - Solo visible si checklist está completo */}
-                                    {orden.estado === 'en_preparacion' && orden.tipo === 'montaje' && !hayElementosSinInventario && elementos?.length > 0 && canManage && (todosVerificadosSalida || todosElementosCargados) && (
-                                        <div className={`mt-4 p-4 rounded-lg border ${
-                                            todosElementosCargados
-                                                ? 'bg-green-50 border-green-200'
-                                                : 'bg-blue-50 border-blue-200'
-                                        }`}>
-                                            <div className="flex items-center justify-between gap-3">
-                                                <div className="flex items-center gap-2">
-                                                    {todosElementosCargados ? (
-                                                        <>
-                                                            <CheckCircle className="w-5 h-5 text-green-600 shrink-0" />
-                                                            <div>
-                                                                <p className="text-sm font-medium text-green-800">
-                                                                    Cargue confirmado
-                                                                </p>
-                                                                <p className="text-xs text-green-600">
-                                                                    {elementos.length} elemento(s) listos para salida
-                                                                </p>
-                                                            </div>
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            <Truck className="w-5 h-5 text-blue-600 shrink-0" />
-                                                            <div>
-                                                                <p className="text-sm font-medium text-blue-800">
-                                                                    Checklist verificado — listo para confirmar
-                                                                </p>
-                                                                <p className="text-xs text-blue-600">
-                                                                    {elementosPendientesCargue.length} de {elementos.length} elemento(s) sin confirmar cargue
-                                                                </p>
-                                                            </div>
-                                                        </>
-                                                    )}
-                                                </div>
-                                                <Button
-                                                    color={todosElementosCargados ? 'green' : 'blue'}
-                                                    icon={Truck}
-                                                    size="sm"
-                                                    onClick={() => setShowModalOrdenCargue(true)}
-                                                >
-                                                    {todosElementosCargados ? 'Ver Detalle' : 'Confirmar Cargue'}
-                                                </Button>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* Botón Checklist de Recogida - solo en en_proceso de desmontaje */}
-                                    {orden.estado === 'en_proceso' && orden.tipo === 'desmontaje' && elementos?.length > 0 && canManage && (
-                                        <div className="mt-4 p-4 bg-orange-50 border border-orange-200 rounded-lg">
-                                            <div className="flex items-center justify-between gap-3">
-                                                <div className="flex items-center gap-2">
-                                                    <ClipboardCheck className="w-5 h-5 text-orange-600 shrink-0" />
-                                                    <div>
-                                                        <p className="text-sm font-medium text-orange-800">
-                                                            Checklist de Recogida
-                                                        </p>
-                                                        <p className="text-xs text-orange-600">
-                                                            Verifica cada elemento al recoger del sitio del evento. Debe completarse antes de iniciar el retorno.
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                                <Button
-                                                    color="orange"
-                                                    icon={ClipboardCheck}
-                                                    size="sm"
-                                                    onClick={() => setShowChecklistRecogida(true)}
-                                                >
-                                                    Abrir Checklist
-                                                </Button>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* Botón Checklist en Bodega - solo en descargue de desmontaje */}
-                                    {orden.estado === 'descargue' && orden.tipo === 'desmontaje' && elementos?.length > 0 && canManage && (
-                                        <div className="mt-4 p-4 bg-purple-50 border border-purple-200 rounded-lg">
-                                            <div className="flex items-center justify-between gap-3">
-                                                <div className="flex items-center gap-2">
-                                                    <Home className="w-5 h-5 text-purple-600 shrink-0" />
-                                                    <div>
-                                                        <p className="text-sm font-medium text-purple-800">
-                                                            Checklist en Bodega
-                                                        </p>
-                                                        <p className="text-xs text-purple-600">
-                                                            Verifica cada elemento al descargar del vehículo en bodega. Debe completarse para finalizar la orden.
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                                <Button
-                                                    color="purple"
-                                                    icon={Home}
-                                                    size="sm"
-                                                    onClick={() => setShowChecklistBodega(true)}
-                                                >
-                                                    Abrir Checklist
-                                                </Button>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* Botón asignar inventario si hay elementos pendientes */}
-                                    {hayElementosSinInventario && canManage && !esCompletado && !esCancelado && (
-                                        <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
-                                            <div className="flex items-center justify-between gap-3">
-                                                <div className="flex items-center gap-2">
-                                                    <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0" />
-                                                    <div>
-                                                        <p className="text-sm font-medium text-amber-800">
-                                                            Inventario pendiente
-                                                        </p>
-                                                        <p className="text-xs text-amber-600">
-                                                            {elementosPendientesInv.length} elemento(s) sin asignar del almacen
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                                <Button
-                                                    color="orange"
-                                                    icon={Box}
-                                                    size="sm"
-                                                    onClick={() => setShowModalInventario(true)}
-                                                >
-                                                    Asignar Inventario
-                                                </Button>
-                                            </div>
-                                        </div>
                                     )}
                                 </div>
                         </div>
