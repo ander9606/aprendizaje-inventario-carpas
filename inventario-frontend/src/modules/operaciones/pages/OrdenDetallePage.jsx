@@ -443,6 +443,11 @@ export default function OrdenDetallePage() {
     const algunElementoCargado = elementosCargados.length > 0
     const elementosPendientesCargue = (elementos || []).filter(e => e.estado !== 'cargado')
 
+    // Verificar si el checklist de cargue está completo (todos verificado_salida)
+    const todosVerificadosSalida = elementos?.length > 0 &&
+      elementos.every(e => e.verificado_salida)
+    const verificadosSalidaCount = (elementos || []).filter(e => e.verificado_salida).length
+
     // Agrupar elementos por producto para vista resumida
     const productosConEstado = (productos || []).map(producto => {
         const elementosDelProducto = (elementosCargue || []).filter(
@@ -1046,8 +1051,48 @@ export default function OrdenDetallePage() {
                                         </p>
                                     )}
 
-                                    {/* Botón Ver Orden de Cargue - Solo en preparación con inventario asignado */}
+                                    {/* Paso 1: Checklist de Cargue - Verificación paso a paso (siempre visible primero) */}
                                     {orden.estado === 'en_preparacion' && orden.tipo === 'montaje' && !hayElementosSinInventario && elementos?.length > 0 && canManage && (
+                                        <div className={`mt-4 p-4 rounded-lg border ${
+                                            todosVerificadosSalida
+                                                ? 'bg-green-50 border-green-200'
+                                                : 'bg-indigo-50 border-indigo-200'
+                                        }`}>
+                                            <div className="flex items-center justify-between gap-3">
+                                                <div className="flex items-center gap-2">
+                                                    <ClipboardCheck className={`w-5 h-5 shrink-0 ${
+                                                        todosVerificadosSalida ? 'text-green-600' : 'text-indigo-600'
+                                                    }`} />
+                                                    <div>
+                                                        <p className={`text-sm font-medium ${
+                                                            todosVerificadosSalida ? 'text-green-800' : 'text-indigo-800'
+                                                        }`}>
+                                                            {todosVerificadosSalida ? 'Checklist completado' : 'Checklist de Cargue'}
+                                                        </p>
+                                                        <p className={`text-xs ${
+                                                            todosVerificadosSalida ? 'text-green-600' : 'text-indigo-600'
+                                                        }`}>
+                                                            {todosVerificadosSalida
+                                                                ? `${elementos.length} elemento(s) verificados`
+                                                                : `${verificadosSalidaCount} de ${elementos.length} verificados — completa el checklist para confirmar cargue`
+                                                            }
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <Button
+                                                    color={todosVerificadosSalida ? 'green' : 'blue'}
+                                                    icon={ClipboardCheck}
+                                                    size="sm"
+                                                    onClick={() => setShowChecklistCargue(true)}
+                                                >
+                                                    {todosVerificadosSalida ? 'Ver Checklist' : 'Abrir Checklist'}
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Paso 2: Confirmar Cargue - Solo visible si checklist está completo */}
+                                    {orden.estado === 'en_preparacion' && orden.tipo === 'montaje' && !hayElementosSinInventario && elementos?.length > 0 && canManage && (todosVerificadosSalida || todosElementosCargados) && (
                                         <div className={`mt-4 p-4 rounded-lg border ${
                                             todosElementosCargados
                                                 ? 'bg-green-50 border-green-200'
@@ -1072,10 +1117,10 @@ export default function OrdenDetallePage() {
                                                             <Truck className="w-5 h-5 text-blue-600 shrink-0" />
                                                             <div>
                                                                 <p className="text-sm font-medium text-blue-800">
-                                                                    Pendiente confirmar cargue
+                                                                    Checklist verificado — listo para confirmar
                                                                 </p>
                                                                 <p className="text-xs text-blue-600">
-                                                                    {elementosPendientesCargue.length} de {elementos.length} elemento(s) sin confirmar
+                                                                    {elementosPendientesCargue.length} de {elementos.length} elemento(s) sin confirmar cargue
                                                                 </p>
                                                             </div>
                                                         </>
@@ -1088,33 +1133,6 @@ export default function OrdenDetallePage() {
                                                     onClick={() => setShowModalOrdenCargue(true)}
                                                 >
                                                     {todosElementosCargados ? 'Ver Detalle' : 'Confirmar Cargue'}
-                                                </Button>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* Botón Checklist de Cargue - Verificación paso a paso */}
-                                    {orden.estado === 'en_preparacion' && orden.tipo === 'montaje' && !hayElementosSinInventario && elementos?.length > 0 && canManage && (
-                                        <div className="mt-4 p-4 bg-indigo-50 border border-indigo-200 rounded-lg">
-                                            <div className="flex items-center justify-between gap-3">
-                                                <div className="flex items-center gap-2">
-                                                    <ClipboardCheck className="w-5 h-5 text-indigo-600 shrink-0" />
-                                                    <div>
-                                                        <p className="text-sm font-medium text-indigo-800">
-                                                            Checklist de Cargue
-                                                        </p>
-                                                        <p className="text-xs text-indigo-600">
-                                                            Verifica cada elemento paso a paso antes del despacho
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                                <Button
-                                                    color="blue"
-                                                    icon={ClipboardCheck}
-                                                    size="sm"
-                                                    onClick={() => setShowChecklistCargue(true)}
-                                                >
-                                                    Abrir Checklist
                                                 </Button>
                                             </div>
                                         </div>
