@@ -453,6 +453,16 @@ export default function OrdenDetallePage() {
       elementos.every(e => e.verificado_salida)
     const verificadosSalidaCount = (elementos || []).filter(e => e.verificado_salida).length
 
+    // Variables de visibilidad para la sección de acciones operativas
+    const tieneElementosYPermisos = elementos?.length > 0 && canManage
+    const esPreparacionMontaje = orden.estado === 'en_preparacion' && orden.tipo === 'montaje'
+    const mostrarChecklistCargue = esPreparacionMontaje && !hayElementosSinInventario && tieneElementosYPermisos
+    const mostrarConfirmarCargue = mostrarChecklistCargue && (todosVerificadosSalida || todosElementosCargados)
+    const mostrarChecklistRecogida = orden.estado === 'en_proceso' && orden.tipo === 'desmontaje' && tieneElementosYPermisos
+    const mostrarChecklistBodega = orden.estado === 'descargue' && orden.tipo === 'desmontaje' && tieneElementosYPermisos
+    const mostrarAsignarInventario = hayElementosSinInventario && canManage && !esCompletado && !esCancelado
+    const hayAccionesVisibles = mostrarChecklistCargue || mostrarConfirmarCargue || mostrarChecklistRecogida || mostrarChecklistBodega || mostrarAsignarInventario
+
     // Agrupar elementos por producto para vista resumida
     const productosConEstado = (productos || []).map(producto => {
         const elementosDelProducto = (elementosCargue || []).filter(
@@ -872,17 +882,7 @@ export default function OrdenDetallePage() {
                     <div className="lg:col-span-2 space-y-6">
 
                         {/* ACCIONES OPERATIVAS — visibles primero para el operario */}
-                        {(() => {
-                            const mostrarChecklistCargue = orden.estado === 'en_preparacion' && orden.tipo === 'montaje' && !hayElementosSinInventario && elementos?.length > 0 && canManage
-                            const mostrarConfirmarCargue = orden.estado === 'en_preparacion' && orden.tipo === 'montaje' && !hayElementosSinInventario && elementos?.length > 0 && canManage && (todosVerificadosSalida || todosElementosCargados)
-                            const mostrarChecklistRecogida = orden.estado === 'en_proceso' && orden.tipo === 'desmontaje' && elementos?.length > 0 && canManage
-                            const mostrarChecklistBodega = orden.estado === 'descargue' && orden.tipo === 'desmontaje' && elementos?.length > 0 && canManage
-                            const mostrarAsignarInventario = hayElementosSinInventario && canManage && !esCompletado && !esCancelado
-                            const hayAcciones = mostrarChecklistCargue || mostrarConfirmarCargue || mostrarChecklistRecogida || mostrarChecklistBodega || mostrarAsignarInventario
-
-                            if (!hayAcciones) return null
-
-                            return (
+                        {hayAccionesVisibles && (
                                 <div className="bg-white rounded-xl border border-slate-200 p-5">
                                     <div className="flex items-center gap-2 mb-3">
                                         <Wrench className="w-5 h-5 text-slate-400" />
@@ -1058,14 +1058,14 @@ export default function OrdenDetallePage() {
                                         )}
                                     </div>
                                 </div>
-                            )
-                        })()}
+                        )}
 
                         {/* INFO DEL EVENTO — colapsable, cerrada por defecto */}
                         <div className="bg-white rounded-xl border border-slate-200">
                             <button
                                 type="button"
                                 onClick={() => setInfoClienteAbierta(!infoClienteAbierta)}
+                                aria-expanded={infoClienteAbierta}
                                 className="w-full p-5 flex items-center justify-between gap-3 cursor-pointer hover:bg-slate-50 rounded-xl transition-colors"
                             >
                                 <div className="flex items-center gap-2 min-w-0">
