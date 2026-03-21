@@ -65,7 +65,7 @@ exports.obtenerPorId = async (req, res, next) => {
 // ============================================
 exports.crear = async (req, res, next) => {
   try {
-    const { nombre, departamento, tarifas } = req.body;
+    const { nombre, departamento_id, departamento, tarifas } = req.body;
 
     if (!nombre) {
       throw new AppError('El nombre es obligatorio', 400);
@@ -77,12 +77,12 @@ exports.crear = async (req, res, next) => {
       throw new AppError('Ya existe una ciudad con ese nombre', 400);
     }
 
-    const resultado = await CiudadModel.crear({ nombre, departamento, tarifas });
+    const resultado = await CiudadModel.crear({ nombre, departamento_id, departamento, tarifas });
 
     logger.info('ciudadController.crear', 'Ciudad creada con tarifas', {
       id: resultado.insertId,
       nombre,
-      departamento,
+      departamento_id,
       tarifas
     });
 
@@ -105,7 +105,7 @@ exports.crear = async (req, res, next) => {
 exports.actualizar = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { nombre, departamento, activo, tarifas } = req.body;
+    const { nombre, departamento_id, departamento, activo, tarifas } = req.body;
 
     const ciudadExistente = await CiudadModel.obtenerPorId(id);
     if (!ciudadExistente) {
@@ -122,6 +122,7 @@ exports.actualizar = async (req, res, next) => {
 
     await CiudadModel.actualizar(id, {
       nombre: nombre || ciudadExistente.nombre,
+      departamento_id: departamento_id !== undefined ? departamento_id : ciudadExistente.departamento_id,
       departamento: departamento !== undefined ? departamento : ciudadExistente.departamento,
       activo,
       tarifas

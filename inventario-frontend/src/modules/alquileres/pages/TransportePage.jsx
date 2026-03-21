@@ -1,13 +1,14 @@
 // ============================================
 // PÁGINA: Transporte
 // Vista de tarifas de transporte por ciudad
-// Relacionada con la configuración de ciudades
+// Consulta de tarifas sin mostrar direcciones asociadas
 // ============================================
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Truck, Search, MapPin, ExternalLink, Info } from 'lucide-react'
+import { Truck, Search, MapPin, ExternalLink, Info, Filter, ChevronDown } from 'lucide-react'
 import { useGetCiudades } from '@clientes/hooks/useCiudades'
+import { useGetDepartamentosActivos } from '@clientes/hooks/useDepartamentos'
 import Button from '@shared/components/Button'
 import Spinner from '@shared/components/Spinner'
 
@@ -31,21 +32,73 @@ const formatearMoneda = (valor) => {
 export default function TransportePage() {
   const navigate = useNavigate()
   const { ciudades, isLoading, error, refetch } = useGetCiudades()
-  const [busqueda, setBusqueda] = useState('')
+  const { departamentos } = useGetDepartamentosActivos()
 
-  // Filtrar solo ciudades activas y por búsqueda
-  const ciudadesFiltradas = ciudades
-    .filter(c => c.activo !== false)
-    .filter(c =>
-      c.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
-      (c.departamento && c.departamento.toLowerCase().includes(busqueda.toLowerCase()))
-    )
+  const [busqueda, setBusqueda] = useState('')
+  const [filtroDepartamento, setFiltroDepartamento] = useState('')
+  const [filtroCiudad, setFiltroCiudad] = useState('')
+  const [filtroTipoCamion, setFiltroTipoCamion] = useState('')
+
+  // Solo ciudades activas
+  const ciudadesActivas = useMemo(() =>
+    ciudades.filter(c => c.activo !== false),
+    [ciudades]
+  )
+
+  // Departamentos únicos de las ciudades activas
+  const departamentosUnicos = useMemo(() => {
+    const deps = new Set()
+    ciudadesActivas.forEach(c => {
+      if (c.departamento) deps.add(c.departamento)
+    })
+    return Array.from(deps).sort()
+  }, [ciudadesActivas])
+
+  // Filtrado de ciudades
+  const ciudadesFiltradas = useMemo(() => {
+    let resultado = ciudadesActivas
+
+    // Filtro por búsqueda de texto
+    if (busqueda) {
+      const term = busqueda.toLowerCase()
+      resultado = resultado.filter(c =>
+        c.nombre.toLowerCase().includes(term) ||
+        (c.departamento && c.departamento.toLowerCase().includes(term))
+      )
+    }
+
+    // Filtro por departamento
+    if (filtroDepartamento) {
+      resultado = resultado.filter(c => c.departamento === filtroDepartamento)
+    }
+
+    // Filtro por ciudad específica
+    if (filtroCiudad) {
+      resultado = resultado.filter(c => c.id === parseInt(filtroCiudad))
+    }
+
+    return resultado
+  }, [ciudadesActivas, busqueda, filtroDepartamento, filtroCiudad])
 
   // Estadísticas
-  const totalCiudades = ciudades.filter(c => c.activo !== false).length
-  const ciudadesConTarifas = ciudades.filter(c =>
-    c.activo !== false && c.tarifas && Object.values(c.tarifas).some(t => t)
+  const totalCiudades = ciudadesActivas.length
+  const ciudadesConTarifas = ciudadesActivas.filter(c =>
+    c.tarifas && Object.values(c.tarifas).some(t => t)
   ).length
+
+  const hayFiltrosActivos = busqueda || filtroDepartamento || filtroCiudad || filtroTipoCamion
+
+  const limpiarFiltros = () => {
+    setBusqueda('')
+    setFiltroDepartamento('')
+    setFiltroCiudad('')
+    setFiltroTipoCamion('')
+  }
+
+  // Columnas de camión a mostrar (filtradas si hay filtro de tipo)
+  const tiposCamionVisibles = filtroTipoCamion
+    ? TIPOS_CAMION.filter(t => t.id === filtroTipoCamion)
+    : TIPOS_CAMION
 
   if (isLoading) {
     return (
@@ -120,8 +173,8 @@ export default function TransportePage() {
           </div>
         </div>
         {TIPOS_CAMION.slice(0, 2).map(tipo => {
-          const ciudadesConEste = ciudades.filter(c =>
-            c.activo !== false && c.tarifas?.[tipo.id]
+          const ciudadesConEste = ciudadesActivas.filter(c =>
+            c.tarifas?.[tipo.id]
           ).length
           return (
             <div key={tipo.id} className="bg-white rounded-xl border border-slate-200 p-4">
@@ -139,8 +192,9 @@ export default function TransportePage() {
         })}
       </div>
 
-      {/* Buscador */}
-      <div className="bg-white rounded-xl border border-slate-200 p-4 mb-6">
+      {/* Filtros */}
+      <div className="bg-white rounded-xl border border-slate-200 p-4 mb-6 space-y-4">
+        {/* Barra de búsqueda */}
         <div className="flex items-center gap-3">
           <Search className="w-5 h-5 text-slate-400" />
           <input
@@ -150,20 +204,82 @@ export default function TransportePage() {
             onChange={(e) => setBusqueda(e.target.value)}
             className="flex-1 border-0 focus:ring-0 text-sm placeholder:text-slate-400 outline-none"
           />
-          {busqueda && (
+          {hayFiltrosActivos && (
             <button
-              onClick={() => setBusqueda('')}
-              className="text-sm text-blue-600 hover:underline"
+              onClick={limpiarFiltros}
+              className="text-sm text-blue-600 hover:underline whitespace-nowrap"
             >
-              Limpiar
+              Limpiar filtros
             </button>
           )}
         </div>
+
+        {/* Filtros avanzados */}
+        <div className="flex flex-wrap gap-3 pt-3 border-t border-slate-100">
+          <div className="flex items-center gap-2 text-sm text-slate-500">
+            <Filter className="w-4 h-4" />
+            Filtrar por:
+          </div>
+
+          {/* Filtro por departamento */}
+          <div className="relative">
+            <select
+              value={filtroDepartamento}
+              onChange={(e) => {
+                setFiltroDepartamento(e.target.value)
+                setFiltroCiudad('')
+              }}
+              className="appearance-none bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 pr-8 text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 cursor-pointer"
+            >
+              <option value="">Todos los departamentos</option>
+              {departamentosUnicos.map(dep => (
+                <option key={dep} value={dep}>{dep}</option>
+              ))}
+            </select>
+            <ChevronDown className="w-4 h-4 text-slate-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+          </div>
+
+          {/* Filtro por ciudad */}
+          <div className="relative">
+            <select
+              value={filtroCiudad}
+              onChange={(e) => setFiltroCiudad(e.target.value)}
+              className="appearance-none bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 pr-8 text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 cursor-pointer"
+            >
+              <option value="">Todas las ciudades</option>
+              {(filtroDepartamento
+                ? ciudadesActivas.filter(c => c.departamento === filtroDepartamento)
+                : ciudadesActivas
+              ).map(c => (
+                <option key={c.id} value={c.id}>{c.nombre}</option>
+              ))}
+            </select>
+            <ChevronDown className="w-4 h-4 text-slate-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+          </div>
+
+          {/* Filtro por tipo de camión */}
+          <div className="relative">
+            <select
+              value={filtroTipoCamion}
+              onChange={(e) => setFiltroTipoCamion(e.target.value)}
+              className="appearance-none bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 pr-8 text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 cursor-pointer"
+            >
+              <option value="">Todos los camiones</option>
+              {TIPOS_CAMION.map(tipo => (
+                <option key={tipo.id} value={tipo.id}>
+                  {tipo.nombre} ({tipo.descripcion})
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="w-4 h-4 text-slate-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+          </div>
+        </div>
       </div>
 
-      {/* Info */}
+      {/* Info de resultados */}
       <div className="mb-4 text-sm text-slate-500">
         Mostrando {ciudadesFiltradas.length} ciudad{ciudadesFiltradas.length !== 1 ? 'es' : ''}
+        {hayFiltrosActivos && ' (filtrado)'}
       </div>
 
       {/* Tabla de tarifas */}
@@ -176,7 +292,7 @@ export default function TransportePage() {
                   <th className="text-left px-6 py-3 text-sm font-semibold text-slate-700">
                     Ciudad
                   </th>
-                  {TIPOS_CAMION.map(tipo => (
+                  {tiposCamionVisibles.map(tipo => (
                     <th key={tipo.id} className="text-right px-4 py-3 text-sm font-semibold text-slate-700">
                       <div className="flex items-center justify-end gap-1">
                         <Truck className="w-4 h-4" />
@@ -203,7 +319,7 @@ export default function TransportePage() {
                         </div>
                       </div>
                     </td>
-                    {TIPOS_CAMION.map(tipo => (
+                    {tiposCamionVisibles.map(tipo => (
                       <td key={tipo.id} className="px-4 py-4 text-right text-sm">
                         {ciudad.tarifas?.[tipo.id] ? (
                           <span className="font-medium text-slate-900">
@@ -224,14 +340,18 @@ export default function TransportePage() {
         <div className="bg-white rounded-xl border border-slate-200 p-12 text-center">
           <Truck className="w-12 h-12 text-slate-300 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-slate-900 mb-2">
-            {busqueda ? 'No se encontraron ciudades' : 'No hay ciudades con tarifas'}
+            {hayFiltrosActivos ? 'No se encontraron resultados' : 'No hay ciudades con tarifas'}
           </h3>
           <p className="text-slate-500 mb-6">
-            {busqueda
-              ? 'Intenta con otro término de búsqueda'
+            {hayFiltrosActivos
+              ? 'Intenta con otros filtros o términos de búsqueda'
               : 'Configura ciudades y tarifas desde el módulo de configuración'}
           </p>
-          {!busqueda && (
+          {hayFiltrosActivos ? (
+            <Button variant="secondary" onClick={limpiarFiltros}>
+              Limpiar filtros
+            </Button>
+          ) : (
             <Button
               variant="primary"
               icon={<ExternalLink className="w-4 h-4" />}
@@ -257,6 +377,7 @@ export default function TransportePage() {
               Configuración &gt; Ciudades
             </button>.
             Las tarifas configuradas allí se utilizan automáticamente al crear cotizaciones.
+            Esta vista solo muestra tarifas de transporte, sin incluir direcciones o ubicaciones asociadas.
           </p>
         </div>
       </div>

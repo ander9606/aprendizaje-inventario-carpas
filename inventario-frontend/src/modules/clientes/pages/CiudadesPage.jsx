@@ -12,6 +12,10 @@ import {
   useUpdateCiudad,
   useDeleteCiudad
 } from '../hooks/useCiudades'
+import {
+  useGetDepartamentosActivos,
+  useCreateDepartamento
+} from '../hooks/useDepartamentos'
 import Button from '@shared/components/Button'
 import Spinner from '@shared/components/Spinner'
 import EmptyState from '@shared/components/EmptyState'
@@ -39,6 +43,8 @@ export default function CiudadesPage() {
   const { mutateAsync: createCiudad, isLoading: isCreating } = useCreateCiudad()
   const { mutateAsync: updateCiudad, isLoading: isUpdating } = useUpdateCiudad()
   const { mutateAsync: deleteCiudad, isLoading: isDeleting } = useDeleteCiudad()
+  const { departamentos, isLoading: loadingDepartamentos } = useGetDepartamentosActivos()
+  const { mutateAsync: createDepartamento } = useCreateDepartamento()
 
   // ============================================
   // STATE
@@ -48,7 +54,7 @@ export default function CiudadesPage() {
   const [editingCiudad, setEditingCiudad] = useState(null)
   const [formData, setFormData] = useState({
     nombre: '',
-    departamento: '',
+    departamento_id: '',
     tarifas: {
       'Pequeño': '',
       'Mediano': '',
@@ -57,6 +63,9 @@ export default function CiudadesPage() {
     }
   })
   const [busqueda, setBusqueda] = useState('')
+  const [nuevoDepartamento, setNuevoDepartamento] = useState('')
+  const [mostrarNuevoDep, setMostrarNuevoDep] = useState(false)
+  const [creandoDep, setCreandoDep] = useState(false)
 
   // ============================================
   // HANDLERS
@@ -66,7 +75,7 @@ export default function CiudadesPage() {
     setEditingCiudad(null)
     setFormData({
       nombre: '',
-      departamento: '',
+      departamento_id: '',
       tarifas: {
         'Pequeño': '',
         'Mediano': '',
@@ -74,6 +83,8 @@ export default function CiudadesPage() {
         'Extragrande': ''
       }
     })
+    setMostrarNuevoDep(false)
+    setNuevoDepartamento('')
     setModalOpen(true)
   }
 
@@ -81,7 +92,7 @@ export default function CiudadesPage() {
     setEditingCiudad(ciudad)
     setFormData({
       nombre: ciudad.nombre,
-      departamento: ciudad.departamento || '',
+      departamento_id: ciudad.departamento_id || '',
       tarifas: {
         'Pequeño': ciudad.tarifas?.['Pequeño'] || '',
         'Mediano': ciudad.tarifas?.['Mediano'] || '',
@@ -89,6 +100,8 @@ export default function CiudadesPage() {
         'Extragrande': ciudad.tarifas?.['Extragrande'] || ''
       }
     })
+    setMostrarNuevoDep(false)
+    setNuevoDepartamento('')
     setModalOpen(true)
   }
 
@@ -97,7 +110,7 @@ export default function CiudadesPage() {
     setEditingCiudad(null)
     setFormData({
       nombre: '',
-      departamento: '',
+      departamento_id: '',
       tarifas: {
         'Pequeño': '',
         'Mediano': '',
@@ -105,6 +118,24 @@ export default function CiudadesPage() {
         'Extragrande': ''
       }
     })
+    setMostrarNuevoDep(false)
+    setNuevoDepartamento('')
+  }
+
+  const handleCrearDepartamento = async () => {
+    if (!nuevoDepartamento.trim()) return
+
+    setCreandoDep(true)
+    try {
+      const resultado = await createDepartamento({ nombre: nuevoDepartamento.trim() })
+      setFormData(prev => ({ ...prev, departamento_id: resultado.data.id }))
+      setNuevoDepartamento('')
+      setMostrarNuevoDep(false)
+    } catch (error) {
+      alert(error.response?.data?.message || 'Error al crear departamento')
+    } finally {
+      setCreandoDep(false)
+    }
   }
 
   const handleSubmit = async (e) => {
@@ -116,13 +147,19 @@ export default function CiudadesPage() {
     }
 
     try {
+      const dataToSend = {
+        nombre: formData.nombre,
+        departamento_id: formData.departamento_id || null,
+        tarifas: formData.tarifas
+      }
+
       if (editingCiudad) {
         await updateCiudad({
           id: editingCiudad.id,
-          data: formData
+          data: dataToSend
         })
       } else {
-        await createCiudad(formData)
+        await createCiudad(dataToSend)
       }
       handleCloseModal()
     } catch (error) {
@@ -264,7 +301,7 @@ export default function CiudadesPage() {
             <Search className="w-5 h-5 text-slate-400" />
             <input
               type="text"
-              placeholder="Buscar ciudad..."
+              placeholder="Buscar ciudad o departamento..."
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
               className="flex-1 border-0 focus:ring-0 text-sm placeholder:text-slate-400"
@@ -420,17 +457,69 @@ export default function CiudadesPage() {
                     />
                   </div>
 
+                  {/* Departamento - Selector del catálogo */}
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1">
                       Departamento
                     </label>
-                    <input
-                      type="text"
-                      value={formData.departamento}
-                      onChange={(e) => setFormData({ ...formData, departamento: e.target.value })}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                      placeholder="Ej: Antioquia"
-                    />
+                    {!mostrarNuevoDep ? (
+                      <div className="space-y-2">
+                        <select
+                          value={formData.departamento_id}
+                          onChange={(e) => setFormData({ ...formData, departamento_id: e.target.value })}
+                          disabled={loadingDepartamentos}
+                          className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 disabled:bg-slate-100"
+                        >
+                          <option value="">
+                            {loadingDepartamentos ? 'Cargando...' : 'Seleccionar departamento...'}
+                          </option>
+                          {departamentos.map(dep => (
+                            <option key={dep.id} value={dep.id}>
+                              {dep.nombre}
+                            </option>
+                          ))}
+                        </select>
+                        <button
+                          type="button"
+                          onClick={() => setMostrarNuevoDep(true)}
+                          className="text-sm text-green-600 hover:text-green-700 font-medium"
+                        >
+                          + Agregar nuevo departamento
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={nuevoDepartamento}
+                            onChange={(e) => setNuevoDepartamento(e.target.value)}
+                            className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                            placeholder="Nombre del departamento"
+                            disabled={creandoDep}
+                          />
+                          <Button
+                            type="button"
+                            variant="primary"
+                            onClick={handleCrearDepartamento}
+                            disabled={creandoDep || !nuevoDepartamento.trim()}
+                            className="whitespace-nowrap"
+                          >
+                            {creandoDep ? <Spinner size="sm" /> : 'Crear'}
+                          </Button>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setMostrarNuevoDep(false)
+                            setNuevoDepartamento('')
+                          }}
+                          className="text-sm text-slate-500 hover:text-slate-700"
+                        >
+                          Cancelar
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
 
