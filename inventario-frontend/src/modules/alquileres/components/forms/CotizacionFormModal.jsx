@@ -17,7 +17,7 @@ import { useGetClientesActivos } from '@clientes/hooks/useClientes'
 import { useGetProductosAlquiler } from '@productos/hooks/useProductosAlquiler'
 import { useGetTarifasTransporte } from '../../hooks/useTarifasTransporte'
 import { useGetCiudadesActivas } from '@clientes/hooks/useCiudades'
-import { useGetUbicacionesActivas } from '@inventario/hooks/useUbicaciones'
+import { useGetUbicacionesPorCiudad } from '@inventario/hooks/useUbicaciones'
 import { useGetEventosPorCliente } from '../../hooks/useEventos'
 import { useGetConfiguracionCompleta } from '@configuracion/hooks/useConfiguracion'
 
@@ -88,7 +88,9 @@ const CotizacionFormModal = ({
   const { productos, isLoading: loadingProductos } = useGetProductosAlquiler()
   const { tarifas, isLoading: loadingTarifas } = useGetTarifasTransporte()
   const { ciudades, isLoading: loadingCiudades } = useGetCiudadesActivas()
-  const { ubicaciones, isLoading: loadingUbicaciones } = useGetUbicacionesActivas()
+  const { ubicaciones: ubicacionesCiudad, isLoading: loadingUbicaciones } = useGetUbicacionesPorCiudad(
+    formData.evento_ciudad_id ? parseInt(formData.evento_ciudad_id) : null
+  )
   const { data: configuracion } = useGetConfiguracionCompleta()
 
   const { mutateAsync: createCotizacion, isLoading: isCreating } = useCreateCotizacion()
@@ -725,10 +727,8 @@ const CotizacionFormModal = ({
     }).format(valor || 0)
   }
 
-  // Filtrar ubicaciones por ciudad seleccionada (usando ciudad_id)
-  const ubicacionesFiltradas = formData.evento_ciudad_id
-    ? ubicaciones.filter(u => u.ciudad_id === parseInt(formData.evento_ciudad_id))
-    : []
+  // Ubicaciones de la ciudad seleccionada (ya vienen filtradas del backend)
+  const ubicacionesFiltradas = ubicacionesCiudad
 
   // Filtrar tarifas por ciudad seleccionada (usando ciudad_id)
   const tarifasFiltradas = formData.evento_ciudad_id

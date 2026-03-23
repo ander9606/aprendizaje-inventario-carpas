@@ -4,7 +4,7 @@
 // ============================================
 
 import { useState } from 'react'
-import { Plus, MapPin, ArrowLeft, Pencil, Trash2, Search, Truck } from 'lucide-react'
+import { Plus, MapPin, ArrowLeft, Pencil, Trash2, Search, Truck, Navigation } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import {
   useGetCiudades,
@@ -19,6 +19,7 @@ import {
 import Button from '@shared/components/Button'
 import Spinner from '@shared/components/Spinner'
 import EmptyState from '@shared/components/EmptyState'
+import DireccionesCiudadModal from '../components/modals/DireccionesCiudadModal'
 
 // Tipos de camión disponibles
 const TIPOS_CAMION = [
@@ -63,6 +64,7 @@ export default function CiudadesPage() {
     }
   })
   const [busqueda, setBusqueda] = useState('')
+  const [direccionesModal, setDireccionesModal] = useState({ open: false, ciudad: null })
   const [nuevoDepartamento, setNuevoDepartamento] = useState('')
   const [mostrarNuevoDep, setMostrarNuevoDep] = useState(false)
   const [creandoDep, setCreandoDep] = useState(false)
@@ -390,6 +392,13 @@ export default function CiudadesPage() {
                       <td className="px-4 py-4">
                         <div className="flex items-center justify-center gap-1">
                           <button
+                            onClick={() => setDireccionesModal({ open: true, ciudad })}
+                            className="p-2 text-slate-500 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                            title="Direcciones"
+                          >
+                            <Navigation className="w-4 h-4" />
+                          </button>
+                          <button
                             onClick={() => handleOpenEditar(ciudad)}
                             className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                             title="Editar"
@@ -583,6 +592,13 @@ export default function CiudadesPage() {
           </div>
         </div>
       )}
+
+      {/* Modal de direcciones por ciudad */}
+      <DireccionesCiudadModal
+        isOpen={direccionesModal.open}
+        onClose={() => setDireccionesModal({ open: false, ciudad: null })}
+        ciudad={direccionesModal.ciudad}
+      />
 
       {/* Indicador de carga al eliminar */}
       {isDeleting && (

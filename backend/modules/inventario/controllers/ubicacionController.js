@@ -111,6 +111,28 @@ exports.obtenerPorId = async (req, res, next) => {
 };
 
 // ============================================
+// OBTENER POR CIUDAD
+// ============================================
+
+exports.obtenerPorCiudad = async (req, res, next) => {
+    try {
+        const { ciudadId } = req.params;
+        validateId(ciudadId, 'ID de ciudad');
+
+        const ubicaciones = await UbicacionModel.obtenerPorCiudadId(ciudadId);
+
+        res.json({
+            success: true,
+            data: ubicaciones,
+            total: ubicaciones.length
+        });
+    } catch (error) {
+        logger.error('ubicacionController.obtenerPorCiudad', error);
+        next(error);
+    }
+};
+
+// ============================================
 // OBTENER POR TIPO
 // ============================================
 

@@ -27,6 +27,12 @@ const ubicacionesAPI = {
     return response.data
   },
 
+  // Obtener ubicaciones por ciudad
+  obtenerPorCiudad: async (ciudadId) => {
+    const response = await api.get(`/ubicaciones/ciudad/${ciudadId}`)
+    return response.data
+  },
+
   // Obtener una ubicación por ID
   obtenerPorId: async (id) => {
     const response = await api.get(`/ubicaciones/${id}`)

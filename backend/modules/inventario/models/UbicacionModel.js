@@ -167,6 +167,25 @@ class UbicacionModel {
     }
 
     // ============================================
+    // OBTENER UBICACIONES POR CIUDAD
+    // ============================================
+    static async obtenerPorCiudadId(ciudadId) {
+        const query = `
+            SELECT
+                u.id, u.nombre, u.tipo, u.direccion, u.ciudad_id,
+                c.nombre as ciudad, u.responsable, u.telefono,
+                u.observaciones, u.activo, u.es_principal
+            FROM ubicaciones u
+            LEFT JOIN ciudades c ON u.ciudad_id = c.id
+            WHERE u.ciudad_id = ? AND u.activo = TRUE
+            ORDER BY u.tipo, u.nombre
+        `;
+
+        const [rows] = await pool.query(query, [ciudadId]);
+        return rows;
+    }
+
+    // ============================================
     // OBTENER UBICACIONES POR TIPO
     // ============================================
     static async obtenerPorTipo(tipo) {
