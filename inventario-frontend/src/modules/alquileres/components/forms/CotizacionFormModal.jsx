@@ -655,8 +655,10 @@ const CotizacionFormModal = ({
     }
 
     try {
+      let cotizacionId = cotizacion?.id
       if (mode === 'crear') {
-        await createCotizacion(dataToSend)
+        const result = await createCotizacion(dataToSend)
+        cotizacionId = result?.data?.id
       } else {
         await updateCotizacion({ id: cotizacion.id, data: dataToSend })
       }
@@ -669,7 +671,8 @@ const CotizacionFormModal = ({
           nombre: '',
           tipo: 'evento',
           direccion,
-          ciudad_id: parseInt(formData.evento_ciudad_id)
+          ciudad_id: parseInt(formData.evento_ciudad_id),
+          cotizacion_id: cotizacionId
         })
       } else {
         onClose()
@@ -684,7 +687,7 @@ const CotizacionFormModal = ({
   const handleGuardarUbicacion = async () => {
     if (!guardarUbicacion.nombre.trim()) return
     try {
-      await crearUbicacion({
+      const resultado = await crearUbicacion({
         nombre: guardarUbicacion.nombre.trim(),
         tipo: guardarUbicacion.tipo,
         direccion: guardarUbicacion.direccion,
@@ -692,6 +695,16 @@ const CotizacionFormModal = ({
         activo: true,
         es_principal: false
       })
+
+      // Vincular la ubicación recién creada a la cotización
+      const ubicacionId = resultado?.data?.id
+      if (ubicacionId && guardarUbicacion.cotizacion_id) {
+        await updateCotizacion({
+          id: guardarUbicacion.cotizacion_id,
+          data: { ubicacion_id: ubicacionId }
+        })
+      }
+
       setGuardarUbicacion(prev => ({ ...prev, mostrar: false }))
       onClose()
     } catch (error) {

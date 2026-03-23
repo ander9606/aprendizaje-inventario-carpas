@@ -349,7 +349,8 @@ exports.actualizar = async (req, res, next) => {
       notas,
       productos,
       transporte,
-      descuentos
+      descuentos,
+      fechas_confirmadas
     } = req.body;
 
     const cotizacionExistente = await CotizacionModel.obtenerPorId(id);
@@ -366,15 +367,16 @@ exports.actualizar = async (req, res, next) => {
       fecha_montaje: fecha_montaje || cotizacionExistente.fecha_montaje || null,
       fecha_evento: fecha_evento || cotizacionExistente.fecha_evento || null,
       fecha_desmontaje: fecha_desmontaje || cotizacionExistente.fecha_desmontaje || null,
-      evento_nombre,
-      evento_direccion,
+      evento_nombre: evento_nombre !== undefined ? evento_nombre : cotizacionExistente.evento_nombre,
+      evento_direccion: evento_direccion !== undefined ? evento_direccion : cotizacionExistente.evento_direccion,
       ubicacion_id: ubicacion_id !== undefined ? (ubicacion_id || null) : cotizacionExistente.ubicacion_id,
-      evento_ciudad,
+      evento_ciudad: evento_ciudad !== undefined ? evento_ciudad : cotizacionExistente.evento_ciudad,
       subtotal: cotizacionExistente.subtotal,
       descuento: descuento !== undefined ? descuento : cotizacionExistente.descuento,
       total: cotizacionExistente.total,
-      vigencia_dias,
-      notas
+      vigencia_dias: vigencia_dias !== undefined ? vigencia_dias : cotizacionExistente.vigencia_dias,
+      notas: notas !== undefined ? notas : cotizacionExistente.notas,
+      fechas_confirmadas
     });
 
     // Si vienen productos, reemplazar
