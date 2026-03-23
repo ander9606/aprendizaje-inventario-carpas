@@ -45,6 +45,7 @@ const CotizacionFormModal = ({
     fecha_desmontaje: '',
     evento_nombre: '',
     evento_direccion: '',
+    ubicacion_id: '',
     evento_ciudad: '',
     evento_ciudad_id: '',
     descuento: 0,
@@ -129,6 +130,7 @@ const CotizacionFormModal = ({
         fecha_desmontaje: datosACopiar.fecha_desmontaje?.split('T')[0] || '',
         evento_nombre: datosACopiar.evento_nombre || '',
         evento_direccion: datosACopiar.evento_direccion || '',
+        ubicacion_id: datosACopiar.ubicacion_id || '',
         evento_ciudad: datosACopiar.evento_ciudad || '',
         evento_ciudad_id: ciudadMatch?.id?.toString() || '',
         descuento: datosACopiar.descuento || 0,
@@ -191,6 +193,7 @@ const CotizacionFormModal = ({
           fecha_desmontaje: eventoPreseleccionado.fecha_fin?.split('T')[0] || '',
           evento_nombre: eventoPreseleccionado.nombre || '',
           evento_direccion: eventoPreseleccionado.direccion || '',
+          ubicacion_id: '',
           evento_ciudad: eventoPreseleccionado.ciudad_nombre || '',
           evento_ciudad_id: ciudadMatch?.id?.toString() || '',
           descuento: 0,
@@ -206,6 +209,7 @@ const CotizacionFormModal = ({
           fecha_desmontaje: '',
           evento_nombre: '',
           evento_direccion: '',
+          ubicacion_id: '',
           evento_ciudad_id: '',
           evento_ciudad: '',
           descuento: 0,
@@ -229,7 +233,9 @@ const CotizacionFormModal = ({
     const { name, value } = e.target
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: value,
+      // Si escribe manualmente la dirección, limpiar ubicacion_id vinculada
+      ...(name === 'evento_direccion' ? { ubicacion_id: '' } : {})
     }))
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }))
@@ -242,7 +248,8 @@ const CotizacionFormModal = ({
         ...prev,
         evento_ciudad_id: value,
         evento_ciudad: ciudadSeleccionada?.nombre || '',
-        evento_direccion: ''
+        evento_direccion: '',
+        ubicacion_id: ''
       }))
       return
     }
@@ -603,6 +610,7 @@ const CotizacionFormModal = ({
       fechas_confirmadas: !fechasPorConfirmar,
       evento_nombre: formData.evento_nombre.trim() || null,
       evento_direccion: formData.evento_direccion.trim() || null,
+      ubicacion_id: formData.ubicacion_id ? parseInt(formData.ubicacion_id) : null,
       evento_ciudad: formData.evento_ciudad.trim() || null,
       descuento: totalDescuentoCalculado,
       vigencia_dias: parseInt(formData.vigencia_dias) || 15,
@@ -1105,7 +1113,8 @@ const CotizacionFormModal = ({
                           type="button"
                           onClick={() => setFormData(prev => ({
                             ...prev,
-                            evento_direccion: u.direccion || u.nombre
+                            evento_direccion: u.direccion || u.nombre,
+                            ubicacion_id: u.id
                           }))}
                           className={`
                             px-2.5 py-1 text-xs rounded-full border transition-colors
