@@ -4,7 +4,7 @@
 // ============================================
 
 import { useState, useEffect, useMemo } from 'react'
-import { Plus, Trash2, Package, Truck, MapPin, CalendarDays, Calendar, Clock, Percent, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, CheckCircle, User, AlertCircle, FileEdit, ClipboardList } from 'lucide-react'
+import { Plus, Trash2, Package, Truck, MapPin, CalendarDays, Calendar, Clock, Percent, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, CheckCircle, User, AlertCircle, FileEdit, ClipboardList, Save, X } from 'lucide-react'
 import Modal from '@shared/components/Modal'
 import Button from '@shared/components/Button'
 import ProductoSelector from '@shared/components/ProductoSelector'
@@ -17,7 +17,7 @@ import { useGetClientesActivos } from '@clientes/hooks/useClientes'
 import { useGetProductosAlquiler } from '@productos/hooks/useProductosAlquiler'
 import { useGetTarifasTransporte } from '../../hooks/useTarifasTransporte'
 import { useGetCiudadesActivas } from '@clientes/hooks/useCiudades'
-import { useGetUbicacionesPorCiudad } from '@inventario/hooks/useUbicaciones'
+import { useGetUbicacionesPorCiudad, useCreateUbicacion } from '@inventario/hooks/useUbicaciones'
 import { useGetEventosPorCliente } from '../../hooks/useEventos'
 import { useGetConfiguracionCompleta } from '@configuracion/hooks/useConfiguracion'
 
@@ -70,6 +70,15 @@ const CotizacionFormModal = ({
   // Estado para el modal de disponibilidad
   const [showDisponibilidadModal, setShowDisponibilidadModal] = useState(false)
 
+  // Estado para sugerir guardar dirección nueva como ubicación
+  const [guardarUbicacion, setGuardarUbicacion] = useState({
+    mostrar: false,
+    nombre: '',
+    tipo: 'evento',
+    direccion: '',
+    ciudad_id: null
+  })
+
   // Estado del wizard
   const [pasoActual, setPasoActual] = useState(1)
   const [direccionAnimacion, setDireccionAnimacion] = useState('right')
@@ -96,6 +105,7 @@ const CotizacionFormModal = ({
 
   const { mutateAsync: createCotizacion, isLoading: isCreating } = useCreateCotizacion()
   const { mutateAsync: updateCotizacion, isLoading: isUpdating } = useUpdateCotizacion()
+  const { mutateAsync: crearUbicacion, isLoading: isCreatingUbicacion } = useCreateUbicacion()
 
   // Cargar cotización completa con productos cuando se edita
   const { cotizacion: cotizacionCompleta, isLoading: loadingCotizacion } = useGetCotizacionCompleta(
@@ -650,12 +660,48 @@ const CotizacionFormModal = ({
       } else {
         await updateCotizacion({ id: cotizacion.id, data: dataToSend })
       }
-      onClose()
+
+      // Si escribió una dirección manual (sin chip), preguntar si quiere guardarla
+      const direccion = formData.evento_direccion.trim()
+      if (direccion && !formData.ubicacion_id && formData.evento_ciudad_id) {
+        setGuardarUbicacion({
+          mostrar: true,
+          nombre: '',
+          tipo: 'evento',
+          direccion,
+          ciudad_id: parseInt(formData.evento_ciudad_id)
+        })
+      } else {
+        onClose()
+      }
     } catch (error) {
       console.error('Error al guardar cotizacion:', error)
       const mensajeError = error.response?.data?.message || 'Error al guardar la cotizacion'
       setErrors({ submit: mensajeError })
     }
+  }
+
+  const handleGuardarUbicacion = async () => {
+    if (!guardarUbicacion.nombre.trim()) return
+    try {
+      await crearUbicacion({
+        nombre: guardarUbicacion.nombre.trim(),
+        tipo: guardarUbicacion.tipo,
+        direccion: guardarUbicacion.direccion,
+        ciudad_id: guardarUbicacion.ciudad_id,
+        activo: true,
+        es_principal: false
+      })
+      setGuardarUbicacion(prev => ({ ...prev, mostrar: false }))
+      onClose()
+    } catch (error) {
+      console.error('Error al guardar ubicación:', error)
+    }
+  }
+
+  const handleSkipGuardarUbicacion = () => {
+    setGuardarUbicacion(prev => ({ ...prev, mostrar: false }))
+    onClose()
   }
 
   const handleClose = () => {
@@ -1905,6 +1951,79 @@ const CotizacionFormModal = ({
         fechaDesmontaje={formData.fecha_desmontaje || formData.fecha_evento}
         productosInfo={productos}
       />
+
+      {/* Mini-dialog: Guardar dirección como ubicación frecuente */}
+      {guardarUbicacion.mostrar && (
+        <div className="fixed inset-0 bg-black/40 z-[60] flex items-center justify-center">
+          <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md mx-4">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                <MapPin className="w-5 h-5 text-blue-600" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-slate-800">Guardar dirección</h3>
+                <p className="text-sm text-slate-500">¿Quieres guardar esta dirección para usarla después?</p>
+              </div>
+            </div>
+
+            <div className="bg-slate-50 rounded-lg p-3 mb-4">
+              <p className="text-sm text-slate-600">{guardarUbicacion.direccion}</p>
+            </div>
+
+            <div className="space-y-3 mb-5">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Nombre de la ubicación *</label>
+                <input
+                  type="text"
+                  value={guardarUbicacion.nombre}
+                  onChange={(e) => setGuardarUbicacion(prev => ({ ...prev, nombre: e.target.value }))}
+                  placeholder='Ej: "Finca Villa María", "Club El Lago"'
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  autoFocus
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Tipo de lugar</label>
+                <select
+                  value={guardarUbicacion.tipo}
+                  onChange={(e) => setGuardarUbicacion(prev => ({ ...prev, tipo: e.target.value }))}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="finca">Finca</option>
+                  <option value="hacienda">Hacienda</option>
+                  <option value="club">Club</option>
+                  <option value="hotel">Hotel</option>
+                  <option value="jardin">Jardín</option>
+                  <option value="playa">Playa</option>
+                  <option value="parque">Parque</option>
+                  <option value="residencia">Residencia</option>
+                  <option value="evento">Lugar de evento</option>
+                  <option value="otro">Otro</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={handleSkipGuardarUbicacion}
+                className="flex-1 px-4 py-2.5 text-sm font-medium text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors"
+              >
+                No, gracias
+              </button>
+              <button
+                type="button"
+                onClick={handleGuardarUbicacion}
+                disabled={!guardarUbicacion.nombre.trim() || isCreatingUbicacion}
+                className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                <Save className="w-4 h-4" />
+                {isCreatingUbicacion ? 'Guardando...' : 'Guardar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </Modal>
   )
 }
