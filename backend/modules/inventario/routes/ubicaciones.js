@@ -20,6 +20,9 @@ router.get('/principal', ubicacionController.obtenerPrincipal);
 // GET /api/ubicaciones/inventario - Obtener ubicaciones con conteo de inventario
 router.get('/inventario', ubicacionController.obtenerConInventario);
 
+// GET /api/ubicaciones/ciudad/:ciudadId - Obtener ubicaciones por ciudad
+router.get('/ciudad/:ciudadId', ubicacionController.obtenerPorCiudad);
+
 // GET /api/ubicaciones/tipo/:tipo - Obtener ubicaciones por tipo
 router.get('/tipo/:tipo', ubicacionController.obtenerPorTipo);
 

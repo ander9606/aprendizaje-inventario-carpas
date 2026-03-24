@@ -52,6 +52,26 @@ export const useGetUbicacionesActivas = () => {
 }
 
 // ============================================
+// HOOK: useGetUbicacionesPorCiudad
+// Obtiene ubicaciones filtradas por ciudad
+// ============================================
+
+export const useGetUbicacionesPorCiudad = (ciudadId) => {
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ['ubicaciones', 'ciudad', ciudadId],
+    queryFn: () => ubicacionesAPI.obtenerPorCiudad(ciudadId),
+    enabled: !!ciudadId
+  })
+
+  return {
+    ubicaciones: data?.data || [],
+    isLoading,
+    error,
+    refetch
+  }
+}
+
+// ============================================
 // HOOK: useGetUbicacion
 // Obtiene UNA ubicación específica por ID
 // ============================================

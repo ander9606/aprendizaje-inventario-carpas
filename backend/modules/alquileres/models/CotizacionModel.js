@@ -281,7 +281,7 @@ class CotizacionModel {
   // ============================================
   static async crear({
     cliente_id, fecha_montaje, fecha_evento, fecha_desmontaje, evento_nombre,
-    evento_direccion, evento_ciudad, subtotal, descuento, total, vigencia_dias, notas,
+    evento_direccion, evento_ciudad, ubicacion_id, subtotal, descuento, total, vigencia_dias, notas,
     dias_montaje_extra, dias_desmontaje_extra, porcentaje_dias_extra,
     cobro_dias_extra, porcentaje_iva, valor_iva, evento_id, fechas_confirmadas
   }) {
@@ -312,11 +312,11 @@ class CotizacionModel {
     const query = `
       INSERT INTO cotizaciones
         (cliente_id, fecha_montaje, fecha_evento, fecha_desmontaje, evento_nombre,
-         evento_direccion, evento_ciudad, subtotal, descuento, total, estado,
+         evento_direccion, ubicacion_id, evento_ciudad, subtotal, descuento, total, estado,
          fechas_confirmadas, vigencia_dias, notas,
          dias_montaje_extra, dias_desmontaje_extra, porcentaje_dias_extra,
          cobro_dias_extra, porcentaje_iva, valor_iva, evento_id)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     const [result] = await pool.query(query, [
       cliente_id,
@@ -325,21 +325,22 @@ class CotizacionModel {
       fecha_desmontaje || fecha_evento || null,
       evento_nombre || null,
       evento_direccion || null,
+      ubicacion_id ?? null,
       evento_ciudad || null,
-      subtotal || 0,
-      descuento || 0,
-      total || 0,
+      subtotal ?? 0,
+      descuento ?? 0,
+      total ?? 0,
       estado,
       esBorrador ? 0 : 1,
-      vigencia_dias || 15,
+      vigencia_dias ?? 15,
       notas || null,
-      dias_montaje_extra || 0,
-      dias_desmontaje_extra || 0,
-      porcentaje_dias_extra || this.PORCENTAJE_DIAS_EXTRA_DEFAULT,
-      cobro_dias_extra || 0,
-      porcentaje_iva || this.PORCENTAJE_IVA_DEFAULT,
-      valor_iva || 0,
-      evento_id || null
+      dias_montaje_extra ?? 0,
+      dias_desmontaje_extra ?? 0,
+      porcentaje_dias_extra ?? this.PORCENTAJE_DIAS_EXTRA_DEFAULT,
+      cobro_dias_extra ?? 0,
+      porcentaje_iva ?? this.PORCENTAJE_IVA_DEFAULT,
+      valor_iva ?? 0,
+      evento_id ?? null
     ]);
     return result;
   }
@@ -349,7 +350,7 @@ class CotizacionModel {
   // ============================================
   static async actualizar(id, {
     fecha_montaje, fecha_evento, fecha_desmontaje, evento_nombre, evento_direccion,
-    evento_ciudad, subtotal, descuento, total, vigencia_dias, notas,
+    ubicacion_id, evento_ciudad, subtotal, descuento, total, vigencia_dias, notas,
     dias_montaje_extra, dias_desmontaje_extra, porcentaje_dias_extra,
     cobro_dias_extra, porcentaje_iva, valor_iva, fechas_confirmadas
   }) {
@@ -373,7 +374,7 @@ class CotizacionModel {
     const query = `
       UPDATE cotizaciones
       SET fecha_montaje = ?, fecha_evento = ?, fecha_desmontaje = ?, evento_nombre = ?,
-          evento_direccion = ?, evento_ciudad = ?, subtotal = ?,
+          evento_direccion = ?, ubicacion_id = ?, evento_ciudad = ?, subtotal = ?,
           descuento = ?, total = ?, vigencia_dias = ?, notas = ?,
           fechas_confirmadas = COALESCE(?, fechas_confirmadas),
           dias_montaje_extra = COALESCE(?, dias_montaje_extra),
@@ -390,11 +391,12 @@ class CotizacionModel {
       fecha_desmontaje || fecha_evento || null,
       evento_nombre || null,
       evento_direccion || null,
+      ubicacion_id ?? null,
       evento_ciudad || null,
-      subtotal || 0,
-      descuento || 0,
-      total || 0,
-      vigencia_dias || 15,
+      subtotal ?? 0,
+      descuento ?? 0,
+      total ?? 0,
+      vigencia_dias ?? 15,
       notas || null,
       fechas_confirmadas !== undefined ? (fechas_confirmadas ? 1 : 0) : null,
       dias_montaje_extra,
@@ -661,6 +663,7 @@ class CotizacionModel {
       fecha_desmontaje: original.fecha_desmontaje,
       evento_nombre: original.evento_nombre ? `${original.evento_nombre} (copia)` : null,
       evento_direccion: original.evento_direccion,
+      ubicacion_id: original.ubicacion_id,
       evento_ciudad: original.evento_ciudad,
       subtotal: original.subtotal,
       descuento: original.descuento,

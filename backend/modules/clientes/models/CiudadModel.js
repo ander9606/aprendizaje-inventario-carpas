@@ -14,31 +14,39 @@ class CiudadModel {
   // OBTENER TODAS CON TARIFAS
   // ============================================
   static async obtenerTodas() {
-    // Obtener ciudades
-    const queryCiudades = `
-      SELECT id, nombre, departamento, activo, created_at, updated_at
-      FROM ciudades
-      ORDER BY nombre
+    const query = `
+      SELECT c.id, c.nombre, c.departamento_id,
+             COALESCE(d.nombre, c.departamento) as departamento,
+             c.activo, c.created_at, c.updated_at,
+             t.tipo_camion, t.precio
+      FROM ciudades c
+      LEFT JOIN departamentos d ON c.departamento_id = d.id
+      LEFT JOIN tarifas_transporte t ON t.ciudad_id = c.id
+      ORDER BY c.nombre, t.tipo_camion
     `;
-    const [ciudades] = await pool.query(queryCiudades);
+    const [rows] = await pool.query(query);
 
-    // Para cada ciudad, obtener sus tarifas
-    for (const ciudad of ciudades) {
-      const queryTarifas = `
-        SELECT tipo_camion, precio
-        FROM tarifas_transporte
-        WHERE ciudad_id = ?
-      `;
-      const [tarifas] = await pool.query(queryTarifas, [ciudad.id]);
-
-      // Crear objeto de tarifas
-      ciudad.tarifas = {};
-      for (const tarifa of tarifas) {
-        ciudad.tarifas[tarifa.tipo_camion] = tarifa.precio;
+    // Agrupar tarifas por ciudad
+    const ciudadesMap = new Map();
+    for (const row of rows) {
+      if (!ciudadesMap.has(row.id)) {
+        ciudadesMap.set(row.id, {
+          id: row.id,
+          nombre: row.nombre,
+          departamento_id: row.departamento_id,
+          departamento: row.departamento,
+          activo: row.activo,
+          created_at: row.created_at,
+          updated_at: row.updated_at,
+          tarifas: {}
+        });
+      }
+      if (row.tipo_camion) {
+        ciudadesMap.get(row.id).tarifas[row.tipo_camion] = row.precio;
       }
     }
 
-    return ciudades;
+    return Array.from(ciudadesMap.values());
   }
 
   // ============================================
@@ -46,10 +54,12 @@ class CiudadModel {
   // ============================================
   static async obtenerActivas() {
     const query = `
-      SELECT id, nombre, departamento
-      FROM ciudades
-      WHERE activo = TRUE
-      ORDER BY nombre
+      SELECT c.id, c.nombre, c.departamento_id,
+             COALESCE(d.nombre, c.departamento) as departamento
+      FROM ciudades c
+      LEFT JOIN departamentos d ON c.departamento_id = d.id
+      WHERE c.activo = TRUE
+      ORDER BY c.nombre
     `;
     const [rows] = await pool.query(query);
     return rows;
@@ -60,9 +70,12 @@ class CiudadModel {
   // ============================================
   static async obtenerPorId(id) {
     const queryCiudad = `
-      SELECT id, nombre, departamento, activo, created_at, updated_at
-      FROM ciudades
-      WHERE id = ?
+      SELECT c.id, c.nombre, c.departamento_id,
+             COALESCE(d.nombre, c.departamento) as departamento,
+             c.activo, c.created_at, c.updated_at
+      FROM ciudades c
+      LEFT JOIN departamentos d ON c.departamento_id = d.id
+      WHERE c.id = ?
     `;
     const [rows] = await pool.query(queryCiudad, [id]);
 
@@ -91,7 +104,7 @@ class CiudadModel {
   // ============================================
   static async obtenerPorNombre(nombre) {
     const query = `
-      SELECT id, nombre, departamento, activo
+      SELECT id, nombre, departamento_id, departamento, activo
       FROM ciudades
       WHERE nombre = ?
     `;
@@ -102,7 +115,7 @@ class CiudadModel {
   // ============================================
   // CREAR CON TARIFAS
   // ============================================
-  static async crear({ nombre, departamento, tarifas }) {
+  static async crear({ nombre, departamento_id, departamento, tarifas }) {
     const connection = await pool.getConnection();
 
     try {
@@ -110,10 +123,14 @@ class CiudadModel {
 
       // Crear ciudad
       const queryCiudad = `
-        INSERT INTO ciudades (nombre, departamento)
-        VALUES (?, ?)
+        INSERT INTO ciudades (nombre, departamento_id, departamento)
+        VALUES (?, ?, ?)
       `;
-      const [result] = await connection.query(queryCiudad, [nombre, departamento || null]);
+      const [result] = await connection.query(queryCiudad, [
+        nombre,
+        departamento_id || null,
+        departamento || null
+      ]);
       const ciudadId = result.insertId;
 
       // Crear tarifas si se proporcionan
@@ -144,7 +161,7 @@ class CiudadModel {
   // ============================================
   // ACTUALIZAR CON TARIFAS
   // ============================================
-  static async actualizar(id, { nombre, departamento, activo, tarifas }) {
+  static async actualizar(id, { nombre, departamento_id, departamento, activo, tarifas }) {
     const connection = await pool.getConnection();
 
     try {
@@ -153,11 +170,12 @@ class CiudadModel {
       // Actualizar ciudad
       const queryCiudad = `
         UPDATE ciudades
-        SET nombre = ?, departamento = ?, activo = ?
+        SET nombre = ?, departamento_id = ?, departamento = ?, activo = ?
         WHERE id = ?
       `;
       await connection.query(queryCiudad, [
         nombre,
+        departamento_id || null,
         departamento || null,
         activo !== undefined ? activo : true,
         id
@@ -168,7 +186,6 @@ class CiudadModel {
         for (const tipoCamion of TIPOS_CAMION) {
           const precio = tarifas[tipoCamion];
 
-          // Verificar si ya existe la tarifa
           const [existing] = await connection.query(
             'SELECT id FROM tarifas_transporte WHERE ciudad_id = ? AND tipo_camion = ?',
             [id, tipoCamion]
@@ -176,20 +193,17 @@ class CiudadModel {
 
           if (precio !== undefined && precio !== null && precio !== '') {
             if (existing.length > 0) {
-              // Actualizar
               await connection.query(
                 'UPDATE tarifas_transporte SET precio = ? WHERE id = ?',
                 [parseFloat(precio), existing[0].id]
               );
             } else {
-              // Crear
               await connection.query(
                 'INSERT INTO tarifas_transporte (tipo_camion, ciudad_id, precio) VALUES (?, ?, ?)',
                 [tipoCamion, id, parseFloat(precio)]
               );
             }
           } else if (existing.length > 0) {
-            // Eliminar si el precio está vacío
             await connection.query(
               'DELETE FROM tarifas_transporte WHERE id = ?',
               [existing[0].id]
