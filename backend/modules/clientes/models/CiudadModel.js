@@ -14,32 +14,39 @@ class CiudadModel {
   // OBTENER TODAS CON TARIFAS
   // ============================================
   static async obtenerTodas() {
-    const queryCiudades = `
+    const query = `
       SELECT c.id, c.nombre, c.departamento_id,
              COALESCE(d.nombre, c.departamento) as departamento,
-             c.activo, c.created_at, c.updated_at
+             c.activo, c.created_at, c.updated_at,
+             t.tipo_camion, t.precio
       FROM ciudades c
       LEFT JOIN departamentos d ON c.departamento_id = d.id
-      ORDER BY c.nombre
+      LEFT JOIN tarifas_transporte t ON t.ciudad_id = c.id
+      ORDER BY c.nombre, t.tipo_camion
     `;
-    const [ciudades] = await pool.query(queryCiudades);
+    const [rows] = await pool.query(query);
 
-    // Para cada ciudad, obtener sus tarifas
-    for (const ciudad of ciudades) {
-      const queryTarifas = `
-        SELECT tipo_camion, precio
-        FROM tarifas_transporte
-        WHERE ciudad_id = ?
-      `;
-      const [tarifas] = await pool.query(queryTarifas, [ciudad.id]);
-
-      ciudad.tarifas = {};
-      for (const tarifa of tarifas) {
-        ciudad.tarifas[tarifa.tipo_camion] = tarifa.precio;
+    // Agrupar tarifas por ciudad
+    const ciudadesMap = new Map();
+    for (const row of rows) {
+      if (!ciudadesMap.has(row.id)) {
+        ciudadesMap.set(row.id, {
+          id: row.id,
+          nombre: row.nombre,
+          departamento_id: row.departamento_id,
+          departamento: row.departamento,
+          activo: row.activo,
+          created_at: row.created_at,
+          updated_at: row.updated_at,
+          tarifas: {}
+        });
+      }
+      if (row.tipo_camion) {
+        ciudadesMap.get(row.id).tarifas[row.tipo_camion] = row.precio;
       }
     }
 
-    return ciudades;
+    return Array.from(ciudadesMap.values());
   }
 
   // ============================================
