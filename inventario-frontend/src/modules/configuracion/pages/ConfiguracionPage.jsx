@@ -33,12 +33,12 @@ export default function ConfiguracionPage() {
     },
     {
       id: 'ubicaciones',
-      nombre: 'Ubicaciones',
-      descripcion: 'Gestiona bodegas, lugares de eventos y destinos donde puede estar el inventario.',
+      nombre: 'Ubicaciones y Destinos',
+      descripcion: 'Bodegas y talleres de almacenamiento, mas destinos de evento agrupados por ciudad.',
       icon: MapPin,
       color: 'blue',
       ruta: '/configuracion/ubicaciones',
-      tags: ['Bodegas', 'Destinos']
+      tags: ['Almacenamiento', 'Destinos', 'Ciudades']
     },
     {
       id: 'empresa',
@@ -170,8 +170,8 @@ export default function ConfiguracionPage() {
         <div className="mt-8">
           <InfoBox variant="warning">
             <strong>Flujo recomendado:</strong> Primero crea las ciudades con
-            sus tarifas de transporte, y luego crea las ubicaciones
-            seleccionando una ciudad del catálogo.
+            sus tarifas de transporte, y luego agrega destinos de evento
+            desde Ubicaciones y Destinos o directamente desde el catalogo de Ciudades.
           </InfoBox>
         </div>
       </main>
