@@ -102,7 +102,7 @@ class TokenService {
                 e.apellido,
                 e.email,
                 e.rol_id,
-                e.activo,
+                e.estado,
                 r.nombre as rol_nombre,
                 r.permisos
             FROM refresh_tokens rt
@@ -128,7 +128,7 @@ class TokenService {
         }
 
         // Verificar si el empleado sigue activo
-        if (!tokenData.activo) {
+        if (tokenData.estado !== 'activo') {
             throw new AppError('Cuenta de usuario desactivada', 401);
         }
 

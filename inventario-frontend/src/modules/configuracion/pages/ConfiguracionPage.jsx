@@ -33,12 +33,12 @@ export default function ConfiguracionPage() {
     },
     {
       id: 'ubicaciones',
-      nombre: 'Ubicaciones',
-      descripcion: 'Gestiona bodegas, lugares de eventos y destinos donde puede estar el inventario.',
+      nombre: 'Ubicaciones y Destinos',
+      descripcion: 'Bodegas y talleres de almacenamiento, mas destinos de evento agrupados por ciudad.',
       icon: MapPin,
       color: 'blue',
       ruta: '/configuracion/ubicaciones',
-      tags: ['Bodegas', 'Destinos']
+      tags: ['Almacenamiento', 'Destinos', 'Ciudades']
     },
     {
       id: 'empresa',
@@ -99,7 +99,7 @@ export default function ConfiguracionPage() {
       />
 
       {/* Contenido */}
-      <main className="max-w-6xl mx-auto px-6 py-10">
+      <main className="max-w-6xl mx-auto px-4 lg:px-6 py-6 lg:py-10">
         <div className="mb-8">
           <h2 className="text-lg font-semibold text-slate-900 mb-1">
             Datos Maestros
@@ -110,7 +110,7 @@ export default function ConfiguracionPage() {
         </div>
 
         {/* Grid de opciones - mismo estilo que ModulosDashboard */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-5">
           {opciones.map((opcion) => {
             const Icon = opcion.icon
             const colors = colorConfig[opcion.color] || colorConfig.blue
@@ -120,17 +120,18 @@ export default function ConfiguracionPage() {
                 key={opcion.id}
                 onClick={() => navigate(opcion.ruta)}
                 className={`
-                  group relative bg-white rounded-2xl border p-6
-                  cursor-pointer transition-all duration-200
-                  hover:shadow-lg ${colors.card}
+                  group relative bg-white rounded-2xl border p-5 lg:p-6
+                  cursor-pointer transition-all duration-150 select-none
+                  hover:shadow-lg active:scale-[0.97] active:shadow-sm
+                  ${colors.card}
                 `}
               >
                 {/* Icono */}
                 <div className={`
-                  w-12 h-12 rounded-xl ${colors.iconBg}
+                  w-14 h-14 rounded-xl ${colors.iconBg}
                   flex items-center justify-center mb-4 shadow-sm
                 `}>
-                  <Icon className="w-6 h-6 text-white" />
+                  <Icon className="w-7 h-7 text-white" />
                 </div>
 
                 {/* Contenido */}
@@ -142,11 +143,11 @@ export default function ConfiguracionPage() {
                 </p>
 
                 {/* Tags */}
-                <div className="flex flex-wrap gap-1.5 mb-4">
+                <div className="flex flex-wrap gap-2 mb-4">
                   {opcion.tags.map(tag => (
                     <span
                       key={tag}
-                      className={`text-xs px-2 py-0.5 rounded-full font-medium ${colors.tag}`}
+                      className={`text-xs px-2.5 py-1 rounded-full font-medium ${colors.tag}`}
                     >
                       {tag}
                     </span>
@@ -169,8 +170,8 @@ export default function ConfiguracionPage() {
         <div className="mt-8">
           <InfoBox variant="warning">
             <strong>Flujo recomendado:</strong> Primero crea las ciudades con
-            sus tarifas de transporte, y luego crea las ubicaciones
-            seleccionando una ciudad del catálogo.
+            sus tarifas de transporte, y luego agrega destinos de evento
+            desde Ubicaciones y Destinos o directamente desde el catalogo de Ciudades.
           </InfoBox>
         </div>
       </main>

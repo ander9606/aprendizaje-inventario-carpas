@@ -176,7 +176,7 @@ class AlertaModel {
         } = datos;
 
         const tiposValidos = ['conflicto_fecha', 'conflicto_disponibilidad', 'conflicto_equipo',
-                             'conflicto_vehiculo', 'cambio_fecha', 'incidencia', 'stock_disponible', 'otro'];
+                             'conflicto_vehiculo', 'cambio_fecha', 'incidencia', 'novedad', 'stock_disponible', 'otro'];
         if (!tiposValidos.includes(tipo)) {
             throw new AppError(`Tipo de alerta inválido. Valores permitidos: ${tiposValidos.join(', ')}`, 400);
         }

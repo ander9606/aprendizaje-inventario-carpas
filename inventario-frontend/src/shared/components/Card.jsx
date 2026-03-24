@@ -53,7 +53,7 @@ export const Card = ({
   // ============================================
   const baseStyles = `
     bg-white rounded-xl relative overflow-visible
-    transition-all duration-200
+    transition-all duration-150 select-none
   `
   
   // ============================================
@@ -69,7 +69,7 @@ export const Card = ({
   // ESTILOS SI ES CLICKEABLE
   // ============================================
   const clickableStyles = onClick
-    ? 'cursor-pointer hover:shadow-md hover:border-blue-300'
+    ? 'cursor-pointer hover:shadow-md hover:border-blue-300 active:scale-[0.98] active:shadow-sm'
     : ''
   
   const cardClasses = `
@@ -119,10 +119,10 @@ export const Card = ({
             <div className="relative flex-shrink-0">
               <button
                 onClick={(e) => {
-                  e.stopPropagation() // Evitar que se active el onClick del Card
+                  e.stopPropagation()
                   setMenuOpen(!menuOpen)
                 }}
-                className="p-2 hover:bg-slate-100 rounded-xl transition-colors"
+                className="p-2.5 hover:bg-slate-100 active:bg-slate-200 rounded-xl transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
                 aria-label="Opciones"
               >
                 <MoreVertical className="w-5 h-5 text-slate-600" />
@@ -148,11 +148,11 @@ export const Card = ({
                           option.onClick()
                         }}
                         className={`
-                          w-full text-left px-4 py-2 text-sm
+                          w-full text-left px-4 py-3 text-sm min-h-[44px]
                           transition-colors
                           ${option.danger
-                            ? 'text-red-600 hover:bg-red-50'
-                            : 'text-slate-700 hover:bg-slate-50'
+                            ? 'text-red-600 hover:bg-red-50 active:bg-red-100'
+                            : 'text-slate-700 hover:bg-slate-50 active:bg-slate-100'
                           }
                         `}
                       >

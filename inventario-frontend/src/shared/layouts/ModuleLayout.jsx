@@ -1,59 +1,142 @@
 // ============================================
 // LAYOUT: ModuleLayout
-// Layout unificado con sidebar colapsable para cualquier módulo
-// Reemplaza AlquileresLayout y OperacionesLayout
+// Layout con sidebar colapsable - responsive tablet-first
+// En desktop (lg+): sidebar visible con toggle
+// En tablet/mobile (<lg): sidebar como overlay con hamburger
 // ============================================
 
-import { useState } from 'react'
-import { Outlet } from 'react-router-dom'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { useState, useEffect, useCallback } from 'react'
+import { Outlet, useLocation } from 'react-router-dom'
+import { Menu, X } from 'lucide-react'
 
 const ModuleLayout = ({ sidebar: SidebarComponent }) => {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024)
+  const location = useLocation()
+
+  // ============================================
+  // Detectar cambio de breakpoint (lg = 1024px)
+  // ============================================
+  useEffect(() => {
+    const mql = window.matchMedia('(min-width: 1024px)')
+    const handler = (e) => {
+      setIsDesktop(e.matches)
+      if (e.matches) setSidebarOpen(false) // Cerrar overlay al pasar a desktop
+    }
+    mql.addEventListener('change', handler)
+    return () => mql.removeEventListener('change', handler)
+  }, [])
+
+  // ============================================
+  // Cerrar sidebar al navegar (solo en mobile/tablet)
+  // ============================================
+  useEffect(() => {
+    if (!isDesktop) {
+      setSidebarOpen(false)
+    }
+  }, [location.pathname, isDesktop])
+
+  // ============================================
+  // Bloquear scroll del body cuando sidebar overlay está abierta
+  // ============================================
+  useEffect(() => {
+    if (!isDesktop && sidebarOpen) {
+      document.body.style.overflow = 'hidden'
+      return () => { document.body.style.overflow = '' }
+    }
+  }, [sidebarOpen, isDesktop])
+
+  const toggleSidebar = useCallback(() => setSidebarOpen(prev => !prev), [])
+  const closeSidebar = useCallback(() => setSidebarOpen(false), [])
 
   return (
     <div className="min-h-screen bg-slate-50 flex">
-      {/* Sidebar con transición */}
-      <div
-        className={`
-          relative transition-all duration-300 ease-in-out
-          ${sidebarCollapsed ? 'w-0' : 'w-64'}
-        `}
-      >
+      {/* ============================================
+          DESKTOP: Sidebar estática colapsable
+          ============================================ */}
+      {isDesktop && (
         <div
           className={`
-            absolute inset-y-0 left-0 w-64 transition-transform duration-300 ease-in-out
-            ${sidebarCollapsed ? '-translate-x-full' : 'translate-x-0'}
+            relative transition-all duration-300 ease-in-out flex-shrink-0
+            ${sidebarOpen ? 'w-0' : 'w-64'}
           `}
         >
-          <SidebarComponent />
+          <div
+            className={`
+              absolute inset-y-0 left-0 w-64 transition-transform duration-300 ease-in-out
+              ${sidebarOpen ? '-translate-x-full' : 'translate-x-0'}
+            `}
+          >
+            <SidebarComponent />
+          </div>
         </div>
+      )}
+
+      {/* ============================================
+          MOBILE/TABLET: Sidebar como overlay
+          ============================================ */}
+      {!isDesktop && (
+        <>
+          {/* Backdrop */}
+          <div
+            className={`
+              fixed inset-0 z-40 transition-opacity duration-300
+              ${sidebarOpen
+                ? 'opacity-100 pointer-events-auto'
+                : 'opacity-0 pointer-events-none'
+              }
+            `}
+            style={{ backgroundColor: 'rgba(0,0,0,0.4)' }}
+            onClick={closeSidebar}
+          />
+
+          {/* Drawer */}
+          <div
+            className={`
+              fixed inset-y-0 left-0 z-50 w-72
+              transform transition-transform duration-300 ease-in-out
+              ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+            `}
+          >
+            {/* Botón cerrar dentro del drawer */}
+            <button
+              onClick={closeSidebar}
+              className="absolute top-3 right-3 z-10 w-9 h-9 flex items-center justify-center
+                         rounded-full bg-slate-200/80 text-slate-600 active:bg-slate-300"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <SidebarComponent />
+          </div>
+        </>
+      )}
+
+      {/* ============================================
+          CONTENIDO PRINCIPAL
+          ============================================ */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Top bar con hamburger (mobile/tablet) o toggle (desktop) */}
+        <div className={`
+          sticky top-0 z-30 bg-white/80 backdrop-blur-sm border-b border-slate-200/60
+          flex items-center h-14 px-4
+          ${isDesktop ? '' : ''}
+        `}>
+          <button
+            onClick={toggleSidebar}
+            className="w-10 h-10 flex items-center justify-center rounded-xl
+                       text-slate-600 hover:bg-slate-100 active:bg-slate-200
+                       transition-colors"
+            title={sidebarOpen ? 'Cerrar menú' : 'Abrir menú'}
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Contenido de la página */}
+        <main className="flex-1 overflow-auto touch-scroll">
+          <Outlet />
+        </main>
       </div>
-
-      {/* Botón toggle */}
-      <button
-        onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-        className={`
-          absolute z-20 top-1/2 -translate-y-1/2
-          w-6 h-12 bg-white border border-slate-200
-          rounded-r-lg shadow-md hover:bg-slate-50
-          flex items-center justify-center
-          transition-all duration-300 ease-in-out
-          ${sidebarCollapsed ? 'left-0' : 'left-64'}
-        `}
-        title={sidebarCollapsed ? 'Mostrar menú' : 'Ocultar menú'}
-      >
-        {sidebarCollapsed ? (
-          <ChevronRight className="w-4 h-4 text-slate-600" />
-        ) : (
-          <ChevronLeft className="w-4 h-4 text-slate-600" />
-        )}
-      </button>
-
-      {/* Contenido principal */}
-      <main className="flex-1 overflow-auto">
-        <Outlet />
-      </main>
     </div>
   )
 }

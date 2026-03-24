@@ -319,7 +319,7 @@ function ElementosPage() {
 
       {/* HEADER */}
       <div className="bg-white border-b border-slate-200 sticky top-0 z-10">
-        <div className="container mx-auto px-6 py-4">
+        <div className="container mx-auto px-4 lg:px-6 py-3 lg:py-4">
           {/* Breadcrumb */}
           <div className="mb-3">
             <Breadcrumb items={breadcrumbItems} />
@@ -353,7 +353,7 @@ function ElementosPage() {
             <div className="flex items-center gap-3">
               <Button
                 variant="outline-light"
-                size="sm"
+                size="md"
                 icon={<FileSpreadsheet className="w-4 h-4" />}
                 onClick={handleExportExcel}
                 disabled={isExporting}
@@ -362,7 +362,7 @@ function ElementosPage() {
               </Button>
               <Button
                 variant="primary"
-                size="sm"
+                size="md"
                 icon={<Plus className="w-4 h-4" />}
                 onClick={handleOpenCreateModal}
                 disabled={isDeleting || isDeletingLote || isDeletingSerie}
@@ -408,7 +408,7 @@ function ElementosPage() {
         </div>
       </div>
 
-      <div className="container mx-auto px-6 py-6">
+      <div className="container mx-auto px-4 lg:px-6 py-6">
 
       {/* Indicador de eliminación */}
       {(isDeleting || isDeletingLote || isDeletingSerie) && (

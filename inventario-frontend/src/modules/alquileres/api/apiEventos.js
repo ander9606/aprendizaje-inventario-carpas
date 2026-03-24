@@ -53,6 +53,11 @@ export const apiEventos = {
   repetir: async (id, { fecha_inicio, fecha_fin }) => {
     const response = await api.post(`/eventos/${id}/repetir`, { fecha_inicio, fecha_fin });
     return response.data;
+  },
+
+  obtenerNovedades: async (id) => {
+    const response = await api.get(`/eventos/${id}/novedades`);
+    return response.data;
   }
 };
 

@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const ordenTrabajoController = require('../controllers/ordenTrabajoController');
+const novedadController = require('../controllers/novedadController');
 const { verificarToken, verificarRol } = require('../../auth/middleware/authMiddleware');
 
 /**
@@ -222,6 +223,81 @@ router.put(
     '/ordenes/:id/elementos/:elemId/verificar-bodega',
     verificarRol(['admin', 'gerente', 'operaciones']),
     ordenTrabajoController.verificarElementoBodega
+);
+
+// ============================================
+// RUTAS DE NOVEDADES
+// ============================================
+
+// Crear novedad desde campo
+router.post(
+    '/ordenes/:id/novedades',
+    verificarRol(['admin', 'gerente', 'operaciones']),
+    novedadController.crearNovedad
+);
+
+// Obtener novedades de una orden
+router.get(
+    '/ordenes/:id/novedades',
+    verificarRol(['admin', 'gerente', 'operaciones']),
+    novedadController.obtenerNovedadesOrden
+);
+
+// Novedades pendientes (dashboard)
+router.get(
+    '/novedades/pendientes',
+    verificarRol(['admin', 'gerente']),
+    novedadController.obtenerNovedadesPendientes
+);
+
+// Resolver novedad
+router.put(
+    '/novedades/:id/resolver',
+    verificarRol(['admin', 'gerente']),
+    novedadController.resolverNovedad
+);
+
+// ============================================
+// RUTAS DE FIRMA CLIENTE
+// ============================================
+
+// Guardar firma digital del cliente
+router.post(
+    '/ordenes/:id/firma-cliente',
+    verificarRol(['admin', 'gerente', 'operaciones']),
+    ordenTrabajoController.guardarFirmaCliente
+);
+
+// Obtener firma del cliente
+router.get(
+    '/ordenes/:id/firma-cliente',
+    verificarRol(['admin', 'gerente', 'operaciones']),
+    ordenTrabajoController.obtenerFirmaCliente
+);
+
+// ============================================
+// RUTAS DE FOTOS OPERATIVAS
+// ============================================
+
+// Subir foto de etapa operativa
+router.post(
+    '/ordenes/:id/fotos',
+    verificarRol(['admin', 'gerente', 'operaciones']),
+    ordenTrabajoController.subirFotoOrden
+);
+
+// Obtener fotos de una orden
+router.get(
+    '/ordenes/:id/fotos',
+    verificarRol(['admin', 'gerente', 'operaciones']),
+    ordenTrabajoController.obtenerFotosOrden
+);
+
+// Eliminar foto
+router.delete(
+    '/ordenes/:id/fotos/:fotoId',
+    verificarRol(['admin', 'gerente']),
+    ordenTrabajoController.eliminarFotoOrden
 );
 
 // ============================================

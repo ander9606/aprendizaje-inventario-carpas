@@ -83,6 +83,24 @@ const authAPI = {
     getSesiones: async () => {
         const response = await api.get('/auth/sessions')
         return response.data
+    },
+
+    /**
+     * Solicitar acceso al sistema (auto-registro)
+     * @param {Object} datos - { nombre, apellido, email, telefono, password, rol_solicitado_id }
+     */
+    registro: async (datos) => {
+        const response = await api.post('/auth/registro', datos)
+        return response.data
+    },
+
+    /**
+     * Obtener roles disponibles para registro público
+     * @returns {Promise} Array de roles (sin admin)
+     */
+    getRolesRegistro: async () => {
+        const response = await api.get('/auth/roles-registro')
+        return response.data
     }
 }
 

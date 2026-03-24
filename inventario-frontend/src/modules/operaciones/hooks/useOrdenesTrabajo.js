@@ -454,6 +454,173 @@ export const useGetAlertasOrden = (ordenId) => {
 }
 
 // ============================================
+// HOOKS: NOVEDADES
+// ============================================
+
+/**
+ * Hook: useGetNovedadesOrden
+ * Obtiene novedades de una orden
+ */
+export const useGetNovedadesOrden = (ordenId, options = {}) => {
+    const { data, isLoading, error, refetch } = useQuery({
+        queryKey: ['ordenes', ordenId, 'novedades'],
+        queryFn: () => ordenesAPI.obtenerNovedadesOrden(ordenId),
+        enabled: !!ordenId && (options.enabled !== false)
+    })
+
+    return {
+        novedades: data?.data || [],
+        isLoading,
+        error,
+        refetch
+    }
+}
+
+/**
+ * Hook: useCrearNovedad
+ * Crea una novedad desde campo
+ */
+export const useCrearNovedad = () => {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: ({ ordenId, formData }) =>
+            ordenesAPI.crearNovedad(ordenId, formData),
+        retry: 0,
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({ queryKey: ['ordenes', variables.ordenId, 'novedades'] })
+            queryClient.invalidateQueries({ queryKey: ['ordenes', String(variables.ordenId), 'novedades'] })
+            queryClient.invalidateQueries({ queryKey: ['alertas'] })
+            queryClient.invalidateQueries({ queryKey: ['alertas-operaciones'] })
+        }
+    })
+}
+
+/**
+ * Hook: useResolverNovedad
+ * Resuelve una novedad (admin)
+ */
+export const useResolverNovedad = () => {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: ({ novedadId, datos }) =>
+            ordenesAPI.resolverNovedad(novedadId, datos),
+        retry: 0,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['ordenes'] })
+            queryClient.invalidateQueries({ queryKey: ['alertas'] })
+            queryClient.invalidateQueries({ queryKey: ['alertas-operaciones'] })
+            queryClient.invalidateQueries({ queryKey: ['alquiler'] })
+        }
+    })
+}
+
+// ============================================
+// HOOKS: FIRMA CLIENTE
+// ============================================
+
+/**
+ * Hook: useGetFirmaCliente
+ * Obtiene firma del cliente para una orden
+ */
+export const useGetFirmaCliente = (ordenId, options = {}) => {
+    const { data, isLoading, error, refetch } = useQuery({
+        queryKey: ['ordenes', ordenId, 'firma-cliente'],
+        queryFn: () => ordenesAPI.obtenerFirmaCliente(ordenId),
+        enabled: !!ordenId && (options.enabled !== false)
+    })
+
+    return {
+        firma: data?.data || null,
+        isLoading,
+        error,
+        refetch
+    }
+}
+
+/**
+ * Hook: useGuardarFirmaCliente
+ * Guarda la firma digital del cliente
+ */
+export const useGuardarFirmaCliente = () => {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: ({ ordenId, datos }) =>
+            ordenesAPI.guardarFirmaCliente(ordenId, datos),
+        retry: 0,
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({ queryKey: ['ordenes', variables.ordenId, 'firma-cliente'] })
+            queryClient.invalidateQueries({ queryKey: ['ordenes', String(variables.ordenId), 'firma-cliente'] })
+            queryClient.invalidateQueries({ queryKey: ['ordenes', variables.ordenId, 'inventario-cliente'] })
+            queryClient.invalidateQueries({ queryKey: ['ordenes', String(variables.ordenId), 'inventario-cliente'] })
+        }
+    })
+}
+
+// ============================================
+// HOOKS: FOTOS OPERATIVAS
+// ============================================
+
+/**
+ * Hook: useGetFotosOrden
+ * Obtiene fotos de una orden agrupadas por etapa
+ */
+export const useGetFotosOrden = (ordenId, options = {}) => {
+    const { data, isLoading, error, refetch } = useQuery({
+        queryKey: ['ordenes', ordenId, 'fotos'],
+        queryFn: () => ordenesAPI.obtenerFotosOrden(ordenId),
+        enabled: !!ordenId && (options.enabled !== false)
+    })
+
+    return {
+        fotosData: data?.data || null,
+        fotos: data?.data?.fotos || [],
+        porEtapa: data?.data?.porEtapa || {},
+        isLoading,
+        error,
+        refetch
+    }
+}
+
+/**
+ * Hook: useSubirFotoOrden
+ * Sube foto de etapa operativa
+ */
+export const useSubirFotoOrden = () => {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: ({ ordenId, formData }) =>
+            ordenesAPI.subirFotoOrden(ordenId, formData),
+        retry: 0,
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({ queryKey: ['ordenes', variables.ordenId, 'fotos'] })
+            queryClient.invalidateQueries({ queryKey: ['ordenes', String(variables.ordenId), 'fotos'] })
+        }
+    })
+}
+
+/**
+ * Hook: useEliminarFotoOrden
+ * Elimina foto de una orden
+ */
+export const useEliminarFotoOrden = () => {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: ({ ordenId, fotoId }) =>
+            ordenesAPI.eliminarFotoOrden(ordenId, fotoId),
+        retry: 0,
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({ queryKey: ['ordenes', variables.ordenId, 'fotos'] })
+            queryClient.invalidateQueries({ queryKey: ['ordenes', String(variables.ordenId), 'fotos'] })
+        }
+    })
+}
+
+// ============================================
 // HOOKS: INVENTARIO CLIENTE
 // ============================================
 
