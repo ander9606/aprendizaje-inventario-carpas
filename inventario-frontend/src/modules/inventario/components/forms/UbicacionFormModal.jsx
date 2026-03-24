@@ -16,12 +16,14 @@ import { useGetCiudadesActivas } from '@clientes/hooks/useCiudades'
  * @param {Function} onClose - Callback para cerrar
  * @param {'crear'|'editar'} mode - Modo del formulario
  * @param {Object|null} ubicacion - Datos de la ubicación (solo en modo editar)
+ * @param {string|null} preselectedTipo - Tipo preseleccionado al crear (ej: 'bodega', 'evento')
  */
 const UbicacionFormModal = ({
   isOpen,
   onClose,
   mode = 'crear',
-  ubicacion = null
+  ubicacion = null,
+  preselectedTipo = null
 }) => {
 
   // ============================================
@@ -80,7 +82,7 @@ const UbicacionFormModal = ({
       // Resetear formulario en modo crear
       setFormData({
         nombre: '',
-        tipo: 'bodega',
+        tipo: preselectedTipo || 'bodega',
         direccion: '',
         ciudad_id: '',
         responsable: '',
@@ -93,7 +95,7 @@ const UbicacionFormModal = ({
       })
     }
     setErrors({})
-  }, [mode, ubicacion, isOpen])
+  }, [mode, ubicacion, isOpen, preselectedTipo])
 
   // ============================================
   // HANDLERS

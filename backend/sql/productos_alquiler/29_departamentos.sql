@@ -13,13 +13,49 @@ CREATE TABLE IF NOT EXISTS departamentos (
     UNIQUE KEY uk_departamento_nombre (nombre)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 2. Migrar departamentos existentes desde ciudades
+-- 2. Catálogo completo de departamentos de Colombia
+INSERT IGNORE INTO departamentos (nombre) VALUES
+('Amazonas'),
+('Antioquia'),
+('Arauca'),
+('Atlántico'),
+('Bogotá D.C.'),
+('Bolívar'),
+('Boyacá'),
+('Caldas'),
+('Caquetá'),
+('Casanare'),
+('Cauca'),
+('Cesar'),
+('Chocó'),
+('Córdoba'),
+('Cundinamarca'),
+('Guainía'),
+('Guaviare'),
+('Huila'),
+('La Guajira'),
+('Magdalena'),
+('Meta'),
+('Nariño'),
+('Norte de Santander'),
+('Putumayo'),
+('Quindío'),
+('Risaralda'),
+('San Andrés y Providencia'),
+('Santander'),
+('Sucre'),
+('Tolima'),
+('Valle del Cauca'),
+('Vaupés'),
+('Vichada');
+
+-- 3. Migrar departamentos que ya existían en ciudades (por si tienen nombres diferentes)
 INSERT IGNORE INTO departamentos (nombre)
 SELECT DISTINCT departamento
 FROM ciudades
 WHERE departamento IS NOT NULL AND departamento != '';
 
--- 3. Agregar columna departamento_id a ciudades si no existe
+-- 4. Agregar columna departamento_id a ciudades si no existe
 SET @col_exists = (
     SELECT COUNT(*)
     FROM INFORMATION_SCHEMA.COLUMNS
@@ -36,13 +72,13 @@ PREPARE stmt FROM @sql;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 
--- 4. Migrar datos: asociar ciudades con sus departamentos
+-- 5. Migrar datos: asociar ciudades con sus departamentos
 UPDATE ciudades c
 INNER JOIN departamentos d ON c.departamento = d.nombre
 SET c.departamento_id = d.id
-WHERE c.departamento IS NOT NULL AND c.departamento != '' AND c.departamento_id IS NULL;
+WHERE c.id > 0 AND c.departamento IS NOT NULL AND c.departamento != '' AND c.departamento_id IS NULL;
 
--- 5. Agregar FK (si no existe)
+-- 6. Agregar FK (si no existe)
 SET @fk_exists = (
     SELECT COUNT(*)
     FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS
@@ -59,7 +95,7 @@ PREPARE stmt FROM @sql;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 
--- 6. Índice para departamento_id
+-- 7. Índice para departamento_id
 SET @idx_exists = (
     SELECT COUNT(*)
     FROM INFORMATION_SCHEMA.STATISTICS
