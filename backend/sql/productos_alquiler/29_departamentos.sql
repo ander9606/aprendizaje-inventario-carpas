@@ -40,7 +40,7 @@ DEALLOCATE PREPARE stmt;
 UPDATE ciudades c
 INNER JOIN departamentos d ON c.departamento = d.nombre
 SET c.departamento_id = d.id
-WHERE c.departamento IS NOT NULL AND c.departamento != '' AND c.departamento_id IS NULL;
+WHERE c.id > 0 AND c.departamento IS NOT NULL AND c.departamento != '' AND c.departamento_id IS NULL;
 
 -- 5. Agregar FK (si no existe)
 SET @fk_exists = (
