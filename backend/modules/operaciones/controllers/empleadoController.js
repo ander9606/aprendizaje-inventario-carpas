@@ -15,7 +15,7 @@ const getAll = async (req, res, next) => {
             limit = 20,
             buscar,
             rol_id,
-            activo,
+            estado,
             ordenar,
             direccion
         } = req.query;
@@ -25,7 +25,7 @@ const getAll = async (req, res, next) => {
             limit: parseInt(limit),
             buscar,
             rol_id: rol_id ? parseInt(rol_id) : null,
-            activo: activo !== undefined ? activo === 'true' : null,
+            estado: estado || null,
             ordenar,
             direccion
         });
@@ -127,7 +127,7 @@ const create = async (req, res, next) => {
 const update = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const { nombre, apellido, email, telefono, rol_id, activo } = req.body;
+        const { nombre, apellido, email, telefono, rol_id, estado } = req.body;
 
         const empleadoAnterior = await EmpleadoModel.obtenerPorId(parseInt(id));
         if (!empleadoAnterior) {
@@ -140,7 +140,7 @@ const update = async (req, res, next) => {
             email,
             telefono,
             rol_id,
-            activo
+            estado
         });
 
         // Registrar en auditoría
@@ -154,9 +154,9 @@ const update = async (req, res, next) => {
                 apellido: empleadoAnterior.apellido,
                 email: empleadoAnterior.email,
                 rol_id: empleadoAnterior.rol_id,
-                activo: empleadoAnterior.activo
+                estado: empleadoAnterior.estado
             },
-            datos_nuevos: { nombre, apellido, email, rol_id, activo },
+            datos_nuevos: { nombre, apellido, email, rol_id, estado },
             ip_address: req.ip,
             user_agent: req.get('User-Agent')
         });
@@ -199,8 +199,8 @@ const remove = async (req, res, next) => {
             accion: 'DESACTIVAR_EMPLEADO',
             tabla_afectada: 'empleados',
             registro_id: parseInt(id),
-            datos_anteriores: { activo: true },
-            datos_nuevos: { activo: false },
+            datos_anteriores: { estado: 'activo' },
+            datos_nuevos: { estado: 'inactivo' },
             ip_address: req.ip,
             user_agent: req.get('User-Agent')
         });
@@ -232,8 +232,8 @@ const reactivar = async (req, res, next) => {
             accion: 'REACTIVAR_EMPLEADO',
             tabla_afectada: 'empleados',
             registro_id: parseInt(id),
-            datos_anteriores: { activo: false },
-            datos_nuevos: { activo: true },
+            datos_anteriores: { estado: 'inactivo' },
+            datos_nuevos: { estado: 'activo' },
             ip_address: req.ip,
             user_agent: req.get('User-Agent')
         });
@@ -347,6 +347,95 @@ const getEstadisticas = async (req, res, next) => {
     }
 };
 
+/**
+ * PUT /api/empleados/:id/aprobar
+ * Aprobar solicitud de acceso
+ */
+const aprobar = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const { rol_id } = req.body;
+
+        if (!rol_id) {
+            throw new AppError('Debe especificar un rol para el empleado', 400);
+        }
+
+        const empleado = await EmpleadoModel.aprobarSolicitud(parseInt(id), parseInt(rol_id));
+
+        await AuthModel.registrarAuditoria({
+            empleado_id: req.usuario.id,
+            accion: 'APROBAR_SOLICITUD',
+            tabla_afectada: 'empleados',
+            registro_id: parseInt(id),
+            datos_anteriores: { estado: 'pendiente' },
+            datos_nuevos: { estado: 'activo', rol_id },
+            ip_address: req.ip,
+            user_agent: req.get('User-Agent')
+        });
+
+        logger.info('empleados', `Solicitud aprobada: ${empleado.email} con rol ${empleado.rol_nombre} por ${req.usuario.email}`);
+
+        res.json({
+            success: true,
+            message: 'Solicitud aprobada correctamente',
+            data: empleado
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * PUT /api/empleados/:id/rechazar
+ * Rechazar solicitud de acceso
+ */
+const rechazar = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const { motivo } = req.body;
+
+        const empleado = await EmpleadoModel.rechazarSolicitud(parseInt(id), motivo);
+
+        await AuthModel.registrarAuditoria({
+            empleado_id: req.usuario.id,
+            accion: 'RECHAZAR_SOLICITUD',
+            tabla_afectada: 'empleados',
+            registro_id: parseInt(id),
+            datos_anteriores: { estado: 'pendiente' },
+            datos_nuevos: { estado: 'inactivo', motivo_rechazo: motivo },
+            ip_address: req.ip,
+            user_agent: req.get('User-Agent')
+        });
+
+        logger.info('empleados', `Solicitud rechazada: ${empleado.email} por ${req.usuario.email}`);
+
+        res.json({
+            success: true,
+            message: 'Solicitud rechazada',
+            data: empleado
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * GET /api/empleados/pendientes/count
+ * Contar solicitudes pendientes
+ */
+const getPendientesCount = async (req, res, next) => {
+    try {
+        const total = await EmpleadoModel.contarPendientes();
+
+        res.json({
+            success: true,
+            data: { total }
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 module.exports = {
     getAll,
     getById,
@@ -357,5 +446,8 @@ module.exports = {
     cambiarPassword,
     getDisponiblesCampo,
     getRoles,
-    getEstadisticas
+    getEstadisticas,
+    aprobar,
+    rechazar,
+    getPendientesCount
 };

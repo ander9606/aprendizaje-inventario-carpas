@@ -6,6 +6,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
+import { Link } from 'react-router-dom'
 import { Eye, EyeOff, LogIn, AlertCircle, Loader2, Tent, Star, Users, Calendar, Package } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 
@@ -308,9 +309,17 @@ const LoginPage = () => {
                         </button>
                     </form>
 
+                    {/* Link a registro */}
+                    <p className="text-center text-sm text-slate-500 mt-6">
+                        No tienes cuenta?{' '}
+                        <Link to="/registro" className="font-semibold text-slate-900 hover:text-slate-700 transition-colors">
+                            Solicitar acceso
+                        </Link>
+                    </p>
+
                     {/* Footer */}
-                    <p className="text-center text-xs text-slate-400 mt-8">
-                        Sistema de gestión integral de alquiler
+                    <p className="text-center text-xs text-slate-400 mt-4">
+                        Sistema de gestion integral de alquiler
                     </p>
                 </div>
             </div>

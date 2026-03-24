@@ -25,8 +25,16 @@ const login = async (req, res, next) => {
         const empleado = await AuthModel.buscarPorEmail(email);
 
         if (!empleado) {
-            // No revelar si el email existe o no
             throw new AppError('Credenciales inválidas', 401);
+        }
+
+        // Verificar estado del empleado
+        if (empleado.estado === 'pendiente') {
+            throw new AppError('Tu solicitud de acceso está pendiente de aprobación por un administrador', 403);
+        }
+
+        if (empleado.estado === 'inactivo') {
+            throw new AppError('Tu cuenta ha sido desactivada. Contacta al administrador', 403);
         }
 
         // Verificar si la cuenta está bloqueada
@@ -308,6 +316,82 @@ const getSessions = async (req, res, next) => {
     }
 };
 
+/**
+ * POST /api/auth/registro
+ * Solicitar acceso al sistema (auto-registro)
+ */
+const registro = async (req, res, next) => {
+    try {
+        const { nombre, apellido, email, telefono, password, rol_solicitado_id } = req.body;
+
+        // Validar campos requeridos
+        if (!nombre || !apellido || !email || !password) {
+            throw new AppError('Nombre, apellido, email y contraseña son requeridos', 400);
+        }
+
+        // Validar longitud de contraseña
+        if (password.length < 8) {
+            throw new AppError('La contraseña debe tener al menos 8 caracteres', 400);
+        }
+
+        // Validar formato de email
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            throw new AppError('El formato del email no es válido', 400);
+        }
+
+        // Hash de la contraseña
+        const password_hash = await bcrypt.hash(password, 10);
+
+        // Crear solicitud
+        const solicitud = await AuthModel.registrarSolicitud({
+            nombre: nombre.trim(),
+            apellido: apellido.trim(),
+            email: email.trim().toLowerCase(),
+            telefono: telefono?.trim() || null,
+            password_hash,
+            rol_solicitado_id: rol_solicitado_id ? parseInt(rol_solicitado_id) : null
+        });
+
+        // Registrar en auditoría
+        await AuthModel.registrarAuditoria({
+            empleado_id: null,
+            accion: 'SOLICITUD_ACCESO',
+            tabla_afectada: 'empleados',
+            registro_id: solicitud.id,
+            datos_nuevos: { nombre, apellido, email, rol_solicitado_id },
+            ip_address: req.ip,
+            user_agent: req.get('User-Agent')
+        });
+
+        logger.info('auth', `Nueva solicitud de acceso: ${email}`);
+
+        res.status(201).json({
+            success: true,
+            message: 'Solicitud de acceso enviada correctamente. Un administrador revisará tu solicitud.'
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * GET /api/auth/roles-registro
+ * Obtener roles disponibles para el formulario de registro público
+ */
+const getRolesRegistro = async (req, res, next) => {
+    try {
+        const roles = await AuthModel.obtenerRolesPublicos();
+
+        res.json({
+            success: true,
+            data: roles
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 module.exports = {
     login,
     logout,
@@ -315,5 +399,7 @@ module.exports = {
     refresh,
     me,
     cambiarPassword,
-    getSessions
+    getSessions,
+    registro,
+    getRolesRegistro
 };

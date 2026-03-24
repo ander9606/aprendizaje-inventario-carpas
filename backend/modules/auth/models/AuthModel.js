@@ -17,15 +17,15 @@ class AuthModel {
                 e.password_hash,
                 e.telefono,
                 e.rol_id,
-                e.activo,
+                e.estado,
                 e.intentos_fallidos,
                 e.bloqueado_hasta,
                 e.ultimo_login,
                 r.nombre as rol_nombre,
                 r.permisos
             FROM empleados e
-            INNER JOIN roles r ON e.rol_id = r.id
-            WHERE e.email = ? AND e.activo = TRUE
+            LEFT JOIN roles r ON e.rol_id = r.id
+            WHERE e.email = ?
         `, [email]);
 
         if (rows.length === 0) {
@@ -144,13 +144,13 @@ class AuthModel {
                 e.email,
                 e.telefono,
                 e.rol_id,
-                e.activo,
+                e.estado,
                 e.ultimo_login,
                 e.created_at,
                 r.nombre as rol_nombre,
                 r.permisos
             FROM empleados e
-            INNER JOIN roles r ON e.rol_id = r.id
+            LEFT JOIN roles r ON e.rol_id = r.id
             WHERE e.id = ?
         `, [id]);
 
@@ -164,6 +164,57 @@ class AuthModel {
         }
 
         return empleado;
+    }
+
+    /**
+     * Registrar solicitud de acceso (auto-registro)
+     * @param {Object} datos - Datos del solicitante
+     * @returns {Promise<Object>} Empleado creado con estado pendiente
+     */
+    static async registrarSolicitud(datos) {
+        const { nombre, apellido, email, telefono, password_hash, rol_solicitado_id } = datos;
+
+        // Verificar si el email ya existe
+        const [existente] = await pool.query(
+            'SELECT id, estado FROM empleados WHERE email = ?',
+            [email]
+        );
+
+        if (existente.length > 0) {
+            if (existente[0].estado === 'pendiente') {
+                throw new AppError('Ya existe una solicitud pendiente con este email', 400);
+            }
+            throw new AppError('Ya existe un empleado registrado con este email', 400);
+        }
+
+        // Verificar que el rol solicitado existe
+        if (rol_solicitado_id) {
+            const [rol] = await pool.query('SELECT id FROM roles WHERE id = ? AND activo = TRUE', [rol_solicitado_id]);
+            if (rol.length === 0) {
+                throw new AppError('El rol solicitado no existe', 400);
+            }
+        }
+
+        const [result] = await pool.query(`
+            INSERT INTO empleados (nombre, apellido, email, telefono, password_hash, estado, rol_solicitado_id)
+            VALUES (?, ?, ?, ?, ?, 'pendiente', ?)
+        `, [nombre, apellido, email, telefono || null, password_hash, rol_solicitado_id || null]);
+
+        return { id: result.insertId, nombre, apellido, email, estado: 'pendiente' };
+    }
+
+    /**
+     * Obtener roles disponibles para solicitud de registro
+     * @returns {Promise<Array>}
+     */
+    static async obtenerRolesPublicos() {
+        const [rows] = await pool.query(`
+            SELECT id, nombre, descripcion
+            FROM roles
+            WHERE activo = TRUE AND nombre != 'admin'
+            ORDER BY id ASC
+        `);
+        return rows;
     }
 
     /**

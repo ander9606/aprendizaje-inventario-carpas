@@ -110,6 +110,34 @@ const empleadosAPI = {
     obtenerEstadisticas: async () => {
         const response = await api.get('/empleados/estadisticas')
         return response.data
+    },
+
+    /**
+     * Aprobar solicitud de acceso
+     * @param {number} id
+     * @param {number} rol_id - Rol a asignar
+     */
+    aprobar: async (id, rol_id) => {
+        const response = await api.put(`/empleados/${id}/aprobar`, { rol_id })
+        return response.data
+    },
+
+    /**
+     * Rechazar solicitud de acceso
+     * @param {number} id
+     * @param {string} motivo - Motivo del rechazo
+     */
+    rechazar: async (id, motivo) => {
+        const response = await api.put(`/empleados/${id}/rechazar`, { motivo })
+        return response.data
+    },
+
+    /**
+     * Contar solicitudes pendientes
+     */
+    contarPendientes: async () => {
+        const response = await api.get('/empleados/pendientes/count')
+        return response.data
     }
 }
 

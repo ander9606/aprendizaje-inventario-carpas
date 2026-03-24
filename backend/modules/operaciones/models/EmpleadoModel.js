@@ -13,7 +13,7 @@ class EmpleadoModel {
             limit = 20,
             buscar = '',
             rol_id = null,
-            activo = null,
+            estado = null,
             ordenar = 'nombre',
             direccion = 'ASC'
         } = options;
@@ -35,10 +35,10 @@ class EmpleadoModel {
             params.push(rol_id);
         }
 
-        // Filtro por estado activo
-        if (activo !== null) {
-            whereClause += ` AND e.activo = ?`;
-            params.push(activo);
+        // Filtro por estado
+        if (estado) {
+            whereClause += ` AND e.estado = ?`;
+            params.push(estado);
         }
 
         // Validar campo de ordenación
@@ -55,12 +55,15 @@ class EmpleadoModel {
                 e.email,
                 e.telefono,
                 e.rol_id,
-                e.activo,
+                e.estado,
+                e.rol_solicitado_id,
                 e.ultimo_login,
                 e.created_at,
-                r.nombre as rol_nombre
+                r.nombre as rol_nombre,
+                rs.nombre as rol_solicitado_nombre
             FROM empleados e
-            INNER JOIN roles r ON e.rol_id = r.id
+            LEFT JOIN roles r ON e.rol_id = r.id
+            LEFT JOIN roles rs ON e.rol_solicitado_id = rs.id
             ${whereClause}
             ORDER BY e.${ordenarCampo} ${ordenarDireccion}
             LIMIT ? OFFSET ?
@@ -70,6 +73,8 @@ class EmpleadoModel {
         const [countResult] = await pool.query(`
             SELECT COUNT(*) as total
             FROM empleados e
+            LEFT JOIN roles r ON e.rol_id = r.id
+            LEFT JOIN roles rs ON e.rol_solicitado_id = rs.id
             ${whereClause}
         `, params);
 
@@ -96,7 +101,9 @@ class EmpleadoModel {
                 e.email,
                 e.telefono,
                 e.rol_id,
-                e.activo,
+                e.estado,
+                e.rol_solicitado_id,
+                e.motivo_rechazo,
                 e.ultimo_login,
                 e.intentos_fallidos,
                 e.bloqueado_hasta,
@@ -104,9 +111,11 @@ class EmpleadoModel {
                 e.updated_at,
                 r.nombre as rol_nombre,
                 r.descripcion as rol_descripcion,
-                r.permisos
+                r.permisos,
+                rs.nombre as rol_solicitado_nombre
             FROM empleados e
-            INNER JOIN roles r ON e.rol_id = r.id
+            LEFT JOIN roles r ON e.rol_id = r.id
+            LEFT JOIN roles rs ON e.rol_solicitado_id = rs.id
             WHERE e.id = ?
         `, [id]);
 
@@ -147,8 +156,8 @@ class EmpleadoModel {
         }
 
         const [result] = await pool.query(`
-            INSERT INTO empleados (nombre, apellido, email, telefono, password_hash, rol_id)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO empleados (nombre, apellido, email, telefono, password_hash, rol_id, estado)
+            VALUES (?, ?, ?, ?, ?, ?, 'activo')
         `, [nombre, apellido, email, telefono || null, password_hash, rol_id]);
 
         return this.obtenerPorId(result.insertId);
@@ -161,7 +170,7 @@ class EmpleadoModel {
      * @returns {Promise<Object>} Empleado actualizado
      */
     static async actualizar(id, datos) {
-        const { nombre, apellido, email, telefono, rol_id, activo } = datos;
+        const { nombre, apellido, email, telefono, rol_id, estado } = datos;
 
         // Verificar que existe
         const empleadoExistente = await this.obtenerPorId(id);
@@ -213,9 +222,9 @@ class EmpleadoModel {
             campos.push('rol_id = ?');
             valores.push(rol_id);
         }
-        if (activo !== undefined) {
-            campos.push('activo = ?');
-            valores.push(activo);
+        if (estado !== undefined) {
+            campos.push('estado = ?');
+            valores.push(estado);
         }
 
         if (campos.length === 0) {
@@ -244,8 +253,8 @@ class EmpleadoModel {
             throw new AppError('Empleado no encontrado', 404);
         }
 
-        // Soft delete - solo desactivar
-        await pool.query('UPDATE empleados SET activo = FALSE WHERE id = ?', [id]);
+        // Soft delete - cambiar estado a inactivo
+        await pool.query("UPDATE empleados SET estado = 'inactivo' WHERE id = ?", [id]);
 
         return true;
     }
@@ -261,7 +270,7 @@ class EmpleadoModel {
             throw new AppError('Empleado no encontrado', 404);
         }
 
-        await pool.query('UPDATE empleados SET activo = TRUE WHERE id = ?', [id]);
+        await pool.query("UPDATE empleados SET estado = 'activo' WHERE id = ?", [id]);
 
         return this.obtenerPorId(id);
     }
@@ -279,11 +288,11 @@ class EmpleadoModel {
                 e.apellido,
                 e.email,
                 e.telefono,
-                e.activo,
+                e.estado,
                 r.nombre as rol_nombre
             FROM empleados e
             INNER JOIN roles r ON e.rol_id = r.id
-            WHERE e.rol_id = ? AND e.activo = TRUE
+            WHERE e.rol_id = ? AND e.estado = 'activo'
             ORDER BY e.nombre ASC
         `, [rolId]);
 
@@ -308,7 +317,7 @@ class EmpleadoModel {
                 r.nombre as rol_nombre
             FROM empleados e
             INNER JOIN roles r ON e.rol_id = r.id
-            WHERE e.activo = TRUE
+            WHERE e.estado = 'activo'
               AND r.nombre IN ('operaciones', 'bodega')
             ORDER BY e.nombre ASC
         `);
@@ -364,8 +373,9 @@ class EmpleadoModel {
         const [stats] = await pool.query(`
             SELECT
                 COUNT(*) as total,
-                SUM(CASE WHEN activo = TRUE THEN 1 ELSE 0 END) as activos,
-                SUM(CASE WHEN activo = FALSE THEN 1 ELSE 0 END) as inactivos,
+                SUM(CASE WHEN estado = 'activo' THEN 1 ELSE 0 END) as activos,
+                SUM(CASE WHEN estado = 'inactivo' THEN 1 ELSE 0 END) as inactivos,
+                SUM(CASE WHEN estado = 'pendiente' THEN 1 ELSE 0 END) as pendientes,
                 SUM(CASE WHEN bloqueado_hasta > NOW() THEN 1 ELSE 0 END) as bloqueados
             FROM empleados
         `);
@@ -375,7 +385,7 @@ class EmpleadoModel {
                 r.nombre as rol,
                 COUNT(e.id) as cantidad
             FROM roles r
-            LEFT JOIN empleados e ON r.id = e.rol_id AND e.activo = TRUE
+            LEFT JOIN empleados e ON r.id = e.rol_id AND e.estado = 'activo'
             GROUP BY r.id, r.nombre
             ORDER BY r.id
         `);
@@ -384,6 +394,70 @@ class EmpleadoModel {
             ...stats[0],
             porRol
         };
+    }
+    /**
+     * Aprobar solicitud de acceso
+     * @param {number} id - ID del empleado pendiente
+     * @param {number} rolId - Rol a asignar
+     * @returns {Promise<Object>} Empleado aprobado
+     */
+    static async aprobarSolicitud(id, rolId) {
+        const empleado = await this.obtenerPorId(id);
+        if (!empleado) {
+            throw new AppError('Empleado no encontrado', 404);
+        }
+        if (empleado.estado !== 'pendiente') {
+            throw new AppError('Este empleado no tiene solicitud pendiente', 400);
+        }
+
+        // Verificar que el rol existe
+        const [rol] = await pool.query('SELECT id FROM roles WHERE id = ?', [rolId]);
+        if (rol.length === 0) {
+            throw new AppError('El rol especificado no existe', 400);
+        }
+
+        await pool.query(`
+            UPDATE empleados
+            SET estado = 'activo', rol_id = ?, motivo_rechazo = NULL
+            WHERE id = ?
+        `, [rolId, id]);
+
+        return this.obtenerPorId(id);
+    }
+
+    /**
+     * Rechazar solicitud de acceso
+     * @param {number} id - ID del empleado pendiente
+     * @param {string} motivo - Motivo del rechazo
+     * @returns {Promise<Object>} Empleado rechazado
+     */
+    static async rechazarSolicitud(id, motivo) {
+        const empleado = await this.obtenerPorId(id);
+        if (!empleado) {
+            throw new AppError('Empleado no encontrado', 404);
+        }
+        if (empleado.estado !== 'pendiente') {
+            throw new AppError('Este empleado no tiene solicitud pendiente', 400);
+        }
+
+        await pool.query(`
+            UPDATE empleados
+            SET estado = 'inactivo', motivo_rechazo = ?
+            WHERE id = ?
+        `, [motivo || null, id]);
+
+        return this.obtenerPorId(id);
+    }
+
+    /**
+     * Contar solicitudes pendientes
+     * @returns {Promise<number>}
+     */
+    static async contarPendientes() {
+        const [rows] = await pool.query(
+            "SELECT COUNT(*) as total FROM empleados WHERE estado = 'pendiente'"
+        );
+        return rows[0].total;
     }
 }
 
