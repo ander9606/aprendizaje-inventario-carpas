@@ -36,7 +36,7 @@ const EmpleadoFormModal = ({
         password: '',
         confirmarPassword: '',
         rol_id: '',
-        activo: true
+        estado: 'activo'
     })
 
     const [errors, setErrors] = useState({})
@@ -64,7 +64,7 @@ const EmpleadoFormModal = ({
                 password: '',
                 confirmarPassword: '',
                 rol_id: empleado.rol_id || '',
-                activo: empleado.activo !== undefined ? empleado.activo : true
+                estado: empleado.estado || 'activo'
             })
         } else {
             setFormData({
@@ -75,7 +75,7 @@ const EmpleadoFormModal = ({
                 password: '',
                 confirmarPassword: '',
                 rol_id: roles[0]?.id || '',
-                activo: true
+                estado: 'activo'
             })
         }
         setErrors({})
@@ -159,7 +159,7 @@ const EmpleadoFormModal = ({
             email: formData.email.trim(),
             telefono: formData.telefono.trim() || null,
             rol_id: parseInt(formData.rol_id),
-            activo: formData.activo
+            estado: formData.estado
         }
 
         // Agregar contraseña solo si se proporcionó
@@ -439,19 +439,20 @@ const EmpleadoFormModal = ({
 
                 {/* ESTADO */}
                 {mode === 'editar' && (
-                    <div className="flex items-center gap-3">
-                        <input
-                            type="checkbox"
-                            name="activo"
-                            id="activo"
-                            checked={formData.activo}
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-2">
+                            Estado del empleado
+                        </label>
+                        <select
+                            name="estado"
+                            value={formData.estado}
                             onChange={handleChange}
                             disabled={isLoading}
-                            className="w-4 h-4 text-purple-600 border-slate-300 rounded focus:ring-2 focus:ring-purple-500"
-                        />
-                        <label htmlFor="activo" className="text-sm font-medium text-slate-700">
-                            Empleado activo
-                        </label>
+                            className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-slate-100 disabled:cursor-not-allowed"
+                        >
+                            <option value="activo">Activo</option>
+                            <option value="inactivo">Inactivo</option>
+                        </select>
                     </div>
                 )}
 

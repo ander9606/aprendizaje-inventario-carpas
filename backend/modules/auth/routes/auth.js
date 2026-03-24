@@ -18,6 +18,8 @@ const { verificarToken } = require('../middleware/authMiddleware');
 // Rutas públicas (no requieren autenticación)
 router.post('/login', authController.login);
 router.post('/refresh', authController.refresh);
+router.post('/registro', authController.registro);
+router.get('/roles-registro', authController.getRolesRegistro);
 
 // Rutas protegidas (requieren autenticación)
 router.post('/logout', verificarToken, authController.logout);

@@ -9,6 +9,7 @@ import { Routes, Route } from 'react-router-dom'
 // Auth
 import ProtectedRoute from './modules/auth/components/ProtectedRoute'
 import LoginPage from './modules/auth/pages/LoginPage'
+import RegistroPage from './modules/auth/pages/RegistroPage'
 
 // Dashboard (top-level)
 import ModulosDashboard from './pages/ModulosDashboard'
@@ -92,6 +93,7 @@ function App() {
                 ============================================ */}
 
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/registro" element={<RegistroPage />} />
 
             {/* ============================================
                 RUTAS PROTEGIDAS (requieren autenticación)

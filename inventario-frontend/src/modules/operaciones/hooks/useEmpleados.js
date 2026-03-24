@@ -182,3 +182,56 @@ export const useCambiarPasswordEmpleado = () => {
         retry: 0
     })
 }
+
+// ============================================
+// HOOK: useAprobarEmpleado
+// Aprueba una solicitud de acceso
+// ============================================
+
+export const useAprobarEmpleado = () => {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: ({ id, rol_id }) => empleadosAPI.aprobar(id, rol_id),
+        retry: 0,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['empleados'] })
+        }
+    })
+}
+
+// ============================================
+// HOOK: useRechazarEmpleado
+// Rechaza una solicitud de acceso
+// ============================================
+
+export const useRechazarEmpleado = () => {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: ({ id, motivo }) => empleadosAPI.rechazar(id, motivo),
+        retry: 0,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['empleados'] })
+        }
+    })
+}
+
+// ============================================
+// HOOK: useGetPendientesCount
+// Obtiene el conteo de solicitudes pendientes
+// ============================================
+
+export const useGetPendientesCount = () => {
+    const { data, isLoading, error } = useQuery({
+        queryKey: ['empleados', 'pendientes', 'count'],
+        queryFn: empleadosAPI.contarPendientes,
+        refetchInterval: 60 * 1000 // Refrescar cada minuto
+    })
+
+    return {
+        pendientesCount: data?.data?.total || 0,
+        isLoading,
+        error
+    }
+}
