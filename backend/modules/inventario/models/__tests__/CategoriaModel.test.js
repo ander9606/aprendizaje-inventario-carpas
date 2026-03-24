@@ -290,3 +290,107 @@ describe('contarTodas', () => {
         expect(pool.query.mock.calls[0][1]).toEqual(['%mesa%']);
     });
 });
+
+// ============================================
+// obtenerPadresConPaginacion: solo padres + LIMIT/OFFSET
+// ============================================
+describe('obtenerPadresConPaginacion', () => {
+    test('filtra por padre_id IS NULL con paginación', async () => {
+        pool.query.mockResolvedValue([[{ id: 1, nombre: 'Carpas' }]]);
+
+        const result = await CategoriaModel.obtenerPadresConPaginacion({ limit: 10, offset: 0 });
+
+        expect(result).toHaveLength(1);
+        const sql = pool.query.mock.calls[0][0];
+        expect(sql).toContain('padre_id IS NULL');
+        expect(sql).toContain('LIMIT ? OFFSET ?');
+    });
+
+    test('agrega AND (no WHERE) cuando hay búsqueda, porque ya hay WHERE padre_id IS NULL', async () => {
+        pool.query.mockResolvedValue([[]]);
+
+        await CategoriaModel.obtenerPadresConPaginacion({ limit: 20, offset: 0, search: 'carpa' });
+
+        const sql = pool.query.mock.calls[0][0];
+        // Debe usar AND porque ya tiene WHERE padre_id IS NULL
+        expect(sql).toContain('AND c.nombre LIKE ?');
+        expect(pool.query.mock.calls[0][1][0]).toBe('%carpa%');
+    });
+
+    test('previene SQL injection en sortBy', async () => {
+        pool.query.mockResolvedValue([[]]);
+
+        await CategoriaModel.obtenerPadresConPaginacion({
+            limit: 20, offset: 0, sortBy: 'DROP TABLE'
+        });
+
+        const sql = pool.query.mock.calls[0][0];
+        expect(sql).toContain('ORDER BY c.nombre');
+        expect(sql).not.toContain('DROP TABLE');
+    });
+});
+
+// ============================================
+// contarPadres: COUNT solo categorías raíz
+// ============================================
+describe('contarPadres', () => {
+    test('cuenta solo categorías con padre_id IS NULL', async () => {
+        pool.query.mockResolvedValue([[{ total: 8 }]]);
+
+        const result = await CategoriaModel.contarPadres();
+
+        expect(result).toBe(8);
+        expect(pool.query.mock.calls[0][0]).toContain('padre_id IS NULL');
+    });
+
+    test('filtra con AND LIKE cuando hay búsqueda', async () => {
+        pool.query.mockResolvedValue([[{ total: 2 }]]);
+
+        await CategoriaModel.contarPadres('carpa');
+
+        const sql = pool.query.mock.calls[0][0];
+        expect(sql).toContain('AND nombre LIKE ?');
+        expect(pool.query.mock.calls[0][1]).toEqual(['%carpa%']);
+    });
+});
+
+// ============================================
+// PROPAGACIÓN DE ERRORES DE BD
+// Verifica que si MySQL falla, el error sube al controller
+// ============================================
+describe('propagación de errores de base de datos', () => {
+    const dbError = new Error('Connection lost: The server closed the connection.');
+    dbError.code = 'PROTOCOL_CONNECTION_LOST';
+
+    test('obtenerTodas propaga error de conexión', async () => {
+        pool.query.mockRejectedValue(dbError);
+
+        await expect(CategoriaModel.obtenerTodas()).rejects.toThrow('Connection lost');
+    });
+
+    test('crear propaga error de constraint (FK inválida)', async () => {
+        const fkError = new Error('Cannot add or update a child row: a foreign key constraint fails');
+        fkError.code = 'ER_NO_REFERENCED_ROW_2';
+        pool.query.mockRejectedValue(fkError);
+
+        await expect(CategoriaModel.crear({ nombre: 'Test', padre_id: 9999 }))
+            .rejects.toThrow('foreign key constraint');
+    });
+
+    test('actualizar propaga error de duplicado', async () => {
+        const dupError = new Error("Duplicate entry 'Carpas' for key 'nombre'");
+        dupError.code = 'ER_DUP_ENTRY';
+        pool.query.mockRejectedValue(dupError);
+
+        await expect(CategoriaModel.actualizar(1, { nombre: 'Carpas' }))
+            .rejects.toThrow('Duplicate entry');
+    });
+
+    test('eliminar propaga error de FK (tiene dependencias)', async () => {
+        const fkError = new Error('Cannot delete or update a parent row: a foreign key constraint fails');
+        fkError.code = 'ER_ROW_IS_REFERENCED_2';
+        pool.query.mockRejectedValue(fkError);
+
+        await expect(CategoriaModel.eliminar(1)).rejects.toThrow('foreign key constraint');
+    });
+});

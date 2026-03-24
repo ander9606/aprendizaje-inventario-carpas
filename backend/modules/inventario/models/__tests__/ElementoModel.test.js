@@ -343,3 +343,278 @@ describe('actualizarImagen', () => {
         );
     });
 });
+
+// ============================================
+// obtenerPorCategoria: elementos de una categoría + subcategorías
+// ============================================
+describe('obtenerPorCategoria', () => {
+    test('busca en la categoría directa Y en subcategorías con subquery', async () => {
+        const mockRows = [
+            { id: 1, nombre: 'Carpa 3x3', categoria_id: 2 },
+            { id: 2, nombre: 'Carpa 6x6', categoria_id: 5 } // subcategoría
+        ];
+        pool.query.mockResolvedValue([mockRows]);
+
+        const result = await ElementoModel.obtenerPorCategoria(2);
+
+        expect(result).toHaveLength(2);
+        const sql = pool.query.mock.calls[0][0];
+        // Verifica que busca tanto en la categoría como en subcategorías
+        expect(sql).toContain('e.categoria_id = ?');
+        expect(sql).toContain('SELECT id FROM categorias WHERE padre_id = ?');
+        // Pasa el categoriaId dos veces (para el OR)
+        expect(pool.query.mock.calls[0][1]).toEqual([2, 2]);
+    });
+});
+
+// ============================================
+// obtenerPorSubcategoriaConInfo: elementos + datos de la subcategoría
+// ============================================
+describe('obtenerPorSubcategoriaConInfo', () => {
+    test('ejecuta 2 queries y retorna { elementos, subcategoria }', async () => {
+        const mockElementos = [{ id: 1, nombre: 'Carpa 3x3' }];
+        const mockSubcat = { id: 5, nombre: 'Carpas pequeñas', padre_id: 2 };
+
+        // Primera query: elementos
+        pool.query.mockResolvedValueOnce([mockElementos]);
+        // Segunda query: info de la subcategoría
+        pool.query.mockResolvedValueOnce([[mockSubcat]]);
+
+        const result = await ElementoModel.obtenerPorSubcategoriaConInfo(5);
+
+        expect(result.elementos).toEqual(mockElementos);
+        expect(result.subcategoria).toEqual(mockSubcat);
+        expect(pool.query).toHaveBeenCalledTimes(2);
+    });
+
+    test('retorna subcategoria null si no existe', async () => {
+        pool.query.mockResolvedValueOnce([[]]);
+        pool.query.mockResolvedValueOnce([[]]);
+
+        const result = await ElementoModel.obtenerPorSubcategoriaConInfo(999);
+
+        expect(result.elementos).toEqual([]);
+        expect(result.subcategoria).toBeNull();
+    });
+});
+
+// ============================================
+// obtenerDirectosPorCategoria: sin incluir subcategorías
+// ============================================
+describe('obtenerDirectosPorCategoria', () => {
+    test('filtra SOLO por categoria_id directa (sin subquery IN)', async () => {
+        pool.query.mockResolvedValue([[{ id: 1, nombre: 'Silla' }]]);
+
+        const result = await ElementoModel.obtenerDirectosPorCategoria(3);
+
+        expect(result).toHaveLength(1);
+        const sql = pool.query.mock.calls[0][0];
+        expect(sql).toContain('WHERE e.categoria_id = ?');
+        // NO debe tener subquery de subcategorías
+        expect(sql).not.toContain('padre_id');
+    });
+});
+
+// ============================================
+// obtenerConSeries: elementos que requieren series con COUNT
+// ============================================
+describe('obtenerConSeries', () => {
+    test('filtra por requiere_series = TRUE con COUNT de series', async () => {
+        const mockRows = [
+            { id: 1, nombre: 'Carpa 3x3', total_series: 15 }
+        ];
+        pool.query.mockResolvedValue([mockRows]);
+
+        const result = await ElementoModel.obtenerConSeries();
+
+        expect(result).toEqual(mockRows);
+        const sql = pool.query.mock.calls[0][0];
+        expect(sql).toContain('requiere_series = TRUE');
+        expect(sql).toContain('COUNT(s.id) AS total_series');
+        expect(sql).toContain('GROUP BY');
+    });
+});
+
+// ============================================
+// obtenerSinSeries: elementos por lotes (stock general)
+// ============================================
+describe('obtenerSinSeries', () => {
+    test('filtra por requiere_series = FALSE', async () => {
+        pool.query.mockResolvedValue([[{ id: 10, nombre: 'Tornillo', cantidad: 500 }]]);
+
+        const result = await ElementoModel.obtenerSinSeries();
+
+        expect(result).toHaveLength(1);
+        const sql = pool.query.mock.calls[0][0];
+        expect(sql).toContain('requiere_series = FALSE');
+    });
+});
+
+// ============================================
+// obtenerConStockBajo: alerta de inventario bajo
+// ============================================
+describe('obtenerConStockBajo', () => {
+    test('usa CASE para calcular stock disponible y HAVING para filtrar', async () => {
+        const mockRows = [
+            { id: 1, nombre: 'Carpa 3x3', stock_minimo: 10, stock_disponible: 3 }
+        ];
+        pool.query.mockResolvedValue([mockRows]);
+
+        const result = await ElementoModel.obtenerConStockBajo();
+
+        expect(result).toEqual(mockRows);
+        const sql = pool.query.mock.calls[0][0];
+        // Verifica la lógica CASE (series vs lotes)
+        expect(sql).toContain('WHEN e.requiere_series = TRUE');
+        expect(sql).toContain('HAVING stock_disponible < e.stock_minimo');
+        expect(sql).toContain('WHERE e.stock_minimo > 0');
+    });
+});
+
+// ============================================
+// obtenerEstadisticasGenerales: dashboard - múltiples queries
+// ============================================
+describe('obtenerEstadisticasGenerales', () => {
+    test('ejecuta 3 queries y combina resultados', async () => {
+        // Query 1: estadísticas principales
+        pool.query.mockResolvedValueOnce([[{
+            total_elementos: 50,
+            elementos_con_series: 20,
+            elementos_con_lotes: 30,
+            valor_total: 5000000,
+            valor_precio_unitario: 8000000
+        }]]);
+        // Query 2: COUNT series
+        pool.query.mockResolvedValueOnce([[{ total: 150 }]]);
+        // Query 3: SUM lotes
+        pool.query.mockResolvedValueOnce([[{ total: 800 }]]);
+
+        const result = await ElementoModel.obtenerEstadisticasGenerales();
+
+        expect(pool.query).toHaveBeenCalledTimes(3);
+        expect(result.total_elementos).toBe(50);
+        expect(result.total_series).toBe(150);
+        expect(result.total_unidades_lotes).toBe(800);
+        expect(result.total_unidades).toBe(950); // 150 + 800
+    });
+});
+
+// ============================================
+// obtenerDistribucionPorEstado: combina series + lotes por estado
+// ============================================
+describe('obtenerDistribucionPorEstado', () => {
+    test('combina estados de series y lotes en un solo mapa', async () => {
+        // Series por estado
+        pool.query.mockResolvedValueOnce([[
+            { estado: 'bueno', cantidad: 10 },
+            { estado: 'dañado', cantidad: 3 }
+        ]]);
+        // Lotes por estado
+        pool.query.mockResolvedValueOnce([[
+            { estado: 'bueno', cantidad: 50 },
+            { estado: 'alquilado', cantidad: 20 }
+        ]]);
+
+        const result = await ElementoModel.obtenerDistribucionPorEstado();
+
+        expect(pool.query).toHaveBeenCalledTimes(2);
+        // bueno: 10 (series) + 50 (lotes) = 60
+        const bueno = result.find(r => r.estado === 'bueno');
+        expect(bueno.cantidad).toBe(60);
+        // dañado: solo series
+        const danado = result.find(r => r.estado === 'dañado');
+        expect(danado.cantidad).toBe(3);
+        // alquilado: solo lotes
+        const alquilado = result.find(r => r.estado === 'alquilado');
+        expect(alquilado.cantidad).toBe(20);
+    });
+});
+
+// ============================================
+// obtenerTopCategorias: ranking para dashboard
+// ============================================
+describe('obtenerTopCategorias', () => {
+    test('usa LIMIT con parámetro y ordena por cantidad_total DESC', async () => {
+        pool.query.mockResolvedValue([[
+            { categoria: 'Carpas', total_elementos: 15, cantidad_total: 200 },
+            { categoria: 'Sillas', total_elementos: 8, cantidad_total: 100 }
+        ]]);
+
+        const result = await ElementoModel.obtenerTopCategorias(5);
+
+        expect(result).toHaveLength(2);
+        const sql = pool.query.mock.calls[0][0];
+        expect(sql).toContain('ORDER BY cantidad_total DESC');
+        expect(sql).toContain('LIMIT ?');
+        expect(pool.query.mock.calls[0][1]).toEqual([5]);
+    });
+
+    test('usa limit por defecto de 10', async () => {
+        pool.query.mockResolvedValue([[]]);
+
+        await ElementoModel.obtenerTopCategorias();
+
+        expect(pool.query.mock.calls[0][1]).toEqual([10]);
+    });
+});
+
+// ============================================
+// obtenerDistribucionPorUbicacion: series + lotes por ubicación
+// ============================================
+describe('obtenerDistribucionPorUbicacion', () => {
+    test('incluye solo ubicaciones activas con stock > 0', async () => {
+        pool.query.mockResolvedValue([[
+            { ubicacion: 'Bodega Principal', series: 50, lotes: 200, total: 250 },
+            { ubicacion: 'Bodega Norte', series: 10, lotes: 80, total: 90 }
+        ]]);
+
+        const result = await ElementoModel.obtenerDistribucionPorUbicacion();
+
+        expect(result).toHaveLength(2);
+        const sql = pool.query.mock.calls[0][0];
+        expect(sql).toContain('ub.activo = TRUE');
+        expect(sql).toContain('ORDER BY total DESC');
+    });
+});
+
+// ============================================
+// PROPAGACIÓN DE ERRORES DE BD
+// ============================================
+describe('propagación de errores de base de datos', () => {
+    const dbError = new Error('Connection lost: The server closed the connection.');
+    dbError.code = 'PROTOCOL_CONNECTION_LOST';
+
+    test('obtenerTodos propaga error de conexión', async () => {
+        pool.query.mockRejectedValue(dbError);
+
+        await expect(ElementoModel.obtenerTodos()).rejects.toThrow('Connection lost');
+    });
+
+    test('crear propaga error de constraint (FK inválida)', async () => {
+        const fkError = new Error('Cannot add or update a child row: a foreign key constraint fails');
+        fkError.code = 'ER_NO_REFERENCED_ROW_2';
+        pool.query.mockRejectedValue(fkError);
+
+        await expect(ElementoModel.crear({ nombre: 'Test', categoria_id: 9999 }))
+            .rejects.toThrow('foreign key constraint');
+    });
+
+    test('actualizar propaga error de duplicado', async () => {
+        const dupError = new Error("Duplicate entry 'Carpa 3x3' for key 'nombre'");
+        dupError.code = 'ER_DUP_ENTRY';
+        pool.query.mockRejectedValue(dupError);
+
+        await expect(ElementoModel.actualizar(1, { nombre: 'Carpa 3x3' }))
+            .rejects.toThrow('Duplicate entry');
+    });
+
+    test('obtenerEstadisticasGenerales propaga error si falla a mitad de las queries', async () => {
+        // Primera query funciona
+        pool.query.mockResolvedValueOnce([[{ total_elementos: 50 }]]);
+        // Segunda query falla
+        pool.query.mockRejectedValueOnce(dbError);
+
+        await expect(ElementoModel.obtenerEstadisticasGenerales())
+            .rejects.toThrow('Connection lost');
+    });
+});
