@@ -218,9 +218,12 @@ exports.eliminarLogo = async (req, res, next) => {
     const logoActual = await ConfiguracionModel.obtenerValor('empresa_logo');
 
     if (logoActual) {
-      const filePath = path.join(__dirname, '../../../', logoActual);
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
+      const baseDir = path.resolve(__dirname, '../../../');
+      const uploadsDir = path.join(baseDir, 'uploads');
+      const filePath = path.join(baseDir, logoActual);
+      const resolvedPath = path.resolve(filePath);
+      if (resolvedPath.startsWith(uploadsDir) && fs.existsSync(resolvedPath)) {
+        fs.unlinkSync(resolvedPath);
       }
     }
 
