@@ -205,9 +205,6 @@ class TokenService {
 
         return rows;
     }
-
-    // Nota: La columna ultimo_uso no existe en la tabla actual
-    // Si se necesita tracking de último uso, agregar la columna a la tabla
 }
 
 module.exports = TokenService;
