@@ -187,9 +187,6 @@ const refresh = async (req, res, next) => {
         // Verificar refresh token
         const empleado = await TokenService.verificarRefreshToken(refreshToken);
 
-        // Actualizar último uso
-        await TokenService.actualizarUltimoUso(refreshToken);
-
         // Generar nuevo access token
         const accessToken = TokenService.generarAccessToken(empleado);
 
@@ -329,14 +326,19 @@ const registro = async (req, res, next) => {
             throw new AppError('Nombre, apellido, email y contraseña son requeridos', 400);
         }
 
+        // Normalizar inputs antes de validar
+        const emailNormalizado = email.trim().toLowerCase();
+        const nombreNormalizado = nombre.trim();
+        const apellidoNormalizado = apellido.trim();
+
         // Validar longitud de contraseña
         if (password.length < 8) {
             throw new AppError('La contraseña debe tener al menos 8 caracteres', 400);
         }
 
-        // Validar formato de email
+        // Validar formato de email (después del trim)
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
+        if (!emailRegex.test(emailNormalizado)) {
             throw new AppError('El formato del email no es válido', 400);
         }
 
@@ -345,9 +347,9 @@ const registro = async (req, res, next) => {
 
         // Crear solicitud
         const solicitud = await AuthModel.registrarSolicitud({
-            nombre: nombre.trim(),
-            apellido: apellido.trim(),
-            email: email.trim().toLowerCase(),
+            nombre: nombreNormalizado,
+            apellido: apellidoNormalizado,
+            email: emailNormalizado,
             telefono: telefono?.trim() || null,
             password_hash,
             rol_solicitado_id: rol_solicitado_id ? parseInt(rol_solicitado_id) : null

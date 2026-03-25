@@ -18,7 +18,7 @@ jest.mock('../../services/TokenService', () => ({
     revocarRefreshToken: jest.fn(),
     revocarTodosTokensEmpleado: jest.fn(),
     obtenerSesionesActivas: jest.fn(),
-    actualizarUltimoUso: jest.fn() // no existe en el módulo real — bug en el controller
+    actualizarUltimoUso: jest.fn() // mantenemos por si se implementa en el futuro
 }));
 jest.mock('../../../../utils/logger', () => ({
     info: jest.fn(),
@@ -268,7 +268,6 @@ describe('refresh', () => {
     test('genera nuevo access token con refresh token válido', async () => {
         const empleadoData = { id: 1, email: 'juan@test.com', rol_nombre: 'admin' };
         TokenService.verificarRefreshToken.mockResolvedValue(empleadoData);
-        TokenService.actualizarUltimoUso.mockResolvedValue();
         TokenService.generarAccessToken.mockReturnValue('new-access-token');
 
         const req = mockReq({ body: { refreshToken: 'valid-refresh' } });
@@ -523,12 +522,12 @@ describe('registro', () => {
         AuthModel.registrarSolicitud.mockResolvedValue({ id: 11 });
         AuthModel.registrarAuditoria.mockResolvedValue();
 
-        // Email sin espacios extra (la validación regex ocurre antes del trim)
+        // Con espacios alrededor — ahora funciona porque trim() se aplica ANTES de la regex
         const req = mockReq({
             body: {
                 nombre: '  María  ',
                 apellido: '  García  ',
-                email: 'MARIA@Test.COM',
+                email: '  MARIA@Test.COM  ',
                 password: 'securepass123'
             }
         });
