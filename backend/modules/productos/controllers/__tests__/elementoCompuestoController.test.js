@@ -130,7 +130,7 @@ describe('crear', () => {
         expect(res.status).toHaveBeenCalledWith(201);
         expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
             success: true,
-            mensaje: 'Elemento compuesto creado exitosamente'
+            message: 'Elemento compuesto creado exitosamente'
         }));
     });
 
@@ -234,7 +234,7 @@ describe('eliminar', () => {
         await controller.eliminar(mockReq({ params: { id: '1' } }), res, mockNext());
         expect(res.json).toHaveBeenCalledWith({
             success: true,
-            mensaje: 'Elemento compuesto eliminado exitosamente'
+            message: 'Elemento compuesto eliminado exitosamente'
         });
     });
 
@@ -300,7 +300,7 @@ describe('agregarComponente', () => {
         expect(res.status).toHaveBeenCalledWith(201);
         expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
             success: true,
-            mensaje: 'Componente agregado exitosamente'
+            message: 'Componente agregado exitosamente'
         }));
     });
 
@@ -350,7 +350,7 @@ describe('eliminarComponente', () => {
         }), res, mockNext());
         expect(res.json).toHaveBeenCalledWith({
             success: true,
-            mensaje: 'Componente eliminado exitosamente'
+            message: 'Componente eliminado exitosamente'
         });
     });
 

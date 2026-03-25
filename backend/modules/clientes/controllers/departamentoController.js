@@ -87,7 +87,7 @@ exports.crear = async (req, res, next) => {
 
     res.status(201).json({
       success: true,
-      mensaje: 'Departamento creado exitosamente',
+      message: 'Departamento creado exitosamente',
       data: departamentoCreado
     });
   } catch (error) {
@@ -125,7 +125,7 @@ exports.actualizar = async (req, res, next) => {
 
     res.json({
       success: true,
-      mensaje: 'Departamento actualizado exitosamente',
+      message: 'Departamento actualizado exitosamente',
       data: departamentoActualizado
     });
   } catch (error) {
@@ -150,7 +150,7 @@ exports.eliminar = async (req, res, next) => {
 
     res.json({
       success: true,
-      mensaje: 'Departamento eliminado exitosamente'
+      message: 'Departamento eliminado exitosamente'
     });
   } catch (error) {
     if (error.message.includes('ciudades asociadas')) {

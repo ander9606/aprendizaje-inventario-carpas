@@ -124,7 +124,7 @@ describe('crear', () => {
         expect(res.status).toHaveBeenCalledWith(201);
         expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
             success: true,
-            mensaje: 'Categoría de producto creada exitosamente'
+            message: 'Categoría de producto creada exitosamente'
         }));
     });
 
@@ -178,7 +178,7 @@ describe('actualizar', () => {
         }), res, mockNext());
         expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
             success: true,
-            mensaje: 'Categoría de producto actualizada exitosamente'
+            message: 'Categoría de producto actualizada exitosamente'
         }));
     });
 
@@ -240,7 +240,7 @@ describe('eliminar', () => {
         await controller.eliminar(mockReq({ params: { id: '1' } }), res, mockNext());
         expect(res.json).toHaveBeenCalledWith({
             success: true,
-            mensaje: 'Categoría de producto eliminada exitosamente'
+            message: 'Categoría de producto eliminada exitosamente'
         });
     });
 

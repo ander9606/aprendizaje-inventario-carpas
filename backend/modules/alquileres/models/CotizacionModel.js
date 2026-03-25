@@ -616,6 +616,15 @@ class CotizacionModel {
   }
 
   // ============================================
+  // ASIGNAR/DESVINCULAR EVENTO
+  // ============================================
+  static async asignarEvento(id, eventoId) {
+    const query = `UPDATE cotizaciones SET evento_id = ? WHERE id = ?`;
+    const [result] = await pool.query(query, [eventoId || null, id]);
+    return result;
+  }
+
+  // ============================================
   // CONFIRMAR FECHAS (borrador → pendiente)
   // ============================================
   static async confirmarFechas(id, { fecha_montaje, fecha_evento, fecha_desmontaje }) {

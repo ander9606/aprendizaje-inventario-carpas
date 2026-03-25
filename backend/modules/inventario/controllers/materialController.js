@@ -96,7 +96,7 @@ exports.crear = async (req, res, next) => {
 
         res.status(201).json({
             success: true,
-            mensaje: MENSAJES_EXITO.CREADO(ENTIDADES.MATERIAL),
+            message: MENSAJES_EXITO.CREADO(ENTIDADES.MATERIAL),
             data: material
         });
     } catch (error) {
@@ -145,7 +145,7 @@ exports.actualizar = async (req, res, next) => {
 
         res.json({
             success: true,
-            mensaje: MENSAJES_EXITO.ACTUALIZADO(ENTIDADES.MATERIAL),
+            message: MENSAJES_EXITO.ACTUALIZADO(ENTIDADES.MATERIAL),
             data: actualizado
         });
     } catch (error) {
@@ -177,7 +177,7 @@ exports.eliminar = async (req, res, next) => {
 
         res.json({
             success: true,
-            mensaje: MENSAJES_EXITO.ELIMINADO(ENTIDADES.MATERIAL)
+            message: MENSAJES_EXITO.ELIMINADO(ENTIDADES.MATERIAL)
         });
     } catch (error) {
         if (error.code === 'ER_ROW_IS_REFERENCED_2') {

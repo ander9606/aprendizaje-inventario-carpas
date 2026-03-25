@@ -225,7 +225,7 @@ exports.crear = async (req, res, next) => {
 
         res.status(201).json({
             success: true,
-            mensaje: MENSAJES_EXITO.CREADO(ENTIDADES.LOTE),
+            message: MENSAJES_EXITO.CREADO(ENTIDADES.LOTE),
             data: nuevoLote
         });
     } catch (error) {
@@ -376,7 +376,7 @@ exports.moverCantidad = async (req, res, next) => {
 
         res.json({
             success: true,
-            mensaje: MENSAJES_EXITO.MOVIMIENTO_EXITOSO,
+            message: MENSAJES_EXITO.MOVIMIENTO_EXITOSO,
             movimiento: {
                 cantidad_movida: cantidadValidada,
                 estado_origen: loteOrigen.estado,
@@ -434,7 +434,7 @@ exports.actualizar = async (req, res, next) => {
 
                 return res.json({
                     success: true,
-                    mensaje: 'Lote actualizado y eliminado automáticamente (cantidad = 0)',
+                    message: 'Lote actualizado y eliminado automáticamente (cantidad = 0)',
                     data: null,
                     lote_eliminado: true
                 });
@@ -456,7 +456,7 @@ exports.actualizar = async (req, res, next) => {
 
         res.json({
             success: true,
-            mensaje: MENSAJES_EXITO.ACTUALIZADO(ENTIDADES.LOTE),
+            message: MENSAJES_EXITO.ACTUALIZADO(ENTIDADES.LOTE),
             data: loteActualizado
         });
     } catch (error) {
@@ -501,7 +501,7 @@ exports.eliminar = async (req, res, next) => {
 
         res.json({
             success: true,
-            mensaje: MENSAJES_EXITO.ELIMINADO(ENTIDADES.LOTE)
+            message: MENSAJES_EXITO.ELIMINADO(ENTIDADES.LOTE)
         });
     } catch (error) {
         logger.error('loteController.eliminar', error);

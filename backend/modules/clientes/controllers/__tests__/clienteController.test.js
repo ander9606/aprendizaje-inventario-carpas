@@ -104,7 +104,7 @@ describe('crear', () => {
         expect(res.status).toHaveBeenCalledWith(201);
         expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
             success: true,
-            mensaje: 'Cliente creado exitosamente'
+            message: 'Cliente creado exitosamente'
         }));
     });
 
@@ -181,7 +181,7 @@ describe('actualizar', () => {
         }), res, mockNext());
         expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
             success: true,
-            mensaje: 'Cliente actualizado exitosamente'
+            message: 'Cliente actualizado exitosamente'
         }));
     });
 
@@ -254,7 +254,7 @@ describe('eliminar', () => {
         await controller.eliminar(mockReq({ params: { id: '1' } }), res, mockNext());
         expect(res.json).toHaveBeenCalledWith({
             success: true,
-            mensaje: 'Cliente eliminado exitosamente'
+            message: 'Cliente eliminado exitosamente'
         });
     });
 

@@ -352,7 +352,7 @@ exports.crear = async (req, res, next) => {
 
         res.status(201).json({
             success: true,
-            mensaje: MENSAJES_EXITO.CREADO(ENTIDADES.SERIE),
+            message: MENSAJES_EXITO.CREADO(ENTIDADES.SERIE),
             data: serieCreada
         });
     } catch (error) {
@@ -432,7 +432,7 @@ exports.actualizar = async (req, res, next) => {
 
         res.json({
             success: true,
-            mensaje: MENSAJES_EXITO.ACTUALIZADO(ENTIDADES.SERIE),
+            message: MENSAJES_EXITO.ACTUALIZADO(ENTIDADES.SERIE),
             data: serieActualizada
         });
     } catch (error) {
@@ -497,7 +497,7 @@ exports.cambiarEstado = async (req, res, next) => {
 
         res.json({
             success: true,
-            mensaje: 'Estado cambiado exitosamente',
+            message: 'Estado cambiado exitosamente',
             data: serieActualizada
         });
     } catch (error) {
@@ -539,7 +539,7 @@ exports.eliminar = async (req, res, next) => {
 
         res.json({
             success: true,
-            mensaje: MENSAJES_EXITO.ELIMINADO(ENTIDADES.SERIE)
+            message: MENSAJES_EXITO.ELIMINADO(ENTIDADES.SERIE)
         });
     } catch (error) {
         logger.error('serieController.eliminar', error);

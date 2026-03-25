@@ -195,7 +195,7 @@ exports.asignarElementos = async (req, res, next) => {
 
     res.json({
       success: true,
-      mensaje: 'Elementos asignados exitosamente',
+      message: 'Elementos asignados exitosamente',
       data: alquilerActualizado
     });
   } catch (error) {
@@ -270,7 +270,7 @@ exports.cambiarElementoAsignado = async (req, res, next) => {
 
     res.json({
       success: true,
-      mensaje: 'Elemento cambiado exitosamente',
+      message: 'Elemento cambiado exitosamente',
       data: alquilerActualizado
     });
   } catch (error) {
@@ -357,7 +357,7 @@ exports.marcarSalida = async (req, res, next) => {
 
     res.json({
       success: true,
-      mensaje: 'Salida registrada exitosamente',
+      message: 'Salida registrada exitosamente',
       series_actualizadas: seriesActualizadas,
       lotes_movidos: lotesMovidos,
       data: alquilerActualizado
@@ -449,7 +449,7 @@ exports.registrarRetornoElemento = async (req, res, next) => {
 
     res.json({
       success: true,
-      mensaje: 'Retorno de elemento registrado',
+      message: 'Retorno de elemento registrado',
       data: alquilerActualizado
     });
   } catch (error) {
@@ -558,7 +558,7 @@ exports.marcarRetorno = async (req, res, next) => {
 
     res.json({
       success: true,
-      mensaje: 'Retorno registrado exitosamente',
+      message: 'Retorno registrado exitosamente',
       series_restauradas: seriesRestauradas,
       lotes_restaurados: lotesRestaurados,
       data: alquilerActualizado
@@ -600,7 +600,7 @@ exports.cancelar = async (req, res, next) => {
 
     res.json({
       success: true,
-      mensaje: 'Alquiler cancelado exitosamente'
+      message: 'Alquiler cancelado exitosamente'
     });
   } catch (error) {
     logger.error('alquilerController.cancelar', error);
@@ -750,7 +750,7 @@ exports.extenderFechaRetorno = async (req, res, next) => {
 
     res.json({
       success: true,
-      mensaje: `Alquiler extendido ${resultado.dias_extension} dia(s)`,
+      message: `Alquiler extendido ${resultado.dias_extension} dia(s)`,
       data: resultado
     });
   } catch (error) {

@@ -48,6 +48,9 @@ router.patch('/:id/confirmar-fechas', validateId(), cotizacionController.confirm
 // PATCH /api/cotizaciones/:id/deposito - Actualizar cobro de depósito
 router.patch('/:id/deposito', validateId(), cotizacionController.actualizarCobrarDeposito);
 
+// PATCH /api/cotizaciones/:id/evento - Asignar/desvincular evento
+router.patch('/:id/evento', validateId(), cotizacionController.asignarEvento);
+
 // POST /api/cotizaciones/:id/aprobar - Aprobar y crear alquiler
 router.post('/:id/aprobar', validateId(), cotizacionController.aprobarYCrearAlquiler);
 

@@ -232,7 +232,7 @@ exports.crear = async (req, res, next) => {
 
     res.status(201).json({
       success: true,
-      mensaje: MENSAJES_EXITO.CREADO(ENTIDADES.CATEGORIA),
+      message: MENSAJES_EXITO.CREADO(ENTIDADES.CATEGORIA),
       data: categoriaCreada
     });
   } catch (error) {
@@ -309,7 +309,7 @@ exports.actualizar = async (req, res, next) => {
 
     res.json({
       success: true,
-      mensaje: MENSAJES_EXITO.ACTUALIZADO(ENTIDADES.CATEGORIA),
+      message: MENSAJES_EXITO.ACTUALIZADO(ENTIDADES.CATEGORIA),
       data: categoriaActualizada
     });
   } catch (error) {
@@ -371,7 +371,7 @@ exports.eliminar = async (req, res, next) => {
 
     res.json({
       success: true,
-      mensaje: MENSAJES_EXITO.ELIMINADO(ENTIDADES.CATEGORIA)
+      message: MENSAJES_EXITO.ELIMINADO(ENTIDADES.CATEGORIA)
     });
   } catch (error) {
     logger.error('categoriaController.eliminar', error);

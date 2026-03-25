@@ -102,7 +102,7 @@ describe('crear', () => {
         expect(res.status).toHaveBeenCalledWith(201);
         expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
             success: true,
-            mensaje: 'Ciudad creada exitosamente'
+            message: 'Ciudad creada exitosamente'
         }));
     });
 
@@ -139,7 +139,7 @@ describe('actualizar', () => {
         }), res, mockNext());
         expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
             success: true,
-            mensaje: 'Ciudad actualizada exitosamente'
+            message: 'Ciudad actualizada exitosamente'
         }));
     });
 
@@ -191,7 +191,7 @@ describe('eliminar', () => {
         await controller.eliminar(mockReq({ params: { id: '1' } }), res, mockNext());
         expect(res.json).toHaveBeenCalledWith({
             success: true,
-            mensaje: 'Ciudad eliminada exitosamente'
+            message: 'Ciudad eliminada exitosamente'
         });
     });
 
@@ -232,7 +232,7 @@ describe('desactivar', () => {
         await controller.desactivar(mockReq({ params: { id: '1' } }), res, mockNext());
         expect(res.json).toHaveBeenCalledWith({
             success: true,
-            mensaje: 'Ciudad desactivada exitosamente'
+            message: 'Ciudad desactivada exitosamente'
         });
     });
 
