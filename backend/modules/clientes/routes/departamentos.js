@@ -6,6 +6,10 @@ const express = require('express');
 const router = express.Router();
 const departamentoController = require('../controllers/departamentoController');
 const { validateId } = require('../../../middleware/validator');
+const { verificarToken } = require('../../auth/middleware/authMiddleware');
+
+// Todas las rutas requieren autenticación
+router.use(verificarToken);
 
 // GET /api/departamentos - Obtener todos
 router.get('/', departamentoController.obtenerTodos);

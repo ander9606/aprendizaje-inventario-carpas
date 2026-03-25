@@ -7,6 +7,10 @@ const router = express.Router();
 const cotizacionController = require('../controllers/cotizacionController');
 const descuentoController = require('../controllers/descuentoController');
 const { validateId } = require('../../../middleware/validator');
+const { verificarToken } = require('../../auth/middleware/authMiddleware');
+
+// Todas las rutas requieren autenticación
+router.use(verificarToken);
 
 // GET /api/cotizaciones - Obtener todas
 router.get('/', cotizacionController.obtenerTodas);

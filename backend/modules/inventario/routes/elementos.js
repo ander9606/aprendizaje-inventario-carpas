@@ -7,6 +7,10 @@ const express = require('express');
 const router = express.Router();
 const elementoController = require('../controllers/elementoController');
 const { uploadElementoImagen } = require('../../../middleware/upload');
+const { verificarToken } = require('../../auth/middleware/authMiddleware');
+
+// Todas las rutas requieren autenticación
+router.use(verificarToken);
 
 // ============================================
 // RUTAS ESPECIALES (van primero)

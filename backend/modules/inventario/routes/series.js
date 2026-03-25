@@ -6,6 +6,10 @@
 const express = require('express');
 const router = express.Router();
 const serieController = require('../controllers/serieController');
+const { verificarToken } = require('../../auth/middleware/authMiddleware');
+
+// Todas las rutas requieren autenticación
+router.use(verificarToken);
 
 // ============================================
 // RUTAS ESPECIALES (van primero)

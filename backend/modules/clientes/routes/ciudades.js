@@ -6,6 +6,10 @@ const express = require('express');
 const router = express.Router();
 const ciudadController = require('../controllers/ciudadController');
 const { validateId } = require('../../../middleware/validator');
+const { verificarToken } = require('../../auth/middleware/authMiddleware');
+
+// Todas las rutas requieren autenticación
+router.use(verificarToken);
 
 // GET /api/ciudades - Obtener todas
 router.get('/', ciudadController.obtenerTodas);

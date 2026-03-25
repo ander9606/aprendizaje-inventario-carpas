@@ -6,6 +6,10 @@ const express = require('express');
 const router = express.Router();
 const descuentoController = require('../controllers/descuentoController');
 const { validateId } = require('../../../middleware/validator');
+const { verificarToken } = require('../../auth/middleware/authMiddleware');
+
+// Todas las rutas requieren autenticación
+router.use(verificarToken);
 
 // ============================================
 // CATÁLOGO DE DESCUENTOS

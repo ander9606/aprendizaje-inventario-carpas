@@ -5,6 +5,10 @@
 const express = require('express');
 const router = express.Router();
 const configuracionController = require('../controllers/configuracionController');
+const { verificarToken } = require('../../auth/middleware/authMiddleware');
+
+// Todas las rutas requieren autenticación
+router.use(verificarToken);
 
 // GET /api/configuracion - Obtener todas las configuraciones
 router.get('/', configuracionController.obtenerTodas);
