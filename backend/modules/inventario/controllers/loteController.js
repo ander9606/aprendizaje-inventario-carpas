@@ -8,7 +8,7 @@ const ElementoModel = require('../models/ElementoModel');
 const AppError = require('../../../utils/AppError');
 const logger = require('../../../utils/logger');
 const { validateCantidad, validateEstado, validateId } = require('../../../utils/validators');
-const { ESTADOS_VALIDOS, MENSAJES_ERROR, MENSAJES_EXITO, ENTIDADES } = require('../../../config/constants');
+const { MENSAJES_ERROR, MENSAJES_EXITO, ENTIDADES } = require('../../../config/constants');
 const { pool } = require('../../../config/database');
 const { getPaginationParams, getPaginatedResponse, shouldPaginate, getSortParams } = require('../../../utils/pagination');
 

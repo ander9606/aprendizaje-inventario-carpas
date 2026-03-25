@@ -12,7 +12,7 @@ const {
     validateId,
     validateEstado
 } = require('../../../utils/validators');
-const { MENSAJES_ERROR, MENSAJES_EXITO, ENTIDADES, ESTADOS_VALIDOS } = require('../../../config/constants');
+const { MENSAJES_ERROR, MENSAJES_EXITO, ENTIDADES } = require('../../../config/constants');
 const { getPaginationParams, getPaginatedResponse, shouldPaginate, getSortParams } = require('../../../utils/pagination');
 
 /**

@@ -78,6 +78,22 @@ router.post('/:id/transporte', validateId(), cotizacionController.agregarTranspo
 router.delete('/:id/transporte/:transporteId', validateId(), cotizacionController.eliminarTransporte);
 
 // ============================================
+// RECARGOS POR PRODUCTO
+// ============================================
+
+// GET /api/cotizaciones/:id/productos/:productoId/recargos - Obtener recargos
+router.get('/:id/productos/:productoId/recargos', validateId(), cotizacionController.obtenerRecargosProducto);
+
+// POST /api/cotizaciones/:id/productos/:productoId/recargos - Agregar recargo
+router.post('/:id/productos/:productoId/recargos', validateId(), cotizacionController.agregarRecargoProducto);
+
+// PUT /api/cotizaciones/:id/productos/:productoId/recargos/:recargoId - Actualizar recargo
+router.put('/:id/productos/:productoId/recargos/:recargoId', validateId(), cotizacionController.actualizarRecargoProducto);
+
+// DELETE /api/cotizaciones/:id/productos/:productoId/recargos/:recargoId - Eliminar recargo
+router.delete('/:id/productos/:productoId/recargos/:recargoId', validateId(), cotizacionController.eliminarRecargoProducto);
+
+// ============================================
 // DUPLICAR
 // ============================================
 
