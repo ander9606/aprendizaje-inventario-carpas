@@ -734,15 +734,16 @@ const CotizacionFormModal = ({
       if (!fechasPorConfirmar && !formData.fecha_evento) {
         newErrors.fecha_evento = 'La fecha del evento es obligatoria'
       }
-      if (!eventoPreseleccionado && !formData.evento_ciudad_id) {
-        newErrors.evento_ciudad = 'Seleccione una ciudad'
-      }
     } else if (paso === 2) {
       if (productosSeleccionados.length === 0) {
         newErrors.productos = 'Debe agregar al menos un producto'
       }
       if (productosSeleccionados.some(p => !p.compuesto_id)) {
         newErrors.productos = 'Seleccione un producto para cada linea'
+      }
+    } else if (paso === 3) {
+      if (!eventoPreseleccionado && !formData.evento_ciudad_id) {
+        newErrors.evento_ciudad = 'Seleccione una ciudad'
       }
     }
     if (Object.keys(newErrors).length > 0) {
@@ -1090,107 +1091,21 @@ const CotizacionFormModal = ({
           <div className="space-y-4">
             <h3 className="font-semibold text-slate-900">Informacion del Evento</h3>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Nombre del Evento
-                </label>
-                <input
-                  type="text"
-                  name="evento_nombre"
-                  value={formData.evento_nombre}
-                  onChange={handleChange}
-                  placeholder="Ej: Boda Garcia"
-                  disabled={isLoading}
-                  className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-100"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Ciudad *
-                </label>
-                <select
-                  name="evento_ciudad_id"
-                  value={formData.evento_ciudad_id}
-                  onChange={handleChange}
-                  disabled={isLoading || loadingCiudades}
-                  className={`
-                    w-full px-4 py-2.5 border rounded-lg
-                    focus:outline-none focus:ring-2 focus:ring-blue-500
-                    disabled:bg-slate-100
-                    ${errors.evento_ciudad ? 'border-red-300' : 'border-slate-300'}
-                  `}
-                >
-                  <option value="">Seleccionar ciudad...</option>
-                  {ciudadesPorDepartamento.map(([departamento, ciudadesDepto]) => (
-                    <optgroup key={departamento} label={departamento}>
-                      {ciudadesDepto.map(ciudad => (
-                        <option key={ciudad.id} value={ciudad.id}>{ciudad.nombre}</option>
-                      ))}
-                    </optgroup>
-                  ))}
-                </select>
-                {errors.evento_ciudad && (
-                  <p className="mt-1 text-sm text-red-600">{errors.evento_ciudad}</p>
-                )}
-                {ciudades.length === 0 && !loadingCiudades && (
-                  <p className="mt-1 text-xs text-amber-600">
-                    No hay ciudades. Cree ciudades en Configuracion primero.
-                  </p>
-                )}
-              </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Nombre del Evento
+              </label>
+              <input
+                type="text"
+                name="evento_nombre"
+                value={formData.evento_nombre}
+                onChange={handleChange}
+                placeholder="Ej: Boda Garcia"
+                disabled={isLoading}
+                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-100"
+              />
             </div>
 
-            {/* Direccion del evento */}
-            {formData.evento_ciudad_id && (
-              <div className="space-y-3">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    <MapPin className="w-4 h-4 inline mr-1" />
-                    Direccion del Evento
-                  </label>
-                  <input
-                    type="text"
-                    name="evento_direccion"
-                    value={formData.evento_direccion}
-                    onChange={handleChange}
-                    placeholder="Ej: Calle 80 #45-20, Finca La Esperanza..."
-                    disabled={isLoading}
-                    className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-100"
-                  />
-                </div>
-
-                {/* Ubicaciones conocidas como sugerencias rapidas */}
-                {ubicacionesFiltradas.length > 0 && (
-                  <div>
-                    <p className="text-xs font-medium text-slate-500 mb-1.5">Ubicaciones frecuentes en {formData.evento_ciudad}:</p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {ubicacionesFiltradas.map(u => (
-                        <button
-                          key={u.id}
-                          type="button"
-                          onClick={() => setFormData(prev => ({
-                            ...prev,
-                            evento_direccion: u.direccion || u.nombre,
-                            ubicacion_id: u.id
-                          }))}
-                          className={`
-                            px-2.5 py-1 text-xs rounded-full border transition-colors
-                            ${formData.evento_direccion === (u.direccion || u.nombre)
-                              ? 'bg-blue-100 border-blue-300 text-blue-700'
-                              : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300'
-                            }
-                          `}
-                        >
-                          {u.nombre}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
           </div>
         )}
 
@@ -1545,6 +1460,99 @@ const CotizacionFormModal = ({
             ============================================ */}
         {pasoActual === 3 && (<>
 
+        {/* DESTINO DEL EVENTO */}
+        {!eventoPreseleccionado && (
+          <div className="space-y-4">
+            <h3 className="font-semibold text-slate-900 flex items-center gap-2">
+              <MapPin className="w-5 h-5" />
+              Destino del Evento
+            </h3>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Ciudad *
+                </label>
+                <select
+                  name="evento_ciudad_id"
+                  value={formData.evento_ciudad_id}
+                  onChange={handleChange}
+                  disabled={isLoading || loadingCiudades}
+                  className={`
+                    w-full px-4 py-2.5 border rounded-lg
+                    focus:outline-none focus:ring-2 focus:ring-blue-500
+                    disabled:bg-slate-100
+                    ${errors.evento_ciudad ? 'border-red-300' : 'border-slate-300'}
+                  `}
+                >
+                  <option value="">Seleccionar ciudad...</option>
+                  {ciudadesPorDepartamento.map(([departamento, ciudadesDepto]) => (
+                    <optgroup key={departamento} label={departamento}>
+                      {ciudadesDepto.map(ciudad => (
+                        <option key={ciudad.id} value={ciudad.id}>{ciudad.nombre}</option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </select>
+                {errors.evento_ciudad && (
+                  <p className="mt-1 text-sm text-red-600">{errors.evento_ciudad}</p>
+                )}
+                {ciudades.length === 0 && !loadingCiudades && (
+                  <p className="mt-1 text-xs text-amber-600">
+                    No hay ciudades. Cree ciudades en Configuracion primero.
+                  </p>
+                )}
+              </div>
+
+              {formData.evento_ciudad_id && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Direccion del Evento
+                  </label>
+                  <input
+                    type="text"
+                    name="evento_direccion"
+                    value={formData.evento_direccion}
+                    onChange={handleChange}
+                    placeholder="Ej: Calle 80 #45-20, Finca La Esperanza..."
+                    disabled={isLoading}
+                    className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-100"
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Ubicaciones conocidas como sugerencias rapidas */}
+            {formData.evento_ciudad_id && ubicacionesFiltradas.length > 0 && (
+              <div>
+                <p className="text-xs font-medium text-slate-500 mb-1.5">Ubicaciones frecuentes en {formData.evento_ciudad}:</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {ubicacionesFiltradas.map(u => (
+                    <button
+                      key={u.id}
+                      type="button"
+                      onClick={() => setFormData(prev => ({
+                        ...prev,
+                        evento_direccion: u.direccion || u.nombre,
+                        ubicacion_id: u.id
+                      }))}
+                      className={`
+                        px-2.5 py-1 text-xs rounded-full border transition-colors
+                        ${formData.evento_direccion === (u.direccion || u.nombre)
+                          ? 'bg-blue-100 border-blue-300 text-blue-700'
+                          : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300'
+                        }
+                      `}
+                    >
+                      {u.nombre}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* TRANSPORTE */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
@@ -1573,7 +1581,7 @@ const CotizacionFormModal = ({
             <div className="py-6 text-center border-2 border-dashed border-amber-300 rounded-xl bg-amber-50/50">
               <MapPin className="w-8 h-8 mx-auto text-amber-400 mb-2" />
               <p className="text-sm font-medium text-amber-700">Seleccione una ciudad primero</p>
-              <p className="text-xs text-amber-600 mt-1">Vuelva al paso 1 para seleccionar la ciudad del evento</p>
+              <p className="text-xs text-amber-600 mt-1">Use el selector de ciudad de arriba para ver las tarifas disponibles</p>
             </div>
           ) : tarifasFiltradas.length === 0 ? (
             <div className="py-6 text-center border-2 border-dashed border-slate-200 rounded-xl bg-slate-50/50">
