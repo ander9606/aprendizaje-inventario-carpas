@@ -321,7 +321,7 @@ exports.crear = async (req, res, next) => {
 
     res.status(201).json({
       success: true,
-      mensaje: 'Cotización creada exitosamente',
+      message: 'Cotización creada exitosamente',
       data: cotizacionCreada
     });
   } catch (error) {
@@ -412,7 +412,7 @@ exports.actualizar = async (req, res, next) => {
 
     res.json({
       success: true,
-      mensaje: 'Cotización actualizada exitosamente',
+      message: 'Cotización actualizada exitosamente',
       data: cotizacionActualizada
     });
   } catch (error) {
@@ -454,7 +454,7 @@ exports.agregarProducto = async (req, res, next) => {
 
     res.json({
       success: true,
-      mensaje: 'Producto agregado exitosamente',
+      message: 'Producto agregado exitosamente',
       data: cotizacionActualizada
     });
   } catch (error) {
@@ -485,7 +485,7 @@ exports.eliminarProducto = async (req, res, next) => {
 
     res.json({
       success: true,
-      mensaje: 'Producto eliminado exitosamente',
+      message: 'Producto eliminado exitosamente',
       data: cotizacionActualizada
     });
   } catch (error) {
@@ -529,7 +529,7 @@ exports.agregarTransporte = async (req, res, next) => {
 
     res.json({
       success: true,
-      mensaje: 'Transporte agregado exitosamente',
+      message: 'Transporte agregado exitosamente',
       data: cotizacionActualizada
     });
   } catch (error) {
@@ -560,7 +560,7 @@ exports.eliminarTransporte = async (req, res, next) => {
 
     res.json({
       success: true,
-      mensaje: 'Transporte eliminado exitosamente',
+      message: 'Transporte eliminado exitosamente',
       data: cotizacionActualizada
     });
   } catch (error) {
@@ -596,7 +596,7 @@ exports.cambiarEstado = async (req, res, next) => {
 
     res.json({
       success: true,
-      mensaje: `Cotización marcada como ${estado}`,
+      message: `Cotización marcada como ${estado}`,
       data: { id, estado }
     });
   } catch (error) {
@@ -689,7 +689,7 @@ exports.aprobarYCrearAlquiler = async (req, res, next) => {
       if (!forzar) {
         return res.status(409).json({
           success: false,
-          mensaje: 'Hay elementos insuficientes para esta fecha',
+          message: 'Hay elementos insuficientes para esta fecha',
           advertencia: true,
           disponibilidad: disponibilidad,
           elementos_faltantes: elementosFaltantes,
@@ -790,7 +790,7 @@ exports.aprobarYCrearAlquiler = async (req, res, next) => {
 
     res.json({
       success: true,
-      mensaje: asignacion.hay_advertencias
+      message: asignacion.hay_advertencias
         ? 'Cotización aprobada con advertencias de disponibilidad'
         : 'Cotización aprobada y alquiler creado exitosamente',
       advertencia: asignacion.hay_advertencias,
@@ -830,7 +830,7 @@ exports.duplicar = async (req, res, next) => {
 
     res.status(201).json({
       success: true,
-      mensaje: 'Cotización duplicada exitosamente',
+      message: 'Cotización duplicada exitosamente',
       data: cotizacionDuplicada
     });
   } catch (error) {
@@ -860,7 +860,7 @@ exports.eliminar = async (req, res, next) => {
 
     res.json({
       success: true,
-      mensaje: 'Cotización eliminada exitosamente'
+      message: 'Cotización eliminada exitosamente'
     });
   } catch (error) {
     logger.error('cotizacionController.eliminar', error);
@@ -954,7 +954,7 @@ exports.agregarRecargoProducto = async (req, res, next) => {
 
     res.json({
       success: true,
-      mensaje: `Recargo de ${tipo} agregado exitosamente`,
+      message: `Recargo de ${tipo} agregado exitosamente`,
       data: cotizacionActualizada
     });
   } catch (error) {
@@ -1002,7 +1002,7 @@ exports.actualizarRecargoProducto = async (req, res, next) => {
 
     res.json({
       success: true,
-      mensaje: 'Recargo actualizado exitosamente',
+      message: 'Recargo actualizado exitosamente',
       data: cotizacionActualizada
     });
   } catch (error) {
@@ -1050,7 +1050,7 @@ exports.eliminarRecargoProducto = async (req, res, next) => {
 
     res.json({
       success: true,
-      mensaje: 'Recargo eliminado exitosamente',
+      message: 'Recargo eliminado exitosamente',
       data: cotizacionActualizada
     });
   } catch (error) {
@@ -1127,7 +1127,7 @@ exports.confirmarFechas = async (req, res, next) => {
 
     res.json({
       success: true,
-      mensaje: 'Fechas confirmadas. La cotización ahora está pendiente de aprobación.',
+      message: 'Fechas confirmadas. La cotización ahora está pendiente de aprobación.',
       data: cotizacionActualizada
     });
   } catch (error) {
@@ -1165,7 +1165,7 @@ exports.asignarEvento = async (req, res, next) => {
 
     res.json({
       success: true,
-      mensaje: evento_id ? 'Cotización asignada al evento' : 'Cotización desvinculada del evento',
+      message: evento_id ? 'Cotización asignada al evento' : 'Cotización desvinculada del evento',
       data: cotizacionActualizada
     });
   } catch (error) {
@@ -1206,7 +1206,7 @@ exports.actualizarCobrarDeposito = async (req, res, next) => {
 
     res.json({
       success: true,
-      mensaje: cobrar_deposito ? 'Se cobrará depósito' : 'No se cobrará depósito',
+      message: cobrar_deposito ? 'Se cobrará depósito' : 'No se cobrará depósito',
       data: cotizacionActualizada
     });
   } catch (error) {
@@ -1243,7 +1243,7 @@ exports.registrarSeguimiento = async (req, res, next) => {
 
     res.json({
       success: true,
-      mensaje: 'Seguimiento registrado correctamente',
+      message: 'Seguimiento registrado correctamente',
       data: resultado
     });
   } catch (error) {

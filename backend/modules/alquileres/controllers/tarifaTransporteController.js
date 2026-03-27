@@ -164,7 +164,7 @@ exports.crear = async (req, res, next) => {
 
     res.status(201).json({
       success: true,
-      mensaje: 'Tarifa creada exitosamente',
+      message: 'Tarifa creada exitosamente',
       data: tarifaCreada
     });
   } catch (error) {
@@ -197,7 +197,7 @@ exports.actualizar = async (req, res, next) => {
 
     res.json({
       success: true,
-      mensaje: 'Tarifa actualizada exitosamente',
+      message: 'Tarifa actualizada exitosamente',
       data: tarifaActualizada
     });
   } catch (error) {
@@ -222,7 +222,7 @@ exports.eliminar = async (req, res, next) => {
 
     res.json({
       success: true,
-      mensaje: 'Tarifa eliminada exitosamente'
+      message: 'Tarifa eliminada exitosamente'
     });
   } catch (error) {
     logger.error('tarifaTransporteController.eliminar', error);
@@ -246,7 +246,7 @@ exports.desactivar = async (req, res, next) => {
 
     res.json({
       success: true,
-      mensaje: 'Tarifa desactivada exitosamente'
+      message: 'Tarifa desactivada exitosamente'
     });
   } catch (error) {
     next(error);

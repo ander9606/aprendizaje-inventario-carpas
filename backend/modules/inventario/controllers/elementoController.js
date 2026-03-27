@@ -284,7 +284,7 @@ exports.crear = async (req, res, next) => {
 
         res.status(201).json({
             success: true,
-            mensaje: MENSAJES_EXITO.CREADO(ENTIDADES.ELEMENTO),
+            message: MENSAJES_EXITO.CREADO(ENTIDADES.ELEMENTO),
             data: elementoCreado
         });
 
@@ -370,7 +370,7 @@ exports.actualizar = async (req, res, next) => {
 
         res.json({
             success: true,
-            mensaje: MENSAJES_EXITO.ACTUALIZADO(ENTIDADES.ELEMENTO),
+            message: MENSAJES_EXITO.ACTUALIZADO(ENTIDADES.ELEMENTO),
             data: actualizado
         });
 
@@ -410,7 +410,7 @@ exports.eliminar = async (req, res, next) => {
 
         res.json({
             success: true,
-            mensaje: MENSAJES_EXITO.ELIMINADO(ENTIDADES.ELEMENTO)
+            message: MENSAJES_EXITO.ELIMINADO(ENTIDADES.ELEMENTO)
         });
 
     } catch (error) {
@@ -500,7 +500,7 @@ exports.subirImagen = async (req, res, next) => {
 
         res.json({
             success: true,
-            mensaje: 'Imagen subida correctamente',
+            message: 'Imagen subida correctamente',
             data: { imagen: imagenUrl }
         });
     } catch (error) {
@@ -533,7 +533,7 @@ exports.eliminarImagen = async (req, res, next) => {
 
         res.json({
             success: true,
-            mensaje: 'Imagen eliminada correctamente'
+            message: 'Imagen eliminada correctamente'
         });
     } catch (error) {
         logger.error('elementoController.eliminarImagen', error);

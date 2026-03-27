@@ -219,8 +219,8 @@ async function crearAdmin() {
         // ============================================
         console.log('👤 Creando usuario admin...')
 
-        const email = 'admin@carpas.com'
-        const password = 'admin123'
+        const email = process.env.ADMIN_EMAIL || 'admin@carpas.com'
+        const password = process.env.ADMIN_PASSWORD || require('crypto').randomBytes(12).toString('base64url')
 
         const [existeUsuario] = await connection.execute(
             'SELECT id FROM empleados WHERE email = ?',

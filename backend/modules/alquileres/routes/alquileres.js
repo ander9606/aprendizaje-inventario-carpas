@@ -6,6 +6,10 @@ const express = require('express');
 const router = express.Router();
 const alquilerController = require('../controllers/alquilerController');
 const { validateId } = require('../../../middleware/validator');
+const { verificarToken } = require('../../auth/middleware/authMiddleware');
+
+// Todas las rutas requieren autenticación
+router.use(verificarToken);
 
 // GET /api/alquileres - Obtener todos
 router.get('/', alquilerController.obtenerTodos);

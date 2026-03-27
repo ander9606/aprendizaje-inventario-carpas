@@ -4,11 +4,12 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "jest --verbose",
+    "test:watch": "jest --watch",
     "migrate": "node scripts/migrar-ciudad-id.js",
     "setup-auth": "node scripts/crear-admin.js",
     "start": "node server.js",
-    "dev": "node server.js"
+    "dev": "npx nodemon server.js"
   },
   "keywords": [],
   "author": "",
@@ -25,5 +26,9 @@
     "multer": "^2.0.2",
     "mysql2": "^3.15.2",
     "pdfkit": "^0.17.2"
+  },
+  "devDependencies": {
+    "jest": "^30.3.0",
+    "nodemon": "^3.1.14"
   }
 }

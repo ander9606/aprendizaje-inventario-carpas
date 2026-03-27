@@ -6,6 +6,10 @@ const express = require('express');
 const router = express.Router();
 const tarifaTransporteController = require('../controllers/tarifaTransporteController');
 const { validateId } = require('../../../middleware/validator');
+const { verificarToken } = require('../../auth/middleware/authMiddleware');
+
+// Todas las rutas requieren autenticación
+router.use(verificarToken);
 
 // GET /api/tarifas-transporte - Obtener todas
 router.get('/', tarifaTransporteController.obtenerTodas);
@@ -22,6 +26,9 @@ router.get('/ciudad/:ciudadId', tarifaTransporteController.obtenerPorCiudadId);
 // GET /api/tarifas-transporte/buscar?tipoCamion=X&ciudad=Y - Buscar tarifa específica
 router.get('/buscar', tarifaTransporteController.buscarTarifa);
 
+// GET /api/tarifas-transporte/activas - Obtener solo activas
+router.get('/activas', tarifaTransporteController.obtenerActivas);
+
 // GET /api/tarifas-transporte/:id - Obtener por ID
 router.get('/:id', validateId(), tarifaTransporteController.obtenerPorId);
 
@@ -30,6 +37,9 @@ router.post('/', tarifaTransporteController.crear);
 
 // PUT /api/tarifas-transporte/:id - Actualizar
 router.put('/:id', validateId(), tarifaTransporteController.actualizar);
+
+// PATCH /api/tarifas-transporte/:id/desactivar - Desactivar
+router.patch('/:id/desactivar', validateId(), tarifaTransporteController.desactivar);
 
 // DELETE /api/tarifas-transporte/:id - Eliminar
 router.delete('/:id', validateId(), tarifaTransporteController.eliminar);

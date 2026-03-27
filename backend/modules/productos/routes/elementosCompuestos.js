@@ -7,6 +7,10 @@ const router = express.Router();
 const elementoCompuestoController = require('../controllers/elementoCompuestoController');
 const { validateId } = require('../../../middleware/validator');
 const { uploadProductoImagen } = require('../../../middleware/upload');
+const { verificarToken } = require('../../auth/middleware/authMiddleware');
+
+// Todas las rutas requieren autenticación
+router.use(verificarToken);
 
 // GET /api/elementos-compuestos - Obtener todos
 router.get('/', elementoCompuestoController.obtenerTodos);

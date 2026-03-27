@@ -101,7 +101,7 @@ exports.crear = async (req, res, next) => {
 
     res.status(201).json({
       success: true,
-      mensaje: 'Cliente creado exitosamente',
+      message: 'Cliente creado exitosamente',
       data: clienteCreado
     });
   } catch (error) {
@@ -155,7 +155,7 @@ exports.actualizar = async (req, res, next) => {
 
     res.json({
       success: true,
-      mensaje: 'Cliente actualizado exitosamente',
+      message: 'Cliente actualizado exitosamente',
       data: clienteActualizado
     });
   } catch (error) {
@@ -185,7 +185,7 @@ exports.eliminar = async (req, res, next) => {
 
     res.json({
       success: true,
-      mensaje: 'Cliente eliminado exitosamente'
+      message: 'Cliente eliminado exitosamente'
     });
   } catch (error) {
     logger.error('clienteController.eliminar', error);

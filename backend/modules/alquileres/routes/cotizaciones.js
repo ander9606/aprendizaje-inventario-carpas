@@ -7,6 +7,10 @@ const router = express.Router();
 const cotizacionController = require('../controllers/cotizacionController');
 const descuentoController = require('../controllers/descuentoController');
 const { validateId } = require('../../../middleware/validator');
+const { verificarToken } = require('../../auth/middleware/authMiddleware');
+
+// Todas las rutas requieren autenticación
+router.use(verificarToken);
 
 // GET /api/cotizaciones - Obtener todas
 router.get('/', cotizacionController.obtenerTodas);
@@ -44,6 +48,9 @@ router.patch('/:id/confirmar-fechas', validateId(), cotizacionController.confirm
 // PATCH /api/cotizaciones/:id/deposito - Actualizar cobro de depósito
 router.patch('/:id/deposito', validateId(), cotizacionController.actualizarCobrarDeposito);
 
+// PATCH /api/cotizaciones/:id/evento - Asignar/desvincular evento
+router.patch('/:id/evento', validateId(), cotizacionController.asignarEvento);
+
 // POST /api/cotizaciones/:id/aprobar - Aprobar y crear alquiler
 router.post('/:id/aprobar', validateId(), cotizacionController.aprobarYCrearAlquiler);
 
@@ -69,6 +76,22 @@ router.post('/:id/transporte', validateId(), cotizacionController.agregarTranspo
 
 // DELETE /api/cotizaciones/:id/transporte/:transporteId - Eliminar transporte
 router.delete('/:id/transporte/:transporteId', validateId(), cotizacionController.eliminarTransporte);
+
+// ============================================
+// RECARGOS POR PRODUCTO
+// ============================================
+
+// GET /api/cotizaciones/:id/productos/:productoId/recargos - Obtener recargos
+router.get('/:id/productos/:productoId/recargos', validateId(), cotizacionController.obtenerRecargosProducto);
+
+// POST /api/cotizaciones/:id/productos/:productoId/recargos - Agregar recargo
+router.post('/:id/productos/:productoId/recargos', validateId(), cotizacionController.agregarRecargoProducto);
+
+// PUT /api/cotizaciones/:id/productos/:productoId/recargos/:recargoId - Actualizar recargo
+router.put('/:id/productos/:productoId/recargos/:recargoId', validateId(), cotizacionController.actualizarRecargoProducto);
+
+// DELETE /api/cotizaciones/:id/productos/:productoId/recargos/:recargoId - Eliminar recargo
+router.delete('/:id/productos/:productoId/recargos/:recargoId', validateId(), cotizacionController.eliminarRecargoProducto);
 
 // ============================================
 // DUPLICAR
