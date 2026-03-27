@@ -488,15 +488,16 @@ class CotizacionModel {
   // ============================================
   static async obtenerUbicacionesPorCliente(clienteId) {
     const query = `
-      SELECT DISTINCT
-        evento_ciudad,
-        evento_direccion,
-        ubicacion_id
-      FROM cotizaciones
-      WHERE cliente_id = ?
-        AND evento_direccion IS NOT NULL
-        AND evento_direccion != ''
-      ORDER BY created_at DESC
+      SELECT evento_ciudad, evento_direccion, ubicacion_id
+      FROM (
+        SELECT evento_ciudad, evento_direccion, ubicacion_id, MAX(created_at) AS ultima_fecha
+        FROM cotizaciones
+        WHERE cliente_id = ?
+          AND evento_direccion IS NOT NULL
+          AND evento_direccion != ''
+        GROUP BY evento_ciudad, evento_direccion, ubicacion_id
+      ) sub
+      ORDER BY ultima_fecha DESC
       LIMIT 10
     `;
     const [rows] = await pool.query(query, [clienteId]);
