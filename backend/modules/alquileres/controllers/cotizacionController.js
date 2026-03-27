@@ -893,6 +893,25 @@ exports.obtenerPorCliente = async (req, res, next) => {
 };
 
 // ============================================
+// OBTENER UBICACIONES USADAS POR CLIENTE
+// ============================================
+exports.obtenerUbicacionesCliente = async (req, res, next) => {
+  try {
+    const { clienteId } = req.params;
+
+    const ubicaciones = await CotizacionModel.obtenerUbicacionesPorCliente(clienteId);
+
+    res.json({
+      success: true,
+      data: ubicaciones,
+      total: ubicaciones.length
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ============================================
 // AGREGAR RECARGO A PRODUCTO
 // ============================================
 exports.agregarRecargoProducto = async (req, res, next) => {

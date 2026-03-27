@@ -7,7 +7,8 @@
 export {
   useGetCotizaciones,
   useGetCotizacionesPorEstado,
-  useGetCotizacion
+  useGetCotizacion,
+  useGetUbicacionesCliente
 } from './useGetCotizaciones'
 
 // Query completa (para vista PDF/detalle)
