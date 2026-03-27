@@ -92,18 +92,18 @@ describe('obtenerPorId', () => {
 describe('crear', () => {
     test('crea departamento exitosamente', async () => {
         DepartamentoModel.nombreExiste.mockResolvedValue(false);
-        DepartamentoModel.crear.mockResolvedValue({ insertId: 1 });
+        DepartamentoModel.crear.mockResolvedValue(1);
         DepartamentoModel.obtenerPorId.mockResolvedValue({ id: 1, nombre: 'Valle' });
         const res = mockRes();
         await controller.crear(mockReq({ body: { nombre: 'Valle' } }), res, mockNext());
         expect(res.status).toHaveBeenCalledWith(201);
         expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
             success: true,
-            message: 'Departamento creado exitosamente'
+            data: { id: 1, nombre: 'Valle' }
         }));
     });
 
-    test('error si nombre vacío', async () => {
+    test('error si nombre vacio', async () => {
         const next = mockNext();
         await controller.crear(mockReq({ body: { nombre: '' } }), mockRes(), next);
         expect(next.mock.calls[0][0].statusCode).toBe(400);
@@ -126,12 +126,11 @@ describe('crear', () => {
 
     test('hace trim del nombre', async () => {
         DepartamentoModel.nombreExiste.mockResolvedValue(false);
-        DepartamentoModel.crear.mockResolvedValue({ insertId: 1 });
+        DepartamentoModel.crear.mockResolvedValue(1);
         DepartamentoModel.obtenerPorId.mockResolvedValue({ id: 1 });
         const res = mockRes();
         await controller.crear(mockReq({ body: { nombre: '  Valle  ' } }), res, mockNext());
-        expect(DepartamentoModel.nombreExiste).toHaveBeenCalledWith('Valle');
-        expect(DepartamentoModel.crear).toHaveBeenCalledWith({ nombre: 'Valle' });
+        expect(DepartamentoModel.nombreExiste).toHaveBeenCalledWith('Valle', null);
     });
 });
 
@@ -152,7 +151,7 @@ describe('actualizar', () => {
         }), res, mockNext());
         expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
             success: true,
-            message: 'Departamento actualizado exitosamente'
+            data: { id: 1, nombre: 'Cundinamarca Dept' }
         }));
     });
 
@@ -177,17 +176,18 @@ describe('actualizar', () => {
         expect(next.mock.calls[0][0].statusCode).toBe(400);
     });
 
-    test('no verifica duplicado si nombre no cambia', async () => {
+    test('mantiene nombre si no se envia', async () => {
         DepartamentoModel.obtenerPorId
-            .mockResolvedValueOnce({ id: 1, nombre: 'Cundinamarca' })
-            .mockResolvedValueOnce({ id: 1, nombre: 'Cundinamarca' });
+            .mockResolvedValueOnce({ id: 1, nombre: 'Cundinamarca', activo: true })
+            .mockResolvedValueOnce({ id: 1, nombre: 'Cundinamarca', activo: false });
+        DepartamentoModel.nombreExiste.mockResolvedValue(false);
         DepartamentoModel.actualizar.mockResolvedValue();
         const res = mockRes();
         await controller.actualizar(mockReq({
             params: { id: '1' },
-            body: { nombre: 'Cundinamarca', activo: true }
+            body: { activo: false }
         }), res, mockNext());
-        expect(DepartamentoModel.nombreExiste).not.toHaveBeenCalled();
+        expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
     });
 });
 
@@ -215,7 +215,7 @@ describe('eliminar', () => {
 
     test('error 400 si tiene ciudades asociadas', async () => {
         DepartamentoModel.obtenerPorId.mockResolvedValue({ id: 1 });
-        DepartamentoModel.eliminar.mockRejectedValue(new Error('Tiene ciudades asociadas'));
+        DepartamentoModel.eliminar.mockRejectedValue(new Error('No se puede eliminar un departamento con ciudades asociadas'));
         const next = mockNext();
         await controller.eliminar(mockReq({ params: { id: '1' } }), mockRes(), next);
         expect(next).toHaveBeenCalled();

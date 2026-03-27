@@ -219,9 +219,8 @@ describe('actualizar', () => {
         expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
     });
 
-    test('error 404 si filasAfectadas=0', async () => {
-        UnidadModel.obtenerPorNombre.mockResolvedValue(null);
-        UnidadModel.actualizar.mockResolvedValue(0);
+    test('error 404 si no existe', async () => {
+        UnidadModel.obtenerPorId.mockResolvedValue(null);
 
         const req = mockReq({ params: { id: '999' }, body: { nombre: 'NoExiste' } });
         const res = mockRes();
@@ -234,6 +233,7 @@ describe('actualizar', () => {
     });
 
     test('error si nombre duplicado por otra unidad', async () => {
+        UnidadModel.obtenerPorId.mockResolvedValue({ id: 1, nombre: 'Kilogramo' });
         UnidadModel.obtenerPorNombre.mockResolvedValue({ id: 2, nombre: 'Metro' });
 
         const req = mockReq({ params: { id: '1' }, body: { nombre: 'Metro' } });
