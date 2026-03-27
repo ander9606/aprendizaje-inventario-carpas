@@ -3,68 +3,38 @@
 // ============================================
 
 const { pool } = require('../../../config/database');
+const BaseModel = require('../../../utils/BaseModel');
+
+const base = new BaseModel({
+    table: 'unidades',
+    alias: 'u',
+    sortFieldMap: {
+        'nombre': 'nombre',
+        'tipo': 'tipo',
+        'id': 'id'
+    }
+});
 
 class UnidadModel {
 
-    static async obtenerTodas() {
-        const [rows] = await pool.query(
-            'SELECT * FROM unidades ORDER BY nombre'
-        );
-        return rows;
+    static obtenerTodas() {
+        return base.obtenerTodos();
     }
 
-    static async obtenerConPaginacion({ limit, offset, sortBy = 'nombre', order = 'ASC', search = null }) {
-        const sortFieldMap = {
-            'nombre': 'nombre',
-            'tipo': 'tipo',
-            'id': 'id'
-        };
-
-        let query = `SELECT * FROM unidades`;
-        const params = [];
-
-        if (search) {
-            query += ` WHERE nombre LIKE ?`;
-            params.push(`%${search}%`);
-        }
-
-        const sortField = sortFieldMap[sortBy] || 'nombre';
-        const sortOrder = order.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
-        query += ` ORDER BY ${sortField} ${sortOrder}`;
-        query += ` LIMIT ? OFFSET ?`;
-        params.push(Number(limit), Number(offset));
-
-        const [rows] = await pool.query(query, params);
-        return rows;
+    static obtenerConPaginacion(params) {
+        return base.obtenerConPaginacion(params);
     }
 
-    static async contarTodas(search = null) {
-        let query = `SELECT COUNT(*) as total FROM unidades`;
-        const params = [];
-
-        if (search) {
-            query += ` WHERE nombre LIKE ?`;
-            params.push(`%${search}%`);
-        }
-
-        const [rows] = await pool.query(query, params);
-        return rows[0].total;
+    static contarTodas(search) {
+        return base.contarTodos(search);
     }
 
-    static async obtenerPorId(id) {
-        const [rows] = await pool.query(
-            'SELECT * FROM unidades WHERE id = ?',
-            [id]
-        );
-        return rows[0];
+    static obtenerPorId(id) {
+        return base.obtenerPorId(id);
     }
 
-    static async obtenerPorNombre(nombre) {
-        const [rows] = await pool.query(
-            'SELECT * FROM unidades WHERE nombre = ?',
-            [nombre]
-        );
-        return rows[0];
+    static obtenerPorNombre(nombre) {
+        return base.obtenerPorNombre(nombre);
     }
 
     static async obtenerPorTipo(tipo) {
@@ -76,7 +46,7 @@ class UnidadModel {
     }
 
     static async obtenerMasUsadas() {
-        const query = `
+        const [rows] = await pool.query(`
             SELECT
                 u.id,
                 u.nombre,
@@ -87,40 +57,22 @@ class UnidadModel {
             LEFT JOIN elementos e ON u.id = e.unidad_id
             GROUP BY u.id, u.nombre, u.abreviatura, u.tipo
             ORDER BY cantidad_elementos DESC
-        `;
-
-        const [rows] = await pool.query(query);
+        `);
         return rows;
     }
 
-    static async crear(datos) {
+    static crear(datos) {
         const { nombre, abreviatura, tipo } = datos;
-
-        const [result] = await pool.query(
-            'INSERT INTO unidades (nombre, abreviatura, tipo) VALUES (?, ?, ?)',
-            [nombre, abreviatura || null, tipo || 'cantidad']
-        );
-
-        return result.insertId;
+        return base.crear({ nombre, abreviatura: abreviatura || null, tipo: tipo || 'cantidad' });
     }
 
-    static async actualizar(id, datos) {
+    static actualizar(id, datos) {
         const { nombre, abreviatura, tipo } = datos;
-
-        const [result] = await pool.query(
-            'UPDATE unidades SET nombre = ?, abreviatura = ?, tipo = ? WHERE id = ?',
-            [nombre, abreviatura || null, tipo || 'cantidad', id]
-        );
-
-        return result.affectedRows;
+        return base.actualizar(id, { nombre, abreviatura: abreviatura || null, tipo: tipo || 'cantidad' });
     }
 
-    static async eliminar(id) {
-        const [result] = await pool.query(
-            'DELETE FROM unidades WHERE id = ?',
-            [id]
-        );
-        return result.affectedRows;
+    static eliminar(id) {
+        return base.eliminar(id);
     }
 }
 
