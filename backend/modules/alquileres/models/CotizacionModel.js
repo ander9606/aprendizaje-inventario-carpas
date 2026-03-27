@@ -484,6 +484,26 @@ class CotizacionModel {
   }
 
   // ============================================
+  // OBTENER UBICACIONES USADAS POR CLIENTE
+  // ============================================
+  static async obtenerUbicacionesPorCliente(clienteId) {
+    const query = `
+      SELECT DISTINCT
+        evento_ciudad,
+        evento_direccion,
+        ubicacion_id
+      FROM cotizaciones
+      WHERE cliente_id = ?
+        AND evento_direccion IS NOT NULL
+        AND evento_direccion != ''
+      ORDER BY created_at DESC
+      LIMIT 10
+    `;
+    const [rows] = await pool.query(query, [clienteId]);
+    return rows;
+  }
+
+  // ============================================
   // OBTENER POR CLIENTE
   // ============================================
   static async obtenerPorCliente(clienteId) {

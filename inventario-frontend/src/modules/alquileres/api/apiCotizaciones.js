@@ -20,6 +20,11 @@ export const apiCotizaciones = {
     return response.data;
   },
 
+  obtenerUbicacionesCliente: async (clienteId) => {
+    const response = await api.get(`/cotizaciones/cliente/${clienteId}/ubicaciones`);
+    return response.data;
+  },
+
   obtenerPorId: async (id) => {
     const response = await api.get(`/cotizaciones/${id}`);
     return response.data;

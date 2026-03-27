@@ -41,6 +41,22 @@ export const useGetCotizacionesPorEstado = (estado) => {
 }
 
 /**
+ * Hook para obtener ubicaciones/direcciones usadas por un cliente en cotizaciones anteriores
+ */
+export const useGetUbicacionesCliente = (clienteId) => {
+  const { data, isLoading } = useQuery({
+    queryKey: ['cotizaciones', 'ubicaciones-cliente', clienteId],
+    queryFn: () => apiCotizaciones.obtenerUbicacionesCliente(clienteId),
+    enabled: !!clienteId
+  })
+
+  return {
+    ubicacionesCliente: data?.data || [],
+    isLoading
+  }
+}
+
+/**
  * Hook para obtener una cotizacion basica por ID
  */
 export const useGetCotizacion = (id) => {

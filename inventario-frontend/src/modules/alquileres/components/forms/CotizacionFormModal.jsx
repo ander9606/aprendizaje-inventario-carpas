@@ -12,7 +12,7 @@ import ProductoConfiguracion from '@productos/components/forms/ProductoConfigura
 import DisponibilidadModal from '../disponibilidad/DisponibilidadModal'
 import RecargoModal from '../modals/RecargoModal'
 import { ProductoSelectorTarjetas, DescuentosSelectorLocal } from '../cotizaciones'
-import { useCreateCotizacion, useUpdateCotizacion, useGetCotizacionCompleta } from '../../hooks/cotizaciones'
+import { useCreateCotizacion, useUpdateCotizacion, useGetCotizacionCompleta, useGetUbicacionesCliente } from '../../hooks/cotizaciones'
 import { useGetClientesActivos } from '@clientes/hooks/useClientes'
 import { useGetProductosAlquiler } from '@productos/hooks/useProductosAlquiler'
 import { useGetTarifasTransporte } from '../../hooks/useTarifasTransporte'
@@ -101,6 +101,7 @@ const CotizacionFormModal = ({
   const { ubicaciones: ubicacionesCiudad, isLoading: loadingUbicaciones } = useGetUbicacionesPorCiudad(
     formData.evento_ciudad_id ? parseInt(formData.evento_ciudad_id) : null
   )
+  const { ubicacionesCliente } = useGetUbicacionesCliente(formData.cliente_id || null)
   const { data: configuracion } = useGetConfiguracionCompleta()
 
   const { mutateAsync: createCotizacion, isLoading: isCreating } = useCreateCotizacion()
@@ -1547,6 +1548,45 @@ const CotizacionFormModal = ({
                       {u.nombre}
                     </button>
                   ))}
+                </div>
+              </div>
+            )}
+
+            {/* Direcciones anteriores del cliente */}
+            {ubicacionesCliente.length > 0 && (
+              <div>
+                <p className="text-xs font-medium text-slate-500 mb-1.5">Direcciones anteriores de este cliente:</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {ubicacionesCliente.map((uc, idx) => {
+                    const ciudadMatch = uc.evento_ciudad ? ciudades.find(c => c.nombre === uc.evento_ciudad) : null
+                    return (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => {
+                          const updates = {
+                            evento_direccion: uc.evento_direccion,
+                            ubicacion_id: uc.ubicacion_id || ''
+                          }
+                          if (ciudadMatch) {
+                            updates.evento_ciudad_id = ciudadMatch.id.toString()
+                            updates.evento_ciudad = ciudadMatch.nombre
+                          }
+                          setTransporteSeleccionado([])
+                          setFormData(prev => ({ ...prev, ...updates }))
+                        }}
+                        className={`
+                          px-2.5 py-1 text-xs rounded-full border transition-colors
+                          ${formData.evento_direccion === uc.evento_direccion
+                            ? 'bg-green-100 border-green-300 text-green-700'
+                            : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300'
+                          }
+                        `}
+                      >
+                        {uc.evento_direccion}{uc.evento_ciudad ? ` (${uc.evento_ciudad})` : ''}
+                      </button>
+                    )
+                  })}
                 </div>
               </div>
             )}

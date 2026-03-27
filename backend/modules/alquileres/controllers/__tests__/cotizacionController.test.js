@@ -312,6 +312,33 @@ describe('obtenerPorCliente', () => {
     });
 });
 
+describe('obtenerUbicacionesCliente', () => {
+    test('retorna ubicaciones usadas por el cliente', async () => {
+        const ubicaciones = [
+            { evento_ciudad: 'Bogota', evento_direccion: 'Calle 80 #45', ubicacion_id: null },
+            { evento_ciudad: 'Medellin', evento_direccion: 'Carrera 70 #10', ubicacion_id: 2 }
+        ];
+        CotizacionModel.obtenerUbicacionesPorCliente.mockResolvedValue(ubicaciones);
+        const res = mockRes(); const next = mockNext();
+        await controller.obtenerUbicacionesCliente(mockReq({ params: { clienteId: '1' } }), res, next);
+        expect(res.json).toHaveBeenCalledWith({ success: true, data: ubicaciones, total: 2 });
+    });
+
+    test('retorna array vacio si no tiene ubicaciones', async () => {
+        CotizacionModel.obtenerUbicacionesPorCliente.mockResolvedValue([]);
+        const res = mockRes(); const next = mockNext();
+        await controller.obtenerUbicacionesCliente(mockReq({ params: { clienteId: '1' } }), res, next);
+        expect(res.json).toHaveBeenCalledWith({ success: true, data: [], total: 0 });
+    });
+
+    test('maneja error', async () => {
+        CotizacionModel.obtenerUbicacionesPorCliente.mockRejectedValue(new Error('DB error'));
+        const next = mockNext();
+        await controller.obtenerUbicacionesCliente(mockReq({ params: { clienteId: '1' } }), mockRes(), next);
+        expect(next).toHaveBeenCalledWith(expect.any(Error));
+    });
+});
+
 describe('confirmarFechas', () => {
     test('confirma fechas de borrador', async () => {
         CotizacionModel.obtenerPorId.mockResolvedValue({ id: 1, estado: 'borrador' });

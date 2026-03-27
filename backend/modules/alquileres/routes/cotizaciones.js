@@ -21,6 +21,9 @@ router.get('/estado/:estado', cotizacionController.obtenerPorEstado);
 // GET /api/cotizaciones/cliente/:clienteId - Obtener por cliente
 router.get('/cliente/:clienteId', cotizacionController.obtenerPorCliente);
 
+// GET /api/cotizaciones/cliente/:clienteId/ubicaciones - Ubicaciones usadas por cliente
+router.get('/cliente/:clienteId/ubicaciones', cotizacionController.obtenerUbicacionesCliente);
+
 // GET /api/cotizaciones/:id - Obtener por ID
 router.get('/:id', validateId(), cotizacionController.obtenerPorId);
 
