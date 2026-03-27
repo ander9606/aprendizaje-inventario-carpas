@@ -3,8 +3,12 @@ const crypto = require('crypto');
 const { pool } = require('../../../config/database');
 const AppError = require('../../../utils/AppError');
 
-// Configuración JWT desde variables de entorno
-const JWT_SECRET = process.env.JWT_SECRET || 'desarrollo_secreto_cambiar_en_produccion';
+// Configuración JWT desde variables de entorno (obligatorias)
+if (!process.env.JWT_SECRET) {
+    throw new Error('JWT_SECRET no está definido en las variables de entorno. Configúralo en el archivo .env');
+}
+
+const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_ACCESS_EXPIRES = process.env.JWT_ACCESS_EXPIRES || '15m';
 const JWT_REFRESH_EXPIRES = process.env.JWT_REFRESH_EXPIRES || '7d';
 
@@ -102,7 +106,7 @@ class TokenService {
                 e.apellido,
                 e.email,
                 e.rol_id,
-                e.activo,
+                e.estado,
                 r.nombre as rol_nombre,
                 r.permisos
             FROM refresh_tokens rt
@@ -128,7 +132,7 @@ class TokenService {
         }
 
         // Verificar si el empleado sigue activo
-        if (!tokenData.activo) {
+        if (tokenData.estado !== 'activo') {
             throw new AppError('Cuenta de usuario desactivada', 401);
         }
 
@@ -201,9 +205,6 @@ class TokenService {
 
         return rows;
     }
-
-    // Nota: La columna ultimo_uso no existe en la tabla actual
-    // Si se necesita tracking de último uso, agregar la columna a la tabla
 }
 
 module.exports = TokenService;

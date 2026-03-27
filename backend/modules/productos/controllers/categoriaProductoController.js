@@ -139,7 +139,7 @@ exports.crear = async (req, res, next) => {
 
     res.status(201).json({
       success: true,
-      mensaje: 'Categoría de producto creada exitosamente',
+      message: 'Categoría de producto creada exitosamente',
       data: categoriaCreada
     });
   } catch (error) {
@@ -190,7 +190,7 @@ exports.actualizar = async (req, res, next) => {
 
     res.json({
       success: true,
-      mensaje: 'Categoría de producto actualizada exitosamente',
+      message: 'Categoría de producto actualizada exitosamente',
       data: categoriaActualizada
     });
   } catch (error) {
@@ -227,7 +227,7 @@ exports.eliminar = async (req, res, next) => {
 
     res.json({
       success: true,
-      mensaje: 'Categoría de producto eliminada exitosamente'
+      message: 'Categoría de producto eliminada exitosamente'
     });
   } catch (error) {
     logger.error('categoriaProductoController.eliminar', error);

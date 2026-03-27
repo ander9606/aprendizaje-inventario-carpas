@@ -6,6 +6,10 @@ const express = require('express');
 const router = express.Router();
 const eventoController = require('../controllers/eventoController');
 const { validateId } = require('../../../middleware/validator');
+const { verificarToken } = require('../../auth/middleware/authMiddleware');
+
+// Todas las rutas requieren autenticación
+router.use(verificarToken);
 
 // GET /api/eventos - Obtener todos
 router.get('/', eventoController.obtenerTodos);

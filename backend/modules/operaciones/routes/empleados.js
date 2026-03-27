@@ -24,6 +24,7 @@ router.use(verificarToken);
 // Rutas de consulta (gerente puede ver)
 router.get('/roles', empleadoController.getRoles);
 router.get('/estadisticas', verificarRol(['admin', 'gerente']), empleadoController.getEstadisticas);
+router.get('/pendientes/count', verificarRol(['admin']), empleadoController.getPendientesCount);
 router.get('/disponibles/campo', verificarRol(['admin', 'gerente', 'operaciones']), empleadoController.getDisponiblesCampo);
 router.get('/', verificarRol(['admin', 'gerente']), empleadoController.getAll);
 router.get('/:id', verificarRol(['admin', 'gerente']), empleadoController.getById);
@@ -31,6 +32,8 @@ router.get('/:id', verificarRol(['admin', 'gerente']), empleadoController.getByI
 // Rutas de modificación (solo admin)
 router.post('/', verificarRol(['admin']), empleadoController.create);
 router.put('/:id', verificarRol(['admin']), empleadoController.update);
+router.put('/:id/aprobar', verificarRol(['admin']), empleadoController.aprobar);
+router.put('/:id/rechazar', verificarRol(['admin']), empleadoController.rechazar);
 router.put('/:id/reactivar', verificarRol(['admin']), empleadoController.reactivar);
 router.put('/:id/password', verificarRol(['admin']), empleadoController.cambiarPassword);
 router.delete('/:id', verificarRol(['admin']), empleadoController.remove);

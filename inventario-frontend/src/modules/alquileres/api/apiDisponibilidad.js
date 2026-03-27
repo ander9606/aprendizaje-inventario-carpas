@@ -3,9 +3,7 @@
 // Verificación de disponibilidad de elementos
 // ============================================
 
-import axios from 'axios'
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
+import api from '@shared/api/Axios.config'
 
 const apiDisponibilidad = {
   /**
@@ -15,7 +13,7 @@ const apiDisponibilidad = {
    * @param {string} fechaDesmontaje - Fecha de desmontaje YYYY-MM-DD
    */
   verificarProductos: async (productos, fechaMontaje, fechaDesmontaje) => {
-    const response = await axios.post(`${API_URL}/disponibilidad/verificar`, {
+    const response = await api.post('/disponibilidad/verificar', {
       productos,
       fecha_montaje: fechaMontaje,
       fecha_desmontaje: fechaDesmontaje
@@ -34,7 +32,7 @@ const apiDisponibilidad = {
     if (fechaInicio) params.fecha_inicio = fechaInicio
     if (fechaFin) params.fecha_fin = fechaFin
 
-    const response = await axios.get(`${API_URL}/disponibilidad/cotizacion/${cotizacionId}`, { params })
+    const response = await api.get(`/disponibilidad/cotizacion/${cotizacionId}`, { params })
     return response.data
   },
 
@@ -53,7 +51,7 @@ const apiDisponibilidad = {
       params.elementos = elementoIds.join(',')
     }
 
-    const response = await axios.get(`${API_URL}/disponibilidad/calendario`, { params })
+    const response = await api.get('/disponibilidad/calendario', { params })
     return response.data
   },
 
@@ -62,7 +60,7 @@ const apiDisponibilidad = {
    * @param {Array} productos - [{ compuesto_id, cantidad, configuracion }]
    */
   descomponerProductos: async (productos) => {
-    const response = await axios.post(`${API_URL}/disponibilidad/descomponer`, { productos })
+    const response = await api.post('/disponibilidad/descomponer', { productos })
     return response.data
   }
 }

@@ -4,7 +4,7 @@
 // ============================================
 
 import { useState } from 'react'
-import { Plus, MapPin, ArrowLeft, Pencil, Trash2, Search, Truck, Navigation } from 'lucide-react'
+import { Plus, MapPin, ArrowLeft, Pencil, Trash2, Search, Truck, Navigation, ExternalLink } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import {
   useGetCiudades,
@@ -277,7 +277,14 @@ export default function CiudadesPage() {
                     Ciudades
                   </h1>
                   <p className="text-sm text-slate-600">
-                    Catálogo de ciudades con tarifas de transporte
+                    Catalogo de ciudades con tarifas de transporte &middot;{' '}
+                    <button
+                      onClick={() => navigate('/configuracion/ubicaciones')}
+                      className="text-blue-600 hover:text-blue-700 font-medium hover:underline inline-flex items-center gap-1"
+                    >
+                      Ver destinos
+                      <ExternalLink className="w-3 h-3" />
+                    </button>
                   </p>
                 </div>
               </div>
@@ -393,10 +400,11 @@ export default function CiudadesPage() {
                         <div className="flex items-center justify-center gap-1">
                           <button
                             onClick={() => setDireccionesModal({ open: true, ciudad })}
-                            className="p-2 text-slate-500 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                            title="Direcciones"
+                            className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-green-700 bg-green-50 hover:bg-green-100 border border-green-200 rounded-lg transition-colors"
+                            title="Gestionar destinos de esta ciudad"
                           >
-                            <Navigation className="w-4 h-4" />
+                            <Navigation className="w-3.5 h-3.5" />
+                            Destinos
                           </button>
                           <button
                             onClick={() => handleOpenEditar(ciudad)}

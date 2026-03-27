@@ -155,7 +155,7 @@ exports.crear = async (req, res, next) => {
 
     res.status(201).json({
       success: true,
-      mensaje: 'Elemento compuesto creado exitosamente',
+      message: 'Elemento compuesto creado exitosamente',
       data: elementoCreado
     });
   } catch (error) {
@@ -195,7 +195,7 @@ exports.actualizar = async (req, res, next) => {
 
     res.json({
       success: true,
-      mensaje: 'Elemento compuesto actualizado exitosamente',
+      message: 'Elemento compuesto actualizado exitosamente',
       data: elementoActualizado
     });
   } catch (error) {
@@ -226,7 +226,7 @@ exports.eliminar = async (req, res, next) => {
 
     res.json({
       success: true,
-      mensaje: 'Elemento compuesto eliminado exitosamente'
+      message: 'Elemento compuesto eliminado exitosamente'
     });
   } catch (error) {
     logger.error('elementoCompuestoController.eliminar', error);
@@ -295,7 +295,7 @@ exports.agregarComponente = async (req, res, next) => {
 
     res.status(201).json({
       success: true,
-      mensaje: 'Componente agregado exitosamente',
+      message: 'Componente agregado exitosamente',
       data: elementoActualizado
     });
   } catch (error) {
@@ -320,7 +320,7 @@ exports.eliminarComponente = async (req, res, next) => {
 
     res.json({
       success: true,
-      mensaje: 'Componente eliminado exitosamente'
+      message: 'Componente eliminado exitosamente'
     });
   } catch (error) {
     logger.error('elementoCompuestoController.eliminarComponente', error);
@@ -353,7 +353,7 @@ exports.actualizarComponentes = async (req, res, next) => {
 
     res.json({
       success: true,
-      mensaje: 'Componentes actualizados exitosamente',
+      message: 'Componentes actualizados exitosamente',
       data: elementoActualizado
     });
   } catch (error) {
@@ -390,7 +390,7 @@ exports.subirImagen = async (req, res, next) => {
 
     res.json({
       success: true,
-      mensaje: 'Imagen subida correctamente',
+      message: 'Imagen subida correctamente',
       data: { imagen: imagenUrl }
     });
   } catch (error) {
@@ -421,7 +421,7 @@ exports.eliminarImagen = async (req, res, next) => {
 
     res.json({
       success: true,
-      mensaje: 'Imagen eliminada correctamente'
+      message: 'Imagen eliminada correctamente'
     });
   } catch (error) {
     logger.error('elementoCompuestoController.eliminarImagen', error);

@@ -54,13 +54,16 @@ async function crearAdmin() {
                 telefono VARCHAR(20),
                 password_hash VARCHAR(255) NOT NULL,
                 rol_id INT,
-                activo BOOLEAN DEFAULT TRUE,
+                estado ENUM('pendiente', 'activo', 'inactivo') NOT NULL DEFAULT 'activo',
+                rol_solicitado_id INT NULL,
+                motivo_rechazo VARCHAR(255) NULL,
                 ultimo_login TIMESTAMP NULL,
                 intentos_fallidos INT DEFAULT 0,
                 bloqueado_hasta TIMESTAMP NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                FOREIGN KEY (rol_id) REFERENCES roles(id)
+                FOREIGN KEY (rol_id) REFERENCES roles(id),
+                FOREIGN KEY (rol_solicitado_id) REFERENCES roles(id)
             )
         `)
 
@@ -216,8 +219,8 @@ async function crearAdmin() {
         // ============================================
         console.log('👤 Creando usuario admin...')
 
-        const email = 'admin@carpas.com'
-        const password = 'admin123'
+        const email = process.env.ADMIN_EMAIL || 'admin@carpas.com'
+        const password = process.env.ADMIN_PASSWORD || require('crypto').randomBytes(12).toString('base64url')
 
         const [existeUsuario] = await connection.execute(
             'SELECT id FROM empleados WHERE email = ?',

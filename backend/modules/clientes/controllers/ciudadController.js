@@ -90,7 +90,7 @@ exports.crear = async (req, res, next) => {
 
     res.status(201).json({
       success: true,
-      mensaje: 'Ciudad creada exitosamente',
+      message: 'Ciudad creada exitosamente',
       data: ciudadCreada
     });
   } catch (error) {
@@ -132,7 +132,7 @@ exports.actualizar = async (req, res, next) => {
 
     res.json({
       success: true,
-      mensaje: 'Ciudad actualizada exitosamente',
+      message: 'Ciudad actualizada exitosamente',
       data: ciudadActualizada
     });
   } catch (error) {
@@ -157,7 +157,7 @@ exports.eliminar = async (req, res, next) => {
 
     res.json({
       success: true,
-      mensaje: 'Ciudad eliminada exitosamente'
+      message: 'Ciudad eliminada exitosamente'
     });
   } catch (error) {
     // Si el modelo lanza error por tener ubicaciones asociadas
@@ -185,7 +185,7 @@ exports.desactivar = async (req, res, next) => {
 
     res.json({
       success: true,
-      mensaje: 'Ciudad desactivada exitosamente'
+      message: 'Ciudad desactivada exitosamente'
     });
   } catch (error) {
     next(error);

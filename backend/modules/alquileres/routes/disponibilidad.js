@@ -6,6 +6,10 @@
 const express = require('express');
 const router = express.Router();
 const disponibilidadController = require('../controllers/disponibilidadController');
+const { verificarToken } = require('../../auth/middleware/authMiddleware');
+
+// Todas las rutas requieren autenticación
+router.use(verificarToken);
 
 // POST /api/disponibilidad/verificar - Verificar disponibilidad de productos (sin cotización)
 router.post('/verificar', disponibilidadController.verificarProductos);

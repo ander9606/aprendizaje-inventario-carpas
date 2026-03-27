@@ -7,6 +7,10 @@ const express = require('express');
 const router = express.Router();
 const elementoController = require('../controllers/elementoController');
 const { uploadElementoImagen } = require('../../../middleware/upload');
+const { verificarToken } = require('../../auth/middleware/authMiddleware');
+
+// Todas las rutas requieren autenticación
+router.use(verificarToken);
 
 // ============================================
 // RUTAS ESPECIALES (van primero)
@@ -26,6 +30,9 @@ router.get('/categoria/:categoriaId', elementoController.obtenerPorCategoria);
 
 // GET /api/elementos/subcategoria/:subcategoriaId (alias para mejor semántica)
 router.get('/subcategoria/:subcategoriaId', elementoController.obtenerPorCategoria);
+
+// GET /api/elementos/categoria/:categoriaId/directos - Solo elementos directos (sin subcategorías)
+router.get('/categoria/:categoriaId/directos', elementoController.obtenerDirectosPorCategoria);
 
 // GET /api/elementos/alertas-stock - Alertas de stock bajo
 router.get('/alertas-stock', elementoController.obtenerAlertasStock);

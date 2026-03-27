@@ -232,7 +232,7 @@ exports.crear = async (req, res, next) => {
 
         res.status(201).json({
             success: true,
-            mensaje: MENSAJES_EXITO.CREADO(ENTIDADES.UBICACION),
+            message: MENSAJES_EXITO.CREADO(ENTIDADES.UBICACION),
             data: ubicacion
         });
     } catch (error) {
@@ -279,7 +279,7 @@ exports.actualizar = async (req, res, next) => {
 
         res.json({
             success: true,
-            mensaje: MENSAJES_EXITO.ACTUALIZADO(ENTIDADES.UBICACION),
+            message: MENSAJES_EXITO.ACTUALIZADO(ENTIDADES.UBICACION),
             data: ubicacionActualizada
         });
     } catch (error) {
@@ -311,7 +311,7 @@ exports.marcarComoPrincipal = async (req, res, next) => {
 
         res.json({
             success: true,
-            mensaje: 'Ubicación marcada como principal exitosamente',
+            message: 'Ubicación marcada como principal exitosamente',
             data: ubicacionActualizada
         });
     } catch (error) {
@@ -338,7 +338,7 @@ exports.desactivar = async (req, res, next) => {
 
         res.json({
             success: true,
-            mensaje: 'Ubicación desactivada exitosamente'
+            message: 'Ubicación desactivada exitosamente'
         });
     } catch (error) {
         logger.error('ubicacionController.desactivar', error);
@@ -364,7 +364,7 @@ exports.activar = async (req, res, next) => {
 
         res.json({
             success: true,
-            mensaje: 'Ubicación activada exitosamente'
+            message: 'Ubicación activada exitosamente'
         });
     } catch (error) {
         logger.error('ubicacionController.activar', error);
@@ -390,7 +390,7 @@ exports.eliminar = async (req, res, next) => {
 
         res.json({
             success: true,
-            mensaje: MENSAJES_EXITO.ELIMINADO(ENTIDADES.UBICACION)
+            message: MENSAJES_EXITO.ELIMINADO(ENTIDADES.UBICACION)
         });
     } catch (error) {
         logger.error('ubicacionController.eliminar', error);
