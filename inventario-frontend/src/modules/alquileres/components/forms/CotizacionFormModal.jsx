@@ -1462,7 +1462,6 @@ const CotizacionFormModal = ({
         {pasoActual === 3 && (<>
 
         {/* DESTINO DEL EVENTO */}
-        {!eventoPreseleccionado && (
           <div className="space-y-4">
             <h3 className="font-semibold text-slate-900 flex items-center gap-2">
               <MapPin className="w-5 h-5" />
@@ -1591,7 +1590,6 @@ const CotizacionFormModal = ({
               </div>
             )}
           </div>
-        )}
 
         {/* TRANSPORTE */}
         <div className="space-y-4">
