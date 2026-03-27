@@ -108,7 +108,7 @@ const ComponentesProductoModal = ({
     <div className="fixed inset-0 z-50 overflow-y-auto">
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/50 transition-opacity"
+        className="fixed inset-0 bg-black/70 transition-opacity"
         onClick={onClose}
       />
 
@@ -143,33 +143,50 @@ const ComponentesProductoModal = ({
           {/* Content */}
           <div className="p-4 max-h-[60vh] overflow-y-auto">
             {/* Resumen de disponibilidad */}
-            {disponibilidad && (
-              <div className={`mb-4 p-3 rounded-lg ${
-                disponibilidad.hay_problemas
-                  ? 'bg-red-50 border border-red-200'
-                  : 'bg-green-50 border border-green-200'
-              }`}>
-                <div className="flex items-center gap-2">
-                  {disponibilidad.hay_problemas
-                    ? <AlertTriangle className="w-5 h-5 text-red-500" />
-                    : <CheckCircle className="w-5 h-5 text-green-500" />
-                  }
-                  <span className={`font-medium ${
-                    disponibilidad.hay_problemas ? 'text-red-700' : 'text-green-700'
-                  }`}>
+            {disponibilidad && (() => {
+              const elementosInsuficientes = disponibilidad.elementos
+                ? disponibilidad.elementos.filter(e => e.estado === 'insuficiente')
+                : []
+
+              return (
+                <div className={`mb-4 p-3 rounded-lg ${
+                  disponibilidad.hay_problemas
+                    ? 'bg-red-50 border border-red-200'
+                    : 'bg-green-50 border border-green-200'
+                }`}>
+                  <div className="flex items-center gap-2">
                     {disponibilidad.hay_problemas
-                      ? `${disponibilidad.resumen.elementos_insuficientes} componente(s) con stock insuficiente`
-                      : 'Todos los componentes disponibles'
+                      ? <AlertTriangle className="w-5 h-5 text-red-500" />
+                      : <CheckCircle className="w-5 h-5 text-green-500" />
                     }
-                  </span>
+                    <span className={`font-medium ${
+                      disponibilidad.hay_problemas ? 'text-red-700' : 'text-green-700'
+                    }`}>
+                      {disponibilidad.hay_problemas
+                        ? `${elementosInsuficientes.length} componente(s) con stock insuficiente`
+                        : 'Todos los componentes disponibles'
+                      }
+                    </span>
+                  </div>
+                  {elementosInsuficientes.length > 0 && (
+                    <ul className="mt-2 text-sm text-red-700 space-y-0.5 pl-7">
+                      {elementosInsuficientes.map(e => (
+                        <li key={e.elemento_id} className="list-disc">
+                          {e.elemento_nombre || `Elemento #${e.elemento_id}`}
+                          {' '}&mdash; disponibles: {e.disponibles}, necesarios: {e.cantidad_requerida}
+                          {e.faltantes > 0 && ` (faltan ${e.faltantes})`}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {cantidadSolicitada > 1 && (
+                    <p className="text-sm text-slate-600 mt-1">
+                      Para {cantidadSolicitada} unidades del producto
+                    </p>
+                  )}
                 </div>
-                {cantidadSolicitada > 1 && (
-                  <p className="text-sm text-slate-600 mt-1">
-                    Para {cantidadSolicitada} unidades del producto
-                  </p>
-                )}
-              </div>
-            )}
+              )
+            })()}
 
             {/* Loading */}
             {(loadingComponentes || loadingDisponibilidad) && (
