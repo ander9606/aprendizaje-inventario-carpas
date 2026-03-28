@@ -134,6 +134,7 @@ class OrdenTrabajoModel {
                 ot.prioridad,
                 ot.vehiculo_id,
                 ot.created_at,
+                ot.updated_at,
                 cot.id as cotizacion_id,
                 cot.evento_nombre,
                 cot.evento_ciudad,

@@ -117,8 +117,9 @@ function ModalDetalleHistorial({ isOpen, onClose, evento }) {
     const montaje = evento.montaje
     const desmontaje = evento.desmontaje
     const responsable = montaje?.nombre_responsable || desmontaje?.nombre_responsable
-    const novedadesMontaje = montaje?.notas
-    const novedadesDesmontaje = desmontaje?.notas
+    const esNotaGenerica = (nota) => nota && /^(Montaje|Desmontaje) para evento:/i.test(nota)
+    const novedadesMontaje = esNotaGenerica(montaje?.notas) ? null : montaje?.notas
+    const novedadesDesmontaje = esNotaGenerica(desmontaje?.notas) ? null : desmontaje?.notas
 
     return (
         <Modal
@@ -163,25 +164,43 @@ function ModalDetalleHistorial({ isOpen, onClose, evento }) {
                         </div>
                     </div>
 
-                    {/* Fecha montaje */}
-                    <div className="flex items-start gap-3">
+                    {/* Montaje: inicio y fin */}
+                    <div className="flex items-start gap-3 md:col-span-2">
                         <div className="p-2 bg-green-50 rounded-lg shrink-0">
                             <Clock className="w-4 h-4 text-green-500" />
                         </div>
-                        <div>
-                            <p className="text-xs text-slate-400 font-medium">Montaje</p>
-                            <p className="text-sm text-slate-700 mt-0.5">{formatFechaHora(evento.fecha_montaje)}</p>
+                        <div className="flex-1">
+                            <p className="text-xs text-slate-400 font-medium mb-1">Montaje</p>
+                            <div className="flex flex-col sm:flex-row sm:gap-6 gap-0.5">
+                                <p className="text-sm text-slate-700">
+                                    <span className="text-slate-400">Inicio: </span>
+                                    {formatFechaHora(montaje?.fecha_programada || evento.fecha_montaje)}
+                                </p>
+                                <p className="text-sm text-slate-700">
+                                    <span className="text-slate-400">Fin: </span>
+                                    {montaje?.updated_at ? formatFechaHora(montaje.updated_at) : 'Sin datos'}
+                                </p>
+                            </div>
                         </div>
                     </div>
 
-                    {/* Fecha desmontaje */}
-                    <div className="flex items-start gap-3">
+                    {/* Desmontaje: inicio y fin */}
+                    <div className="flex items-start gap-3 md:col-span-2">
                         <div className="p-2 bg-purple-50 rounded-lg shrink-0">
                             <Clock className="w-4 h-4 text-purple-500" />
                         </div>
-                        <div>
-                            <p className="text-xs text-slate-400 font-medium">Desmontaje</p>
-                            <p className="text-sm text-slate-700 mt-0.5">{formatFechaHora(evento.fecha_desmontaje)}</p>
+                        <div className="flex-1">
+                            <p className="text-xs text-slate-400 font-medium mb-1">Desmontaje</p>
+                            <div className="flex flex-col sm:flex-row sm:gap-6 gap-0.5">
+                                <p className="text-sm text-slate-700">
+                                    <span className="text-slate-400">Inicio: </span>
+                                    {formatFechaHora(desmontaje?.fecha_programada || evento.fecha_desmontaje)}
+                                </p>
+                                <p className="text-sm text-slate-700">
+                                    <span className="text-slate-400">Fin: </span>
+                                    {desmontaje?.updated_at ? formatFechaHora(desmontaje.updated_at) : 'Sin datos'}
+                                </p>
+                            </div>
                         </div>
                     </div>
 
