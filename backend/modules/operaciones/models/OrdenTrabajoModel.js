@@ -148,7 +148,9 @@ class OrdenTrabajoModel {
                 v.marca as vehiculo_marca,
                 COALESCE(elem_count.total, 0) as total_elementos,
                 COALESCE(equipo_count.total, 0) as total_equipo,
-                COALESCE(prod_count.total, 0) as total_productos
+                COALESCE(prod_count.total, 0) as total_productos,
+                resp.nombre_responsable,
+                prod_nombres.nombres_productos
             FROM ordenes_trabajo ot
             LEFT JOIN alquileres a ON ot.alquiler_id = a.id
             LEFT JOIN cotizaciones cot ON a.cotizacion_id = cot.id
@@ -169,6 +171,21 @@ class OrdenTrabajoModel {
                 FROM cotizacion_productos
                 GROUP BY cotizacion_id
             ) prod_count ON prod_count.cotizacion_id = cot.id
+            LEFT JOIN (
+                SELECT ote.orden_id,
+                       CONCAT(e.nombre, ' ', e.apellido) as nombre_responsable
+                FROM orden_trabajo_equipo ote
+                INNER JOIN empleados e ON ote.empleado_id = e.id
+                WHERE ote.rol_en_orden = 'responsable'
+                GROUP BY ote.orden_id
+            ) resp ON resp.orden_id = ot.id
+            LEFT JOIN (
+                SELECT cp.cotizacion_id,
+                       GROUP_CONCAT(ec.nombre SEPARATOR ', ') as nombres_productos
+                FROM cotizacion_productos cp
+                INNER JOIN elementos_compuestos ec ON cp.compuesto_id = ec.id
+                GROUP BY cp.cotizacion_id
+            ) prod_nombres ON prod_nombres.cotizacion_id = cot.id
             ${whereClause}
             ORDER BY ot.${ordenarCampo} ${ordenarDireccion}
             LIMIT ? OFFSET ?
