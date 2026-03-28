@@ -119,7 +119,6 @@ function ModalDetalleHistorial({ isOpen, onClose, evento }) {
     const responsable = montaje?.nombre_responsable || desmontaje?.nombre_responsable
     const novedadesMontaje = montaje?.notas
     const novedadesDesmontaje = desmontaje?.notas
-    const tieneNovedades = novedadesMontaje || novedadesDesmontaje
 
     return (
         <Modal
@@ -207,14 +206,23 @@ function ModalDetalleHistorial({ isOpen, onClose, evento }) {
                             <FileText className="w-4 h-4 text-amber-500" />
                         </div>
                         <div className="flex-1">
-                            <p className="text-xs text-slate-400 font-medium mb-1">Novedades</p>
-                            {tieneNovedades ? (
-                                <p className="text-sm text-slate-600">
-                                    {[novedadesMontaje, novedadesDesmontaje].filter(Boolean).join(' — ')}
+                            <p className="text-xs text-slate-400 font-medium mb-2">Novedades</p>
+                            <div className="space-y-1.5">
+                                <p className="text-sm">
+                                    <span className="text-slate-500">Montaje: </span>
+                                    {novedadesMontaje
+                                        ? <span className="text-slate-700">{novedadesMontaje}</span>
+                                        : <span className="text-slate-400 italic">sin novedad</span>
+                                    }
                                 </p>
-                            ) : (
-                                <p className="text-sm text-slate-400 italic">Sin novedades en montaje y desmontaje</p>
-                            )}
+                                <p className="text-sm">
+                                    <span className="text-slate-500">Desmontaje: </span>
+                                    {novedadesDesmontaje
+                                        ? <span className="text-slate-700">{novedadesDesmontaje}</span>
+                                        : <span className="text-slate-400 italic">sin novedad</span>
+                                    }
+                                </p>
+                            </div>
                         </div>
                     </div>
                 </div>
