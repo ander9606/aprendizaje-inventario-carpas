@@ -27,6 +27,7 @@ import {
 } from 'lucide-react'
 import { useGetOrdenes } from '../hooks/useOrdenesTrabajo'
 import Spinner from '@shared/components/Spinner'
+import Modal from '@shared/components/Modal'
 
 // ============================================
 // HELPERS
@@ -108,13 +109,227 @@ const esEventoFinalizado = (evento) => {
 }
 
 // ============================================
+// COMPONENTE: MODAL DETALLE HISTORIAL
+// ============================================
+function ModalDetalleHistorial({ isOpen, onClose, evento }) {
+    if (!evento) return null
+
+    const montaje = evento.montaje
+    const desmontaje = evento.desmontaje
+    const responsable = montaje?.nombre_responsable || desmontaje?.nombre_responsable
+    const esNotaGenerica = (nota) => nota && /^(Montaje|Desmontaje) para evento:/i.test(nota)
+    const novedadesMontaje = esNotaGenerica(montaje?.notas) ? null : montaje?.notas
+    const novedadesDesmontaje = esNotaGenerica(desmontaje?.notas) ? null : desmontaje?.notas
+
+    return (
+        <Modal
+            isOpen={isOpen}
+            onClose={onClose}
+            title={evento.evento_nombre || evento.cliente_nombre || 'Detalle del Evento'}
+            size="md"
+        >
+            <div className="space-y-4">
+                {/* Info grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                    {/* Encargado */}
+                    <div className="flex items-start gap-3">
+                        <div className="p-2 bg-slate-100 rounded-lg shrink-0">
+                            <User className="w-4 h-4 text-slate-500" />
+                        </div>
+                        <div>
+                            <p className="text-xs text-slate-400 font-medium">Encargado</p>
+                            <p className="text-sm text-slate-700 mt-0.5">{responsable || 'Sin asignar'}</p>
+                        </div>
+                    </div>
+
+                    {/* Cliente */}
+                    <div className="flex items-start gap-3">
+                        <div className="p-2 bg-blue-50 rounded-lg shrink-0">
+                            <User className="w-4 h-4 text-blue-500" />
+                        </div>
+                        <div>
+                            <p className="text-xs text-slate-400 font-medium">Cliente</p>
+                            <p className="text-sm text-slate-700 mt-0.5">{evento.cliente_nombre || 'Sin cliente'}</p>
+                        </div>
+                    </div>
+
+                    {/* Producto */}
+                    <div className="flex items-start gap-3 md:col-span-2">
+                        <div className="p-2 bg-orange-50 rounded-lg shrink-0">
+                            <Package className="w-4 h-4 text-orange-500" />
+                        </div>
+                        <div>
+                            <p className="text-xs text-slate-400 font-medium">Producto</p>
+                            <p className="text-sm text-slate-700 mt-0.5">{evento.nombres_productos || 'Sin productos'}</p>
+                        </div>
+                    </div>
+
+                    {/* Montaje: inicio y fin */}
+                    <div className="flex items-start gap-3 md:col-span-2">
+                        <div className="p-2 bg-green-50 rounded-lg shrink-0">
+                            <Clock className="w-4 h-4 text-green-500" />
+                        </div>
+                        <div className="flex-1">
+                            <p className="text-xs text-slate-400 font-medium mb-1">Montaje</p>
+                            <div className="flex flex-col sm:flex-row sm:gap-6 gap-0.5">
+                                <p className="text-sm text-slate-700">
+                                    <span className="text-slate-400">Inicio: </span>
+                                    {formatFechaHora(montaje?.fecha_programada || evento.fecha_montaje)}
+                                </p>
+                                <p className="text-sm text-slate-700">
+                                    <span className="text-slate-400">Fin: </span>
+                                    {montaje?.updated_at ? formatFechaHora(montaje.updated_at) : 'Sin datos'}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Desmontaje: inicio y fin */}
+                    <div className="flex items-start gap-3 md:col-span-2">
+                        <div className="p-2 bg-purple-50 rounded-lg shrink-0">
+                            <Clock className="w-4 h-4 text-purple-500" />
+                        </div>
+                        <div className="flex-1">
+                            <p className="text-xs text-slate-400 font-medium mb-1">Desmontaje</p>
+                            <div className="flex flex-col sm:flex-row sm:gap-6 gap-0.5">
+                                <p className="text-sm text-slate-700">
+                                    <span className="text-slate-400">Inicio: </span>
+                                    {formatFechaHora(desmontaje?.fecha_programada || evento.fecha_desmontaje)}
+                                </p>
+                                <p className="text-sm text-slate-700">
+                                    <span className="text-slate-400">Fin: </span>
+                                    {desmontaje?.updated_at ? formatFechaHora(desmontaje.updated_at) : 'Sin datos'}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Lugar */}
+                    <div className="flex items-start gap-3 md:col-span-2">
+                        <div className="p-2 bg-red-50 rounded-lg shrink-0">
+                            <MapPin className="w-4 h-4 text-red-500" />
+                        </div>
+                        <div>
+                            <p className="text-xs text-slate-400 font-medium">Lugar</p>
+                            <p className="text-sm text-slate-700 mt-0.5">
+                                {evento.direccion_evento || evento.ciudad_evento || 'Sin lugar'}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Novedades */}
+                <div className="border-t border-slate-100 pt-4">
+                    <div className="flex items-start gap-3">
+                        <div className="p-2 bg-amber-50 rounded-lg shrink-0">
+                            <FileText className="w-4 h-4 text-amber-500" />
+                        </div>
+                        <div className="flex-1">
+                            <p className="text-xs text-slate-400 font-medium mb-2">Novedades</p>
+                            <div className="space-y-1.5">
+                                <p className="text-sm">
+                                    <span className="text-slate-500">Montaje: </span>
+                                    {novedadesMontaje
+                                        ? <span className="text-slate-700">{novedadesMontaje}</span>
+                                        : <span className="text-slate-400 italic">sin novedad</span>
+                                    }
+                                </p>
+                                <p className="text-sm">
+                                    <span className="text-slate-500">Desmontaje: </span>
+                                    {novedadesDesmontaje
+                                        ? <span className="text-slate-700">{novedadesDesmontaje}</span>
+                                        : <span className="text-slate-400 italic">sin novedad</span>
+                                    }
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </Modal>
+    )
+}
+
+// ============================================
+// COMPONENTE: MODAL DETALLE ORDEN MANUAL
+// ============================================
+function ModalDetalleManual({ isOpen, onClose, orden }) {
+    if (!orden) return null
+
+    const tipoConfig = getTipoConfig(orden.tipo)
+
+    return (
+        <Modal
+            isOpen={isOpen}
+            onClose={onClose}
+            title={`#${orden.id} — ${tipoConfig.label}`}
+            size="sm"
+        >
+            <div className="space-y-4">
+                <div className="grid grid-cols-1 gap-y-4">
+                    {orden.nombre_responsable && (
+                        <div className="flex items-start gap-3">
+                            <div className="p-2 bg-slate-100 rounded-lg shrink-0">
+                                <User className="w-4 h-4 text-slate-500" />
+                            </div>
+                            <div>
+                                <p className="text-xs text-slate-400 font-medium">Encargado</p>
+                                <p className="text-sm text-slate-700 mt-0.5">{orden.nombre_responsable}</p>
+                            </div>
+                        </div>
+                    )}
+                    {(orden.direccion_evento || orden.ciudad_evento) && (
+                        <div className="flex items-start gap-3">
+                            <div className="p-2 bg-red-50 rounded-lg shrink-0">
+                                <MapPin className="w-4 h-4 text-red-500" />
+                            </div>
+                            <div>
+                                <p className="text-xs text-slate-400 font-medium">Lugar</p>
+                                <p className="text-sm text-slate-700 mt-0.5">{orden.direccion_evento || orden.ciudad_evento}</p>
+                            </div>
+                        </div>
+                    )}
+                    <div className="flex items-start gap-3">
+                        <div className="p-2 bg-green-50 rounded-lg shrink-0">
+                            <Calendar className="w-4 h-4 text-green-500" />
+                        </div>
+                        <div>
+                            <p className="text-xs text-slate-400 font-medium">Fecha programada</p>
+                            <p className="text-sm text-slate-700 mt-0.5">{formatFechaHora(orden.fecha_programada)}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="border-t border-slate-100 pt-4">
+                    <div className="flex items-start gap-3">
+                        <div className="p-2 bg-amber-50 rounded-lg shrink-0">
+                            <FileText className="w-4 h-4 text-amber-500" />
+                        </div>
+                        <div>
+                            <p className="text-xs text-slate-400 font-medium">Novedad</p>
+                            {orden.notas ? (
+                                <p className="text-sm text-slate-600 mt-0.5">{orden.notas}</p>
+                            ) : (
+                                <p className="text-sm text-slate-400 italic mt-0.5">Sin novedades</p>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </Modal>
+    )
+}
+
+// ============================================
 // COMPONENTE PRINCIPAL
 // ============================================
 export default function HistorialOrdenesPage() {
     const [busqueda, setBusqueda] = useState('')
     const [filtroTipo, setFiltroTipo] = useState('')
     const [showFiltros, setShowFiltros] = useState(false)
-    const [expandedId, setExpandedId] = useState(null)
+    const [modalEvento, setModalEvento] = useState(null)
+    const [modalManual, setModalManual] = useState(null)
 
     const { ordenes, isLoading } = useGetOrdenes({ limit: 500 })
 
@@ -173,10 +388,6 @@ export default function HistorialOrdenesPage() {
 
     const totalResultados = filtrado.eventos.length + filtrado.manuales.length
     const totalHistorial = eventos.length + manuales.length
-
-    const toggleExpand = (id) => {
-        setExpandedId(prev => prev === id ? null : id)
-    }
 
     if (isLoading) {
         return (
@@ -289,155 +500,71 @@ export default function HistorialOrdenesPage() {
                     )}
                 </div>
             ) : (
-                <div className="space-y-2">
+                <div className="bg-white rounded-xl border border-slate-200 overflow-hidden divide-y divide-slate-100">
                     {/* Eventos finalizados */}
                     {filtrado.eventos.map((evento, idx) => {
                         const montaje = evento.montaje
                         const desmontaje = evento.desmontaje
                         const todoCancelado = (montaje?.estado === 'cancelado' || !montaje) && (desmontaje?.estado === 'cancelado' || !desmontaje)
-                        const isExpanded = expandedId === (evento.alquiler_id || `h-${idx}`)
-                        const cardId = evento.alquiler_id || `h-${idx}`
-                        const responsable = montaje?.nombre_responsable || desmontaje?.nombre_responsable
-                        const novedades = [montaje?.notas, desmontaje?.notas].filter(Boolean).join(' | ')
 
                         return (
                             <div
-                                key={cardId}
-                                className="bg-white rounded-xl border border-slate-200 overflow-hidden transition-shadow hover:shadow-sm"
+                                key={evento.alquiler_id || `h-${idx}`}
+                                className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 cursor-pointer transition-colors group"
+                                onClick={() => setModalEvento(evento)}
                             >
-                                {/* Fila colapsada */}
-                                <div
-                                    className="flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors hover:bg-slate-50"
-                                    onClick={() => toggleExpand(cardId)}
-                                >
-                                    {/* Icono estado */}
-                                    <div className={`p-1.5 rounded-lg shrink-0 ${todoCancelado ? 'bg-red-50' : 'bg-green-50'}`}>
-                                        {todoCancelado
-                                            ? <XCircle className="w-4 h-4 text-red-400" />
-                                            : <CheckCircle className="w-4 h-4 text-green-500" />
-                                        }
-                                    </div>
-
-                                    {/* Info principal */}
-                                    <div className="flex-1 min-w-0">
-                                        <p className="text-sm font-medium text-slate-700 truncate">
-                                            {evento.evento_nombre || evento.cliente_nombre || 'Evento'}
-                                        </p>
-                                        <div className="flex items-center gap-2 mt-0.5">
-                                            {evento.cliente_nombre && evento.evento_nombre && (
-                                                <span className="text-[11px] text-slate-400 flex items-center gap-0.5">
-                                                    <User className="w-3 h-3" />
-                                                    <span className="truncate">{evento.cliente_nombre}</span>
-                                                </span>
-                                            )}
-                                            {evento.ciudad_evento && (
-                                                <span className="text-[11px] text-slate-400 flex items-center gap-0.5">
-                                                    <MapPin className="w-3 h-3" />{evento.ciudad_evento}
-                                                </span>
-                                            )}
-                                        </div>
-                                    </div>
-
-                                    {/* Badges M/D */}
-                                    <div className="flex items-center gap-1.5 shrink-0">
-                                        {montaje && (
-                                            <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
-                                                montaje.estado === 'completado' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-500'
-                                            }`}>
-                                                M
-                                            </span>
-                                        )}
-                                        {desmontaje && (
-                                            <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
-                                                desmontaje.estado === 'completado' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-500'
-                                            }`}>
-                                                D
-                                            </span>
-                                        )}
-                                    </div>
-
-                                    {/* Fecha */}
-                                    <span className="text-xs text-slate-400 shrink-0">
-                                        <Calendar className="w-3 h-3 inline mr-1" />
-                                        {formatFecha(desmontaje?.fecha_programada || montaje?.fecha_programada)}
-                                    </span>
-
-                                    <ChevronRight className={`w-3.5 h-3.5 text-slate-300 transition-transform shrink-0 ${isExpanded ? 'rotate-90' : ''}`} />
+                                {/* Icono estado */}
+                                <div className={`p-1.5 rounded-lg shrink-0 ${todoCancelado ? 'bg-red-50' : 'bg-green-50'}`}>
+                                    {todoCancelado
+                                        ? <XCircle className="w-4 h-4 text-red-400" />
+                                        : <CheckCircle className="w-4 h-4 text-green-500" />
+                                    }
                                 </div>
 
-                                {/* Detalle expandido */}
-                                {isExpanded && (
-                                    <div className="px-4 pb-4 pt-1 border-t border-slate-100">
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 mt-3">
-                                            {/* Encargado */}
-                                            <div className="flex items-start gap-2">
-                                                <User className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
-                                                <div>
-                                                    <p className="text-xs text-slate-400">Encargado</p>
-                                                    <p className="text-sm text-slate-700">{responsable || 'Sin asignar'}</p>
-                                                </div>
-                                            </div>
-
-                                            {/* Cliente */}
-                                            <div className="flex items-start gap-2">
-                                                <User className="w-4 h-4 text-blue-400 mt-0.5 shrink-0" />
-                                                <div>
-                                                    <p className="text-xs text-slate-400">Cliente</p>
-                                                    <p className="text-sm text-slate-700">{evento.cliente_nombre || 'Sin cliente'}</p>
-                                                </div>
-                                            </div>
-
-                                            {/* Producto */}
-                                            <div className="flex items-start gap-2">
-                                                <Package className="w-4 h-4 text-orange-400 mt-0.5 shrink-0" />
-                                                <div>
-                                                    <p className="text-xs text-slate-400">Producto</p>
-                                                    <p className="text-sm text-slate-700 line-clamp-2">{evento.nombres_productos || 'Sin productos'}</p>
-                                                </div>
-                                            </div>
-
-                                            {/* Lugar */}
-                                            <div className="flex items-start gap-2">
-                                                <MapPin className="w-4 h-4 text-red-400 mt-0.5 shrink-0" />
-                                                <div>
-                                                    <p className="text-xs text-slate-400">Lugar</p>
-                                                    <p className="text-sm text-slate-700">
-                                                        {evento.direccion_evento || evento.ciudad_evento || 'Sin lugar'}
-                                                    </p>
-                                                </div>
-                                            </div>
-
-                                            {/* Fecha montaje */}
-                                            <div className="flex items-start gap-2">
-                                                <Clock className="w-4 h-4 text-green-400 mt-0.5 shrink-0" />
-                                                <div>
-                                                    <p className="text-xs text-slate-400">Montaje</p>
-                                                    <p className="text-sm text-slate-700">{formatFechaHora(evento.fecha_montaje)}</p>
-                                                </div>
-                                            </div>
-
-                                            {/* Fecha desmontaje */}
-                                            <div className="flex items-start gap-2">
-                                                <Clock className="w-4 h-4 text-purple-400 mt-0.5 shrink-0" />
-                                                <div>
-                                                    <p className="text-xs text-slate-400">Desmontaje</p>
-                                                    <p className="text-sm text-slate-700">{formatFechaHora(evento.fecha_desmontaje)}</p>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {/* Novedad */}
-                                        {novedades && (
-                                            <div className="flex items-start gap-2 mt-3 pt-3 border-t border-slate-100">
-                                                <FileText className="w-4 h-4 text-amber-400 mt-0.5 shrink-0" />
-                                                <div>
-                                                    <p className="text-xs text-slate-400">Novedad</p>
-                                                    <p className="text-sm text-slate-600">{novedades}</p>
-                                                </div>
-                                            </div>
+                                {/* Info */}
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium text-slate-700 truncate">
+                                        {evento.evento_nombre || evento.cliente_nombre || 'Evento'}
+                                    </p>
+                                    <div className="flex items-center gap-2 mt-0.5">
+                                        {evento.cliente_nombre && evento.evento_nombre && (
+                                            <span className="text-[11px] text-slate-400 flex items-center gap-0.5">
+                                                <User className="w-3 h-3" />
+                                                <span className="truncate">{evento.cliente_nombre}</span>
+                                            </span>
+                                        )}
+                                        {evento.ciudad_evento && (
+                                            <span className="text-[11px] text-slate-400 flex items-center gap-0.5">
+                                                <MapPin className="w-3 h-3" />{evento.ciudad_evento}
+                                            </span>
                                         )}
                                     </div>
-                                )}
+                                </div>
+
+                                {/* Badges M/D */}
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                    {montaje && (
+                                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                                            montaje.estado === 'completado' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-500'
+                                        }`}>
+                                            M
+                                        </span>
+                                    )}
+                                    {desmontaje && (
+                                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                                            desmontaje.estado === 'completado' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-500'
+                                        }`}>
+                                            D
+                                        </span>
+                                    )}
+                                </div>
+
+                                {/* Fecha */}
+                                <span className="text-xs text-slate-400 shrink-0">
+                                    <Calendar className="w-3 h-3 inline mr-1" />
+                                    {formatFecha(desmontaje?.fecha_programada || montaje?.fecha_programada)}
+                                </span>
+                                <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-orange-500 transition-colors shrink-0" />
                             </div>
                         )
                     })}
@@ -446,84 +573,51 @@ export default function HistorialOrdenesPage() {
                     {filtrado.manuales.map((orden) => {
                         const tipoConfig = getTipoConfig(orden.tipo)
                         const TipoIcon = tipoConfig.icon
-                        const isExpanded = expandedId === `m-${orden.id}`
-
                         return (
                             <div
                                 key={`m-${orden.id}`}
-                                className="bg-white rounded-xl border border-slate-200 overflow-hidden transition-shadow hover:shadow-sm"
+                                className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 cursor-pointer transition-colors group"
+                                onClick={() => setModalManual(orden)}
                             >
-                                <div
-                                    className="flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors hover:bg-slate-50"
-                                    onClick={() => toggleExpand(`m-${orden.id}`)}
-                                >
-                                    <div className={`p-1.5 rounded-lg shrink-0 ${
-                                        orden.estado === 'cancelado' ? 'bg-red-50' : 'bg-green-50'
-                                    }`}>
-                                        <TipoIcon className={`w-4 h-4 ${
-                                            orden.estado === 'cancelado' ? 'text-red-400' : 'text-green-500'
-                                        }`} />
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <p className="text-sm font-medium text-slate-700 truncate">
-                                            #{orden.id} — {tipoConfig.label}
-                                        </p>
-                                        {orden.notas && (
-                                            <p className="text-[11px] text-slate-400 truncate">{orden.notas}</p>
-                                        )}
-                                    </div>
-                                    <span className="text-xs text-slate-400 shrink-0">
-                                        <Calendar className="w-3 h-3 inline mr-1" />
-                                        {formatFecha(orden.fecha_programada)}
-                                    </span>
-                                    <ChevronRight className={`w-3.5 h-3.5 text-slate-300 transition-transform shrink-0 ${isExpanded ? 'rotate-90' : ''}`} />
+                                <div className={`p-1.5 rounded-lg shrink-0 ${
+                                    orden.estado === 'cancelado' ? 'bg-red-50' : 'bg-green-50'
+                                }`}>
+                                    <TipoIcon className={`w-4 h-4 ${
+                                        orden.estado === 'cancelado' ? 'text-red-400' : 'text-green-500'
+                                    }`} />
                                 </div>
-
-                                {isExpanded && (
-                                    <div className="px-4 pb-4 pt-1 border-t border-slate-100">
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 mt-3">
-                                            {orden.nombre_responsable && (
-                                                <div className="flex items-start gap-2">
-                                                    <User className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
-                                                    <div>
-                                                        <p className="text-xs text-slate-400">Encargado</p>
-                                                        <p className="text-sm text-slate-700">{orden.nombre_responsable}</p>
-                                                    </div>
-                                                </div>
-                                            )}
-                                            {orden.ciudad_evento && (
-                                                <div className="flex items-start gap-2">
-                                                    <MapPin className="w-4 h-4 text-red-400 mt-0.5 shrink-0" />
-                                                    <div>
-                                                        <p className="text-xs text-slate-400">Lugar</p>
-                                                        <p className="text-sm text-slate-700">{orden.direccion_evento || orden.ciudad_evento}</p>
-                                                    </div>
-                                                </div>
-                                            )}
-                                            <div className="flex items-start gap-2">
-                                                <Calendar className="w-4 h-4 text-green-400 mt-0.5 shrink-0" />
-                                                <div>
-                                                    <p className="text-xs text-slate-400">Fecha programada</p>
-                                                    <p className="text-sm text-slate-700">{formatFechaHora(orden.fecha_programada)}</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        {orden.notas && (
-                                            <div className="flex items-start gap-2 mt-3 pt-3 border-t border-slate-100">
-                                                <FileText className="w-4 h-4 text-amber-400 mt-0.5 shrink-0" />
-                                                <div>
-                                                    <p className="text-xs text-slate-400">Novedad</p>
-                                                    <p className="text-sm text-slate-600">{orden.notas}</p>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium text-slate-700 truncate">
+                                        #{orden.id} — {tipoConfig.label}
+                                    </p>
+                                    {orden.notas && (
+                                        <p className="text-[11px] text-slate-400 truncate">{orden.notas}</p>
+                                    )}
+                                </div>
+                                <span className="text-xs text-slate-400 shrink-0">
+                                    <Calendar className="w-3 h-3 inline mr-1" />
+                                    {formatFecha(orden.fecha_programada)}
+                                </span>
+                                <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-orange-500 transition-colors shrink-0" />
                             </div>
                         )
                     })}
                 </div>
             )}
+
+            {/* Modal detalle evento */}
+            <ModalDetalleHistorial
+                isOpen={!!modalEvento}
+                onClose={() => setModalEvento(null)}
+                evento={modalEvento}
+            />
+
+            {/* Modal detalle manual */}
+            <ModalDetalleManual
+                isOpen={!!modalManual}
+                onClose={() => setModalManual(null)}
+                orden={modalManual}
+            />
         </div>
     )
 }
