@@ -173,7 +173,7 @@ class OrdenTrabajoModel {
             ) prod_count ON prod_count.cotizacion_id = cot.id
             LEFT JOIN (
                 SELECT ote.orden_id,
-                       CONCAT(e.nombre, ' ', e.apellido) as nombre_responsable
+                       MIN(CONCAT(e.nombre, ' ', e.apellido)) as nombre_responsable
                 FROM orden_trabajo_equipo ote
                 INNER JOIN empleados e ON ote.empleado_id = e.id
                 WHERE ote.rol_en_orden = 'responsable'
