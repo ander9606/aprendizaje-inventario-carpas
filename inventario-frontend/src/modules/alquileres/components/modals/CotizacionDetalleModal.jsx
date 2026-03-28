@@ -4,6 +4,7 @@
 // ============================================
 
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Calendar, User, MapPin, Phone, Mail, Truck, FileText, Edit, CheckCircle, XCircle, Ban, Download, Eye, FileEdit, CalendarCheck, MessageSquare, Clock, Shield, ShieldOff } from 'lucide-react'
 import Modal from '@shared/components/Modal'
 import Button from '@shared/components/Button'
@@ -22,6 +23,7 @@ const CotizacionDetalleModal = ({
   onCancelarAlquiler,
   isAprobando = false
 }) => {
+  const navigate = useNavigate()
   const [showCancelarModal, setShowCancelarModal] = useState(false)
   const [notasCancelacion, setNotasCancelacion] = useState('')
   const [descargandoPDF, setDescargandoPDF] = useState(false)
@@ -709,10 +711,17 @@ const CotizacionDetalleModal = ({
           {/* BOTÓN CANCELAR ALQUILER - Solo para cotizaciones aprobadas */}
           {cotizacion.estado === 'aprobada' && cotizacion.alquiler_id && (
             <div className="flex justify-center gap-4 mt-8 pt-6 border-t print:hidden">
-              <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-2 flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  onClose()
+                  navigate(`/alquileres/gestion/${cotizacion.alquiler_id}`)
+                }}
+                className="bg-green-50 border border-green-200 rounded-lg px-4 py-2 flex items-center gap-2 hover:bg-green-100 hover:border-green-300 transition-colors cursor-pointer"
+              >
                 <CheckCircle className="w-5 h-5 text-green-600" />
                 <span className="text-green-700 font-medium">Cotización Aprobada - Alquiler #{cotizacion.alquiler_id}</span>
-              </div>
+              </button>
 
               <Button
                 variant="danger"
