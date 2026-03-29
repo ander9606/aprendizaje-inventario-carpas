@@ -270,6 +270,22 @@ router.put(
     ordenTrabajoController.verificarElementoBodega
 );
 
+// Marcar/desmarcar daño en elemento del checklist
+router.put(
+    '/ordenes/:id/elementos/:elemId/marcar-dano',
+    verificarRol(['admin', 'gerente', 'operaciones']),
+    verificarAccesoOrden,
+    ordenTrabajoController.marcarDanoElemento
+);
+
+// Generar orden de mantenimiento desde elementos dañados
+router.post(
+    '/ordenes/:id/generar-mantenimiento',
+    verificarRol(['admin', 'gerente', 'operaciones']),
+    verificarAccesoOrden,
+    ordenTrabajoController.generarOrdenMantenimiento
+);
+
 // ============================================
 // RUTAS DE NOVEDADES
 // ============================================

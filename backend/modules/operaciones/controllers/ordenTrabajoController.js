@@ -5,6 +5,7 @@ const AlertaModel = require('../models/AlertaModel');
 const FotoOperacionModel = require('../models/FotoOperacionModel');
 const ValidadorFechasService = require('../services/ValidadorFechasService');
 const SincronizacionAlquilerService = require('../services/SincronizacionAlquilerService');
+const SerieModel = require('../../inventario/models/SerieModel');
 const AuthModel = require('../../auth/models/AuthModel');
 const AppError = require('../../../utils/AppError');
 const logger = require('../../../utils/logger');
@@ -1560,6 +1561,136 @@ const obtenerFirmaCliente = async (req, res, next) => {
     }
 };
 
+/**
+ * PUT /api/operaciones/ordenes/:id/elementos/:elemId/marcar-dano
+ * Marcar o desmarcar un elemento como dañado durante el checklist
+ */
+const marcarDanoElemento = async (req, res, next) => {
+    try {
+        const { id, elemId } = req.params;
+        const { marcado_dano, descripcion_dano } = req.body;
+
+        if (typeof marcado_dano !== 'boolean') {
+            throw new AppError('El campo marcado_dano es requerido (boolean)', 400);
+        }
+
+        if (marcado_dano && (!descripcion_dano || !descripcion_dano.trim())) {
+            throw new AppError('Debe proporcionar una descripción del daño', 400);
+        }
+
+        // Verificar que la orden es de tipo desmontaje (recogida/bodega)
+        const orden = await OrdenTrabajoModel.obtenerPorId(parseInt(id));
+        if (!orden) {
+            throw new AppError('Orden no encontrada', 404);
+        }
+        if (orden.tipo !== 'desmontaje') {
+            throw new AppError('Solo se pueden marcar daños en órdenes de desmontaje (recogida/bodega)', 400);
+        }
+
+        const elemento = await OrdenElementoModel.marcarDano(
+            parseInt(elemId),
+            marcado_dano,
+            descripcion_dano?.trim() || null
+        );
+
+        logger.info('operaciones', `Elemento ${elemId} ${marcado_dano ? 'marcado con daño' : 'desmarcado'} en orden ${id} por ${req.usuario.email}`);
+
+        res.json({
+            success: true,
+            message: marcado_dano ? 'Elemento marcado con daño' : 'Marca de daño removida',
+            data: elemento
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * POST /api/operaciones/ordenes/:id/generar-mantenimiento
+ * Generar una orden de mantenimiento a partir de los elementos dañados
+ */
+const generarOrdenMantenimiento = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+
+        const orden = await OrdenTrabajoModel.obtenerPorId(parseInt(id));
+        if (!orden) {
+            throw new AppError('Orden no encontrada', 404);
+        }
+
+        // Obtener elementos marcados con daño
+        const elementosDanados = await OrdenElementoModel.obtenerElementosConDano(parseInt(id));
+        if (elementosDanados.length === 0) {
+            throw new AppError('No hay elementos marcados con daño en esta orden', 400);
+        }
+
+        // Crear orden de mantenimiento
+        const ordenMantenimiento = await OrdenTrabajoModel.crear({
+            alquiler_id: null,
+            tipo: 'mantenimiento',
+            fecha_programada: new Date().toISOString().split('T')[0],
+            notas: `Generada desde orden #${id} (${orden.tipo}). Elementos con daños detectados durante checklist.`,
+            prioridad: 'alta',
+            creado_por: req.usuario.id
+        });
+
+        // Insertar elementos dañados en la nueva orden y cambiar estado en inventario
+        for (const elem of elementosDanados) {
+            await pool.query(`
+                INSERT INTO orden_trabajo_elementos
+                (orden_id, elemento_id, serie_id, lote_id, cantidad, estado, notas)
+                VALUES (?, ?, ?, ?, ?, 'pendiente', ?)
+            `, [
+                ordenMantenimiento.id,
+                elem.elemento_id,
+                elem.serie_id || null,
+                elem.lote_id || null,
+                elem.cantidad || 1,
+                elem.descripcion_dano || null
+            ]);
+
+            // Cambiar estado de serie a 'mantenimiento'
+            if (elem.serie_id) {
+                await SerieModel.cambiarEstado(elem.serie_id, 'mantenimiento', null, null);
+                logger.info('operaciones', `Serie ${elem.serie_codigo || elem.serie_id} → mantenimiento (orden mant. ${ordenMantenimiento.id})`);
+            }
+
+            // Cambiar estado de lote a 'mantenimiento'
+            if (elem.lote_id) {
+                await pool.query(`
+                    UPDATE lotes SET estado = 'mantenimiento' WHERE id = ?
+                `, [elem.lote_id]);
+                logger.info('operaciones', `Lote ${elem.lote_codigo || elem.lote_id} → mantenimiento (orden mant. ${ordenMantenimiento.id})`);
+            }
+        }
+
+        await AuthModel.registrarAuditoria({
+            empleado_id: req.usuario.id,
+            accion: 'GENERAR_ORDEN_MANTENIMIENTO',
+            tabla_afectada: 'ordenes_trabajo',
+            registro_id: ordenMantenimiento.id,
+            datos_nuevos: {
+                orden_origen: parseInt(id),
+                elementos_danados: elementosDanados.length
+            },
+            ip_address: req.ip,
+            user_agent: req.get('User-Agent')
+        });
+
+        logger.info('operaciones', `Orden mantenimiento ${ordenMantenimiento.id} generada desde orden ${id} con ${elementosDanados.length} elementos por ${req.usuario.email}`);
+
+        const ordenCompleta = await OrdenTrabajoModel.obtenerPorId(ordenMantenimiento.id);
+
+        res.status(201).json({
+            success: true,
+            message: `Orden de mantenimiento #${ordenMantenimiento.id} creada con ${elementosDanados.length} elemento(s)`,
+            data: ordenCompleta
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 module.exports = {
     // Órdenes
     getOrdenes,
@@ -1593,6 +1724,8 @@ module.exports = {
     verificarElementoCargue,
     verificarElementoDescargue,
     verificarElementoBodega,
+    marcarDanoElemento,
+    generarOrdenMantenimiento,
 
     // Alertas
     getAlertas,

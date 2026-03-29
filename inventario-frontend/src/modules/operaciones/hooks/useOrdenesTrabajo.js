@@ -746,6 +746,7 @@ export const useGetChecklist = (ordenId, options = {}) => {
         verificadosCargue: data?.data?.verificadosCargue || 0,
         verificadosRecogida: data?.data?.verificadosRecogida || 0,
         verificadosBodega: data?.data?.verificadosBodega || 0,
+        elementosConDano: data?.data?.elementosConDano || 0,
         // Alias compatibilidad
         verificadosDescargue: data?.data?.verificadosRecogida || 0,
         isLoading,
@@ -808,6 +809,38 @@ export const useVerificarElementoBodega = () => {
             ordenesAPI.verificarElementoBodega(ordenId, elementoId, { verificado, notas }),
         retry: 0,
         onSuccess: (_, variables) => _invalidateChecklist(queryClient, variables.ordenId)
+    })
+}
+
+/**
+ * Hook: useMarcarDanoElemento
+ * Marcar/desmarcar daño en un elemento del checklist
+ */
+export const useMarcarDanoElemento = () => {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: ({ ordenId, elementoId, marcado_dano, descripcion_dano }) =>
+            ordenesAPI.marcarDanoElemento(ordenId, elementoId, { marcado_dano, descripcion_dano }),
+        retry: 0,
+        onSuccess: (_, variables) => _invalidateChecklist(queryClient, variables.ordenId)
+    })
+}
+
+/**
+ * Hook: useGenerarOrdenMantenimiento
+ * Genera una orden de mantenimiento desde elementos dañados
+ */
+export const useGenerarOrdenMantenimiento = () => {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: ({ ordenId }) => ordenesAPI.generarOrdenMantenimiento(ordenId),
+        retry: 0,
+        onSuccess: (_, variables) => {
+            _invalidateChecklist(queryClient, variables.ordenId)
+            queryClient.invalidateQueries({ queryKey: ['ordenes'] })
+        }
     })
 }
 
