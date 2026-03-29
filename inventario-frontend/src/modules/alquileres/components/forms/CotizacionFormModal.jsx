@@ -607,6 +607,54 @@ const CotizacionFormModal = ({
     return Object.keys(newErrors).length === 0
   }
 
+  // Construir datos para la pantalla de éxito
+  const buildDatosExito = (cotizacionId) => {
+    const totales = calcularTotalesConIVA()
+    const clienteSeleccionado = clientes.find(c => c.id === parseInt(formData.cliente_id))
+
+    return {
+      id: cotizacionId,
+      modo: mode,
+      esBorrador: fechasPorConfirmar,
+      // Evento
+      evento_nombre: formData.evento_nombre,
+      evento_ciudad: formData.evento_ciudad,
+      cliente_nombre: clienteSeleccionado?.nombre || eventoPreseleccionado?.cliente_nombre || '',
+      fecha_evento: formData.fecha_evento,
+      fecha_montaje: formData.fecha_montaje,
+      fecha_desmontaje: formData.fecha_desmontaje,
+      // Productos
+      productosResumen: productosSeleccionados.map(prod => {
+        const info = productos.find(p => p.id === parseInt(prod.compuesto_id))
+        const subtotal = ((parseFloat(prod.precio_base) || 0) + (parseFloat(prod.precio_adicionales) || 0)) * (parseInt(prod.cantidad) || 1)
+        const desc = calcularDescuentoProducto(prod)
+        return {
+          nombre: info?.nombre || 'Producto',
+          emoji: info?.categoria_emoji || '',
+          cantidad: parseInt(prod.cantidad) || 1,
+          subtotal: subtotal - desc
+        }
+      }),
+      // Transporte
+      transporteResumen: transporteSeleccionado.filter(t => t.tarifa_id).map(trans => {
+        const tarifa = tarifas.find(t => t.id === parseInt(trans.tarifa_id))
+        return {
+          tipo_camion: tarifa?.tipo_camion || 'Transporte',
+          cantidad: parseInt(trans.cantidad) || 1,
+          subtotal: (tarifa?.precio || 0) * (parseInt(trans.cantidad) || 1)
+        }
+      }),
+      // Descuentos
+      descuentosResumen: descuentosAplicados.map(d => ({
+        nombre: d.nombre,
+        tipo: d.tipo,
+        valor: d.valor
+      })),
+      // Totales
+      totales
+    }
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
 
@@ -681,16 +729,7 @@ const CotizacionFormModal = ({
         })
       } else {
         // Mostrar pantalla de éxito en vez de cerrar inmediatamente
-        const totales = calcularTotalesConIVA()
-        setCotizacionCreada({
-          id: cotizacionId,
-          modo: mode,
-          evento_nombre: formData.evento_nombre,
-          evento_ciudad: formData.evento_ciudad,
-          totalProductos: productosSeleccionados.length,
-          totalFinal: totales.totalFinal,
-          esBorrador: fechasPorConfirmar
-        })
+        setCotizacionCreada(buildDatosExito(cotizacionId))
       }
     } catch (error) {
       console.error('Error al guardar cotizacion:', error)
@@ -721,16 +760,7 @@ const CotizacionFormModal = ({
       }
 
       setGuardarUbicacion(prev => ({ ...prev, mostrar: false }))
-      const totales = calcularTotalesConIVA()
-      setCotizacionCreada({
-        id: guardarUbicacion.cotizacion_id,
-        modo: mode,
-        evento_nombre: formData.evento_nombre,
-        evento_ciudad: formData.evento_ciudad,
-        totalProductos: productosSeleccionados.length,
-        totalFinal: totales.totalFinal,
-        esBorrador: fechasPorConfirmar
-      })
+      setCotizacionCreada(buildDatosExito(guardarUbicacion.cotizacion_id))
     } catch (error) {
       console.error('Error al guardar ubicación:', error)
     }
@@ -738,16 +768,7 @@ const CotizacionFormModal = ({
 
   const handleSkipGuardarUbicacion = () => {
     setGuardarUbicacion(prev => ({ ...prev, mostrar: false }))
-    const totales = calcularTotalesConIVA()
-    setCotizacionCreada({
-      id: guardarUbicacion.cotizacion_id,
-      modo: mode,
-      evento_nombre: formData.evento_nombre,
-      evento_ciudad: formData.evento_ciudad,
-      totalProductos: productosSeleccionados.length,
-      totalFinal: totales.totalFinal,
-      esBorrador: fechasPorConfirmar
-    })
+    setCotizacionCreada(buildDatosExito(guardarUbicacion.cotizacion_id))
   }
 
   const handleClose = () => {
@@ -877,40 +898,126 @@ const CotizacionFormModal = ({
             )}
           </div>
 
-          <div className="bg-slate-50 rounded-lg p-4 w-full max-w-sm space-y-2">
-            {cotizacionCreada.evento_nombre && (
-              <div className="flex justify-between text-sm">
-                <span className="text-slate-500">Evento:</span>
-                <span className="font-medium text-slate-700">{cotizacionCreada.evento_nombre}</span>
+          {/* MINI-RESUMEN */}
+          <div className="w-full space-y-3">
+
+            {/* Evento */}
+            <div className="bg-slate-50 rounded-lg p-3">
+              <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                <Calendar className="w-3.5 h-3.5" />
+                Evento
+              </h4>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+                {cotizacionCreada.cliente_nombre && (
+                  <div className="col-span-2">
+                    <span className="text-slate-500">Cliente: </span>
+                    <span className="font-medium text-slate-700">{cotizacionCreada.cliente_nombre}</span>
+                  </div>
+                )}
+                {cotizacionCreada.evento_nombre && (
+                  <div><span className="text-slate-500">Nombre: </span><span className="font-medium">{cotizacionCreada.evento_nombre}</span></div>
+                )}
+                {cotizacionCreada.evento_ciudad && (
+                  <div><span className="text-slate-500">Ciudad: </span><span className="font-medium">{cotizacionCreada.evento_ciudad}</span></div>
+                )}
+                {cotizacionCreada.esBorrador ? (
+                  <div className="col-span-2 text-amber-600 italic text-xs mt-1">Fechas por confirmar</div>
+                ) : (
+                  <>
+                    {cotizacionCreada.fecha_evento && (
+                      <div><span className="text-slate-500">Evento: </span><span className="font-medium">{cotizacionCreada.fecha_evento}</span></div>
+                    )}
+                    {cotizacionCreada.fecha_montaje && cotizacionCreada.fecha_montaje !== cotizacionCreada.fecha_evento && (
+                      <div><span className="text-slate-500">Montaje: </span><span className="font-medium">{cotizacionCreada.fecha_montaje}</span></div>
+                    )}
+                    {cotizacionCreada.fecha_desmontaje && cotizacionCreada.fecha_desmontaje !== cotizacionCreada.fecha_evento && (
+                      <div><span className="text-slate-500">Desmontaje: </span><span className="font-medium">{cotizacionCreada.fecha_desmontaje}</span></div>
+                    )}
+                  </>
+                )}
               </div>
-            )}
-            {cotizacionCreada.evento_ciudad && (
-              <div className="flex justify-between text-sm">
-                <span className="text-slate-500">Ciudad:</span>
-                <span className="font-medium text-slate-700">{cotizacionCreada.evento_ciudad}</span>
-              </div>
-            )}
-            <div className="flex justify-between text-sm">
-              <span className="text-slate-500">Productos:</span>
-              <span className="font-medium text-slate-700">{cotizacionCreada.totalProductos}</span>
             </div>
-            <div className="flex justify-between text-sm pt-2 border-t border-slate-200">
-              <span className="font-semibold text-slate-700">Total:</span>
-              <span className="font-bold text-blue-600">{formatearMoneda(cotizacionCreada.totalFinal)}</span>
+
+            {/* Productos */}
+            <div className="bg-slate-50 rounded-lg p-3">
+              <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                <Package className="w-3.5 h-3.5" />
+                Productos ({cotizacionCreada.productosResumen.length})
+              </h4>
+              <div className="space-y-1">
+                {cotizacionCreada.productosResumen.map((prod, idx) => (
+                  <div key={idx} className="flex justify-between text-sm">
+                    <span className="text-slate-600 truncate mr-2">
+                      {prod.emoji} {prod.nombre} x{prod.cantidad}
+                    </span>
+                    <span className="font-medium text-slate-700 whitespace-nowrap">{formatearMoneda(prod.subtotal)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Transporte */}
+            {cotizacionCreada.transporteResumen.length > 0 && (
+              <div className="bg-slate-50 rounded-lg p-3">
+                <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                  <Truck className="w-3.5 h-3.5" />
+                  Transporte
+                </h4>
+                <div className="space-y-1">
+                  {cotizacionCreada.transporteResumen.map((trans, idx) => (
+                    <div key={idx} className="flex justify-between text-sm">
+                      <span className="text-slate-600">{trans.tipo_camion} x{trans.cantidad}</span>
+                      <span className="font-medium text-slate-700">{formatearMoneda(trans.subtotal)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Desglose de totales */}
+            <div className="bg-slate-100 rounded-lg p-3 space-y-1.5">
+              <div className="flex justify-between text-sm">
+                <span className="text-slate-600">Subtotal productos:</span>
+                <span className="font-medium">{formatearMoneda(cotizacionCreada.totales.subtotalProductos)}</span>
+              </div>
+              {cotizacionCreada.totales.subtotalTransporte > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-600">Subtotal transporte:</span>
+                  <span className="font-medium">{formatearMoneda(cotizacionCreada.totales.subtotalTransporte)}</span>
+                </div>
+              )}
+              {cotizacionCreada.totales.cobroDiasExtra > 0 && (
+                <div className="flex justify-between text-sm text-amber-700">
+                  <span>Dias adicionales ({cotizacionCreada.totales.totalDiasExtra} dias):</span>
+                  <span className="font-medium">+{formatearMoneda(cotizacionCreada.totales.cobroDiasExtra)}</span>
+                </div>
+              )}
+              {cotizacionCreada.totales.descuento > 0 && (
+                <div className="flex justify-between text-sm text-red-600">
+                  <span>Descuentos:</span>
+                  <span className="font-medium">-{formatearMoneda(cotizacionCreada.totales.descuento)}</span>
+                </div>
+              )}
+              <div className="flex justify-between text-sm pt-1.5 border-t border-slate-300">
+                <span className="text-slate-700 font-medium">Base gravable:</span>
+                <span className="font-medium">{formatearMoneda(cotizacionCreada.totales.baseGravable)}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-slate-600">IVA ({cotizacionCreada.totales.porcentajeIVA}%):</span>
+                <span className="font-medium">+{formatearMoneda(cotizacionCreada.totales.valorIVA)}</span>
+              </div>
+              <div className="flex justify-between items-center pt-2 border-t-2 border-slate-400">
+                <span className="text-base font-bold text-slate-900">TOTAL:</span>
+                <span className="text-base font-bold text-blue-600">{formatearMoneda(cotizacionCreada.totales.totalFinal)}</span>
+              </div>
             </div>
           </div>
-
-          {cotizacionCreada.esBorrador && (
-            <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-2 text-sm text-amber-700 text-center">
-              Las fechas estan por confirmar. Podras editarlas mas adelante.
-            </div>
-          )}
 
           <Button
             type="button"
             variant="primary"
             onClick={onClose}
-            className="mt-4"
+            className="mt-2"
           >
             Cerrar
           </Button>
