@@ -22,6 +22,8 @@ const fs = require('fs');
  */
 const getOrdenes = async (req, res, next) => {
     try {
+        const esAdminOGerente = ['admin', 'gerente'].includes(req.usuario.rol_nombre);
+
         const filtros = {
             page: parseInt(req.query.page) || 1,
             limit: parseInt(req.query.limit) || 20,
@@ -35,8 +37,14 @@ const getOrdenes = async (req, res, next) => {
             empleado_id: req.query.empleado_id ? parseInt(req.query.empleado_id) : null,
             vehiculo_id: req.query.vehiculo_id ? parseInt(req.query.vehiculo_id) : null,
             ordenar: req.query.ordenar,
-            direccion: req.query.direccion
+            direccion: req.query.direccion,
+            sin_responsable: req.query.sin_responsable === 'true'
         };
+
+        // Visibilidad: no-admin solo ve sus ordenes asignadas (o las sin asignar)
+        if (!esAdminOGerente && !filtros.sin_responsable) {
+            filtros.empleado_id = req.usuario.id;
+        }
 
         const resultado = await OrdenTrabajoModel.obtenerTodas(filtros);
 
@@ -406,7 +414,15 @@ const getCalendario = async (req, res, next) => {
             throw new AppError('Debe proporcionar fechas desde y hasta', 400);
         }
 
-        const ordenes = await OrdenTrabajoModel.obtenerCalendario(desde, hasta);
+        const opciones = {};
+        if (!['admin', 'gerente'].includes(req.usuario.rol_nombre)) {
+            opciones.empleadoId = req.usuario.id;
+        }
+        if (req.query.sin_responsable === 'true' && ['admin', 'gerente'].includes(req.usuario.rol_nombre)) {
+            opciones.sinResponsable = true;
+        }
+
+        const ordenes = await OrdenTrabajoModel.obtenerCalendario(desde, hasta, opciones);
 
         res.json({
             success: true,

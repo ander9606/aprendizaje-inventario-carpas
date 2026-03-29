@@ -54,7 +54,7 @@ const controller = require('../ordenTrabajoController');
 
 const mockReq = (o = {}) => ({
     body: {}, params: {}, query: {},
-    usuario: { id: 1, email: 'admin@test.com' },
+    usuario: { id: 1, email: 'admin@test.com', rol_nombre: 'admin' },
     ip: '127.0.0.1',
     get: jest.fn().mockReturnValue('test-agent'),
     ...o

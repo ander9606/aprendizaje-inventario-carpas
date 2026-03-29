@@ -111,6 +111,10 @@ class OrdenTrabajoModel {
             params.push(empleado_id);
         }
 
+        if (filtros.sin_responsable) {
+            whereClause += ` AND NOT EXISTS (SELECT 1 FROM orden_trabajo_equipo ote WHERE ote.orden_id = ot.id)`;
+        }
+
         if (vehiculo_id) {
             whereClause += ` AND ot.vehiculo_id = ?`;
             params.push(vehiculo_id);
@@ -672,15 +676,68 @@ class OrdenTrabajoModel {
             throw new AppError('Orden de trabajo no encontrada', 404);
         }
 
-        // Eliminar asignaciones anteriores
-        await pool.query('DELETE FROM orden_trabajo_equipo WHERE orden_id = ?', [ordenId]);
+        const nuevosIds = new Set(empleados.map(e => e.empleado_id));
+        const actualesIds = new Set((orden.equipo || []).map(e => e.empleado_id || e.id));
 
-        // Insertar nuevas asignaciones
+        // Eliminar solo los que ya no estan en la nueva lista
+        for (const id of actualesIds) {
+            if (!nuevosIds.has(id)) {
+                await pool.query(
+                    'DELETE FROM orden_trabajo_equipo WHERE orden_id = ? AND empleado_id = ?',
+                    [ordenId, id]
+                );
+            }
+        }
+
+        // Insertar o actualizar los de la nueva lista
         for (const emp of empleados) {
             await pool.query(`
                 INSERT INTO orden_trabajo_equipo (orden_id, empleado_id, rol_en_orden)
                 VALUES (?, ?, ?)
+                ON DUPLICATE KEY UPDATE rol_en_orden = VALUES(rol_en_orden)
             `, [ordenId, emp.empleado_id, emp.rol_en_orden || 'operario']);
+        }
+
+        const ordenActualizada = await this.obtenerPorId(ordenId);
+        return ordenActualizada.equipo;
+    }
+
+    /**
+     * Agregar un responsable a la orden (sin borrar los existentes)
+     * @param {number} ordenId
+     * @param {number} empleadoId
+     * @param {string} rolEnOrden
+     * @returns {Promise<Array>}
+     */
+    static async agregarResponsable(ordenId, empleadoId, rolEnOrden = 'responsable') {
+        const orden = await this.obtenerPorId(ordenId);
+        if (!orden) {
+            throw new AppError('Orden de trabajo no encontrada', 404);
+        }
+
+        await pool.query(`
+            INSERT INTO orden_trabajo_equipo (orden_id, empleado_id, rol_en_orden)
+            VALUES (?, ?, ?)
+        `, [ordenId, empleadoId, rolEnOrden]);
+
+        const ordenActualizada = await this.obtenerPorId(ordenId);
+        return ordenActualizada.equipo;
+    }
+
+    /**
+     * Remover un miembro del equipo de la orden
+     * @param {number} ordenId
+     * @param {number} empleadoId
+     * @returns {Promise<Array>}
+     */
+    static async removerResponsable(ordenId, empleadoId) {
+        const [result] = await pool.query(
+            'DELETE FROM orden_trabajo_equipo WHERE orden_id = ? AND empleado_id = ?',
+            [ordenId, empleadoId]
+        );
+
+        if (result.affectedRows === 0) {
+            throw new AppError('El empleado no está asignado a esta orden', 404);
         }
 
         const ordenActualizada = await this.obtenerPorId(ordenId);
@@ -715,7 +772,19 @@ class OrdenTrabajoModel {
      * @param {Date} hasta
      * @returns {Promise<Array>}
      */
-    static async obtenerCalendario(desde, hasta) {
+    static async obtenerCalendario(desde, hasta, { empleadoId = null, sinResponsable = false } = {}) {
+        const params = [desde, hasta];
+        let filtroExtra = '';
+
+        if (empleadoId && !sinResponsable) {
+            filtroExtra += ` AND EXISTS (SELECT 1 FROM orden_trabajo_equipo ote2 WHERE ote2.orden_id = ot.id AND ote2.empleado_id = ?)`;
+            params.push(empleadoId);
+        }
+
+        if (sinResponsable) {
+            filtroExtra += ` AND NOT EXISTS (SELECT 1 FROM orden_trabajo_equipo ote2 WHERE ote2.orden_id = ot.id)`;
+        }
+
         const [rows] = await pool.query(`
             SELECT
                 ot.id,
@@ -755,8 +824,9 @@ class OrdenTrabajoModel {
             WHERE ot.fecha_programada >= ?
               AND ot.fecha_programada < DATE_ADD(?, INTERVAL 1 DAY)
               AND ot.estado != 'cancelado'
+              ${filtroExtra}
             ORDER BY ot.fecha_programada ASC
-        `, [desde, hasta]);
+        `, params);
 
         return rows;
     }
