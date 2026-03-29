@@ -307,7 +307,7 @@ export default function OrdenDetallePage() {
         try {
             await completarMantenimiento.mutateAsync({
                 ordenId: orden.id,
-                data: { resultados }
+                resultados
             })
             toast.success('Mantenimiento completado exitosamente')
             setShowCompletarMantenimiento(false)
