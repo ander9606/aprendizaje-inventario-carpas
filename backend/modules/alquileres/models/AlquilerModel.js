@@ -134,7 +134,7 @@ class AlquilerModel {
     `;
     const [productos] = await pool.query(queryProductos, [alquiler.cotizacion_id]);
 
-    // Obtener elementos asignados
+    // Obtener elementos asignados (con estado_retorno derivado del checklist de bodega si no está guardado)
     const queryElementos = `
       SELECT
         ae.id,
@@ -143,7 +143,14 @@ class AlquilerModel {
         ae.lote_id,
         ae.cantidad_lote,
         ae.estado_salida,
-        ae.estado_retorno,
+        COALESCE(
+          ae.estado_retorno,
+          CASE
+            WHEN ote.verificado_bodega = TRUE AND ote.marcado_dano = TRUE THEN 'dañado'
+            WHEN ote.verificado_bodega = TRUE THEN 'bueno'
+            ELSE NULL
+          END
+        ) AS estado_retorno,
         ae.costo_dano,
         ae.notas_retorno,
         ae.fecha_asignacion,
@@ -157,6 +164,12 @@ class AlquilerModel {
       LEFT JOIN series s ON ae.serie_id = s.id
       LEFT JOIN lotes l ON ae.lote_id = l.id
       LEFT JOIN ubicaciones u ON ae.ubicacion_original_id = u.id
+      LEFT JOIN ordenes_trabajo ot ON ot.alquiler_id = ae.alquiler_id AND ot.tipo = 'desmontaje'
+      LEFT JOIN orden_trabajo_elementos ote ON
+        ote.orden_id = ot.id
+        AND ote.elemento_id = ae.elemento_id
+        AND (ote.serie_id = ae.serie_id OR (ote.serie_id IS NULL AND ae.serie_id IS NULL))
+        AND (ote.lote_id = ae.lote_id OR (ote.lote_id IS NULL AND ae.lote_id IS NULL))
       WHERE ae.alquiler_id = ?
       ORDER BY e.nombre
     `;
