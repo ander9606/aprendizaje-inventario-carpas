@@ -25,6 +25,6 @@ ALTER TABLE alertas_operaciones
 CREATE INDEX idx_alertas_destinatario ON alertas_operaciones(destinatario_id);
 
 -- 5. Marcar asignaciones existentes como aceptadas (retrocompatibilidad)
-UPDATE orden_trabajo_equipo SET estado_asignacion = 'aceptada' WHERE estado_asignacion = 'pendiente';
+UPDATE orden_trabajo_equipo SET estado_asignacion = 'aceptada' WHERE id > 0;
 
 SELECT 'Migración de asignación de responsables completada' AS mensaje;
