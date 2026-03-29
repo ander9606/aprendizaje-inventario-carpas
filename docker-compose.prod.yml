@@ -1,0 +1,38 @@
+# ============================================
+# Docker Compose - Override de Producción (HTTPS)
+# ============================================
+# Uso: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# Requisitos:
+#   1. Tener un dominio apuntando a la IP del servidor (registro DNS tipo A)
+#   2. Configurar DOMAIN y CERTBOT_EMAIL en el archivo .env
+#
+# Primera vez (obtener certificado):
+#   ./scripts/deploy.sh
+
+services:
+  frontend:
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - certbot_webroot:/var/www/certbot:ro
+      - certbot_certs:/etc/letsencrypt:ro
+      - ./nginx/nginx.prod.conf:/etc/nginx/conf.d/default.conf:ro
+
+  # ============================================
+  # Certbot - Certificados SSL (Let's Encrypt)
+  # ============================================
+  certbot:
+    image: certbot/certbot
+    volumes:
+      - certbot_webroot:/var/www/certbot
+      - certbot_certs:/etc/letsencrypt
+    # Renovación automática: se ejecuta cada 12 horas
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+    networks:
+      - app-network
+
+volumes:
+  certbot_webroot:
+  certbot_certs:
