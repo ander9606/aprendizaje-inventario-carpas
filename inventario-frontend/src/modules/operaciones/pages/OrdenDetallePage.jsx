@@ -556,6 +556,8 @@ export default function OrdenDetallePage() {
         if (orden.tipo === 'mantenimiento') {
             const descMant = {
                 pendiente: 'Orden de mantenimiento creada. Asigna un técnico y comienza la revisión.',
+                confirmado: 'Orden confirmada. Inicia la revisión de los elementos dañados.',
+                en_preparacion: 'Inicia la revisión de los elementos dañados.',
                 en_revision: 'El técnico está diagnosticando los daños reportados. Cuando termine, inicia la reparación.',
                 en_reparacion: 'Reparación en curso. Al finalizar, completa el mantenimiento indicando el resultado de cada elemento.',
                 completado: 'Mantenimiento completado. Los elementos reparados fueron restaurados al inventario.',
@@ -822,9 +824,9 @@ export default function OrdenDetallePage() {
                         {!montajePendiente && (
                         <div className="shrink-0 flex items-center gap-2">
                             {/* Mantenimiento: botones específicos */}
-                            {orden.tipo === 'mantenimiento' && orden.estado === 'pendiente' && (
+                            {orden.tipo === 'mantenimiento' && ['pendiente', 'confirmado', 'en_preparacion'].includes(orden.estado) && (
                                 <Button
-                                    color="amber" icon={Search}
+                                    color="orange" icon={Search}
                                     onClick={() => handleCambiarEstado('en_revision')}
                                     disabled={cambiarEstado.isPending}
                                 >

@@ -285,6 +285,8 @@ const cambiarEstadoOrden = async (req, res, next) => {
         if (ordenAnterior.tipo === 'mantenimiento') {
             const transicionesMantenimiento = {
                 'pendiente': ['en_revision', 'cancelado'],
+                'confirmado': ['en_revision', 'cancelado'],
+                'en_preparacion': ['en_revision', 'cancelado'],
                 'en_revision': ['en_reparacion', 'cancelado'],
                 'en_reparacion': ['cancelado'] // completado solo via endpoint dedicado
             };
