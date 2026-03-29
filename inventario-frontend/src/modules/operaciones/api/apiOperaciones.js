@@ -129,6 +129,33 @@ const ordenesAPI = {
     },
 
     /**
+     * Auto-asignarse como responsable
+     * @param {number} id - ID de la orden
+     */
+    autoAsignarse: async (id) => {
+        const response = await api.post(`/operaciones/ordenes/${id}/auto-asignar`)
+        return response.data
+    },
+
+    /**
+     * Responder a una asignación (aceptar/rechazar)
+     * @param {number} id - ID de la orden
+     * @param {Object} datos - { respuesta: 'aceptada'|'rechazada', motivo?: string }
+     */
+    responderAsignacion: async (id, datos) => {
+        const response = await api.put(`/operaciones/ordenes/${id}/responder-asignacion`, datos)
+        return response.data
+    },
+
+    /**
+     * Obtener mis alertas pendientes (asignaciones)
+     */
+    obtenerMisAlertas: async () => {
+        const response = await api.get('/operaciones/mis-alertas')
+        return response.data
+    },
+
+    /**
      * Obtener vista de calendario
      * @param {Object} params - { fecha_inicio, fecha_fin, empleado_id }
      */

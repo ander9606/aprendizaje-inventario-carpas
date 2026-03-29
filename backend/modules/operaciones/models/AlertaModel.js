@@ -176,7 +176,8 @@ class AlertaModel {
         } = datos;
 
         const tiposValidos = ['conflicto_fecha', 'conflicto_disponibilidad', 'conflicto_equipo',
-                             'conflicto_vehiculo', 'cambio_fecha', 'incidencia', 'novedad', 'stock_disponible', 'otro'];
+                             'conflicto_vehiculo', 'cambio_fecha', 'incidencia', 'novedad',
+                             'stock_disponible', 'asignacion', 'rechazo_asignacion', 'otro'];
         if (!tiposValidos.includes(tipo)) {
             throw new AppError(`Tipo de alerta inválido. Valores permitidos: ${tiposValidos.join(', ')}`, 400);
         }
@@ -188,10 +189,11 @@ class AlertaModel {
 
         const [result] = await pool.query(`
             INSERT INTO alertas_operaciones
-            (orden_id, tipo, severidad, titulo, mensaje)
-            VALUES (?, ?, ?, ?, ?)
+            (orden_id, destinatario_id, tipo, severidad, titulo, mensaje)
+            VALUES (?, ?, ?, ?, ?, ?)
         `, [
             orden_id || null,
+            datos.destinatario_id || null,
             tipo,
             severidad,
             titulo,
@@ -397,6 +399,79 @@ class AlertaModel {
             titulo: `Stock disponible - ${eventoNombre || 'Orden #' + ordenId}`,
             mensaje: `El inventario requerido para la orden #${ordenId} (${clienteNombre || 'Cliente'} - ${eventoNombre || ''}) ya está disponible. Se puede proceder con la asignación de inventario y el montaje.`
         });
+    }
+
+    /**
+     * Crear alerta de asignación dirigida a un empleado
+     * @param {number} ordenId
+     * @param {number} destinatarioId - Empleado asignado
+     * @param {string} ordenTipo - 'montaje' o 'desmontaje'
+     * @param {string} eventoNombre
+     * @param {string} fechaProgramada
+     * @param {string} asignadoPor - Nombre de quien asignó
+     * @returns {Promise<Object>}
+     */
+    static async crearAlertaAsignacion(ordenId, destinatarioId, { ordenTipo, eventoNombre, fechaProgramada, asignadoPor }) {
+        return this.crear({
+            orden_id: ordenId,
+            destinatario_id: destinatarioId,
+            tipo: 'asignacion',
+            severidad: 'alta',
+            titulo: `Asignación de ${ordenTipo} - ${eventoNombre || 'Orden #' + ordenId}`,
+            mensaje: `Se te ha asignado como responsable del ${ordenTipo} para "${eventoNombre || 'Orden #' + ordenId}" programado para el ${fechaProgramada}. Asignado por: ${asignadoPor}. Por favor acepta o rechaza esta asignación.`
+        });
+    }
+
+    /**
+     * Crear alerta de rechazo (notifica al admin/gerente)
+     * @param {number} ordenId
+     * @param {string} empleadoNombre
+     * @param {string} motivo
+     * @returns {Promise<Object>}
+     */
+    static async crearAlertaRechazoAsignacion(ordenId, empleadoNombre, motivo) {
+        return this.crear({
+            orden_id: ordenId,
+            tipo: 'rechazo_asignacion',
+            severidad: 'alta',
+            titulo: `Asignación rechazada por ${empleadoNombre}`,
+            mensaje: `${empleadoNombre} ha rechazado la asignación a la orden #${ordenId}. Motivo: ${motivo}`
+        });
+    }
+
+    /**
+     * Obtener alertas pendientes dirigidas a un empleado
+     * @param {number} empleadoId
+     * @returns {Promise<Array>}
+     */
+    static async obtenerPorDestinatario(empleadoId) {
+        const [rows] = await pool.query(`
+            SELECT
+                ao.id,
+                ao.orden_id,
+                ao.tipo,
+                ao.severidad,
+                ao.titulo,
+                ao.mensaje,
+                ao.estado,
+                ao.created_at,
+                ot.tipo as orden_tipo,
+                ot.fecha_programada,
+                ot.direccion_evento,
+                ot.ciudad_evento,
+                cot.evento_nombre,
+                c.nombre as cliente_nombre
+            FROM alertas_operaciones ao
+            LEFT JOIN ordenes_trabajo ot ON ao.orden_id = ot.id
+            LEFT JOIN alquileres a ON ot.alquiler_id = a.id
+            LEFT JOIN cotizaciones cot ON a.cotizacion_id = cot.id
+            LEFT JOIN clientes c ON cot.cliente_id = c.id
+            WHERE ao.destinatario_id = ?
+              AND ao.estado = 'pendiente'
+            ORDER BY ao.created_at DESC
+        `, [empleadoId]);
+
+        return rows;
     }
 
     /**

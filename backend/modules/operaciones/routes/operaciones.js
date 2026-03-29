@@ -3,6 +3,7 @@ const router = express.Router();
 const ordenTrabajoController = require('../controllers/ordenTrabajoController');
 const novedadController = require('../controllers/novedadController');
 const { verificarToken, verificarRol } = require('../../auth/middleware/authMiddleware');
+const verificarAccesoOrden = require('../middleware/verificarAccesoOrden');
 
 /**
  * Rutas de Operaciones
@@ -16,6 +17,9 @@ const { verificarToken, verificarRol } = require('../../auth/middleware/authMidd
  * PUT    /api/operaciones/ordenes/:id/fecha                 - Cambiar fecha (con validación)
  * PUT    /api/operaciones/ordenes/:id/estado                - Cambiar estado
  * PUT    /api/operaciones/ordenes/:id/equipo                - Asignar equipo
+ * POST   /api/operaciones/ordenes/:id/auto-asignar          - Auto-asignarse
+ * PUT    /api/operaciones/ordenes/:id/responder-asignacion  - Aceptar/rechazar asignación
+ * GET    /api/operaciones/mis-alertas                       - Alertas del empleado
  * PUT    /api/operaciones/ordenes/:id/vehiculo              - Asignar vehículo
  * GET    /api/operaciones/calendario                        - Vista calendario
  * GET    /api/operaciones/estadisticas                      - Estadísticas
@@ -43,10 +47,10 @@ router.use(verificarToken);
 // RUTAS DE ÓRDENES DE TRABAJO
 // ============================================
 
-// Rutas de consulta (operaciones, gerente, admin)
+// Rutas sin :id (listados, calendario, estadísticas)
 router.get(
     '/calendario',
-    verificarRol(['admin', 'gerente', 'operaciones']),
+    verificarRol(['admin', 'gerente', 'operaciones', 'bodega']),
     ordenTrabajoController.getCalendario
 );
 
@@ -58,7 +62,7 @@ router.get(
 
 router.get(
     '/ordenes',
-    verificarRol(['admin', 'gerente', 'operaciones']),
+    verificarRol(['admin', 'gerente', 'operaciones', 'bodega']),
     ordenTrabajoController.getOrdenes
 );
 
@@ -69,18 +73,14 @@ router.post(
     ordenTrabajoController.crearOrdenManual
 );
 
+// Mis alertas (asignaciones pendientes del empleado actual)
 router.get(
-    '/ordenes/:id',
-    verificarRol(['admin', 'gerente', 'operaciones']),
-    ordenTrabajoController.getOrdenById
+    '/mis-alertas',
+    verificarRol(['admin', 'gerente', 'operaciones', 'bodega']),
+    ordenTrabajoController.getMisAlertas
 );
 
-router.get(
-    '/ordenes/:id/completa',
-    verificarRol(['admin', 'gerente', 'operaciones']),
-    ordenTrabajoController.getOrdenCompleta
-);
-
+// Órdenes de un alquiler
 router.get(
     '/alquiler/:id/ordenes',
     verificarRol(['admin', 'gerente', 'operaciones', 'ventas']),
@@ -101,34 +101,79 @@ router.get(
     ordenTrabajoController.verificarConsistencia
 );
 
-// Rutas de modificación
-router.put(
-    '/ordenes/:id',
-    verificarRol(['admin', 'gerente', 'operaciones']),
-    ordenTrabajoController.updateOrden
-);
+// ============================================
+// RUTAS DE ASIGNACIÓN (sin verificarAccesoOrden)
+// Estas rutas necesitan funcionar antes de que el
+// empleado tenga acceso aceptado a la orden
+// ============================================
 
-router.put(
-    '/ordenes/:id/fecha',
-    verificarRol(['admin', 'gerente', 'operaciones']),
-    ordenTrabajoController.cambiarFechaOrden
-);
-
-router.put(
-    '/ordenes/:id/estado',
-    verificarRol(['admin', 'gerente', 'operaciones']),
-    ordenTrabajoController.cambiarEstadoOrden
-);
-
+// Asignar equipo (admin/gerente asigna responsables)
 router.put(
     '/ordenes/:id/equipo',
     verificarRol(['admin', 'gerente', 'operaciones']),
     ordenTrabajoController.asignarEquipo
 );
 
+// Auto-asignarse como responsable (no requiere acceso previo)
+router.post(
+    '/ordenes/:id/auto-asignar',
+    verificarRol(['operaciones', 'bodega']),
+    ordenTrabajoController.autoAsignarse
+);
+
+// Aceptar o rechazar asignación (empleado con asignación pendiente)
+router.put(
+    '/ordenes/:id/responder-asignacion',
+    verificarRol(['admin', 'gerente', 'operaciones', 'bodega']),
+    ordenTrabajoController.responderAsignacion
+);
+
+// ============================================
+// RUTAS PROTEGIDAS POR verificarAccesoOrden
+// Solo responsables asignados (aceptados) o admin/gerente
+// ============================================
+
+// Consulta de orden
+router.get(
+    '/ordenes/:id',
+    verificarRol(['admin', 'gerente', 'operaciones', 'bodega']),
+    verificarAccesoOrden,
+    ordenTrabajoController.getOrdenById
+);
+
+router.get(
+    '/ordenes/:id/completa',
+    verificarRol(['admin', 'gerente', 'operaciones', 'bodega']),
+    verificarAccesoOrden,
+    ordenTrabajoController.getOrdenCompleta
+);
+
+// Modificación de orden
+router.put(
+    '/ordenes/:id',
+    verificarRol(['admin', 'gerente', 'operaciones']),
+    verificarAccesoOrden,
+    ordenTrabajoController.updateOrden
+);
+
+router.put(
+    '/ordenes/:id/fecha',
+    verificarRol(['admin', 'gerente', 'operaciones']),
+    verificarAccesoOrden,
+    ordenTrabajoController.cambiarFechaOrden
+);
+
+router.put(
+    '/ordenes/:id/estado',
+    verificarRol(['admin', 'gerente', 'operaciones']),
+    verificarAccesoOrden,
+    ordenTrabajoController.cambiarEstadoOrden
+);
+
 router.put(
     '/ordenes/:id/vehiculo',
     verificarRol(['admin', 'gerente', 'operaciones']),
+    verificarAccesoOrden,
     ordenTrabajoController.asignarVehiculo
 );
 
@@ -136,38 +181,38 @@ router.put(
 // RUTAS DE PREPARACIÓN Y EJECUCIÓN
 // ============================================
 
-// Obtener elementos disponibles para asignar a la orden
 router.get(
     '/ordenes/:id/elementos-disponibles',
     verificarRol(['admin', 'gerente', 'operaciones']),
+    verificarAccesoOrden,
     ordenTrabajoController.getElementosDisponibles
 );
 
-// Preparar orden: asignar elementos (series/lotes)
 router.post(
     '/ordenes/:id/preparar-elementos',
     verificarRol(['admin', 'gerente', 'operaciones']),
+    verificarAccesoOrden,
     ordenTrabajoController.prepararElementos
 );
 
-// Ejecutar salida (para órdenes de montaje)
 router.post(
     '/ordenes/:id/ejecutar-salida',
     verificarRol(['admin', 'gerente', 'operaciones']),
+    verificarAccesoOrden,
     ordenTrabajoController.ejecutarSalida
 );
 
-// Ejecutar retorno (para órdenes de desmontaje)
 router.post(
     '/ordenes/:id/ejecutar-retorno',
     verificarRol(['admin', 'gerente', 'operaciones']),
+    verificarAccesoOrden,
     ordenTrabajoController.ejecutarRetorno
 );
 
-// Alertas de una orden específica
 router.get(
     '/ordenes/:id/alertas',
     verificarRol(['admin', 'gerente', 'operaciones']),
+    verificarAccesoOrden,
     ordenTrabajoController.getAlertasPorOrden
 );
 
@@ -175,10 +220,10 @@ router.get(
 // RUTAS DE INVENTARIO CLIENTE
 // ============================================
 
-// Generar inventario para el cliente (montaje completado)
 router.get(
     '/ordenes/:id/inventario-cliente',
     verificarRol(['admin', 'gerente', 'operaciones']),
+    verificarAccesoOrden,
     ordenTrabajoController.getInventarioCliente
 );
 
@@ -186,10 +231,10 @@ router.get(
 // RUTAS DE DURACIONES
 // ============================================
 
-// Obtener historial de estados y duraciones de una orden
 router.get(
     '/ordenes/:id/duraciones',
     verificarRol(['admin', 'gerente', 'operaciones']),
+    verificarAccesoOrden,
     ordenTrabajoController.getDuracionesOrden
 );
 
@@ -197,31 +242,31 @@ router.get(
 // RUTAS DE CHECKLIST CARGUE / DESCARGUE
 // ============================================
 
-// Obtener estado del checklist de la orden
 router.get(
     '/ordenes/:id/checklist',
     verificarRol(['admin', 'gerente', 'operaciones']),
+    verificarAccesoOrden,
     ordenTrabajoController.getChecklistOrden
 );
 
-// Toggle verificación de cargue de un elemento
 router.put(
     '/ordenes/:id/elementos/:elemId/verificar-cargue',
     verificarRol(['admin', 'gerente', 'operaciones']),
+    verificarAccesoOrden,
     ordenTrabajoController.verificarElementoCargue
 );
 
-// Toggle verificación de recogida (en sitio del evento) de un elemento
 router.put(
     '/ordenes/:id/elementos/:elemId/verificar-descargue',
     verificarRol(['admin', 'gerente', 'operaciones']),
+    verificarAccesoOrden,
     ordenTrabajoController.verificarElementoDescargue
 );
 
-// Toggle verificación en bodega de un elemento
 router.put(
     '/ordenes/:id/elementos/:elemId/verificar-bodega',
     verificarRol(['admin', 'gerente', 'operaciones']),
+    verificarAccesoOrden,
     ordenTrabajoController.verificarElementoBodega
 );
 
@@ -229,28 +274,26 @@ router.put(
 // RUTAS DE NOVEDADES
 // ============================================
 
-// Crear novedad desde campo
 router.post(
     '/ordenes/:id/novedades',
     verificarRol(['admin', 'gerente', 'operaciones']),
+    verificarAccesoOrden,
     novedadController.crearNovedad
 );
 
-// Obtener novedades de una orden
 router.get(
     '/ordenes/:id/novedades',
     verificarRol(['admin', 'gerente', 'operaciones']),
+    verificarAccesoOrden,
     novedadController.obtenerNovedadesOrden
 );
 
-// Novedades pendientes (dashboard)
 router.get(
     '/novedades/pendientes',
     verificarRol(['admin', 'gerente']),
     novedadController.obtenerNovedadesPendientes
 );
 
-// Resolver novedad
 router.put(
     '/novedades/:id/resolver',
     verificarRol(['admin', 'gerente']),
@@ -261,17 +304,17 @@ router.put(
 // RUTAS DE FIRMA CLIENTE
 // ============================================
 
-// Guardar firma digital del cliente
 router.post(
     '/ordenes/:id/firma-cliente',
     verificarRol(['admin', 'gerente', 'operaciones']),
+    verificarAccesoOrden,
     ordenTrabajoController.guardarFirmaCliente
 );
 
-// Obtener firma del cliente
 router.get(
     '/ordenes/:id/firma-cliente',
     verificarRol(['admin', 'gerente', 'operaciones']),
+    verificarAccesoOrden,
     ordenTrabajoController.obtenerFirmaCliente
 );
 
@@ -279,21 +322,20 @@ router.get(
 // RUTAS DE FOTOS OPERATIVAS
 // ============================================
 
-// Subir foto de etapa operativa
 router.post(
     '/ordenes/:id/fotos',
     verificarRol(['admin', 'gerente', 'operaciones']),
+    verificarAccesoOrden,
     ordenTrabajoController.subirFotoOrden
 );
 
-// Obtener fotos de una orden
 router.get(
     '/ordenes/:id/fotos',
     verificarRol(['admin', 'gerente', 'operaciones']),
+    verificarAccesoOrden,
     ordenTrabajoController.obtenerFotosOrden
 );
 
-// Eliminar foto
 router.delete(
     '/ordenes/:id/fotos/:fotoId',
     verificarRol(['admin', 'gerente']),
@@ -307,31 +349,35 @@ router.delete(
 router.get(
     '/ordenes/:id/elementos',
     verificarRol(['admin', 'gerente', 'operaciones']),
+    verificarAccesoOrden,
     ordenTrabajoController.getElementosOrden
 );
 
 router.put(
     '/ordenes/:id/elementos/:elemId/estado',
     verificarRol(['admin', 'gerente', 'operaciones']),
+    verificarAccesoOrden,
     ordenTrabajoController.cambiarEstadoElemento
 );
 
-// Cambiar estado de múltiples elementos (operaciones masivas)
 router.put(
     '/ordenes/:id/elementos/estado-masivo',
     verificarRol(['admin', 'gerente', 'operaciones']),
+    verificarAccesoOrden,
     ordenTrabajoController.cambiarEstadoElementosMasivo
 );
 
 router.post(
     '/ordenes/:id/elementos/:elemId/incidencia',
     verificarRol(['admin', 'gerente', 'operaciones']),
+    verificarAccesoOrden,
     ordenTrabajoController.reportarIncidencia
 );
 
 router.post(
     '/ordenes/:id/elementos/:elemId/foto',
     verificarRol(['admin', 'gerente', 'operaciones']),
+    verificarAccesoOrden,
     ordenTrabajoController.subirFotoElemento
 );
 

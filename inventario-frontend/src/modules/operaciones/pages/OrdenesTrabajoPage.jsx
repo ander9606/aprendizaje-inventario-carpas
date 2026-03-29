@@ -32,6 +32,7 @@ import {
 } from 'lucide-react'
 import { useGetOrdenes, useCrearOrdenManual } from '../hooks/useOrdenesTrabajo'
 import { useAuth } from '@auth/hooks/useAuth'
+import AlertasAsignacion from '../components/AlertasAsignacion'
 import Button from '@shared/components/Button'
 import Spinner from '@shared/components/Spinner'
 import { toast } from 'sonner'
@@ -615,11 +616,13 @@ export default function OrdenesTrabajoPage() {
     const { hasRole } = useAuth()
 
     const canManage = hasRole(['admin', 'gerente', 'operaciones'])
+    const esAdminOGerente = hasRole(['admin', 'gerente'])
 
     // ============================================
     // ESTADO: Filtros, búsqueda y modal
     // ============================================
     const [busqueda, setBusqueda] = useState('')
+    const [vistaOrden, setVistaOrden] = useState('mis') // 'mis' | 'disponibles'
     const [filtros, setFiltros] = useState({
         estado: '',
         tipo: '',
@@ -639,6 +642,7 @@ export default function OrdenesTrabajoPage() {
         ...(filtros.tipo && { tipo: filtros.tipo }),
         ...(filtros.fecha_desde && { fecha_desde: filtros.fecha_desde }),
         ...(filtros.fecha_hasta && { fecha_hasta: filtros.fecha_hasta }),
+        ...(!esAdminOGerente && vistaOrden === 'disponibles' && { sin_responsable: true }),
         limit: 200
     }
 
@@ -726,6 +730,35 @@ export default function OrdenesTrabajoPage() {
                     )}
                 </div>
             </div>
+
+            {/* ALERTAS DE ASIGNACIÓN PENDIENTES */}
+            <AlertasAsignacion />
+
+            {/* TOGGLE: Mis Órdenes / Disponibles (solo para no-admin) */}
+            {!esAdminOGerente && (
+                <div className="flex gap-1 p-1 bg-slate-100 rounded-lg w-fit mb-4">
+                    <button
+                        onClick={() => setVistaOrden('mis')}
+                        className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                            vistaOrden === 'mis'
+                                ? 'bg-white text-slate-900 shadow-sm'
+                                : 'text-slate-500 hover:text-slate-700'
+                        }`}
+                    >
+                        Mis Ordenes
+                    </button>
+                    <button
+                        onClick={() => setVistaOrden('disponibles')}
+                        className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                            vistaOrden === 'disponibles'
+                                ? 'bg-white text-slate-900 shadow-sm'
+                                : 'text-slate-500 hover:text-slate-700'
+                        }`}
+                    >
+                        Sin asignar
+                    </button>
+                </div>
+            )}
 
             {/* BUSCADOR */}
             <div className="bg-white rounded-xl border border-slate-200 p-4 mb-6">

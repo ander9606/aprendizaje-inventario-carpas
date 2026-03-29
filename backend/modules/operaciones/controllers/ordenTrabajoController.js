@@ -22,6 +22,8 @@ const fs = require('fs');
  */
 const getOrdenes = async (req, res, next) => {
     try {
+        const esAdminOGerente = ['admin', 'gerente'].includes(req.usuario.rol_nombre);
+
         const filtros = {
             page: parseInt(req.query.page) || 1,
             limit: parseInt(req.query.limit) || 20,
@@ -35,8 +37,14 @@ const getOrdenes = async (req, res, next) => {
             empleado_id: req.query.empleado_id ? parseInt(req.query.empleado_id) : null,
             vehiculo_id: req.query.vehiculo_id ? parseInt(req.query.vehiculo_id) : null,
             ordenar: req.query.ordenar,
-            direccion: req.query.direccion
+            direccion: req.query.direccion,
+            sin_responsable: req.query.sin_responsable === 'true'
         };
+
+        // Visibilidad: no-admin solo ve sus ordenes asignadas (o las sin asignar)
+        if (!esAdminOGerente && !filtros.sin_responsable) {
+            filtros.empleado_id = req.usuario.id;
+        }
 
         const resultado = await OrdenTrabajoModel.obtenerTodas(filtros);
 
@@ -322,7 +330,7 @@ const cambiarEstadoOrden = async (req, res, next) => {
 
 /**
  * PUT /api/operaciones/ordenes/:id/equipo
- * Asignar equipo a la orden
+ * Asignar equipo a la orden (crea alertas para nuevos asignados)
  */
 const asignarEquipo = async (req, res, next) => {
     try {
@@ -333,13 +341,42 @@ const asignarEquipo = async (req, res, next) => {
             throw new AppError('Debe proporcionar un array de empleados', 400);
         }
 
-        const equipo = await OrdenTrabajoModel.asignarEquipo(parseInt(id), empleados);
+        const ordenId = parseInt(id);
+
+        // Obtener equipo actual para detectar nuevos asignados
+        const ordenAntes = await OrdenTrabajoModel.obtenerPorId(ordenId);
+        const idsActuales = new Set((ordenAntes?.equipo || []).map(e => e.empleado_id || e.id));
+
+        const equipo = await OrdenTrabajoModel.asignarEquipo(ordenId, empleados);
+
+        // Crear alertas para los nuevos asignados
+        const nuevosEmpleados = empleados.filter(e => !idsActuales.has(e.empleado_id));
+        if (nuevosEmpleados.length > 0 && ordenAntes) {
+            // Obtener info de la orden para la alerta
+            const [cotInfo] = await pool.query(`
+                SELECT cot.evento_nombre, ot.tipo as orden_tipo, ot.fecha_programada
+                FROM ordenes_trabajo ot
+                LEFT JOIN alquileres a ON ot.alquiler_id = a.id
+                LEFT JOIN cotizaciones cot ON a.cotizacion_id = cot.id
+                WHERE ot.id = ?
+            `, [ordenId]);
+            const info = cotInfo[0] || {};
+
+            for (const emp of nuevosEmpleados) {
+                await AlertaModel.crearAlertaAsignacion(ordenId, emp.empleado_id, {
+                    ordenTipo: info.orden_tipo || 'operación',
+                    eventoNombre: info.evento_nombre,
+                    fechaProgramada: info.fecha_programada ? new Date(info.fecha_programada).toLocaleDateString('es-CO') : 'sin fecha',
+                    asignadoPor: `${req.usuario.nombre || ''} ${req.usuario.apellido || ''}`.trim() || req.usuario.email
+                });
+            }
+        }
 
         await AuthModel.registrarAuditoria({
             empleado_id: req.usuario.id,
             accion: 'ASIGNAR_EQUIPO_ORDEN',
             tabla_afectada: 'orden_trabajo_equipo',
-            registro_id: parseInt(id),
+            registro_id: ordenId,
             datos_nuevos: { empleados },
             ip_address: req.ip,
             user_agent: req.get('User-Agent')
@@ -351,6 +388,129 @@ const asignarEquipo = async (req, res, next) => {
             success: true,
             message: 'Equipo asignado correctamente',
             data: equipo
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * POST /api/operaciones/ordenes/:id/auto-asignar
+ * El empleado se asigna a sí mismo como responsable
+ */
+const autoAsignarse = async (req, res, next) => {
+    try {
+        const ordenId = parseInt(req.params.id);
+        const empleadoId = req.usuario.id;
+
+        const equipo = await OrdenTrabajoModel.agregarResponsable(ordenId, empleadoId, 'responsable');
+
+        // Auto-asignación se acepta automáticamente
+        await pool.query(`
+            UPDATE orden_trabajo_equipo
+            SET estado_asignacion = 'aceptada', fecha_respuesta = CURRENT_TIMESTAMP
+            WHERE orden_id = ? AND empleado_id = ?
+        `, [ordenId, empleadoId]);
+
+        await AuthModel.registrarAuditoria({
+            empleado_id: empleadoId,
+            accion: 'AUTO_ASIGNAR_ORDEN',
+            tabla_afectada: 'orden_trabajo_equipo',
+            registro_id: ordenId,
+            ip_address: req.ip,
+            user_agent: req.get('User-Agent')
+        });
+
+        logger.info('operaciones', `Empleado ${req.usuario.email} se auto-asignó a orden ${ordenId}`);
+
+        res.json({
+            success: true,
+            message: 'Te has asignado correctamente a esta orden',
+            data: equipo
+        });
+    } catch (error) {
+        if (error.code === 'ER_DUP_ENTRY') {
+            return next(new AppError('Ya estás asignado a esta orden', 409));
+        }
+        next(error);
+    }
+};
+
+/**
+ * PUT /api/operaciones/ordenes/:id/responder-asignacion
+ * El empleado acepta o rechaza su asignación
+ */
+const responderAsignacion = async (req, res, next) => {
+    try {
+        const ordenId = parseInt(req.params.id);
+        const empleadoId = req.usuario.id;
+        const { respuesta, motivo } = req.body;
+
+        if (!['aceptada', 'rechazada'].includes(respuesta)) {
+            throw new AppError('La respuesta debe ser "aceptada" o "rechazada"', 400);
+        }
+
+        const orden = await OrdenTrabajoModel.responderAsignacion(
+            ordenId, empleadoId, respuesta, motivo
+        );
+
+        // Si rechazó, crear alerta para admin/gerente y resolver la alerta de asignación
+        if (respuesta === 'rechazada') {
+            const empleadoNombre = `${req.usuario.nombre || ''} ${req.usuario.apellido || ''}`.trim() || req.usuario.email;
+            await AlertaModel.crearAlertaRechazoAsignacion(ordenId, empleadoNombre, motivo);
+        }
+
+        // Resolver la alerta de asignación original
+        const alertasEmpleado = await AlertaModel.obtenerPorDestinatario(empleadoId);
+        const alertaAsignacion = alertasEmpleado.find(
+            a => a.orden_id === ordenId && a.tipo === 'asignacion'
+        );
+        if (alertaAsignacion) {
+            await AlertaModel.resolver(alertaAsignacion.id, {
+                resuelta_por: empleadoId,
+                notas_resolucion: respuesta === 'aceptada' ? 'Asignación aceptada' : `Rechazada: ${motivo}`,
+                estado: 'resuelta'
+            });
+        }
+
+        await AuthModel.registrarAuditoria({
+            empleado_id: empleadoId,
+            accion: respuesta === 'aceptada' ? 'ACEPTAR_ASIGNACION' : 'RECHAZAR_ASIGNACION',
+            tabla_afectada: 'orden_trabajo_equipo',
+            registro_id: ordenId,
+            datos_nuevos: { respuesta, motivo },
+            ip_address: req.ip,
+            user_agent: req.get('User-Agent')
+        });
+
+        logger.info('operaciones',
+            `Empleado ${req.usuario.email} ${respuesta === 'aceptada' ? 'aceptó' : 'rechazó'} asignación en orden ${ordenId}`
+        );
+
+        res.json({
+            success: true,
+            message: respuesta === 'aceptada'
+                ? 'Asignación aceptada correctamente'
+                : 'Asignación rechazada. Se ha notificado al administrador.',
+            data: orden
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * GET /api/operaciones/mis-alertas
+ * Obtener alertas pendientes del empleado actual
+ */
+const getMisAlertas = async (req, res, next) => {
+    try {
+        const alertas = await AlertaModel.obtenerPorDestinatario(req.usuario.id);
+
+        res.json({
+            success: true,
+            data: alertas,
+            total: alertas.length
         });
     } catch (error) {
         next(error);
@@ -406,7 +566,15 @@ const getCalendario = async (req, res, next) => {
             throw new AppError('Debe proporcionar fechas desde y hasta', 400);
         }
 
-        const ordenes = await OrdenTrabajoModel.obtenerCalendario(desde, hasta);
+        const opciones = {};
+        if (!['admin', 'gerente'].includes(req.usuario.rol_nombre)) {
+            opciones.empleadoId = req.usuario.id;
+        }
+        if (req.query.sin_responsable === 'true' && ['admin', 'gerente'].includes(req.usuario.rol_nombre)) {
+            opciones.sinResponsable = true;
+        }
+
+        const ordenes = await OrdenTrabajoModel.obtenerCalendario(desde, hasta, opciones);
 
         res.json({
             success: true,
@@ -1454,5 +1622,10 @@ module.exports = {
 
     // Firma cliente
     guardarFirmaCliente,
-    obtenerFirmaCliente
+    obtenerFirmaCliente,
+
+    // Asignación responsable
+    autoAsignarse,
+    responderAsignacion,
+    getMisAlertas
 };
