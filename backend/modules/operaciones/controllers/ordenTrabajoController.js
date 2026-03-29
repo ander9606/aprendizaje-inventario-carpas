@@ -7,6 +7,7 @@ const ValidadorFechasService = require('../services/ValidadorFechasService');
 const SincronizacionAlquilerService = require('../services/SincronizacionAlquilerService');
 const SerieModel = require('../../inventario/models/SerieModel');
 const AuthModel = require('../../auth/models/AuthModel');
+const AlquilerElementoModel = require('../../alquileres/models/AlquilerElementoModel');
 const AppError = require('../../../utils/AppError');
 const logger = require('../../../utils/logger');
 const { uploadOperacionImagen, deleteImageFile } = require('../../../middleware/upload');
@@ -1389,6 +1390,15 @@ const verificarElementoBodega = async (req, res, next) => {
             notas || null
         );
 
+        // Sincronizar estado_retorno en alquiler_elementos
+        try {
+            await AlquilerElementoModel.sincronizarEstadoRetornoDesdeBodega(
+                parseInt(elemId), verificado, elemento.marcado_dano || false
+            );
+        } catch (syncError) {
+            logger.warn('operaciones', `Error sincronizando estado_retorno para elemento ${elemId}: ${syncError.message}`);
+        }
+
         logger.info('operaciones', `Elemento ${elemId} ${verificado ? 'verificado' : 'desverificado'} en bodega para orden ${id} por ${req.usuario.email}`);
 
         res.json({
@@ -1716,6 +1726,17 @@ const marcarDanoElemento = async (req, res, next) => {
             descripcion_dano?.trim() || null,
             cantidad_danada != null ? parseInt(cantidad_danada) : null
         );
+
+        // Si ya está verificado en bodega, sincronizar estado_retorno
+        if (elemento.verificado_bodega) {
+            try {
+                await AlquilerElementoModel.sincronizarEstadoRetornoDesdeBodega(
+                    parseInt(elemId), true, marcado_dano
+                );
+            } catch (syncError) {
+                logger.warn('operaciones', `Error sincronizando estado_retorno para elemento ${elemId}: ${syncError.message}`);
+            }
+        }
 
         logger.info('operaciones', `Elemento ${elemId} ${marcado_dano ? 'marcado con daño' : 'desmarcado'} en orden ${id} por ${req.usuario.email}`);
 

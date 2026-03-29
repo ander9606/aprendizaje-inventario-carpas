@@ -149,6 +149,43 @@ class AlquilerElementoModel {
   }
 
   // ============================================
+  // SINCRONIZAR ESTADO RETORNO DESDE BODEGA
+  // ============================================
+  /**
+   * Sincroniza estado_retorno en alquiler_elementos basándose en la
+   * verificación de bodega del checklist de la orden de trabajo.
+   * @param {number} ordenElementoId - ID del registro en orden_trabajo_elementos
+   * @param {boolean} verificadoBodega - si el elemento fue verificado en bodega
+   * @param {boolean} marcadoDano - si el elemento está marcado con daño
+   * @returns {Promise<Object|null>} registro actualizado o null si no hay match
+   */
+  static async sincronizarEstadoRetornoDesdeBodega(ordenElementoId, verificadoBodega, marcadoDano) {
+    const [rows] = await pool.query(`
+      SELECT ae.id
+      FROM alquiler_elementos ae
+      INNER JOIN ordenes_trabajo ot ON ot.alquiler_id = ae.alquiler_id
+      INNER JOIN orden_trabajo_elementos ote ON ote.orden_id = ot.id
+      WHERE ote.id = ?
+        AND ot.alquiler_id IS NOT NULL
+        AND ae.elemento_id = ote.elemento_id
+        AND (ae.serie_id = ote.serie_id OR (ae.serie_id IS NULL AND ote.serie_id IS NULL))
+        AND (ae.lote_id = ote.lote_id OR (ae.lote_id IS NULL AND ote.lote_id IS NULL))
+      LIMIT 1
+    `, [ordenElementoId]);
+
+    if (rows.length === 0) return null;
+
+    const estadoRetorno = verificadoBodega ? (marcadoDano ? 'dañado' : 'bueno') : null;
+
+    await pool.query(
+      'UPDATE alquiler_elementos SET estado_retorno = ? WHERE id = ?',
+      [estadoRetorno, rows[0].id]
+    );
+
+    return { id: rows[0].id, estado_retorno: estadoRetorno };
+  }
+
+  // ============================================
   // REGISTRAR RETORNO MASIVO
   // ============================================
   static async registrarRetornoMasivo(alquilerId, estadoRetorno) {

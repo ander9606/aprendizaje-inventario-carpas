@@ -4,7 +4,7 @@
 // ============================================
 
 import { useState, useEffect, useMemo } from 'react'
-import { Plus, Trash2, Package, Truck, MapPin, CalendarDays, Calendar, Clock, Percent, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, CheckCircle, User, AlertCircle, FileEdit, ClipboardList, Save, X } from 'lucide-react'
+import { Plus, Trash2, Package, Truck, MapPin, CalendarDays, Calendar, Clock, Percent, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, CheckCircle, User, AlertCircle, FileEdit, ClipboardList, Save, X, Tag } from 'lucide-react'
 import Modal from '@shared/components/Modal'
 import Button from '@shared/components/Button'
 import ProductoSelector from '@shared/components/ProductoSelector'
@@ -83,11 +83,15 @@ const CotizacionFormModal = ({
   const [pasoActual, setPasoActual] = useState(1)
   const [direccionAnimacion, setDireccionAnimacion] = useState('right')
 
+  // Estado para pantalla de éxito post-submit
+  const [cotizacionCreada, setCotizacionCreada] = useState(null)
+
   const PASOS = [
     { numero: 1, titulo: 'Evento', icono: Calendar },
     { numero: 2, titulo: 'Productos', icono: Package },
     { numero: 3, titulo: 'Transporte', icono: Truck },
-    { numero: 4, titulo: 'Resumen', icono: ClipboardList }
+    { numero: 4, titulo: 'Descuentos', icono: Tag },
+    { numero: 5, titulo: 'Resumen', icono: ClipboardList }
   ]
 
   // ============================================
@@ -603,6 +607,54 @@ const CotizacionFormModal = ({
     return Object.keys(newErrors).length === 0
   }
 
+  // Construir datos para la pantalla de éxito
+  const buildDatosExito = (cotizacionId) => {
+    const totales = calcularTotalesConIVA()
+    const clienteSeleccionado = clientes.find(c => c.id === parseInt(formData.cliente_id))
+
+    return {
+      id: cotizacionId,
+      modo: mode,
+      esBorrador: fechasPorConfirmar,
+      // Evento
+      evento_nombre: formData.evento_nombre,
+      evento_ciudad: formData.evento_ciudad,
+      cliente_nombre: clienteSeleccionado?.nombre || eventoPreseleccionado?.cliente_nombre || '',
+      fecha_evento: formData.fecha_evento,
+      fecha_montaje: formData.fecha_montaje,
+      fecha_desmontaje: formData.fecha_desmontaje,
+      // Productos
+      productosResumen: productosSeleccionados.map(prod => {
+        const info = productos.find(p => p.id === parseInt(prod.compuesto_id))
+        const subtotal = ((parseFloat(prod.precio_base) || 0) + (parseFloat(prod.precio_adicionales) || 0)) * (parseInt(prod.cantidad) || 1)
+        const desc = calcularDescuentoProducto(prod)
+        return {
+          nombre: info?.nombre || 'Producto',
+          emoji: info?.categoria_emoji || '',
+          cantidad: parseInt(prod.cantidad) || 1,
+          subtotal: subtotal - desc
+        }
+      }),
+      // Transporte
+      transporteResumen: transporteSeleccionado.filter(t => t.tarifa_id).map(trans => {
+        const tarifa = tarifas.find(t => t.id === parseInt(trans.tarifa_id))
+        return {
+          tipo_camion: tarifa?.tipo_camion || 'Transporte',
+          cantidad: parseInt(trans.cantidad) || 1,
+          subtotal: (tarifa?.precio || 0) * (parseInt(trans.cantidad) || 1)
+        }
+      }),
+      // Descuentos
+      descuentosResumen: descuentosAplicados.map(d => ({
+        nombre: d.nombre,
+        tipo: d.tipo,
+        valor: d.valor
+      })),
+      // Totales
+      totales
+    }
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
 
@@ -676,7 +728,8 @@ const CotizacionFormModal = ({
           cotizacion_id: cotizacionId
         })
       } else {
-        onClose()
+        // Mostrar pantalla de éxito en vez de cerrar inmediatamente
+        setCotizacionCreada(buildDatosExito(cotizacionId))
       }
     } catch (error) {
       console.error('Error al guardar cotizacion:', error)
@@ -707,7 +760,7 @@ const CotizacionFormModal = ({
       }
 
       setGuardarUbicacion(prev => ({ ...prev, mostrar: false }))
-      onClose()
+      setCotizacionCreada(buildDatosExito(guardarUbicacion.cotizacion_id))
     } catch (error) {
       console.error('Error al guardar ubicación:', error)
     }
@@ -715,7 +768,7 @@ const CotizacionFormModal = ({
 
   const handleSkipGuardarUbicacion = () => {
     setGuardarUbicacion(prev => ({ ...prev, mostrar: false }))
-    onClose()
+    setCotizacionCreada(buildDatosExito(guardarUbicacion.cotizacion_id))
   }
 
   const handleClose = () => {
@@ -779,7 +832,7 @@ const CotizacionFormModal = ({
   const siguiente = () => {
     if (validarPaso(pasoActual)) {
       setDireccionAnimacion('right')
-      setPasoActual(prev => Math.min(prev + 1, 4))
+      setPasoActual(prev => Math.min(prev + 1, 5))
     }
   }
 
@@ -823,9 +876,153 @@ const CotizacionFormModal = ({
     <Modal
       isOpen={isOpen}
       onClose={handleClose}
-      title={mode === 'crear' ? 'Nueva Cotizacion' : 'Editar Cotizacion'}
-      size={pasoActual === 2 ? 'full' : 'xl'}
+      title={cotizacionCreada ? (cotizacionCreada.modo === 'crear' ? 'Cotizacion Creada' : 'Cotizacion Actualizada') : (mode === 'crear' ? 'Nueva Cotizacion' : 'Editar Cotizacion')}
+      size={cotizacionCreada ? 'md' : (pasoActual === 2 ? 'full' : 'xl')}
     >
+      {/* PANTALLA DE ÉXITO POST-SUBMIT */}
+      {cotizacionCreada ? (
+        <div className="flex flex-col items-center justify-center py-8 px-4 space-y-6">
+          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+            <CheckCircle className="w-10 h-10 text-green-500" />
+          </div>
+
+          <div className="text-center space-y-2">
+            <h3 className="text-xl font-bold text-slate-800">
+              {cotizacionCreada.modo === 'crear'
+                ? (cotizacionCreada.esBorrador ? '¡Borrador creado!' : '¡Cotizacion creada exitosamente!')
+                : '¡Cotizacion actualizada exitosamente!'
+              }
+            </h3>
+            {cotizacionCreada.id && (
+              <p className="text-sm text-slate-500">Cotizacion #{cotizacionCreada.id}</p>
+            )}
+          </div>
+
+          {/* MINI-RESUMEN */}
+          <div className="w-full space-y-3">
+
+            {/* Evento */}
+            <div className="bg-slate-50 rounded-lg p-3">
+              <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                <Calendar className="w-3.5 h-3.5" />
+                Evento
+              </h4>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+                {cotizacionCreada.cliente_nombre && (
+                  <div className="col-span-2">
+                    <span className="text-slate-500">Cliente: </span>
+                    <span className="font-medium text-slate-700">{cotizacionCreada.cliente_nombre}</span>
+                  </div>
+                )}
+                {cotizacionCreada.evento_nombre && (
+                  <div><span className="text-slate-500">Nombre: </span><span className="font-medium">{cotizacionCreada.evento_nombre}</span></div>
+                )}
+                {cotizacionCreada.evento_ciudad && (
+                  <div><span className="text-slate-500">Ciudad: </span><span className="font-medium">{cotizacionCreada.evento_ciudad}</span></div>
+                )}
+                {cotizacionCreada.esBorrador ? (
+                  <div className="col-span-2 text-amber-600 italic text-xs mt-1">Fechas por confirmar</div>
+                ) : (
+                  <>
+                    {cotizacionCreada.fecha_evento && (
+                      <div><span className="text-slate-500">Evento: </span><span className="font-medium">{cotizacionCreada.fecha_evento}</span></div>
+                    )}
+                    {cotizacionCreada.fecha_montaje && cotizacionCreada.fecha_montaje !== cotizacionCreada.fecha_evento && (
+                      <div><span className="text-slate-500">Montaje: </span><span className="font-medium">{cotizacionCreada.fecha_montaje}</span></div>
+                    )}
+                    {cotizacionCreada.fecha_desmontaje && cotizacionCreada.fecha_desmontaje !== cotizacionCreada.fecha_evento && (
+                      <div><span className="text-slate-500">Desmontaje: </span><span className="font-medium">{cotizacionCreada.fecha_desmontaje}</span></div>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Productos */}
+            <div className="bg-slate-50 rounded-lg p-3">
+              <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                <Package className="w-3.5 h-3.5" />
+                Productos ({cotizacionCreada.productosResumen.length})
+              </h4>
+              <div className="space-y-1">
+                {cotizacionCreada.productosResumen.map((prod, idx) => (
+                  <div key={idx} className="flex justify-between text-sm">
+                    <span className="text-slate-600 truncate mr-2">
+                      {prod.emoji} {prod.nombre} x{prod.cantidad}
+                    </span>
+                    <span className="font-medium text-slate-700 whitespace-nowrap">{formatearMoneda(prod.subtotal)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Transporte */}
+            {cotizacionCreada.transporteResumen.length > 0 && (
+              <div className="bg-slate-50 rounded-lg p-3">
+                <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                  <Truck className="w-3.5 h-3.5" />
+                  Transporte
+                </h4>
+                <div className="space-y-1">
+                  {cotizacionCreada.transporteResumen.map((trans, idx) => (
+                    <div key={idx} className="flex justify-between text-sm">
+                      <span className="text-slate-600">{trans.tipo_camion} x{trans.cantidad}</span>
+                      <span className="font-medium text-slate-700">{formatearMoneda(trans.subtotal)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Desglose de totales */}
+            <div className="bg-slate-100 rounded-lg p-3 space-y-1.5">
+              <div className="flex justify-between text-sm">
+                <span className="text-slate-600">Subtotal productos:</span>
+                <span className="font-medium">{formatearMoneda(cotizacionCreada.totales.subtotalProductos)}</span>
+              </div>
+              {cotizacionCreada.totales.subtotalTransporte > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-600">Subtotal transporte:</span>
+                  <span className="font-medium">{formatearMoneda(cotizacionCreada.totales.subtotalTransporte)}</span>
+                </div>
+              )}
+              {cotizacionCreada.totales.cobroDiasExtra > 0 && (
+                <div className="flex justify-between text-sm text-amber-700">
+                  <span>Dias adicionales ({cotizacionCreada.totales.totalDiasExtra} dias):</span>
+                  <span className="font-medium">+{formatearMoneda(cotizacionCreada.totales.cobroDiasExtra)}</span>
+                </div>
+              )}
+              {cotizacionCreada.totales.descuento > 0 && (
+                <div className="flex justify-between text-sm text-red-600">
+                  <span>Descuentos:</span>
+                  <span className="font-medium">-{formatearMoneda(cotizacionCreada.totales.descuento)}</span>
+                </div>
+              )}
+              <div className="flex justify-between text-sm pt-1.5 border-t border-slate-300">
+                <span className="text-slate-700 font-medium">Base gravable:</span>
+                <span className="font-medium">{formatearMoneda(cotizacionCreada.totales.baseGravable)}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-slate-600">IVA ({cotizacionCreada.totales.porcentajeIVA}%):</span>
+                <span className="font-medium">+{formatearMoneda(cotizacionCreada.totales.valorIVA)}</span>
+              </div>
+              <div className="flex justify-between items-center pt-2 border-t-2 border-slate-400">
+                <span className="text-base font-bold text-slate-900">TOTAL:</span>
+                <span className="text-base font-bold text-blue-600">{formatearMoneda(cotizacionCreada.totales.totalFinal)}</span>
+              </div>
+            </div>
+          </div>
+
+          <Button
+            type="button"
+            variant="primary"
+            onClick={onClose}
+            className="mt-2"
+          >
+            Cerrar
+          </Button>
+        </div>
+      ) : (<>
       <form onSubmit={handleSubmit} className="flex flex-col h-full">
 
         {/* STEPPER */}
@@ -1753,9 +1950,65 @@ const CotizacionFormModal = ({
         </>)}
 
         {/* ============================================
-            PASO 4: RESUMEN Y TOTALES
+            PASO 4: DESCUENTOS
             ============================================ */}
         {pasoActual === 4 && (<>
+
+        <div className="space-y-4">
+          {/* Subtotal informativo */}
+          {(() => {
+            const totales = calcularTotalesConIVA()
+            return (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-slate-600">Subtotal antes de descuentos:</span>
+                  <span className="text-lg font-semibold text-slate-800">{formatearMoneda(totales.subtotalBruto)}</span>
+                </div>
+              </div>
+            )
+          })()}
+
+          {/* Selector de descuentos */}
+          <div className="bg-white border border-slate-200 rounded-lg p-5">
+            <DescuentosSelectorLocal
+              descuentosAplicados={descuentosAplicados}
+              onDescuentosChange={setDescuentosAplicados}
+              baseCalculo={calcularTotalesConIVA().subtotalBruto}
+              disabled={isLoading}
+            />
+          </div>
+
+          {/* Preview del impacto */}
+          {descuentosAplicados.length > 0 && (() => {
+            const totales = calcularTotalesConIVA()
+            return (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <h4 className="text-sm font-medium text-green-800 mb-2">Impacto de los descuentos</h4>
+                <div className="space-y-1 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-slate-600">Subtotal:</span>
+                    <span className="font-medium">{formatearMoneda(totales.subtotalBruto)}</span>
+                  </div>
+                  <div className="flex justify-between text-red-600">
+                    <span>Descuentos:</span>
+                    <span className="font-medium">-{formatearMoneda(totales.descuento)}</span>
+                  </div>
+                  <div className="flex justify-between pt-1 border-t border-green-300">
+                    <span className="font-medium text-slate-700">Base gravable:</span>
+                    <span className="font-semibold text-slate-800">{formatearMoneda(totales.baseGravable)}</span>
+                  </div>
+                </div>
+              </div>
+            )
+          })()}
+        </div>
+
+        </>)}
+
+        {/* ============================================
+            PASO 5: RESUMEN Y TOTALES
+            ============================================ */}
+        {pasoActual === 5 && (<>
 
         {/* RESUMEN COMPACTO */}
         <div className="space-y-4">
@@ -1868,16 +2121,6 @@ const CotizacionFormModal = ({
                 </div>
               </div>
 
-              {/* Selector de Descuentos */}
-              <div className="border-t border-slate-200 pt-3 mt-2">
-                <DescuentosSelectorLocal
-                  descuentosAplicados={descuentosAplicados}
-                  onDescuentosChange={setDescuentosAplicados}
-                  baseCalculo={totales.subtotalBruto}
-                  disabled={isLoading}
-                />
-              </div>
-
               {/* Mostrar total descuento si hay */}
               {totales.descuento > 0 && (
                 <div className="flex justify-between items-center text-sm text-red-600">
@@ -1938,7 +2181,7 @@ const CotizacionFormModal = ({
               Cancelar
             </Button>
 
-            {pasoActual < 4 ? (
+            {pasoActual < 5 ? (
               <Button
                 type="button"
                 variant="primary"
@@ -2083,6 +2326,7 @@ const CotizacionFormModal = ({
           </div>
         </div>
       )}
+    </>)}
     </Modal>
   )
 }

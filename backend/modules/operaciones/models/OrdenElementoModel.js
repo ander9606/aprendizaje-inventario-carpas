@@ -300,27 +300,18 @@ class OrdenElementoModel {
      */
     static async _ensureColumnsMarcadoDano() {
         if (OrdenElementoModel._danoColumnsChecked) return;
-        try {
-            await pool.query(`
-                ALTER TABLE orden_trabajo_elementos
-                ADD COLUMN marcado_dano BOOLEAN DEFAULT FALSE,
-                ADD COLUMN descripcion_dano TEXT DEFAULT NULL,
-                ADD COLUMN cantidad_danada INT DEFAULT NULL
-            `);
-        } catch (error) {
-            if (error.code !== 'ER_DUP_FIELDNAME') {
-                // Intentar agregar cada columna individualmente
-                for (const col of [
-                    'ADD COLUMN marcado_dano BOOLEAN DEFAULT FALSE',
-                    'ADD COLUMN descripcion_dano TEXT DEFAULT NULL',
-                    'ADD COLUMN cantidad_danada INT DEFAULT NULL'
-                ]) {
-                    try {
-                        await pool.query(`ALTER TABLE orden_trabajo_elementos ${col}`);
-                    } catch (e) {
-                        if (e.code !== 'ER_DUP_FIELDNAME') { /* ignorar */ }
-                    }
-                }
+        // Intentar agregar cada columna individualmente para evitar que
+        // ER_DUP_FIELDNAME en una columna impida crear las demás
+        for (const col of [
+            'ADD COLUMN marcado_dano BOOLEAN DEFAULT FALSE',
+            'ADD COLUMN descripcion_dano TEXT DEFAULT NULL',
+            'ADD COLUMN cantidad_danada INT DEFAULT NULL'
+        ]) {
+            try {
+                await pool.query(`ALTER TABLE orden_trabajo_elementos ${col}`);
+            } catch (e) {
+                // ER_DUP_FIELDNAME = columna ya existe, ignorar
+                if (e.code !== 'ER_DUP_FIELDNAME') { /* ignorar */ }
             }
         }
         OrdenElementoModel._danoColumnsChecked = true;
