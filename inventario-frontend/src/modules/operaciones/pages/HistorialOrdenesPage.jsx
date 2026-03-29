@@ -116,7 +116,8 @@ function ModalDetalleHistorial({ isOpen, onClose, evento }) {
 
     const montaje = evento.montaje
     const desmontaje = evento.desmontaje
-    const responsable = montaje?.nombre_responsable || desmontaje?.nombre_responsable
+    const responsableMontaje = montaje?.nombre_responsable
+    const responsableDesmontaje = desmontaje?.nombre_responsable
     const esNotaGenerica = (nota) => nota && /^(Montaje|Desmontaje) para evento:/i.test(nota)
     const novedadesMontaje = esNotaGenerica(montaje?.notas) ? null : montaje?.notas
     const novedadesDesmontaje = esNotaGenerica(desmontaje?.notas) ? null : desmontaje?.notas
@@ -131,14 +132,25 @@ function ModalDetalleHistorial({ isOpen, onClose, evento }) {
             <div className="space-y-4">
                 {/* Info grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-                    {/* Encargado */}
+                    {/* Encargado Montaje */}
                     <div className="flex items-start gap-3">
-                        <div className="p-2 bg-slate-100 rounded-lg shrink-0">
-                            <User className="w-4 h-4 text-slate-500" />
+                        <div className="p-2 bg-emerald-50 rounded-lg shrink-0">
+                            <User className="w-4 h-4 text-emerald-500" />
                         </div>
                         <div>
-                            <p className="text-xs text-slate-400 font-medium">Encargado</p>
-                            <p className="text-sm text-slate-700 mt-0.5">{responsable || 'Sin asignar'}</p>
+                            <p className="text-xs text-slate-400 font-medium">Encargado Montaje</p>
+                            <p className="text-sm text-slate-700 mt-0.5">{responsableMontaje || 'Sin asignar'}</p>
+                        </div>
+                    </div>
+
+                    {/* Encargado Desmontaje */}
+                    <div className="flex items-start gap-3">
+                        <div className="p-2 bg-orange-50 rounded-lg shrink-0">
+                            <User className="w-4 h-4 text-orange-500" />
+                        </div>
+                        <div>
+                            <p className="text-xs text-slate-400 font-medium">Encargado Desmontaje</p>
+                            <p className="text-sm text-slate-700 mt-0.5">{responsableDesmontaje || 'Sin asignar'}</p>
                         </div>
                     </div>
 

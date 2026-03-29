@@ -218,7 +218,12 @@ const OrdenRow = ({ orden, tipo, navigate }) => {
                     <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold border ${config.color}`}>
                         {config.label}
                     </span>
-                    {!tieneResponsable && orden.estado !== 'completado' && orden.estado !== 'cancelado' && (
+                    {tieneResponsable && orden.nombre_responsable ? (
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-50 text-slate-600 border border-slate-200 flex items-center gap-1">
+                            <User className="w-3 h-3" />
+                            {orden.nombre_responsable}
+                        </span>
+                    ) : orden.estado !== 'completado' && orden.estado !== 'cancelado' && (
                         <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-50 text-amber-600 border border-amber-200">
                             Sin resp.
                         </span>
@@ -388,6 +393,12 @@ const OrdenManualRow = ({ orden, navigate }) => {
                                 </span>
                             )}
                         </div>
+                        {orden.nombre_responsable && (
+                            <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
+                                <User className="w-3 h-3" />
+                                {orden.nombre_responsable}
+                            </p>
+                        )}
                         {orden.notas && (
                             <p className="text-xs text-slate-400 mt-1 truncate max-w-md">
                                 {orden.notas}
