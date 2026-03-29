@@ -23,26 +23,35 @@ import {
     User,
     MessageSquare,
     X,
-    Home
+    Home,
+    Wrench
 } from 'lucide-react'
 import Modal from '@shared/components/Modal'
 import Spinner from '@shared/components/Spinner'
 import Button from '@shared/components/Button'
-import { useGetChecklist, useVerificarElementoCargue, useVerificarElementoRecogida, useVerificarElementoBodega } from '../hooks/useOrdenesTrabajo'
+import { useGetChecklist, useVerificarElementoCargue, useVerificarElementoRecogida, useVerificarElementoBodega, useMarcarDanoElemento, useGenerarOrdenMantenimiento } from '../hooks/useOrdenesTrabajo'
 import { toast } from 'sonner'
 
 // ============================================
 // COMPONENTE: Fila de Elemento con Checkbox
 // ============================================
-const ElementoCheckItem = ({ elemento, modo, onToggle, isPending }) => {
+const ElementoCheckItem = ({ elemento, modo, onToggle, onMarcarDano, isPending, isDanoPending }) => {
     const [showNotas, setShowNotas] = useState(false)
     const [notas, setNotas] = useState(elemento.notas || '')
+    const [showDanoForm, setShowDanoForm] = useState(false)
+    const [descripcionDano, setDescripcionDano] = useState(elemento.descripcion_dano || '')
+    const [cantidadDanada, setCantidadDanada] = useState(elemento.cantidad_danada || elemento.cantidad || 1)
+
+    const esLote = !!elemento.lote_codigo && elemento.cantidad > 1
 
     const verificado = modo === 'cargue'
         ? elemento.verificado_salida
         : modo === 'bodega'
         ? elemento.verificado_bodega
         : elemento.verificado_retorno
+
+    const esModoConDano = modo === 'recogida' || modo === 'bodega'
+    const tieneDano = !!elemento.marcado_dano
 
     const handleToggle = () => {
         onToggle(elemento.id, !verificado, notas || null)
@@ -54,8 +63,35 @@ const ElementoCheckItem = ({ elemento, modo, onToggle, isPending }) => {
         }
     }
 
+    const handleToggleDano = () => {
+        if (tieneDano) {
+            // Desmarcar daño
+            onMarcarDano(elemento.id, false, null, null)
+            setShowDanoForm(false)
+            setDescripcionDano('')
+            setCantidadDanada(elemento.cantidad || 1)
+        } else {
+            // Mostrar formulario para describir el daño
+            setShowDanoForm(true)
+        }
+    }
+
+    const handleGuardarDano = () => {
+        if (!descripcionDano.trim()) {
+            toast.error('Debe describir el daño')
+            return
+        }
+        if (esLote && (!cantidadDanada || cantidadDanada < 1)) {
+            toast.error('Debe indicar la cantidad dañada')
+            return
+        }
+        onMarcarDano(elemento.id, true, descripcionDano.trim(), esLote ? cantidadDanada : null)
+        setShowDanoForm(false)
+    }
+
     return (
         <div className={`px-4 py-3 transition-colors ${
+            tieneDano ? 'bg-amber-50/60 border-l-4 border-l-amber-400' :
             verificado ? 'bg-green-50/60' : 'hover:bg-slate-50'
         }`}>
             <div className="flex items-center gap-3">
@@ -83,6 +119,12 @@ const ElementoCheckItem = ({ elemento, modo, onToggle, isPending }) => {
                                 x{elemento.cantidad}
                             </span>
                         )}
+                        {tieneDano && (
+                            <span className="px-1.5 py-0.5 bg-amber-100 text-amber-700 text-xs rounded font-medium flex items-center gap-1">
+                                <AlertTriangle className="w-3 h-3" />
+                                Daño
+                            </span>
+                        )}
                     </div>
                     {(elemento.serie_codigo || elemento.lote_codigo) && (
                         <div className="flex items-center gap-1 mt-0.5">
@@ -98,7 +140,29 @@ const ElementoCheckItem = ({ elemento, modo, onToggle, isPending }) => {
                             {elemento.notas}
                         </p>
                     )}
+                    {/* Descripción del daño preview */}
+                    {tieneDano && elemento.descripcion_dano && !showDanoForm && (
+                        <p className="text-xs text-amber-600 mt-0.5 italic truncate">
+                            Daño{esLote && elemento.cantidad_danada ? ` (${elemento.cantidad_danada} de ${elemento.cantidad})` : ''}: {elemento.descripcion_dano}
+                        </p>
+                    )}
                 </div>
+
+                {/* Botón marcar daño (solo recogida/bodega) */}
+                {esModoConDano && (
+                    <button
+                        onClick={handleToggleDano}
+                        disabled={isDanoPending}
+                        className={`shrink-0 p-1.5 rounded-lg transition-colors ${
+                            tieneDano
+                                ? 'text-amber-600 bg-amber-100 hover:bg-amber-200'
+                                : 'text-slate-400 hover:text-amber-600 hover:bg-amber-50'
+                        } ${isDanoPending ? 'opacity-50' : ''}`}
+                        title={tieneDano ? 'Quitar marca de daño' : 'Reportar daño'}
+                    >
+                        <AlertTriangle className="w-4 h-4" />
+                    </button>
+                )}
 
                 {/* Botón notas */}
                 <button
@@ -113,6 +177,48 @@ const ElementoCheckItem = ({ elemento, modo, onToggle, isPending }) => {
                     <MessageSquare className="w-4 h-4" />
                 </button>
             </div>
+
+            {/* Formulario de daño expandido */}
+            {showDanoForm && !tieneDano && (
+                <div className="mt-2 ml-9 bg-amber-50 border border-amber-200 rounded-lg p-2.5">
+                    <div className="flex items-center justify-between mb-1.5">
+                        <span className="text-xs font-medium text-amber-700">Reportar daño</span>
+                        <button onClick={() => setShowDanoForm(false)} className="text-amber-400 hover:text-amber-600 p-0.5">
+                            <X className="w-3.5 h-3.5" />
+                        </button>
+                    </div>
+                    {esLote && (
+                        <div className="mb-2">
+                            <label className="block text-xs font-medium text-amber-600 mb-1">
+                                Cantidad dañada (de {elemento.cantidad})
+                            </label>
+                            <input
+                                type="number"
+                                min={1}
+                                max={elemento.cantidad}
+                                value={cantidadDanada}
+                                onChange={(e) => setCantidadDanada(Math.min(elemento.cantidad, Math.max(1, parseInt(e.target.value) || 1)))}
+                                className="w-24 text-sm border border-amber-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400 bg-white"
+                            />
+                        </div>
+                    )}
+                    <textarea
+                        value={descripcionDano}
+                        onChange={(e) => setDescripcionDano(e.target.value)}
+                        className="w-full text-sm border border-amber-200 rounded-lg p-2 resize-none focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400 bg-white"
+                        rows={2}
+                        placeholder="Describa el daño encontrado..."
+                        autoFocus={!esLote}
+                    />
+                    <button
+                        onClick={handleGuardarDano}
+                        disabled={isDanoPending || !descripcionDano.trim()}
+                        className="mt-2 px-3 py-1.5 bg-amber-500 text-white text-xs font-medium rounded-lg hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                        Confirmar daño
+                    </button>
+                </div>
+            )}
 
             {/* Notas expandidas inline (debajo del elemento, no como popover) */}
             {showNotas && (
@@ -142,7 +248,7 @@ const ElementoCheckItem = ({ elemento, modo, onToggle, isPending }) => {
 // ============================================
 // COMPONENTE: Grupo de Producto
 // ============================================
-const ProductoGroup = ({ compuestoId, nombre, elementos, modo, onToggle, isPending }) => {
+const ProductoGroup = ({ compuestoId, nombre, elementos, modo, onToggle, onMarcarDano, isPending, isDanoPending }) => {
     const [expanded, setExpanded] = useState(true)
 
     const verificados = elementos.filter(e =>
@@ -194,7 +300,9 @@ const ProductoGroup = ({ compuestoId, nombre, elementos, modo, onToggle, isPendi
                             elemento={elem}
                             modo={modo}
                             onToggle={onToggle}
+                            onMarcarDano={onMarcarDano}
                             isPending={isPending}
+                            isDanoPending={isDanoPending}
                         />
                     ))}
                 </div>
@@ -367,18 +475,21 @@ const generarChecklistPrint = ({ ordenId, ordenInfo, grupos, modo, verificados, 
 //   - onCompleto: callback cuando todos verificados
 // ============================================
 const ChecklistCargueDescargue = ({ isOpen, onClose, ordenId, ordenInfo, modo = 'cargue', onCompleto }) => {
-    const { elementos, totalElementos, verificadosCargue, verificadosRecogida, verificadosBodega, isLoading, refetch } = useGetChecklist(
+    const { elementos, totalElementos, verificadosCargue, verificadosRecogida, verificadosBodega, elementosConDano, isLoading, refetch } = useGetChecklist(
         isOpen ? ordenId : null
     )
 
     const verificarCargue = useVerificarElementoCargue()
     const verificarRecogida = useVerificarElementoRecogida()
     const verificarBodega = useVerificarElementoBodega()
+    const marcarDano = useMarcarDanoElemento()
+    const generarMantenimiento = useGenerarOrdenMantenimiento()
 
     const mutacion = modo === 'cargue' ? verificarCargue : modo === 'bodega' ? verificarBodega : verificarRecogida
     const verificados = modo === 'cargue' ? verificadosCargue : modo === 'bodega' ? verificadosBodega : verificadosRecogida
     const todosVerificados = totalElementos > 0 && verificados === totalElementos
     const progreso = totalElementos > 0 ? Math.round((verificados / totalElementos) * 100) : 0
+    const esModoConDano = modo === 'recogida' || modo === 'bodega'
 
     const config = MODO_CONFIG[modo] || MODO_CONFIG.cargue
     const IconoModo = config.icon
@@ -420,6 +531,30 @@ const ChecklistCargueDescargue = ({ isOpen, onClose, ordenId, ordenInfo, modo = 
             })
         } catch (error) {
             toast.error(error?.response?.data?.message || 'Error al verificar elemento')
+        }
+    }
+
+    const handleMarcarDano = async (elementoId, marcado_dano, descripcion_dano, cantidad_danada = null) => {
+        try {
+            await marcarDano.mutateAsync({
+                ordenId,
+                elementoId,
+                marcado_dano,
+                descripcion_dano,
+                cantidad_danada
+            })
+            toast.success(marcado_dano ? 'Elemento marcado con daño' : 'Marca de daño removida')
+        } catch (error) {
+            toast.error(error?.response?.data?.message || 'Error al marcar daño')
+        }
+    }
+
+    const handleGenerarMantenimiento = async () => {
+        try {
+            const result = await generarMantenimiento.mutateAsync({ ordenId })
+            toast.success(result.message || 'Orden de mantenimiento generada')
+        } catch (error) {
+            toast.error(error?.response?.data?.message || 'Error al generar orden de mantenimiento')
         }
     }
 
@@ -529,6 +664,14 @@ const ChecklistCargueDescargue = ({ isOpen, onClose, ordenId, ordenInfo, modo = 
                                 </span>
                             </div>
                         )}
+                        {esModoConDano && elementosConDano > 0 && (
+                            <div className="flex items-center gap-2 p-2 bg-amber-50 border border-amber-200 rounded-lg">
+                                <AlertTriangle className="w-4 h-4 text-amber-500" />
+                                <span className="text-sm font-medium text-amber-700">
+                                    {elementosConDano} elemento{elementosConDano > 1 ? 's' : ''} marcado{elementosConDano > 1 ? 's' : ''} con daño
+                                </span>
+                            </div>
+                        )}
                     </div>
 
                     {/* Instrucciones */}
@@ -547,7 +690,9 @@ const ChecklistCargueDescargue = ({ isOpen, onClose, ordenId, ordenInfo, modo = 
                                     elementos={grupo.elementos}
                                     modo={modo}
                                     onToggle={handleToggle}
+                                    onMarcarDano={handleMarcarDano}
                                     isPending={mutacion.isPending}
+                                    isDanoPending={marcarDano.isPending}
                                 />
                             ))
                         ) : (
@@ -561,27 +706,43 @@ const ChecklistCargueDescargue = ({ isOpen, onClose, ordenId, ordenInfo, modo = 
                     </div>
 
                     {/* Botones de acción */}
-                    <div className="flex items-center justify-between pt-4 border-t border-slate-200">
-                        <button
-                            onClick={handleImprimir}
-                            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"
-                        >
-                            <Printer className="w-4 h-4" />
-                            Imprimir Checklist
-                        </button>
-                        <div className="flex items-center gap-3">
-                            <Button variant="secondary" onClick={onClose}>
-                                Cerrar
-                            </Button>
-                            {todosVerificados && (
-                                <Button
-                                    color="green"
-                                    icon={CheckCircle}
-                                    onClick={handleConfirmar}
-                                >
-                                    {config.botonCompleto}
+                    <div className="flex flex-col gap-3 pt-4 border-t border-slate-200">
+                        {/* Botón generar orden de mantenimiento */}
+                        {esModoConDano && todosVerificados && elementosConDano > 0 && (
+                            <button
+                                onClick={handleGenerarMantenimiento}
+                                disabled={generarMantenimiento.isPending}
+                                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-amber-50 border-2 border-amber-300 text-amber-700 font-medium rounded-lg hover:bg-amber-100 hover:border-amber-400 transition-colors disabled:opacity-50"
+                            >
+                                <Wrench className="w-5 h-5" />
+                                {generarMantenimiento.isPending
+                                    ? 'Generando orden...'
+                                    : `Generar Orden de Mantenimiento (${elementosConDano} elemento${elementosConDano > 1 ? 's' : ''})`
+                                }
+                            </button>
+                        )}
+                        <div className="flex items-center justify-between">
+                            <button
+                                onClick={handleImprimir}
+                                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"
+                            >
+                                <Printer className="w-4 h-4" />
+                                Imprimir Checklist
+                            </button>
+                            <div className="flex items-center gap-3">
+                                <Button variant="secondary" onClick={onClose}>
+                                    Cerrar
                                 </Button>
-                            )}
+                                {todosVerificados && (
+                                    <Button
+                                        color="green"
+                                        icon={CheckCircle}
+                                        onClick={handleConfirmar}
+                                    >
+                                        {config.botonCompleto}
+                                    </Button>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>

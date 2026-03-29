@@ -18,14 +18,12 @@ class OrdenTrabajoModel {
                 MODIFY COLUMN estado ENUM(
                     'pendiente', 'confirmado', 'en_preparacion', 'en_ruta',
                     'en_sitio', 'en_proceso', 'en_retorno', 'descargue',
+                    'en_revision', 'en_reparacion',
                     'completado', 'cancelado'
                 ) DEFAULT 'pendiente'
             `);
         } catch (error) {
-            // Si el ENUM ya tiene esos valores, MySQL no lanza error,
-            // pero atrapamos por si acaso
             if (error.code !== 'ER_DUP_FIELDNAME') {
-                // Solo logueamos, no lanzamos — no es crítico
                 console.warn('[OrdenTrabajoModel] Warn al actualizar ENUM estado:', error.message);
             }
         }
@@ -561,12 +559,15 @@ class OrdenTrabajoModel {
             creado_por
         } = datos;
 
+        // Asegurar que alquiler_id sea nullable para órdenes manuales
+        await OrdenTrabajoModel._ensureAlquilerIdNullable();
+
         const [result] = await pool.query(`
             INSERT INTO ordenes_trabajo
             (alquiler_id, tipo, estado, fecha_programada, direccion_evento, ciudad_evento, notas, prioridad, vehiculo_id, creado_por)
             VALUES (?, ?, 'pendiente', ?, ?, ?, ?, ?, ?, ?)
         `, [
-            alquiler_id,
+            alquiler_id || null,
             tipo,
             fecha_programada,
             direccion_evento || null,
@@ -578,6 +579,30 @@ class OrdenTrabajoModel {
         ]);
 
         return this.obtenerPorId(result.insertId);
+    }
+
+    /**
+     * Auto-modificar schema para soportar órdenes manuales (mantenimiento, traslado, etc.)
+     * - alquiler_id nullable
+     * - tipo ENUM ampliado
+     */
+    static async _ensureAlquilerIdNullable() {
+        if (OrdenTrabajoModel._alquilerIdNullableChecked) return;
+        try {
+            await pool.query(`
+                ALTER TABLE ordenes_trabajo MODIFY COLUMN alquiler_id INT DEFAULT NULL
+            `);
+        } catch (error) {
+            // Ignorar si ya está modificado o sin permisos
+        }
+        try {
+            await pool.query(`
+                ALTER TABLE ordenes_trabajo MODIFY COLUMN tipo ENUM('montaje', 'desmontaje', 'mantenimiento', 'traslado', 'revision', 'inventario', 'otro') NOT NULL
+            `);
+        } catch (error) {
+            // Ignorar si ya tiene los valores
+        }
+        OrdenTrabajoModel._alquilerIdNullableChecked = true;
     }
 
     /**

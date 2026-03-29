@@ -407,6 +407,44 @@ const ordenesAPI = {
             datos
         )
         return response.data
+    },
+
+    /**
+     * Marcar/desmarcar daño en un elemento del checklist
+     * @param {number} ordenId
+     * @param {number} elementoId
+     * @param {Object} datos - { marcado_dano: boolean, descripcion_dano?: string }
+     */
+    marcarDanoElemento: async (ordenId, elementoId, datos) => {
+        const response = await api.put(
+            `/operaciones/ordenes/${ordenId}/elementos/${elementoId}/marcar-dano`,
+            datos
+        )
+        return response.data
+    },
+
+    /**
+     * Generar orden de mantenimiento desde elementos dañados
+     * @param {number} ordenId
+     */
+    generarOrdenMantenimiento: async (ordenId) => {
+        const response = await api.post(
+            `/operaciones/ordenes/${ordenId}/generar-mantenimiento`
+        )
+        return response.data
+    },
+
+    /**
+     * Completar orden de mantenimiento con resultados por elemento
+     * @param {number} ordenId
+     * @param {Object} datos - { resultados: [{ elemento_orden_id, reparado: boolean }] }
+     */
+    completarMantenimiento: async (ordenId, datos) => {
+        const response = await api.post(
+            `/operaciones/ordenes/${ordenId}/completar-mantenimiento`,
+            datos
+        )
+        return response.data
     }
 }
 

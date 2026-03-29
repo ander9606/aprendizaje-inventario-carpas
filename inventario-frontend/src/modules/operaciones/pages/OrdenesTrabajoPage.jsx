@@ -60,6 +60,8 @@ const getEstadoConfig = (estado) => {
         en_ruta: { color: 'bg-cyan-100 text-cyan-700 border-cyan-200', icon: Truck, label: 'En ruta' },
         en_sitio: { color: 'bg-amber-100 text-amber-700 border-amber-200', icon: MapPin, label: 'En sitio' },
         en_proceso: { color: 'bg-blue-100 text-blue-700 border-blue-200', icon: RefreshCw, label: 'En proceso' },
+        en_revision: { color: 'bg-amber-100 text-amber-700 border-amber-200', icon: Search, label: 'En revisión' },
+        en_reparacion: { color: 'bg-orange-100 text-orange-700 border-orange-200', icon: Wrench, label: 'En reparación' },
         completado: { color: 'bg-green-100 text-green-700 border-green-200', icon: CheckCircle, label: 'Completado' },
         cancelado: { color: 'bg-red-100 text-red-700 border-red-200', icon: XCircle, label: 'Cancelado' }
     }
@@ -156,7 +158,8 @@ const esEventoFinalizado = (evento) => {
 const getProgresoOrden = (estado, tipo) => {
     const pasosMontaje = ['pendiente', 'confirmado', 'en_preparacion', 'en_ruta', 'en_sitio', 'en_proceso', 'completado']
     const pasosDesmontaje = ['pendiente', 'confirmado', 'en_preparacion', 'en_ruta', 'en_sitio', 'completado']
-    const pasos = tipo === 'montaje' ? pasosMontaje : pasosDesmontaje
+    const pasosMantenimiento = ['pendiente', 'en_revision', 'en_reparacion', 'completado']
+    const pasos = tipo === 'mantenimiento' ? pasosMantenimiento : tipo === 'montaje' ? pasosMontaje : pasosDesmontaje
     const idx = pasos.indexOf(estado)
     if (estado === 'cancelado') return 0
     if (idx === -1) return 0
@@ -215,7 +218,12 @@ const OrdenRow = ({ orden, tipo, navigate }) => {
                     <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold border ${config.color}`}>
                         {config.label}
                     </span>
-                    {!tieneResponsable && orden.estado !== 'completado' && orden.estado !== 'cancelado' && (
+                    {tieneResponsable && orden.nombre_responsable ? (
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-50 text-slate-600 border border-slate-200 flex items-center gap-1">
+                            <User className="w-3 h-3" />
+                            {orden.nombre_responsable}
+                        </span>
+                    ) : orden.estado !== 'completado' && orden.estado !== 'cancelado' && (
                         <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-50 text-amber-600 border border-amber-200">
                             Sin resp.
                         </span>
@@ -385,6 +393,12 @@ const OrdenManualRow = ({ orden, navigate }) => {
                                 </span>
                             )}
                         </div>
+                        {orden.nombre_responsable && (
+                            <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
+                                <User className="w-3 h-3" />
+                                {orden.nombre_responsable}
+                            </p>
+                        )}
                         {orden.notas && (
                             <p className="text-xs text-slate-400 mt-1 truncate max-w-md">
                                 {orden.notas}
@@ -819,6 +833,8 @@ export default function OrdenesTrabajoPage() {
                                     <option value="en_preparacion">En preparación</option>
                                     <option value="en_ruta">En ruta</option>
                                     <option value="en_proceso">En proceso</option>
+                                    <option value="en_revision">En revisión</option>
+                                    <option value="en_reparacion">En reparación</option>
                                     <option value="completado">Completado</option>
                                     <option value="cancelado">Cancelado</option>
                                 </select>

@@ -5,6 +5,7 @@ const AlertaModel = require('../models/AlertaModel');
 const FotoOperacionModel = require('../models/FotoOperacionModel');
 const ValidadorFechasService = require('../services/ValidadorFechasService');
 const SincronizacionAlquilerService = require('../services/SincronizacionAlquilerService');
+const SerieModel = require('../../inventario/models/SerieModel');
 const AuthModel = require('../../auth/models/AuthModel');
 const AppError = require('../../../utils/AppError');
 const logger = require('../../../utils/logger');
@@ -276,6 +277,24 @@ const cambiarEstadoOrden = async (req, res, next) => {
                 throw new AppError(
                     `Debes completar el Checklist en Bodega antes de finalizar (${checklistData.verificadosBodega}/${checklistData.totalElementos} verificados)`,
                     409
+                );
+            }
+        }
+
+        // Validar transiciones de mantenimiento
+        if (ordenAnterior.tipo === 'mantenimiento') {
+            const transicionesMantenimiento = {
+                'pendiente': ['en_revision', 'cancelado'],
+                'confirmado': ['en_revision', 'cancelado'],
+                'en_preparacion': ['en_revision', 'cancelado'],
+                'en_revision': ['en_reparacion', 'cancelado'],
+                'en_reparacion': ['cancelado'] // completado solo via endpoint dedicado
+            };
+            const permitidos = transicionesMantenimiento[estadoAnterior] || [];
+            if (!permitidos.includes(estado)) {
+                throw new AppError(
+                    `Transición no permitida para mantenimiento: ${estadoAnterior} → ${estado}. Permitidos: ${permitidos.join(', ')}`,
+                    400
                 );
             }
         }
@@ -1560,6 +1579,247 @@ const obtenerFirmaCliente = async (req, res, next) => {
     }
 };
 
+/**
+ * POST /api/operaciones/ordenes/:id/completar-mantenimiento
+ * Completar orden de mantenimiento marcando cada elemento como reparado o no reparable
+ */
+const completarMantenimiento = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const { resultados } = req.body;
+
+        if (!resultados || !Array.isArray(resultados) || resultados.length === 0) {
+            throw new AppError('Debe proporcionar los resultados de mantenimiento de los elementos', 400);
+        }
+
+        const orden = await OrdenTrabajoModel.obtenerPorId(parseInt(id));
+        if (!orden) {
+            throw new AppError('Orden no encontrada', 404);
+        }
+        if (orden.tipo !== 'mantenimiento') {
+            throw new AppError('Solo se puede completar mantenimiento en órdenes de tipo mantenimiento', 400);
+        }
+        if (orden.estado !== 'en_reparacion') {
+            throw new AppError('La orden debe estar en estado "en_reparacion" para completar', 400);
+        }
+
+        const estadoAnterior = orden.estado;
+        const resumen = { reparados: 0, no_reparables: 0 };
+
+        for (const item of resultados) {
+            const { elemento_orden_id, reparado } = item;
+
+            if (typeof reparado !== 'boolean') {
+                throw new AppError('Cada resultado debe tener el campo "reparado" (boolean)', 400);
+            }
+
+            // Obtener datos del elemento en la orden
+            const elemento = await OrdenElementoModel.obtenerPorId(parseInt(elemento_orden_id));
+            if (!elemento || elemento.orden_id !== parseInt(id)) {
+                throw new AppError(`Elemento ${elemento_orden_id} no encontrado en esta orden`, 400);
+            }
+
+            if (reparado) {
+                resumen.reparados++;
+
+                // Series: cambiar estado a 'bueno'
+                if (elemento.serie_id) {
+                    await SerieModel.cambiarEstado(elemento.serie_id, 'bueno', null, null);
+                    logger.info('operaciones', `Serie ${elemento.numero_serie || elemento.serie_id} → bueno (reparada, orden ${id})`);
+                }
+
+                // Lotes: restaurar cantidad al lote
+                if (elemento.lote_id) {
+                    await pool.query(`
+                        UPDATE lotes SET cantidad = cantidad + ? WHERE id = ?
+                    `, [elemento.cantidad || 1, elemento.lote_id]);
+                    logger.info('operaciones', `Lote ${elemento.lote_numero || elemento.lote_id}: +${elemento.cantidad || 1} restauradas (reparado, orden ${id})`);
+                }
+            } else {
+                resumen.no_reparables++;
+
+                // Series: cambiar estado a 'dañado'
+                if (elemento.serie_id) {
+                    await SerieModel.cambiarEstado(elemento.serie_id, 'dañado', null, null);
+                    logger.info('operaciones', `Serie ${elemento.numero_serie || elemento.serie_id} → dañado (no reparable, orden ${id})`);
+                }
+
+                // Lotes: la cantidad no se restaura (queda fuera de inventario activo)
+                if (elemento.lote_id) {
+                    logger.info('operaciones', `Lote ${elemento.lote_numero || elemento.lote_id}: ${elemento.cantidad || 1} unidades no reparables (orden ${id})`);
+                }
+            }
+
+            // Actualizar estado del elemento en la orden
+            await pool.query(`
+                UPDATE orden_trabajo_elementos SET estado = ? WHERE id = ?
+            `, [reparado ? 'verificado' : 'con_problema', parseInt(elemento_orden_id)]);
+        }
+
+        // Cambiar estado de la orden a completado
+        await OrdenTrabajoModel.cambiarEstado(parseInt(id), 'completado');
+        await OrdenTrabajoModel.registrarCambioEstado(
+            parseInt(id), estadoAnterior, 'completado', req.usuario.id
+        );
+
+        await AuthModel.registrarAuditoria({
+            empleado_id: req.usuario.id,
+            accion: 'COMPLETAR_MANTENIMIENTO',
+            tabla_afectada: 'ordenes_trabajo',
+            registro_id: parseInt(id),
+            datos_nuevos: { reparados: resumen.reparados, no_reparables: resumen.no_reparables },
+            ip_address: req.ip,
+            user_agent: req.get('User-Agent')
+        });
+
+        logger.info('operaciones', `Mantenimiento orden ${id} completado: ${resumen.reparados} reparados, ${resumen.no_reparables} no reparables - por ${req.usuario.email}`);
+
+        res.json({
+            success: true,
+            message: `Mantenimiento completado: ${resumen.reparados} reparado(s), ${resumen.no_reparables} no reparable(s)`,
+            data: resumen
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * PUT /api/operaciones/ordenes/:id/elementos/:elemId/marcar-dano
+ * Marcar o desmarcar un elemento como dañado durante el checklist
+ */
+const marcarDanoElemento = async (req, res, next) => {
+    try {
+        const { id, elemId } = req.params;
+        const { marcado_dano, descripcion_dano, cantidad_danada } = req.body;
+
+        if (typeof marcado_dano !== 'boolean') {
+            throw new AppError('El campo marcado_dano es requerido (boolean)', 400);
+        }
+
+        if (marcado_dano && (!descripcion_dano || !descripcion_dano.trim())) {
+            throw new AppError('Debe proporcionar una descripción del daño', 400);
+        }
+
+        // Verificar que la orden es de tipo desmontaje (recogida/bodega)
+        const orden = await OrdenTrabajoModel.obtenerPorId(parseInt(id));
+        if (!orden) {
+            throw new AppError('Orden no encontrada', 404);
+        }
+        if (orden.tipo !== 'desmontaje') {
+            throw new AppError('Solo se pueden marcar daños en órdenes de desmontaje (recogida/bodega)', 400);
+        }
+
+        const elemento = await OrdenElementoModel.marcarDano(
+            parseInt(elemId),
+            marcado_dano,
+            descripcion_dano?.trim() || null,
+            cantidad_danada != null ? parseInt(cantidad_danada) : null
+        );
+
+        logger.info('operaciones', `Elemento ${elemId} ${marcado_dano ? 'marcado con daño' : 'desmarcado'} en orden ${id} por ${req.usuario.email}`);
+
+        res.json({
+            success: true,
+            message: marcado_dano ? 'Elemento marcado con daño' : 'Marca de daño removida',
+            data: elemento
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * POST /api/operaciones/ordenes/:id/generar-mantenimiento
+ * Generar una orden de mantenimiento a partir de los elementos dañados
+ */
+const generarOrdenMantenimiento = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+
+        const orden = await OrdenTrabajoModel.obtenerPorId(parseInt(id));
+        if (!orden) {
+            throw new AppError('Orden no encontrada', 404);
+        }
+
+        // Obtener elementos marcados con daño
+        const elementosDanados = await OrdenElementoModel.obtenerElementosConDano(parseInt(id));
+        if (elementosDanados.length === 0) {
+            throw new AppError('No hay elementos marcados con daño en esta orden', 400);
+        }
+
+        // Crear orden de mantenimiento
+        const ordenMantenimiento = await OrdenTrabajoModel.crear({
+            alquiler_id: null,
+            tipo: 'mantenimiento',
+            fecha_programada: new Date().toISOString().split('T')[0],
+            notas: `Generada desde orden #${id} (${orden.tipo}). Elementos con daños detectados durante checklist.`,
+            prioridad: 'alta',
+            creado_por: req.usuario.id
+        });
+
+        // Insertar elementos dañados en la nueva orden y cambiar estado en inventario
+        for (const elem of elementosDanados) {
+            // Para lotes, usar cantidad_danada si se especificó
+            const cantidadMantenimiento = elem.lote_id
+                ? (elem.cantidad_danada || elem.cantidad || 1)
+                : (elem.cantidad || 1);
+
+            await pool.query(`
+                INSERT INTO orden_trabajo_elementos
+                (orden_id, elemento_id, serie_id, lote_id, cantidad, estado, notas)
+                VALUES (?, ?, ?, ?, ?, 'pendiente', ?)
+            `, [
+                ordenMantenimiento.id,
+                elem.elemento_id,
+                elem.serie_id || null,
+                elem.lote_id || null,
+                cantidadMantenimiento,
+                elem.descripcion_dano || null
+            ]);
+
+            // Cambiar estado de serie a 'mantenimiento'
+            if (elem.serie_id) {
+                await SerieModel.cambiarEstado(elem.serie_id, 'mantenimiento', null, null);
+                logger.info('operaciones', `Serie ${elem.serie_codigo || elem.serie_id} → mantenimiento (orden mant. ${ordenMantenimiento.id})`);
+            }
+
+            // Para lotes, reducir la cantidad disponible del lote
+            if (elem.lote_id) {
+                await pool.query(`
+                    UPDATE lotes SET cantidad = GREATEST(0, cantidad - ?) WHERE id = ?
+                `, [cantidadMantenimiento, elem.lote_id]);
+                logger.info('operaciones', `Lote ${elem.lote_codigo || elem.lote_id}: ${cantidadMantenimiento} unidades a mantenimiento (orden mant. ${ordenMantenimiento.id})`);
+            }
+        }
+
+        await AuthModel.registrarAuditoria({
+            empleado_id: req.usuario.id,
+            accion: 'GENERAR_ORDEN_MANTENIMIENTO',
+            tabla_afectada: 'ordenes_trabajo',
+            registro_id: ordenMantenimiento.id,
+            datos_nuevos: {
+                orden_origen: parseInt(id),
+                elementos_danados: elementosDanados.length
+            },
+            ip_address: req.ip,
+            user_agent: req.get('User-Agent')
+        });
+
+        logger.info('operaciones', `Orden mantenimiento ${ordenMantenimiento.id} generada desde orden ${id} con ${elementosDanados.length} elementos por ${req.usuario.email}`);
+
+        const ordenCompleta = await OrdenTrabajoModel.obtenerPorId(ordenMantenimiento.id);
+
+        res.status(201).json({
+            success: true,
+            message: `Orden de mantenimiento #${ordenMantenimiento.id} creada con ${elementosDanados.length} elemento(s)`,
+            data: ordenCompleta
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 module.exports = {
     // Órdenes
     getOrdenes,
@@ -1593,6 +1853,9 @@ module.exports = {
     verificarElementoCargue,
     verificarElementoDescargue,
     verificarElementoBodega,
+    marcarDanoElemento,
+    generarOrdenMantenimiento,
+    completarMantenimiento,
 
     // Alertas
     getAlertas,

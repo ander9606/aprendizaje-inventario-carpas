@@ -296,13 +296,121 @@ class OrdenElementoModel {
     }
 
     /**
+     * Auto-agregar columnas marcado_dano y descripcion_dano si no existen
+     */
+    static async _ensureColumnsMarcadoDano() {
+        if (OrdenElementoModel._danoColumnsChecked) return;
+        try {
+            await pool.query(`
+                ALTER TABLE orden_trabajo_elementos
+                ADD COLUMN marcado_dano BOOLEAN DEFAULT FALSE,
+                ADD COLUMN descripcion_dano TEXT DEFAULT NULL,
+                ADD COLUMN cantidad_danada INT DEFAULT NULL
+            `);
+        } catch (error) {
+            if (error.code !== 'ER_DUP_FIELDNAME') {
+                // Intentar agregar cada columna individualmente
+                for (const col of [
+                    'ADD COLUMN marcado_dano BOOLEAN DEFAULT FALSE',
+                    'ADD COLUMN descripcion_dano TEXT DEFAULT NULL',
+                    'ADD COLUMN cantidad_danada INT DEFAULT NULL'
+                ]) {
+                    try {
+                        await pool.query(`ALTER TABLE orden_trabajo_elementos ${col}`);
+                    } catch (e) {
+                        if (e.code !== 'ER_DUP_FIELDNAME') { /* ignorar */ }
+                    }
+                }
+            }
+        }
+        OrdenElementoModel._danoColumnsChecked = true;
+    }
+
+    /**
+     * Marcar o desmarcar daño en un elemento del checklist
+     * @param {number} elementoId
+     * @param {boolean} marcadoDano
+     * @param {string|null} descripcionDano
+     * @param {number|null} cantidadDanada - Para lotes, cuántos están dañados
+     * @returns {Promise<Object>}
+     */
+    static async marcarDano(elementoId, marcadoDano, descripcionDano = null, cantidadDanada = null) {
+        await this._ensureColumnsMarcadoDano();
+
+        const [existente] = await pool.query(
+            'SELECT * FROM orden_trabajo_elementos WHERE id = ?',
+            [elementoId]
+        );
+
+        if (existente.length === 0) {
+            throw new AppError('Elemento no encontrado en la orden', 404);
+        }
+
+        // Validar cantidad dañada para lotes
+        if (marcadoDano && cantidadDanada !== null && cantidadDanada > existente[0].cantidad) {
+            throw new AppError(`La cantidad dañada (${cantidadDanada}) no puede ser mayor a la cantidad total (${existente[0].cantidad})`, 400);
+        }
+
+        await pool.query(`
+            UPDATE orden_trabajo_elementos
+            SET marcado_dano = ?,
+                descripcion_dano = ?,
+                cantidad_danada = ?
+            WHERE id = ?
+        `, [
+            marcadoDano,
+            marcadoDano ? descripcionDano : null,
+            marcadoDano ? cantidadDanada : null,
+            elementoId
+        ]);
+
+        return this.obtenerPorId(elementoId);
+    }
+
+    /**
+     * Obtener elementos marcados con daño de una orden
+     * @param {number} ordenId
+     * @returns {Promise<Array>}
+     */
+    static async obtenerElementosConDano(ordenId) {
+        await this._ensureColumnsMarcadoDano();
+
+        const [rows] = await pool.query(`
+            SELECT
+                ote.id,
+                ote.orden_id,
+                ote.elemento_id,
+                ote.serie_id,
+                ote.lote_id,
+                ote.cantidad,
+                ote.estado,
+                ote.marcado_dano,
+                ote.descripcion_dano,
+                ote.cantidad_danada,
+                ote.notas,
+                el.nombre as elemento_nombre,
+                s.numero_serie as serie_codigo,
+                l.lote_numero as lote_codigo
+            FROM orden_trabajo_elementos ote
+            INNER JOIN elementos el ON ote.elemento_id = el.id
+            LEFT JOIN series s ON ote.serie_id = s.id
+            LEFT JOIN lotes l ON ote.lote_id = l.id
+            WHERE ote.orden_id = ? AND ote.marcado_dano = TRUE
+            ORDER BY el.nombre ASC
+        `, [ordenId]);
+
+        return rows;
+    }
+
+    /**
      * Obtener resumen de checklist para una orden
      * @param {number} ordenId
      * @returns {Promise<Object>} - { elementos, totalElementos, verificadosCargue, verificadosRecogida, verificadosBodega }
      */
     static async obtenerChecklistOrden(ordenId) {
-        // Asegurar que la columna verificado_bodega existe
+        // Asegurar que las columnas dinámicas existen
         await this._ensureColumnVerificadoBodega();
+        await this._ensureColumnsMarcadoDano();
 
         const [rows] = await pool.query(`
             SELECT
@@ -316,6 +424,9 @@ class OrdenElementoModel {
                 ote.verificado_salida,
                 ote.verificado_retorno,
                 ote.verificado_bodega,
+                ote.marcado_dano,
+                ote.descripcion_dano,
+                ote.cantidad_danada,
                 ote.notas,
                 el.nombre as elemento_nombre,
                 s.numero_serie as serie_codigo,
@@ -332,6 +443,7 @@ class OrdenElementoModel {
         const verificadosCargue = rows.filter(r => r.verificado_salida).length;
         const verificadosRecogida = rows.filter(r => r.verificado_retorno).length;
         const verificadosBodega = rows.filter(r => r.verificado_bodega).length;
+        const elementosConDano = rows.filter(r => r.marcado_dano).length;
 
         return {
             elementos: rows,
@@ -339,6 +451,7 @@ class OrdenElementoModel {
             verificadosCargue,
             verificadosRecogida,
             verificadosBodega,
+            elementosConDano,
             // Mantener alias por compatibilidad
             verificadosDescargue: verificadosRecogida
         };
