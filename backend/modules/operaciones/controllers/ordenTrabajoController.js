@@ -1653,7 +1653,7 @@ const completarMantenimiento = async (req, res, next) => {
             // Actualizar estado del elemento en la orden
             await pool.query(`
                 UPDATE orden_trabajo_elementos SET estado = ? WHERE id = ?
-            `, [reparado ? 'retornado' : 'incidencia', parseInt(elemento_orden_id)]);
+            `, [reparado ? 'verificado' : 'con_problema', parseInt(elemento_orden_id)]);
         }
 
         // Cambiar estado de la orden a completado
