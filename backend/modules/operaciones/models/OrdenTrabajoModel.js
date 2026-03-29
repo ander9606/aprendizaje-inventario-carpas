@@ -18,14 +18,12 @@ class OrdenTrabajoModel {
                 MODIFY COLUMN estado ENUM(
                     'pendiente', 'confirmado', 'en_preparacion', 'en_ruta',
                     'en_sitio', 'en_proceso', 'en_retorno', 'descargue',
+                    'en_revision', 'en_reparacion',
                     'completado', 'cancelado'
                 ) DEFAULT 'pendiente'
             `);
         } catch (error) {
-            // Si el ENUM ya tiene esos valores, MySQL no lanza error,
-            // pero atrapamos por si acaso
             if (error.code !== 'ER_DUP_FIELDNAME') {
-                // Solo logueamos, no lanzamos — no es crítico
                 console.warn('[OrdenTrabajoModel] Warn al actualizar ENUM estado:', error.message);
             }
         }

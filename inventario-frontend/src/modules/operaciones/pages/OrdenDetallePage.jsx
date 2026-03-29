@@ -34,7 +34,8 @@ import {
     ChevronDown,
     ChevronUp,
     Info,
-    Wrench
+    Wrench,
+    Search
 } from 'lucide-react'
 import {
     useGetOrden,
@@ -50,12 +51,14 @@ import {
     useEjecutarSalida,
     useEjecutarRetorno,
     useGetDuracionesOrden,
-    useGetNovedadesOrden
+    useGetNovedadesOrden,
+    useCompletarMantenimiento
 } from '../hooks/useOrdenesTrabajo'
 import { useAuth } from '@auth/hooks/useAuth'
 import Button from '@shared/components/Button'
 import Spinner from '@shared/components/Spinner'
 import ModalRetornoElementos from '../components/ModalRetornoElementos'
+import ModalCompletarMantenimiento from '../components/ModalCompletarMantenimiento'
 import ModalOrdenCargue from '../components/ModalOrdenCargue'
 import ModalAsignarResponsable from '../components/ModalAsignarResponsable'
 import ModalEditarOrden from '../components/ModalEditarOrden'
@@ -93,6 +96,7 @@ export default function OrdenDetallePage() {
     const [showModalNovedad, setShowModalNovedad] = useState(false)
     const [infoClienteAbierta, setInfoClienteAbierta] = useState(false)
     const [ejecutandoSalida, setEjecutandoSalida] = useState(false)
+    const [showCompletarMantenimiento, setShowCompletarMantenimiento] = useState(false)
 
     // Estado para modales de confirmación
     const [confirmModal, setConfirmModal] = useState({ isOpen: false, key: null })
@@ -129,6 +133,7 @@ export default function OrdenDetallePage() {
     const prepararElementos = usePrepararElementos()
     const ejecutarSalida = useEjecutarSalida()
     const ejecutarRetorno = useEjecutarRetorno()
+    const completarMantenimiento = useCompletarMantenimiento()
 
     // ============================================
     // CRONÓMETRO: Montaje / Desmontaje en curso
@@ -218,6 +223,8 @@ export default function OrdenDetallePage() {
             en_proceso: 'Trabajo iniciado',
             en_retorno: 'Equipo en retorno a bodega',
             descargue: 'Descargue en bodega iniciado',
+            en_revision: 'Revisión iniciada',
+            en_reparacion: 'Reparación iniciada',
             completado: 'Orden completada exitosamente',
             cancelado: 'Orden cancelada'
         }
@@ -296,6 +303,20 @@ export default function OrdenDetallePage() {
         }
     }
 
+    const handleCompletarMantenimiento = async (resultados) => {
+        try {
+            await completarMantenimiento.mutateAsync({
+                ordenId: orden.id,
+                data: { resultados }
+            })
+            toast.success('Mantenimiento completado exitosamente')
+            setShowCompletarMantenimiento(false)
+            refetch()
+        } catch (error) {
+            toast.error(error?.response?.data?.message || 'Error al completar mantenimiento')
+        }
+    }
+
     // ============================================
     // HELPERS
     // ============================================
@@ -341,6 +362,16 @@ export default function OrdenDetallePage() {
                 icon: Home,
                 label: 'Descargue en Bodega'
             },
+            en_revision: {
+                color: 'bg-amber-100 text-amber-700 border-amber-200',
+                icon: Search,
+                label: 'En Revisión'
+            },
+            en_reparacion: {
+                color: 'bg-orange-100 text-orange-700 border-orange-200',
+                icon: Wrench,
+                label: 'En Reparación'
+            },
             completado: {
                 color: 'bg-green-100 text-green-700 border-green-200',
                 icon: CheckCircle,
@@ -356,9 +387,12 @@ export default function OrdenDetallePage() {
     }
 
     const getTipoConfig = (tipo) => {
-        return tipo === 'montaje'
-            ? { color: 'bg-emerald-100 text-emerald-700', icon: Package, label: 'Montaje' }
-            : { color: 'bg-orange-100 text-orange-700', icon: Truck, label: 'Desmontaje' }
+        const tipos = {
+            montaje: { color: 'bg-emerald-100 text-emerald-700', icon: Package, label: 'Montaje' },
+            desmontaje: { color: 'bg-orange-100 text-orange-700', icon: Truck, label: 'Desmontaje' },
+            mantenimiento: { color: 'bg-amber-100 text-amber-700', icon: Wrench, label: 'Mantenimiento' }
+        }
+        return tipos[tipo] || tipos.desmontaje
     }
 
     const formatFecha = (fecha) => {
@@ -416,6 +450,14 @@ export default function OrdenDetallePage() {
     const puedeAutoAsignarse = hasRole(['operaciones', 'bodega']) && !yaAsignado
 
     const getPasosFlujo = () => {
+        if (orden.tipo === 'mantenimiento') {
+            return [
+                { key: 'pendiente', label: 'Pendiente', short: 'Pend.' },
+                { key: 'en_revision', label: 'En Revisión', short: 'Rev.' },
+                { key: 'en_reparacion', label: 'En Reparación', short: 'Rep.' },
+                { key: 'completado', label: 'Completado', short: 'Listo' }
+            ]
+        }
         if (orden.tipo === 'montaje') {
             return [
                 { key: 'pendiente', label: 'Pendiente', short: 'Pend.' },
@@ -511,6 +553,16 @@ export default function OrdenDetallePage() {
     )
 
     const getDescripcionEstado = () => {
+        if (orden.tipo === 'mantenimiento') {
+            const descMant = {
+                pendiente: 'Orden de mantenimiento creada. Asigna un técnico y comienza la revisión.',
+                en_revision: 'El técnico está diagnosticando los daños reportados. Cuando termine, inicia la reparación.',
+                en_reparacion: 'Reparación en curso. Al finalizar, completa el mantenimiento indicando el resultado de cada elemento.',
+                completado: 'Mantenimiento completado. Los elementos reparados fueron restaurados al inventario.',
+                cancelado: 'Esta orden de mantenimiento fue cancelada.'
+            }
+            return descMant[orden.estado] || ''
+        }
         const desc = {
             pendiente: 'Esta orden está pendiente de confirmación. Asigna un responsable y confirma para iniciar.',
             confirmado: 'Orden confirmada. Inicia la preparación de los elementos necesarios.',
@@ -769,7 +821,36 @@ export default function OrdenDetallePage() {
                         </div>
                         {!montajePendiente && (
                         <div className="shrink-0 flex items-center gap-2">
-                            {orden.estado === 'pendiente' && (
+                            {/* Mantenimiento: botones específicos */}
+                            {orden.tipo === 'mantenimiento' && orden.estado === 'pendiente' && (
+                                <Button
+                                    color="amber" icon={Search}
+                                    onClick={() => handleCambiarEstado('en_revision')}
+                                    disabled={cambiarEstado.isPending}
+                                >
+                                    Iniciar Revisión
+                                </Button>
+                            )}
+                            {orden.tipo === 'mantenimiento' && orden.estado === 'en_revision' && (
+                                <Button
+                                    color="orange" icon={Wrench}
+                                    onClick={() => handleCambiarEstado('en_reparacion')}
+                                    disabled={cambiarEstado.isPending}
+                                >
+                                    Iniciar Reparación
+                                </Button>
+                            )}
+                            {orden.tipo === 'mantenimiento' && orden.estado === 'en_reparacion' && (
+                                <Button
+                                    color="green" icon={CheckCircle}
+                                    onClick={() => setShowCompletarMantenimiento(true)}
+                                    disabled={completarMantenimiento.isPending}
+                                >
+                                    Completar Mantenimiento
+                                </Button>
+                            )}
+                            {/* Montaje/Desmontaje: flujo normal */}
+                            {orden.tipo !== 'mantenimiento' && orden.estado === 'pendiente' && (
                                 <Button
                                     color="blue" icon={CheckCircle}
                                     onClick={() => {
@@ -872,8 +953,14 @@ export default function OrdenDetallePage() {
                     <div className="flex items-center gap-3">
                         <CheckCircle className="w-5 h-5 text-green-500 shrink-0" />
                         <div>
-                            <p className="font-semibold text-green-800">Orden Completada</p>
-                            <p className="text-sm text-green-600">Esta orden fue completada exitosamente</p>
+                            <p className="font-semibold text-green-800">
+                                {orden.tipo === 'mantenimiento' ? 'Mantenimiento Completado' : 'Orden Completada'}
+                            </p>
+                            <p className="text-sm text-green-600">
+                                {orden.tipo === 'mantenimiento'
+                                    ? 'Los elementos reparados fueron restaurados al inventario disponible'
+                                    : 'Esta orden fue completada exitosamente'}
+                            </p>
                         </div>
                     </div>
                     {orden.tipo === 'montaje' && (
@@ -1615,6 +1702,17 @@ export default function OrdenDetallePage() {
                     ordenId={id}
                     productos={productos}
                     onClose={() => setShowModalNovedad(false)}
+                />
+            )}
+
+            {/* MODAL: Completar Mantenimiento */}
+            {showCompletarMantenimiento && (
+                <ModalCompletarMantenimiento
+                    isOpen={showCompletarMantenimiento}
+                    onClose={() => setShowCompletarMantenimiento(false)}
+                    elementos={elementos || []}
+                    onConfirm={handleCompletarMantenimiento}
+                    loading={completarMantenimiento.isPending}
                 />
             )}
 

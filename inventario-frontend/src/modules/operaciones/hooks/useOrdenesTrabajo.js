@@ -820,8 +820,8 @@ export const useMarcarDanoElemento = () => {
     const queryClient = useQueryClient()
 
     return useMutation({
-        mutationFn: ({ ordenId, elementoId, marcado_dano, descripcion_dano }) =>
-            ordenesAPI.marcarDanoElemento(ordenId, elementoId, { marcado_dano, descripcion_dano }),
+        mutationFn: ({ ordenId, elementoId, marcado_dano, descripcion_dano, cantidad_danada }) =>
+            ordenesAPI.marcarDanoElemento(ordenId, elementoId, { marcado_dano, descripcion_dano, cantidad_danada }),
         retry: 0,
         onSuccess: (_, variables) => _invalidateChecklist(queryClient, variables.ordenId)
     })
@@ -840,6 +840,27 @@ export const useGenerarOrdenMantenimiento = () => {
         onSuccess: (_, variables) => {
             _invalidateChecklist(queryClient, variables.ordenId)
             queryClient.invalidateQueries({ queryKey: ['ordenes'] })
+        }
+    })
+}
+
+/**
+ * Hook: useCompletarMantenimiento
+ * Completa una orden de mantenimiento con resultados por elemento
+ */
+export const useCompletarMantenimiento = () => {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: ({ ordenId, resultados }) =>
+            ordenesAPI.completarMantenimiento(ordenId, { resultados }),
+        retry: 0,
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({ queryKey: ['ordenes'] })
+            queryClient.invalidateQueries({ queryKey: ['ordenes', variables.ordenId] })
+            queryClient.invalidateQueries({ queryKey: ['ordenes', String(variables.ordenId)] })
+            queryClient.invalidateQueries({ queryKey: ['series'] })
+            queryClient.invalidateQueries({ queryKey: ['elementos'] })
         }
     })
 }

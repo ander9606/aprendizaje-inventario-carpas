@@ -40,6 +40,9 @@ const ElementoCheckItem = ({ elemento, modo, onToggle, onMarcarDano, isPending, 
     const [notas, setNotas] = useState(elemento.notas || '')
     const [showDanoForm, setShowDanoForm] = useState(false)
     const [descripcionDano, setDescripcionDano] = useState(elemento.descripcion_dano || '')
+    const [cantidadDanada, setCantidadDanada] = useState(elemento.cantidad_danada || elemento.cantidad || 1)
+
+    const esLote = !!elemento.lote_codigo && elemento.cantidad > 1
 
     const verificado = modo === 'cargue'
         ? elemento.verificado_salida
@@ -63,9 +66,10 @@ const ElementoCheckItem = ({ elemento, modo, onToggle, onMarcarDano, isPending, 
     const handleToggleDano = () => {
         if (tieneDano) {
             // Desmarcar daño
-            onMarcarDano(elemento.id, false, null)
+            onMarcarDano(elemento.id, false, null, null)
             setShowDanoForm(false)
             setDescripcionDano('')
+            setCantidadDanada(elemento.cantidad || 1)
         } else {
             // Mostrar formulario para describir el daño
             setShowDanoForm(true)
@@ -77,7 +81,11 @@ const ElementoCheckItem = ({ elemento, modo, onToggle, onMarcarDano, isPending, 
             toast.error('Debe describir el daño')
             return
         }
-        onMarcarDano(elemento.id, true, descripcionDano.trim())
+        if (esLote && (!cantidadDanada || cantidadDanada < 1)) {
+            toast.error('Debe indicar la cantidad dañada')
+            return
+        }
+        onMarcarDano(elemento.id, true, descripcionDano.trim(), esLote ? cantidadDanada : null)
         setShowDanoForm(false)
     }
 
@@ -135,7 +143,7 @@ const ElementoCheckItem = ({ elemento, modo, onToggle, onMarcarDano, isPending, 
                     {/* Descripción del daño preview */}
                     {tieneDano && elemento.descripcion_dano && !showDanoForm && (
                         <p className="text-xs text-amber-600 mt-0.5 italic truncate">
-                            Daño: {elemento.descripcion_dano}
+                            Daño{esLote && elemento.cantidad_danada ? ` (${elemento.cantidad_danada} de ${elemento.cantidad})` : ''}: {elemento.descripcion_dano}
                         </p>
                     )}
                 </div>
@@ -174,18 +182,33 @@ const ElementoCheckItem = ({ elemento, modo, onToggle, onMarcarDano, isPending, 
             {showDanoForm && !tieneDano && (
                 <div className="mt-2 ml-9 bg-amber-50 border border-amber-200 rounded-lg p-2.5">
                     <div className="flex items-center justify-between mb-1.5">
-                        <span className="text-xs font-medium text-amber-700">Descripción del daño</span>
+                        <span className="text-xs font-medium text-amber-700">Reportar daño</span>
                         <button onClick={() => setShowDanoForm(false)} className="text-amber-400 hover:text-amber-600 p-0.5">
                             <X className="w-3.5 h-3.5" />
                         </button>
                     </div>
+                    {esLote && (
+                        <div className="mb-2">
+                            <label className="block text-xs font-medium text-amber-600 mb-1">
+                                Cantidad dañada (de {elemento.cantidad})
+                            </label>
+                            <input
+                                type="number"
+                                min={1}
+                                max={elemento.cantidad}
+                                value={cantidadDanada}
+                                onChange={(e) => setCantidadDanada(Math.min(elemento.cantidad, Math.max(1, parseInt(e.target.value) || 1)))}
+                                className="w-24 text-sm border border-amber-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400 bg-white"
+                            />
+                        </div>
+                    )}
                     <textarea
                         value={descripcionDano}
                         onChange={(e) => setDescripcionDano(e.target.value)}
                         className="w-full text-sm border border-amber-200 rounded-lg p-2 resize-none focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400 bg-white"
                         rows={2}
                         placeholder="Describa el daño encontrado..."
-                        autoFocus
+                        autoFocus={!esLote}
                     />
                     <button
                         onClick={handleGuardarDano}
@@ -511,13 +534,14 @@ const ChecklistCargueDescargue = ({ isOpen, onClose, ordenId, ordenInfo, modo = 
         }
     }
 
-    const handleMarcarDano = async (elementoId, marcado_dano, descripcion_dano) => {
+    const handleMarcarDano = async (elementoId, marcado_dano, descripcion_dano, cantidad_danada = null) => {
         try {
             await marcarDano.mutateAsync({
                 ordenId,
                 elementoId,
                 marcado_dano,
-                descripcion_dano
+                descripcion_dano,
+                cantidad_danada
             })
             toast.success(marcado_dano ? 'Elemento marcado con daño' : 'Marca de daño removida')
         } catch (error) {

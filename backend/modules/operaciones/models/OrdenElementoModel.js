@@ -304,10 +304,24 @@ class OrdenElementoModel {
             await pool.query(`
                 ALTER TABLE orden_trabajo_elementos
                 ADD COLUMN marcado_dano BOOLEAN DEFAULT FALSE,
-                ADD COLUMN descripcion_dano TEXT DEFAULT NULL
+                ADD COLUMN descripcion_dano TEXT DEFAULT NULL,
+                ADD COLUMN cantidad_danada INT DEFAULT NULL
             `);
         } catch (error) {
-            if (error.code !== 'ER_DUP_FIELDNAME') throw error;
+            if (error.code !== 'ER_DUP_FIELDNAME') {
+                // Intentar agregar cada columna individualmente
+                for (const col of [
+                    'ADD COLUMN marcado_dano BOOLEAN DEFAULT FALSE',
+                    'ADD COLUMN descripcion_dano TEXT DEFAULT NULL',
+                    'ADD COLUMN cantidad_danada INT DEFAULT NULL'
+                ]) {
+                    try {
+                        await pool.query(`ALTER TABLE orden_trabajo_elementos ${col}`);
+                    } catch (e) {
+                        if (e.code !== 'ER_DUP_FIELDNAME') { /* ignorar */ }
+                    }
+                }
+            }
         }
         OrdenElementoModel._danoColumnsChecked = true;
     }
@@ -317,9 +331,10 @@ class OrdenElementoModel {
      * @param {number} elementoId
      * @param {boolean} marcadoDano
      * @param {string|null} descripcionDano
+     * @param {number|null} cantidadDanada - Para lotes, cuántos están dañados
      * @returns {Promise<Object>}
      */
-    static async marcarDano(elementoId, marcadoDano, descripcionDano = null) {
+    static async marcarDano(elementoId, marcadoDano, descripcionDano = null, cantidadDanada = null) {
         await this._ensureColumnsMarcadoDano();
 
         const [existente] = await pool.query(
@@ -331,12 +346,23 @@ class OrdenElementoModel {
             throw new AppError('Elemento no encontrado en la orden', 404);
         }
 
+        // Validar cantidad dañada para lotes
+        if (marcadoDano && cantidadDanada !== null && cantidadDanada > existente[0].cantidad) {
+            throw new AppError(`La cantidad dañada (${cantidadDanada}) no puede ser mayor a la cantidad total (${existente[0].cantidad})`, 400);
+        }
+
         await pool.query(`
             UPDATE orden_trabajo_elementos
             SET marcado_dano = ?,
-                descripcion_dano = ?
+                descripcion_dano = ?,
+                cantidad_danada = ?
             WHERE id = ?
-        `, [marcadoDano, marcadoDano ? descripcionDano : null, elementoId]);
+        `, [
+            marcadoDano,
+            marcadoDano ? descripcionDano : null,
+            marcadoDano ? cantidadDanada : null,
+            elementoId
+        ]);
 
         return this.obtenerPorId(elementoId);
     }
@@ -360,6 +386,7 @@ class OrdenElementoModel {
                 ote.estado,
                 ote.marcado_dano,
                 ote.descripcion_dano,
+                ote.cantidad_danada,
                 ote.notas,
                 el.nombre as elemento_nombre,
                 s.numero_serie as serie_codigo,
@@ -399,6 +426,7 @@ class OrdenElementoModel {
                 ote.verificado_bodega,
                 ote.marcado_dano,
                 ote.descripcion_dano,
+                ote.cantidad_danada,
                 ote.notas,
                 el.nombre as elemento_nombre,
                 s.numero_serie as serie_codigo,

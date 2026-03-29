@@ -286,6 +286,14 @@ router.post(
     ordenTrabajoController.generarOrdenMantenimiento
 );
 
+// Completar orden de mantenimiento con resultados por elemento
+router.post(
+    '/ordenes/:id/completar-mantenimiento',
+    verificarRol(['admin', 'gerente', 'operaciones']),
+    verificarAccesoOrden,
+    ordenTrabajoController.completarMantenimiento
+);
+
 // ============================================
 // RUTAS DE NOVEDADES
 // ============================================

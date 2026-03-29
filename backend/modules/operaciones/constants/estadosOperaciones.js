@@ -12,6 +12,8 @@ const ESTADOS_ORDEN = {
     EN_PROCESO: 'en_proceso',
     EN_RETORNO: 'en_retorno',
     DESCARGUE: 'descargue',
+    EN_REVISION: 'en_revision',
+    EN_REPARACION: 'en_reparacion',
     COMPLETADO: 'completado',
     CANCELADO: 'cancelado'
 };
@@ -20,7 +22,8 @@ const ESTADOS_ORDEN_LISTA = Object.values(ESTADOS_ORDEN);
 
 const TIPOS_ORDEN = {
     MONTAJE: 'montaje',
-    DESMONTAJE: 'desmontaje'
+    DESMONTAJE: 'desmontaje',
+    MANTENIMIENTO: 'mantenimiento'
 };
 
 const ESTADOS_ALQUILER = {

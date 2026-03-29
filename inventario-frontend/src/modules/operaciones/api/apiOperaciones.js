@@ -432,6 +432,19 @@ const ordenesAPI = {
             `/operaciones/ordenes/${ordenId}/generar-mantenimiento`
         )
         return response.data
+    },
+
+    /**
+     * Completar orden de mantenimiento con resultados por elemento
+     * @param {number} ordenId
+     * @param {Object} datos - { resultados: [{ elemento_orden_id, reparado: boolean }] }
+     */
+    completarMantenimiento: async (ordenId, datos) => {
+        const response = await api.post(
+            `/operaciones/ordenes/${ordenId}/completar-mantenimiento`,
+            datos
+        )
+        return response.data
     }
 }
 
