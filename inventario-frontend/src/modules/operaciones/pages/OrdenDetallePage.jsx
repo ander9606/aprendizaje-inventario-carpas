@@ -44,6 +44,7 @@ import {
     usePrepararElementos,
     useCambiarEstadoOrden,
     useAsignarEquipo,
+    useAutoAsignarse,
     useUpdateOrden,
     useCambiarFechaOrden,
     useEjecutarSalida,
@@ -73,7 +74,7 @@ import { toast } from 'sonner'
 export default function OrdenDetallePage() {
     const { id } = useParams()
     const navigate = useNavigate()
-    const { hasRole } = useAuth()
+    const { hasRole, usuario } = useAuth()
 
     const canManage = hasRole(['admin', 'gerente', 'operaciones'])
 
@@ -122,6 +123,7 @@ export default function OrdenDetallePage() {
     // ============================================
     const cambiarEstado = useCambiarEstadoOrden()
     const asignarEquipo = useAsignarEquipo()
+    const autoAsignarse = useAutoAsignarse()
     const actualizarOrden = useUpdateOrden()
     const cambiarFecha = useCambiarFechaOrden()
     const prepararElementos = usePrepararElementos()
@@ -234,8 +236,18 @@ export default function OrdenDetallePage() {
 
     const handleAsignarResponsable = async (data) => {
         await asignarEquipo.mutateAsync({ id: orden.id, data })
-        toast.success('Responsable asignado correctamente')
+        toast.success('Responsables asignados correctamente')
         refetch()
+    }
+
+    const handleAutoAsignarse = async () => {
+        try {
+            await autoAsignarse.mutateAsync(orden.id)
+            toast.success('Te has asignado a esta orden')
+            refetch()
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Error al asignarse')
+        }
     }
 
     const handleActualizarOrdenGeneral = async (data) => {
@@ -400,6 +412,8 @@ export default function OrdenDetallePage() {
     // HELPERS: Progreso del flujo
     // ============================================
     const tieneResponsable = orden.equipo?.length > 0
+    const yaAsignado = orden.equipo?.some(e => (e.empleado_id || e.id) === usuario?.id)
+    const puedeAutoAsignarse = hasRole(['operaciones', 'bodega']) && !yaAsignado
 
     const getPasosFlujo = () => {
         if (orden.tipo === 'montaje') {
@@ -1363,6 +1377,15 @@ export default function OrdenDetallePage() {
                                             className="mt-2 text-sm text-orange-600 hover:text-orange-700 font-medium"
                                         >
                                             Asignar responsable
+                                        </button>
+                                    )}
+                                    {puedeAutoAsignarse && !esCompletado && !esCancelado && (
+                                        <button
+                                            onClick={handleAutoAsignarse}
+                                            disabled={autoAsignarse.isPending}
+                                            className="mt-2 ml-2 text-sm text-blue-600 hover:text-blue-700 font-medium disabled:opacity-50"
+                                        >
+                                            {autoAsignarse.isPending ? 'Asignando...' : 'Asignarme'}
                                         </button>
                                     )}
                                 </div>

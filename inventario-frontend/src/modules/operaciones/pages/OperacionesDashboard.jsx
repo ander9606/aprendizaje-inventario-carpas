@@ -26,6 +26,7 @@ import {
 } from 'lucide-react'
 import { useGetOrdenes, useGetEstadisticasOperaciones } from '../hooks/useOrdenesTrabajo'
 import { useGetAlertasPendientes, useGetResumenAlertas } from '@configuracion/hooks/useAlertas'
+import AlertasAsignacion from '../components/AlertasAsignacion'
 import Spinner from '@shared/components/Spinner'
 
 // ============================================
@@ -524,6 +525,9 @@ export default function OperacionesDashboard() {
                     </div>
                 </div>
             </div>
+
+            {/* ALERTAS DE ASIGNACIÓN PENDIENTES */}
+            <AlertasAsignacion />
 
             {/* STATS CARDS */}
             <div className={`grid grid-cols-2 ${eventosVencidos.length > 0 ? 'sm:grid-cols-5' : 'sm:grid-cols-4'} gap-4 mb-6`}>

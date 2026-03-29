@@ -226,6 +226,63 @@ export const useAsignarEquipo = () => {
 }
 
 // ============================================
+// HOOK: useAutoAsignarse
+// El empleado se asigna a sí mismo a una orden
+// ============================================
+
+export const useAutoAsignarse = () => {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: (ordenId) => ordenesAPI.autoAsignarse(ordenId),
+        retry: 0,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['ordenes'] })
+            queryClient.invalidateQueries({ queryKey: ['mis-alertas'] })
+        }
+    })
+}
+
+// ============================================
+// HOOK: useResponderAsignacion
+// Aceptar o rechazar una asignación
+// ============================================
+
+export const useResponderAsignacion = () => {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: ({ ordenId, datos }) => ordenesAPI.responderAsignacion(ordenId, datos),
+        retry: 0,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['ordenes'] })
+            queryClient.invalidateQueries({ queryKey: ['mis-alertas'] })
+        }
+    })
+}
+
+// ============================================
+// HOOK: useGetMisAlertas
+// Obtiene alertas pendientes del empleado actual
+// ============================================
+
+export const useGetMisAlertas = () => {
+    const { data, isLoading, error, refetch } = useQuery({
+        queryKey: ['mis-alertas'],
+        queryFn: () => ordenesAPI.obtenerMisAlertas(),
+        refetchInterval: 30000 // Polling cada 30s
+    })
+
+    return {
+        alertas: data?.data || [],
+        total: data?.total || 0,
+        isLoading,
+        error,
+        refetch
+    }
+}
+
+// ============================================
 // HOOK: useValidarCambioFecha
 // Valida un cambio de fecha antes de aplicarlo
 // ============================================
