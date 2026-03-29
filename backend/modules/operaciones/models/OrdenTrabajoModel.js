@@ -745,6 +745,51 @@ class OrdenTrabajoModel {
     }
 
     /**
+     * Responder a una asignación (aceptar o rechazar)
+     * @param {number} ordenId
+     * @param {number} empleadoId
+     * @param {string} respuesta - 'aceptada' o 'rechazada'
+     * @param {string} motivoRechazo - Obligatorio si rechaza
+     * @returns {Promise<Object>}
+     */
+    static async responderAsignacion(ordenId, empleadoId, respuesta, motivoRechazo = null) {
+        const [asignacion] = await pool.query(
+            'SELECT * FROM orden_trabajo_equipo WHERE orden_id = ? AND empleado_id = ?',
+            [ordenId, empleadoId]
+        );
+
+        if (asignacion.length === 0) {
+            throw new AppError('No tiene una asignación pendiente en esta orden', 404);
+        }
+
+        if (asignacion[0].estado_asignacion !== 'pendiente') {
+            throw new AppError(`Esta asignación ya fue ${asignacion[0].estado_asignacion}`, 400);
+        }
+
+        if (respuesta === 'rechazada' && !motivoRechazo) {
+            throw new AppError('Debe indicar el motivo del rechazo', 400);
+        }
+
+        await pool.query(`
+            UPDATE orden_trabajo_equipo
+            SET estado_asignacion = ?,
+                motivo_rechazo = ?,
+                fecha_respuesta = CURRENT_TIMESTAMP
+            WHERE orden_id = ? AND empleado_id = ?
+        `, [respuesta, motivoRechazo, ordenId, empleadoId]);
+
+        // Si rechazó, eliminar de la orden
+        if (respuesta === 'rechazada') {
+            await pool.query(
+                'DELETE FROM orden_trabajo_equipo WHERE orden_id = ? AND empleado_id = ?',
+                [ordenId, empleadoId]
+            );
+        }
+
+        return this.obtenerPorId(ordenId);
+    }
+
+    /**
      * Asignar vehículo a la orden
      * @param {number} ordenId
      * @param {number} vehiculoId

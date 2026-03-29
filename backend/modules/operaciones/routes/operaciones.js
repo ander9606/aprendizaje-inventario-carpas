@@ -126,6 +126,27 @@ router.put(
     ordenTrabajoController.asignarEquipo
 );
 
+// Auto-asignarse como responsable
+router.post(
+    '/ordenes/:id/auto-asignar',
+    verificarRol(['operaciones', 'bodega']),
+    ordenTrabajoController.autoAsignarse
+);
+
+// Aceptar o rechazar asignación
+router.put(
+    '/ordenes/:id/responder-asignacion',
+    verificarRol(['admin', 'gerente', 'operaciones', 'bodega']),
+    ordenTrabajoController.responderAsignacion
+);
+
+// Obtener mis alertas (asignaciones pendientes)
+router.get(
+    '/mis-alertas',
+    verificarRol(['admin', 'gerente', 'operaciones', 'bodega']),
+    ordenTrabajoController.getMisAlertas
+);
+
 router.put(
     '/ordenes/:id/vehiculo',
     verificarRol(['admin', 'gerente', 'operaciones']),
