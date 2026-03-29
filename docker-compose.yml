@@ -1,4 +1,8 @@
-version: '3.8'
+# ============================================
+# Docker Compose - Configuración Base (Producción)
+# ============================================
+# En desarrollo, docker-compose.override.yml se carga automáticamente.
+# En producción: docker compose -f docker-compose.yml up -d
 
 services:
   # ============================================
@@ -12,19 +16,20 @@ services:
       MYSQL_DATABASE: ${DB_NAME:-aprendizaje_inventario}
       MYSQL_USER: ${DB_USER:-appuser}
       MYSQL_PASSWORD: ${DB_PASSWORD:-apppassword}
-    ports:
-      - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
       - ./sql/00_SCHEMA_COMPLETO.sql:/docker-entrypoint-initdb.d/01-schema.sql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      test: ["CMD", "mysql", "-u", "root", "-p${DB_ROOT_PASSWORD:-rootpassword}", "-e", "SELECT 1 FROM aprendizaje_inventario.categorias LIMIT 1"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 30s
+    networks:
+      - app-network
 
   # ============================================
-  # Backend API
+  # Backend API (Node.js + Express)
   # ============================================
   backend:
     build: ./backend
@@ -37,28 +42,36 @@ services:
       DB_PASSWORD: ${DB_PASSWORD:-apppassword}
       DB_NAME: ${DB_NAME:-aprendizaje_inventario}
       JWT_SECRET: ${JWT_SECRET:-change_me_generate_a_64_char_hex_secret}
-      NODE_ENV: ${NODE_ENV:-development}
+      NODE_ENV: production
       FRONTEND_URL: http://localhost:4173
     volumes:
-      - ./backend:/app
-      - /app/node_modules
+      - uploads_data:/app/uploads
     depends_on:
       db:
         condition: service_healthy
+    networks:
+      - app-network
 
   # ============================================
-  # Frontend
+  # Frontend (React + Nginx)
   # ============================================
   frontend:
     build:
       context: ./inventario-frontend
       args:
-        VITE_API_URL: http://localhost:3000/api
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:3000/api}
     restart: unless-stopped
     ports:
       - "4173:80"
     depends_on:
       - backend
+    networks:
+      - app-network
 
 volumes:
   mysql_data:
+  uploads_data:
+
+networks:
+  app-network:
+    driver: bridge

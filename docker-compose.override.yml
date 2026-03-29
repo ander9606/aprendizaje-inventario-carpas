@@ -1,0 +1,24 @@
+# ============================================
+# Docker Compose - Overrides de Desarrollo
+# ============================================
+# Este archivo se carga AUTOMÁTICAMENTE con docker-compose.yml
+# cuando ejecutas: docker compose up
+#
+# Para producción (sin override):
+#   docker compose -f docker-compose.yml up -d
+
+services:
+  db:
+    # Exponer puerto de MySQL para acceso local (MySQL Workbench, etc.)
+    ports:
+      - "3306:3306"
+
+  backend:
+    environment:
+      NODE_ENV: development
+    # Montar código local para hot-reload con nodemon
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+      - uploads_data:/app/uploads
+    command: ["npx", "nodemon", "server.js"]
