@@ -14,8 +14,12 @@ services:
       - "3306:3306"
 
   backend:
+    # En desarrollo, exponer el backend directamente para debug
+    ports:
+      - "3000:3000"
     environment:
       NODE_ENV: development
+      FRONTEND_URL: http://localhost
     # Montar código local para hot-reload con nodemon
     volumes:
       - ./backend:/app

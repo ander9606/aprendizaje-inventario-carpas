@@ -3,6 +3,7 @@
 # ============================================
 # En desarrollo, docker-compose.override.yml se carga automáticamente.
 # En producción: docker compose -f docker-compose.yml up -d
+# Con HTTPS:     docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 
 services:
   # ============================================
@@ -34,8 +35,7 @@ services:
   backend:
     build: ./backend
     restart: unless-stopped
-    ports:
-      - "3000:3000"
+    # No se expone puerto — Nginx hace reverse proxy internamente
     environment:
       DB_HOST: db
       DB_USER: ${DB_USER:-appuser}
@@ -43,7 +43,7 @@ services:
       DB_NAME: ${DB_NAME:-aprendizaje_inventario}
       JWT_SECRET: ${JWT_SECRET:-change_me_generate_a_64_char_hex_secret}
       NODE_ENV: production
-      FRONTEND_URL: http://localhost:4173
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost}
     volumes:
       - uploads_data:/app/uploads
     depends_on:
@@ -53,16 +53,17 @@ services:
       - app-network
 
   # ============================================
-  # Frontend (React + Nginx)
+  # Frontend (React + Nginx reverse proxy)
   # ============================================
   frontend:
     build:
       context: ./inventario-frontend
       args:
-        VITE_API_URL: ${VITE_API_URL:-http://localhost:3000/api}
+        # URL relativa — Nginx hace proxy a /api → backend:3000
+        VITE_API_URL: /api
     restart: unless-stopped
     ports:
-      - "4173:80"
+      - "80:80"
     depends_on:
       - backend
     networks:
