@@ -4,9 +4,9 @@
 // información de disponibilidad por fechas
 // ============================================
 
-import { useState, useEffect } from 'react'
-import { X, Package, CheckCircle, AlertTriangle, XCircle, Loader2, Box } from 'lucide-react'
+import { Package, CheckCircle, AlertTriangle, XCircle, Loader2, Box } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
+import Modal from '@shared/components/Modal'
 import apiProductosAlquiler from '@productos/api/apiProductosAlquiler'
 import apiDisponibilidad from '../../api/apiDisponibilidad'
 
@@ -102,201 +102,166 @@ const ComponentesProductoModal = ({
   // RENDER
   // ============================================
 
-  if (!isOpen) return null
-
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 bg-black/70 transition-opacity"
-        onClick={onClose}
-      />
+    <Modal isOpen={isOpen} onClose={onClose} title={`Componentes: ${producto?.nombre || ''}`} size="lg">
+      {/* Subtítulo de fechas */}
+      {fechaMontaje && (
+        <p className="text-sm text-slate-500 -mt-2 mb-4">
+          Disponibilidad para {fechaMontaje} - {fechaDesmontaje || fechaMontaje}
+        </p>
+      )}
 
-      {/* Modal */}
-      <div className="flex min-h-full items-center justify-center p-4">
-        <div className="relative w-full max-w-2xl bg-white rounded-xl shadow-xl">
-          {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b border-slate-200">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Package className="w-5 h-5 text-blue-600" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-slate-800">
-                  Componentes: {producto?.nombre}
-                </h3>
-                {fechaMontaje && (
-                  <p className="text-sm text-slate-500">
-                    Disponibilidad para {fechaMontaje} - {fechaDesmontaje || fechaMontaje}
-                  </p>
-                )}
-              </div>
+      {/* Resumen de disponibilidad */}
+      {disponibilidad && (() => {
+        const elementosInsuficientes = disponibilidad.elementos
+          ? disponibilidad.elementos.filter(e => e.estado === 'insuficiente')
+          : []
+
+        return (
+          <div className={`mb-4 p-3 rounded-lg ${
+            disponibilidad.hay_problemas
+              ? 'bg-red-50 border border-red-200'
+              : 'bg-green-50 border border-green-200'
+          }`}>
+            <div className="flex items-center gap-2">
+              {disponibilidad.hay_problemas
+                ? <AlertTriangle className="w-5 h-5 text-red-500" />
+                : <CheckCircle className="w-5 h-5 text-green-500" />
+              }
+              <span className={`font-medium ${
+                disponibilidad.hay_problemas ? 'text-red-700' : 'text-green-700'
+              }`}>
+                {disponibilidad.hay_problemas
+                  ? `${elementosInsuficientes.length} componente(s) con stock insuficiente`
+                  : 'Todos los componentes disponibles'
+                }
+              </span>
             </div>
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
+            {elementosInsuficientes.length > 0 && (
+              <ul className="mt-2 text-sm text-red-700 space-y-0.5 pl-7">
+                {elementosInsuficientes.map(e => (
+                  <li key={e.elemento_id} className="list-disc">
+                    {e.elemento_nombre || `Elemento #${e.elemento_id}`}
+                    {' '}&mdash; disponibles: {e.disponibles}, necesarios: {e.cantidad_requerida}
+                    {e.faltantes > 0 && ` (faltan ${e.faltantes})`}
+                  </li>
+                ))}
+              </ul>
+            )}
+            {cantidadSolicitada > 1 && (
+              <p className="text-sm text-slate-600 mt-1">
+                Para {cantidadSolicitada} unidades del producto
+              </p>
+            )}
           </div>
+        )
+      })()}
 
-          {/* Content */}
-          <div className="p-4 max-h-[60vh] overflow-y-auto">
-            {/* Resumen de disponibilidad */}
-            {disponibilidad && (() => {
-              const elementosInsuficientes = disponibilidad.elementos
-                ? disponibilidad.elementos.filter(e => e.estado === 'insuficiente')
-                : []
+      {/* Loading */}
+      {(loadingComponentes || loadingDisponibilidad) && (
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+        </div>
+      )}
 
-              return (
-                <div className={`mb-4 p-3 rounded-lg ${
-                  disponibilidad.hay_problemas
-                    ? 'bg-red-50 border border-red-200'
-                    : 'bg-green-50 border border-green-200'
-                }`}>
-                  <div className="flex items-center gap-2">
-                    {disponibilidad.hay_problemas
-                      ? <AlertTriangle className="w-5 h-5 text-red-500" />
-                      : <CheckCircle className="w-5 h-5 text-green-500" />
-                    }
-                    <span className={`font-medium ${
-                      disponibilidad.hay_problemas ? 'text-red-700' : 'text-green-700'
-                    }`}>
-                      {disponibilidad.hay_problemas
-                        ? `${elementosInsuficientes.length} componente(s) con stock insuficiente`
-                        : 'Todos los componentes disponibles'
-                      }
-                    </span>
-                  </div>
-                  {elementosInsuficientes.length > 0 && (
-                    <ul className="mt-2 text-sm text-red-700 space-y-0.5 pl-7">
-                      {elementosInsuficientes.map(e => (
-                        <li key={e.elemento_id} className="list-disc">
-                          {e.elemento_nombre || `Elemento #${e.elemento_id}`}
-                          {' '}&mdash; disponibles: {e.disponibles}, necesarios: {e.cantidad_requerida}
-                          {e.faltantes > 0 && ` (faltan ${e.faltantes})`}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                  {cantidadSolicitada > 1 && (
-                    <p className="text-sm text-slate-600 mt-1">
-                      Para {cantidadSolicitada} unidades del producto
-                    </p>
-                  )}
-                </div>
-              )
-            })()}
+      {/* Lista de componentes */}
+      {!loadingComponentes && componentes.length === 0 && (
+        <div className="text-center py-8 text-slate-500">
+          Este producto no tiene componentes definidos
+        </div>
+      )}
 
-            {/* Loading */}
-            {(loadingComponentes || loadingDisponibilidad) && (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
-              </div>
-            )}
+      {!loadingComponentes && componentes.length > 0 && (
+        <div className="space-y-3">
+          {componentes.map((comp, index) => {
+            const dispInfo = disponibilidadMap[comp.elemento_id]
+            const cantidadRequerida = (comp.cantidad || 1) * cantidadSolicitada
 
-            {/* Lista de componentes */}
-            {!loadingComponentes && componentes.length === 0 && (
-              <div className="text-center py-8 text-slate-500">
-                Este producto no tiene componentes definidos
-              </div>
-            )}
-
-            {!loadingComponentes && componentes.length > 0 && (
-              <div className="space-y-3">
-                {componentes.map((comp, index) => {
-                  const dispInfo = disponibilidadMap[comp.elemento_id]
-                  const cantidadRequerida = (comp.cantidad || 1) * cantidadSolicitada
-
-                  return (
-                    <div
-                      key={`${comp.elemento_id}-${index}`}
-                      className={`p-3 rounded-lg border ${
-                        dispInfo?.estado === 'insuficiente'
-                          ? 'border-red-200 bg-red-50/50'
-                          : dispInfo?.estado === 'ok'
-                          ? 'border-green-200 bg-green-50/50'
-                          : 'border-slate-200 bg-slate-50'
-                      }`}
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-start gap-3">
-                          <div className="p-2 bg-white rounded border border-slate-200">
-                            <Box className="w-4 h-4 text-slate-400" />
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium text-slate-800">
-                                {comp.elemento_nombre || comp.nombre}
-                              </span>
-                              {getTipoBadge(comp.tipo)}
-                            </div>
-                            <div className="text-sm text-slate-600 mt-1">
-                              Cantidad por producto: {comp.cantidad || 1}
-                              {cantidadSolicitada > 1 && (
-                                <span className="text-slate-500">
-                                  {' '}(Total: {cantidadRequerida})
-                                </span>
-                              )}
-                            </div>
-                            {comp.grupo && (
-                              <div className="text-xs text-slate-500 mt-0.5">
-                                Grupo: {comp.grupo}
-                              </div>
-                            )}
-                          </div>
+            return (
+              <div
+                key={`${comp.elemento_id}-${index}`}
+                className={`p-3 rounded-lg border ${
+                  dispInfo?.estado === 'insuficiente'
+                    ? 'border-red-200 bg-red-50/50'
+                    : dispInfo?.estado === 'ok'
+                    ? 'border-green-200 bg-green-50/50'
+                    : 'border-slate-200 bg-slate-50'
+                }`}
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 bg-white rounded border border-slate-200">
+                      <Box className="w-4 h-4 text-slate-400" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-slate-800">
+                          {comp.elemento_nombre || comp.nombre}
+                        </span>
+                        {getTipoBadge(comp.tipo)}
+                      </div>
+                      <div className="text-sm text-slate-600 mt-1">
+                        Cantidad por producto: {comp.cantidad || 1}
+                        {cantidadSolicitada > 1 && (
+                          <span className="text-slate-500">
+                            {' '}(Total: {cantidadRequerida})
+                          </span>
+                        )}
+                      </div>
+                      {comp.grupo && (
+                        <div className="text-xs text-slate-500 mt-0.5">
+                          Grupo: {comp.grupo}
                         </div>
+                      )}
+                    </div>
+                  </div>
 
-                        <div className="text-right">
-                          {dispInfo ? (
-                            <div className="space-y-1">
-                              <div className="flex items-center gap-2 justify-end">
-                                {getEstadoIcono(dispInfo.estado)}
-                                {getEstadoBadge(dispInfo.estado)}
-                              </div>
-                              <div className="text-xs text-slate-600 space-y-0.5">
-                                <div>Stock: {dispInfo.stock_total}</div>
-                                {dispInfo.ocupados_en_fecha > 0 && (
-                                  <div className="text-orange-600">
-                                    Ocupados: {dispInfo.ocupados_en_fecha}
-                                  </div>
-                                )}
-                                <div className={dispInfo.estado === 'ok' ? 'text-green-600' : 'text-red-600'}>
-                                  Disponibles: {dispInfo.disponibles}
-                                </div>
-                                {dispInfo.faltantes > 0 && (
-                                  <div className="text-red-600 font-medium">
-                                    Faltan: {dispInfo.faltantes}
-                                  </div>
-                                )}
-                              </div>
+                  <div className="text-right">
+                    {dispInfo ? (
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 justify-end">
+                          {getEstadoIcono(dispInfo.estado)}
+                          {getEstadoBadge(dispInfo.estado)}
+                        </div>
+                        <div className="text-xs text-slate-600 space-y-0.5">
+                          <div>Stock: {dispInfo.stock_total}</div>
+                          {dispInfo.ocupados_en_fecha > 0 && (
+                            <div className="text-orange-600">
+                              Ocupados: {dispInfo.ocupados_en_fecha}
                             </div>
-                          ) : !fechaMontaje ? (
-                            <div className="text-xs text-slate-500">
-                              Seleccione fechas para ver disponibilidad
+                          )}
+                          <div className={dispInfo.estado === 'ok' ? 'text-green-600' : 'text-red-600'}>
+                            Disponibles: {dispInfo.disponibles}
+                          </div>
+                          {dispInfo.faltantes > 0 && (
+                            <div className="text-red-600 font-medium">
+                              Faltan: {dispInfo.faltantes}
                             </div>
-                          ) : null}
+                          )}
                         </div>
                       </div>
-                    </div>
-                  )
-                })}
+                    ) : !fechaMontaje ? (
+                      <div className="text-xs text-slate-500">
+                        Seleccione fechas para ver disponibilidad
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
               </div>
-            )}
-          </div>
-
-          {/* Footer */}
-          <div className="flex justify-end p-4 border-t border-slate-200">
-            <button
-              onClick={onClose}
-              className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-medium transition-colors"
-            >
-              Cerrar
-            </button>
-          </div>
+            )
+          })}
         </div>
-      </div>
-    </div>
+      )}
+
+      <Modal.Footer>
+        <button
+          onClick={onClose}
+          className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-medium transition-colors"
+        >
+          Cerrar
+        </button>
+      </Modal.Footer>
+    </Modal>
   )
 }
 
