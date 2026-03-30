@@ -115,7 +115,7 @@ const EventoDetalleModal = ({ isOpen, onClose, eventoId, onCrearCotizacion, onEd
         try {
             await deleteMutation.mutateAsync(cotizacionId)
             // Invalidar cache del evento para refrescar la lista
-            queryClient.invalidateQueries(['evento', eventoId])
+            queryClient.invalidateQueries({ queryKey: ['evento', eventoId] })
         } catch (error) {
             alert('Error al eliminar la cotización: ' + error.message)
         }
@@ -127,7 +127,7 @@ const EventoDetalleModal = ({ isOpen, onClose, eventoId, onCrearCotizacion, onEd
             setCotizacionAprobarId(null)
             setCotizacionDetalleId(null)
             // Invalidar cache del evento
-            queryClient.invalidateQueries(['evento', eventoId])
+            queryClient.invalidateQueries({ queryKey: ['evento', eventoId] })
         } catch (error) {
             alert('Error al aprobar la cotización: ' + error.message)
         }
@@ -137,7 +137,7 @@ const EventoDetalleModal = ({ isOpen, onClose, eventoId, onCrearCotizacion, onEd
         try {
             await cambiarEstadoMutation.mutateAsync({ id: cotizacion.id, estado: 'rechazada' })
             setCotizacionDetalleId(null)
-            queryClient.invalidateQueries(['evento', eventoId])
+            queryClient.invalidateQueries({ queryKey: ['evento', eventoId] })
         } catch (error) {
             alert('Error al rechazar la cotización: ' + error.message)
         }
