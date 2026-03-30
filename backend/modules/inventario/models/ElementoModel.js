@@ -72,9 +72,22 @@ class ElementoModel {
 
     // ============================================
     // OBTENER TODOS LOS ELEMENTOS (con relaciones)
+    // Calcula cantidad_disponible real desde series/lotes
     // ============================================
     static async obtenerTodos() {
-        const query = `SELECT ${SELECT_FULL} ${JOIN_FULL} ORDER BY e.nombre`;
+        const query = `
+            SELECT ${SELECT_FULL},
+                CASE
+                    WHEN e.requiere_series = TRUE THEN (
+                        SELECT COUNT(*) FROM series s WHERE s.id_elemento = e.id
+                    )
+                    ELSE (
+                        SELECT COALESCE(SUM(l.cantidad), 0) FROM lotes l WHERE l.elemento_id = e.id
+                    )
+                END AS cantidad_disponible
+            ${JOIN_FULL}
+            ORDER BY e.nombre
+        `;
         const [rows] = await pool.query(query);
         return rows;
     }
