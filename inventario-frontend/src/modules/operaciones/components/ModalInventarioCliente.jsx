@@ -7,6 +7,7 @@ import {
 import { useGetInventarioCliente, useGetFotosOrden, useGetFirmaCliente, useGuardarFirmaCliente } from '../hooks/useOrdenesTrabajo'
 import FirmaDigital from '@shared/components/FirmaDigital'
 import Spinner from '@shared/components/Spinner'
+import Modal from '@shared/components/Modal'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'
 
@@ -182,288 +183,272 @@ export default function ModalInventarioCliente({ ordenId, onClose }) {
     }
 
     return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl w-full max-w-3xl max-h-[90vh] flex flex-col">
-                {/* Header */}
-                <div className="p-5 border-b border-slate-200 flex items-center justify-between shrink-0">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2 bg-orange-100 rounded-lg">
-                            <ClipboardList className="w-5 h-5 text-orange-600" />
-                        </div>
-                        <div>
-                            <h3 className="text-lg font-semibold text-slate-900">Inventario del Cliente</h3>
-                            <p className="text-sm text-slate-500">Documento de entrega de montaje</p>
-                        </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <button
-                            onClick={handleWhatsApp}
-                            disabled={isLoading || !inventario}
-                            className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-green-700 bg-green-50 hover:bg-green-100 rounded-lg transition-colors disabled:opacity-50"
-                            title="Enviar por WhatsApp"
-                        >
-                            <MessageCircle className="w-4 h-4" />
-                            <span className="hidden sm:inline">WhatsApp</span>
-                        </button>
-                        <button
-                            onClick={handleCompartir}
-                            disabled={isLoading || !inventario}
-                            className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-orange-700 bg-orange-50 hover:bg-orange-100 rounded-lg transition-colors disabled:opacity-50"
-                        >
-                            <Share2 className="w-4 h-4" />
-                            <span className="hidden sm:inline">Compartir</span>
-                        </button>
-                        <button
-                            onClick={handleImprimir}
-                            disabled={isLoading || !inventario}
-                            className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors disabled:opacity-50"
-                        >
-                            <Printer className="w-4 h-4" />
-                            <span className="hidden sm:inline">Imprimir</span>
-                        </button>
-                        <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-lg">
-                            <X className="w-5 h-5" />
-                        </button>
-                    </div>
+        <>
+            <Modal isOpen={true} onClose={onClose} title="Inventario del Cliente" size="xl">
+                {/* Action buttons toolbar */}
+                <div className="flex items-center gap-2 mb-4">
+                    <button
+                        onClick={handleWhatsApp}
+                        disabled={isLoading || !inventario}
+                        className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-green-700 bg-green-50 hover:bg-green-100 rounded-lg transition-colors disabled:opacity-50"
+                        title="Enviar por WhatsApp"
+                    >
+                        <MessageCircle className="w-4 h-4" />
+                        <span className="hidden sm:inline">WhatsApp</span>
+                    </button>
+                    <button
+                        onClick={handleCompartir}
+                        disabled={isLoading || !inventario}
+                        className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-orange-700 bg-orange-50 hover:bg-orange-100 rounded-lg transition-colors disabled:opacity-50"
+                    >
+                        <Share2 className="w-4 h-4" />
+                        <span className="hidden sm:inline">Compartir</span>
+                    </button>
+                    <button
+                        onClick={handleImprimir}
+                        disabled={isLoading || !inventario}
+                        className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors disabled:opacity-50"
+                    >
+                        <Printer className="w-4 h-4" />
+                        <span className="hidden sm:inline">Imprimir</span>
+                    </button>
                 </div>
 
                 {/* Contenido */}
-                <div className="overflow-y-auto flex-1 p-6">
-                    {isLoading && (
-                        <div className="flex items-center justify-center py-12">
-                            <Spinner />
-                        </div>
-                    )}
+                {isLoading && (
+                    <div className="flex items-center justify-center py-12">
+                        <Spinner />
+                    </div>
+                )}
 
-                    {error && (
-                        <div className="text-center py-12 text-red-600">
-                            <p>Error al cargar el inventario</p>
-                            <p className="text-sm mt-1">{error.message}</p>
-                        </div>
-                    )}
+                {error && (
+                    <div className="text-center py-12 text-red-600">
+                        <p>Error al cargar el inventario</p>
+                        <p className="text-sm mt-1">{error.message}</p>
+                    </div>
+                )}
 
-                    {inventario && (
-                        <div ref={printRef}>
-                            {/* Encabezado documento */}
-                            <div className="header text-center mb-6 pb-4 border-b-2 border-orange-400">
-                                <h1 className="text-xl font-bold text-slate-900">Inventario de Montaje</h1>
-                                <p className="text-sm text-slate-500 mt-1">
-                                    Orden #{inventario.orden_id} - {formatFecha(inventario.fecha_montaje_completado)}
+                {inventario && (
+                    <div ref={printRef}>
+                        {/* Encabezado documento */}
+                        <div className="header text-center mb-6 pb-4 border-b-2 border-orange-400">
+                            <h1 className="text-xl font-bold text-slate-900">Inventario de Montaje</h1>
+                            <p className="text-sm text-slate-500 mt-1">
+                                Orden #{inventario.orden_id} - {formatFecha(inventario.fecha_montaje_completado)}
+                            </p>
+                        </div>
+
+                        {/* Info del evento y cliente */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                            <div className="section bg-slate-50 rounded-lg p-4">
+                                <h4 className="section-title text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
+                                    <User className="w-4 h-4" /> Cliente
+                                </h4>
+                                <div className="space-y-1 text-sm">
+                                    <p className="font-medium text-slate-900">{inventario.cliente?.nombre || '-'}</p>
+                                    {inventario.cliente?.numero_documento && (
+                                        <p className="text-slate-500">
+                                            {inventario.cliente.tipo_documento}: {inventario.cliente.numero_documento}
+                                        </p>
+                                    )}
+                                    {inventario.cliente?.telefono && (
+                                        <p className="text-slate-500">{inventario.cliente.telefono}</p>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="section bg-slate-50 rounded-lg p-4">
+                                <h4 className="section-title text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
+                                    <MapPin className="w-4 h-4" /> Evento
+                                </h4>
+                                <div className="space-y-1 text-sm">
+                                    <p className="font-medium text-slate-900">{inventario.evento?.nombre || '-'}</p>
+                                    {inventario.evento?.direccion && (
+                                        <p className="text-slate-500">{inventario.evento.direccion}</p>
+                                    )}
+                                    {inventario.evento?.ciudad && (
+                                        <p className="text-slate-500">{inventario.evento.ciudad}</p>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Fecha desmontaje destacada */}
+                        {inventario.evento?.fecha_desmontaje && (
+                            <div className="desmontaje-box bg-orange-50 border border-orange-200 rounded-lg p-4 mb-6 text-center">
+                                <div className="flex items-center justify-center gap-2 text-orange-700">
+                                    <Calendar className="w-5 h-5" />
+                                    <span className="font-semibold">Desmontaje programado</span>
+                                </div>
+                                <p className="text-lg font-bold text-orange-800 mt-1">
+                                    {formatFecha(inventario.evento.fecha_desmontaje)}
                                 </p>
                             </div>
+                        )}
 
-                            {/* Info del evento y cliente */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                                <div className="section bg-slate-50 rounded-lg p-4">
-                                    <h4 className="section-title text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
-                                        <User className="w-4 h-4" /> Cliente
-                                    </h4>
-                                    <div className="space-y-1 text-sm">
-                                        <p className="font-medium text-slate-900">{inventario.cliente?.nombre || '-'}</p>
-                                        {inventario.cliente?.numero_documento && (
-                                            <p className="text-slate-500">
-                                                {inventario.cliente.tipo_documento}: {inventario.cliente.numero_documento}
-                                            </p>
-                                        )}
-                                        {inventario.cliente?.telefono && (
-                                            <p className="text-slate-500">{inventario.cliente.telefono}</p>
-                                        )}
-                                    </div>
-                                </div>
-
-                                <div className="section bg-slate-50 rounded-lg p-4">
-                                    <h4 className="section-title text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
-                                        <MapPin className="w-4 h-4" /> Evento
-                                    </h4>
-                                    <div className="space-y-1 text-sm">
-                                        <p className="font-medium text-slate-900">{inventario.evento?.nombre || '-'}</p>
-                                        {inventario.evento?.direccion && (
-                                            <p className="text-slate-500">{inventario.evento.direccion}</p>
-                                        )}
-                                        {inventario.evento?.ciudad && (
-                                            <p className="text-slate-500">{inventario.evento.ciudad}</p>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Fecha desmontaje destacada */}
-                            {inventario.evento?.fecha_desmontaje && (
-                                <div className="desmontaje-box bg-orange-50 border border-orange-200 rounded-lg p-4 mb-6 text-center">
-                                    <div className="flex items-center justify-center gap-2 text-orange-700">
-                                        <Calendar className="w-5 h-5" />
-                                        <span className="font-semibold">Desmontaje programado</span>
-                                    </div>
-                                    <p className="text-lg font-bold text-orange-800 mt-1">
-                                        {formatFecha(inventario.evento.fecha_desmontaje)}
-                                    </p>
-                                </div>
-                            )}
-
-                            {/* Fotos del montaje terminado */}
-                            {fotosMontaje.length > 0 && (
-                                <div className="section mb-6">
-                                    <h4 className="section-title text-sm font-semibold text-slate-700 mb-3 pb-2 border-b border-slate-200 flex items-center gap-2">
-                                        <Camera className="w-4 h-4" />
-                                        Fotos del Montaje ({fotosMontaje.length})
-                                    </h4>
-                                    <div className="fotos-grid grid grid-cols-2 sm:grid-cols-3 gap-2">
-                                        {fotosMontaje.map((foto) => (
-                                            <div
-                                                key={foto.id}
-                                                className="cursor-pointer rounded-lg overflow-hidden aspect-video group"
-                                                onClick={() => setVisorFoto(foto)}
-                                            >
-                                                <img
-                                                    src={`${API_URL}${foto.imagen_url}`}
-                                                    alt="Montaje terminado"
-                                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                                                    loading="lazy"
-                                                />
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Productos con desglose */}
-                            <div className="section mb-4">
-                                <h4 className="section-title text-sm font-semibold text-slate-700 mb-4 pb-2 border-b border-slate-200 flex items-center gap-2">
-                                    <Package className="w-4 h-4" />
-                                    Productos Instalados ({inventario.resumen?.total_productos || 0})
+                        {/* Fotos del montaje terminado */}
+                        {fotosMontaje.length > 0 && (
+                            <div className="section mb-6">
+                                <h4 className="section-title text-sm font-semibold text-slate-700 mb-3 pb-2 border-b border-slate-200 flex items-center gap-2">
+                                    <Camera className="w-4 h-4" />
+                                    Fotos del Montaje ({fotosMontaje.length})
                                 </h4>
-
-                                <div className="space-y-4">
-                                    {inventario.productos?.map((producto) => (
-                                        <div key={producto.id} className="product border border-slate-200 rounded-lg overflow-hidden">
-                                            <div className="product-header bg-slate-50 px-4 py-3 flex items-center justify-between">
-                                                <span className="font-semibold text-slate-900">
-                                                    {producto.categoria_emoji || ''} {producto.nombre}
-                                                </span>
-                                                <span className="text-sm text-slate-500">
-                                                    x{producto.cantidad}
-                                                </span>
-                                            </div>
-
-                                            {producto.componentes?.length > 0 && (
-                                                <table className="w-full text-sm">
-                                                    <thead>
-                                                        <tr className="bg-slate-50/50">
-                                                            <th className="text-left px-4 py-2 text-xs font-semibold text-slate-500">Elemento</th>
-                                                            <th className="text-center px-4 py-2 text-xs font-semibold text-slate-500">Cantidad</th>
-                                                            <th className="text-center px-4 py-2 text-xs font-semibold text-slate-500">Estado</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        {producto.componentes.map((comp) => {
-                                                            const cantTotal = comp.cantidad * producto.cantidad
-                                                            const estadoPrincipal = comp.elementos_asignados?.[0]?.estado_salida || 'bueno'
-
-                                                            return (
-                                                                <tr key={comp.id} className="border-t border-slate-100">
-                                                                    <td className="px-4 py-2.5 text-slate-800">
-                                                                        {comp.elemento_nombre}
-                                                                    </td>
-                                                                    <td className="px-4 py-2.5 text-center text-slate-600">
-                                                                        {cantTotal}
-                                                                    </td>
-                                                                    <td className="px-4 py-2.5 text-center">
-                                                                        <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${ESTADO_COLORS[estadoPrincipal] || 'bg-slate-100 text-slate-600'}`}>
-                                                                            {ESTADO_LABELS[estadoPrincipal] || estadoPrincipal}
-                                                                        </span>
-                                                                    </td>
-                                                                </tr>
-                                                            )
-                                                        })}
-                                                    </tbody>
-                                                </table>
-                                            )}
+                                <div className="fotos-grid grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                    {fotosMontaje.map((foto) => (
+                                        <div
+                                            key={foto.id}
+                                            className="cursor-pointer rounded-lg overflow-hidden aspect-video group"
+                                            onClick={() => setVisorFoto(foto)}
+                                        >
+                                            <img
+                                                src={`${API_URL}${foto.imagen_url}`}
+                                                alt="Montaje terminado"
+                                                className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                                                loading="lazy"
+                                            />
                                         </div>
                                     ))}
                                 </div>
                             </div>
+                        )}
 
-                            {/* Resumen */}
-                            <div className="mt-6 flex items-center justify-between bg-slate-50 rounded-lg p-4 text-sm">
-                                <div className="flex items-center gap-2 text-slate-600">
-                                    <CheckCircle className="w-4 h-4 text-green-500" />
-                                    <span>
-                                        {inventario.resumen?.total_productos || 0} producto(s),{' '}
-                                        {inventario.total_elementos || 0} elemento(s) entregados
-                                    </span>
-                                </div>
-                            </div>
+                        {/* Productos con desglose */}
+                        <div className="section mb-4">
+                            <h4 className="section-title text-sm font-semibold text-slate-700 mb-4 pb-2 border-b border-slate-200 flex items-center gap-2">
+                                <Package className="w-4 h-4" />
+                                Productos Instalados ({inventario.resumen?.total_productos || 0})
+                            </h4>
 
-                            {/* Firma del cliente */}
-                            <div className="firma-section mt-6 pt-4 border-t border-slate-200">
-                                {tieneFirma ? (
-                                    <div className="text-center">
-                                        <h4 className="text-sm font-semibold text-slate-700 mb-3 flex items-center justify-center gap-2">
-                                            <Pen className="w-4 h-4" />
-                                            Firma del Receptor
-                                        </h4>
-                                        <img
-                                            src={`${API_URL}${firma.firma_cliente_url}`}
-                                            alt="Firma del cliente"
-                                            className="max-w-[250px] mx-auto border border-slate-200 rounded-lg"
-                                        />
-                                        <p className="text-sm font-medium text-slate-700 mt-2">
-                                            {firma.firma_cliente_nombre}
-                                        </p>
-                                        <p className="text-xs text-slate-400">
-                                            {formatFecha(firma.firma_cliente_fecha)}
-                                        </p>
-                                    </div>
-                                ) : (
-                                    <div>
-                                        {!mostrarFirma ? (
-                                            <button
-                                                onClick={() => setMostrarFirma(true)}
-                                                className="w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-slate-300 rounded-lg text-sm font-medium text-slate-600 hover:border-orange-400 hover:text-orange-600 transition-colors"
-                                            >
-                                                <Pen className="w-4 h-4" />
-                                                Solicitar firma del cliente
-                                            </button>
-                                        ) : (
-                                            <div className="space-y-3">
-                                                <h4 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-                                                    <Pen className="w-4 h-4" />
-                                                    Firma del Receptor
-                                                </h4>
-                                                <input
-                                                    type="text"
-                                                    value={nombreFirmante}
-                                                    onChange={(e) => setNombreFirmante(e.target.value)}
-                                                    placeholder="Nombre completo del receptor"
-                                                    className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
-                                                />
-                                                <FirmaDigital
-                                                    onConfirm={handleConfirmarFirma}
-                                                    width={400}
-                                                    height={180}
-                                                    disabled={guardarFirma.isPending}
-                                                />
-                                                {guardarFirma.isPending && (
-                                                    <div className="flex items-center justify-center gap-2 text-sm text-slate-500">
-                                                        <Loader2 className="w-4 h-4 animate-spin" />
-                                                        Guardando firma...
-                                                    </div>
-                                                )}
-                                            </div>
+                            <div className="space-y-4">
+                                {inventario.productos?.map((producto) => (
+                                    <div key={producto.id} className="product border border-slate-200 rounded-lg overflow-hidden">
+                                        <div className="product-header bg-slate-50 px-4 py-3 flex items-center justify-between">
+                                            <span className="font-semibold text-slate-900">
+                                                {producto.categoria_emoji || ''} {producto.nombre}
+                                            </span>
+                                            <span className="text-sm text-slate-500">
+                                                x{producto.cantidad}
+                                            </span>
+                                        </div>
+
+                                        {producto.componentes?.length > 0 && (
+                                            <table className="w-full text-sm">
+                                                <thead>
+                                                    <tr className="bg-slate-50/50">
+                                                        <th className="text-left px-4 py-2 text-xs font-semibold text-slate-500">Elemento</th>
+                                                        <th className="text-center px-4 py-2 text-xs font-semibold text-slate-500">Cantidad</th>
+                                                        <th className="text-center px-4 py-2 text-xs font-semibold text-slate-500">Estado</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {producto.componentes.map((comp) => {
+                                                        const cantTotal = comp.cantidad * producto.cantidad
+                                                        const estadoPrincipal = comp.elementos_asignados?.[0]?.estado_salida || 'bueno'
+
+                                                        return (
+                                                            <tr key={comp.id} className="border-t border-slate-100">
+                                                                <td className="px-4 py-2.5 text-slate-800">
+                                                                    {comp.elemento_nombre}
+                                                                </td>
+                                                                <td className="px-4 py-2.5 text-center text-slate-600">
+                                                                    {cantTotal}
+                                                                </td>
+                                                                <td className="px-4 py-2.5 text-center">
+                                                                    <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${ESTADO_COLORS[estadoPrincipal] || 'bg-slate-100 text-slate-600'}`}>
+                                                                        {ESTADO_LABELS[estadoPrincipal] || estadoPrincipal}
+                                                                    </span>
+                                                                </td>
+                                                            </tr>
+                                                        )
+                                                    })}
+                                                </tbody>
+                                            </table>
                                         )}
                                     </div>
-                                )}
-                            </div>
-
-                            {/* Footer */}
-                            <div className="footer text-center text-xs text-slate-400 mt-6 pt-4 border-t border-slate-200">
-                                <p>Documento generado el {new Date().toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
-                                <p className="mt-1">Este documento certifica la entrega del inventario en el sitio del evento.</p>
+                                ))}
                             </div>
                         </div>
-                    )}
-                </div>
-            </div>
+
+                        {/* Resumen */}
+                        <div className="mt-6 flex items-center justify-between bg-slate-50 rounded-lg p-4 text-sm">
+                            <div className="flex items-center gap-2 text-slate-600">
+                                <CheckCircle className="w-4 h-4 text-green-500" />
+                                <span>
+                                    {inventario.resumen?.total_productos || 0} producto(s),{' '}
+                                    {inventario.total_elementos || 0} elemento(s) entregados
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* Firma del cliente */}
+                        <div className="firma-section mt-6 pt-4 border-t border-slate-200">
+                            {tieneFirma ? (
+                                <div className="text-center">
+                                    <h4 className="text-sm font-semibold text-slate-700 mb-3 flex items-center justify-center gap-2">
+                                        <Pen className="w-4 h-4" />
+                                        Firma del Receptor
+                                    </h4>
+                                    <img
+                                        src={`${API_URL}${firma.firma_cliente_url}`}
+                                        alt="Firma del cliente"
+                                        className="max-w-[250px] mx-auto border border-slate-200 rounded-lg"
+                                    />
+                                    <p className="text-sm font-medium text-slate-700 mt-2">
+                                        {firma.firma_cliente_nombre}
+                                    </p>
+                                    <p className="text-xs text-slate-400">
+                                        {formatFecha(firma.firma_cliente_fecha)}
+                                    </p>
+                                </div>
+                            ) : (
+                                <div>
+                                    {!mostrarFirma ? (
+                                        <button
+                                            onClick={() => setMostrarFirma(true)}
+                                            className="w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-slate-300 rounded-lg text-sm font-medium text-slate-600 hover:border-orange-400 hover:text-orange-600 transition-colors"
+                                        >
+                                            <Pen className="w-4 h-4" />
+                                            Solicitar firma del cliente
+                                        </button>
+                                    ) : (
+                                        <div className="space-y-3">
+                                            <h4 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                                                <Pen className="w-4 h-4" />
+                                                Firma del Receptor
+                                            </h4>
+                                            <input
+                                                type="text"
+                                                value={nombreFirmante}
+                                                onChange={(e) => setNombreFirmante(e.target.value)}
+                                                placeholder="Nombre completo del receptor"
+                                                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                            />
+                                            <FirmaDigital
+                                                onConfirm={handleConfirmarFirma}
+                                                width={400}
+                                                height={180}
+                                                disabled={guardarFirma.isPending}
+                                            />
+                                            {guardarFirma.isPending && (
+                                                <div className="flex items-center justify-center gap-2 text-sm text-slate-500">
+                                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                                    Guardando firma...
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Footer */}
+                        <div className="footer text-center text-xs text-slate-400 mt-6 pt-4 border-t border-slate-200">
+                            <p>Documento generado el {new Date().toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                            <p className="mt-1">Este documento certifica la entrega del inventario en el sitio del evento.</p>
+                        </div>
+                    </div>
+                )}
+            </Modal>
 
             {/* Visor de foto ampliada */}
             {visorFoto && (
@@ -486,6 +471,6 @@ export default function ModalInventarioCliente({ ordenId, onClose }) {
                     </div>
                 </div>
             )}
-        </div>
+        </>
     )
 }

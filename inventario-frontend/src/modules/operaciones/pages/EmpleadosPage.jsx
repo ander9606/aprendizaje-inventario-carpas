@@ -20,6 +20,7 @@ import EmpleadoFormModal from '../components/forms/EmpleadoFormModal'
 import Button from '@shared/components/Button'
 import Spinner from '@shared/components/Spinner'
 import EmptyState from '@shared/components/EmptyState'
+import Modal from '@shared/components/Modal'
 
 // Hook personalizado para debounce
 const useDebounce = (value, delay) => {
@@ -522,98 +523,90 @@ export default function EmpleadosPage() {
             />
 
             {/* MODAL APROBAR */}
-            {aprobarModal.open && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
-                        <h3 className="text-lg font-bold text-slate-900 mb-2">Aprobar solicitud</h3>
-                        <p className="text-sm text-slate-600 mb-4">
-                            Aprobar acceso para <span className="font-semibold">{aprobarModal.empleado?.nombre} {aprobarModal.empleado?.apellido}</span>
+            <Modal isOpen={aprobarModal.open} onClose={() => { setAprobarModal({ open: false, empleado: null }); setAprobarRolId('') }} title="Aprobar solicitud" size="sm">
+                <p className="text-sm text-slate-600 mb-4">
+                    Aprobar acceso para <span className="font-semibold">{aprobarModal.empleado?.nombre} {aprobarModal.empleado?.apellido}</span>
+                </p>
+
+                <div className="mb-4">
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                        Asignar rol *
+                    </label>
+                    <select
+                        value={aprobarRolId}
+                        onChange={(e) => setAprobarRolId(e.target.value)}
+                        className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    >
+                        <option value="">Selecciona un rol</option>
+                        {roles.map((rol) => (
+                            <option key={rol.id} value={rol.id}>
+                                {rol.nombre.charAt(0).toUpperCase() + rol.nombre.slice(1)}
+                            </option>
+                        ))}
+                    </select>
+                    {aprobarModal.empleado?.rol_solicitado_nombre && (
+                        <p className="mt-1 text-xs text-slate-500">
+                            El usuario solicito: {aprobarModal.empleado.rol_solicitado_nombre.charAt(0).toUpperCase() + aprobarModal.empleado.rol_solicitado_nombre.slice(1)}
                         </p>
-
-                        <div className="mb-4">
-                            <label className="block text-sm font-medium text-slate-700 mb-2">
-                                Asignar rol *
-                            </label>
-                            <select
-                                value={aprobarRolId}
-                                onChange={(e) => setAprobarRolId(e.target.value)}
-                                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                            >
-                                <option value="">Selecciona un rol</option>
-                                {roles.map((rol) => (
-                                    <option key={rol.id} value={rol.id}>
-                                        {rol.nombre.charAt(0).toUpperCase() + rol.nombre.slice(1)}
-                                    </option>
-                                ))}
-                            </select>
-                            {aprobarModal.empleado?.rol_solicitado_nombre && (
-                                <p className="mt-1 text-xs text-slate-500">
-                                    El usuario solicito: {aprobarModal.empleado.rol_solicitado_nombre.charAt(0).toUpperCase() + aprobarModal.empleado.rol_solicitado_nombre.slice(1)}
-                                </p>
-                            )}
-                        </div>
-
-                        <div className="flex gap-3">
-                            <button
-                                onClick={() => { setAprobarModal({ open: false, empleado: null }); setAprobarRolId('') }}
-                                className="flex-1 px-4 py-2.5 text-sm font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
-                            >
-                                Cancelar
-                            </button>
-                            <button
-                                onClick={handleAprobar}
-                                disabled={!aprobarRolId || isApproving}
-                                className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-green-600 hover:bg-green-700 disabled:bg-slate-300 rounded-lg transition-colors flex items-center justify-center gap-2"
-                            >
-                                {isApproving ? <Spinner size="sm" /> : <CheckCircle className="w-4 h-4" />}
-                                Aprobar
-                            </button>
-                        </div>
-                    </div>
+                    )}
                 </div>
-            )}
+
+                <Modal.Footer>
+                    <Button
+                        variant="secondary"
+                        onClick={() => { setAprobarModal({ open: false, empleado: null }); setAprobarRolId('') }}
+                    >
+                        Cancelar
+                    </Button>
+                    <Button
+                        onClick={handleAprobar}
+                        disabled={!aprobarRolId || isApproving}
+                        loading={isApproving}
+                        icon={<CheckCircle className="w-4 h-4" />}
+                        className="bg-green-600 hover:bg-green-700"
+                    >
+                        Aprobar
+                    </Button>
+                </Modal.Footer>
+            </Modal>
 
             {/* MODAL RECHAZAR */}
-            {rechazarModal.open && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
-                        <h3 className="text-lg font-bold text-slate-900 mb-2">Rechazar solicitud</h3>
-                        <p className="text-sm text-slate-600 mb-4">
-                            Rechazar acceso para <span className="font-semibold">{rechazarModal.empleado?.nombre} {rechazarModal.empleado?.apellido}</span>
-                        </p>
+            <Modal isOpen={rechazarModal.open} onClose={() => { setRechazarModal({ open: false, empleado: null }); setRechazarMotivo('') }} title="Rechazar solicitud" size="sm">
+                <p className="text-sm text-slate-600 mb-4">
+                    Rechazar acceso para <span className="font-semibold">{rechazarModal.empleado?.nombre} {rechazarModal.empleado?.apellido}</span>
+                </p>
 
-                        <div className="mb-4">
-                            <label className="block text-sm font-medium text-slate-700 mb-2">
-                                Motivo del rechazo (opcional)
-                            </label>
-                            <textarea
-                                value={rechazarMotivo}
-                                onChange={(e) => setRechazarMotivo(e.target.value)}
-                                placeholder="Ej: No es empleado de la empresa"
-                                rows={3}
-                                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
-                            />
-                        </div>
-
-                        <div className="flex gap-3">
-                            <button
-                                onClick={() => { setRechazarModal({ open: false, empleado: null }); setRechazarMotivo('') }}
-                                className="flex-1 px-4 py-2.5 text-sm font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
-                            >
-                                Cancelar
-                            </button>
-                            <button
-                                onClick={handleRechazar}
-                                disabled={isRejecting}
-                                className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-red-600 hover:bg-red-700 disabled:bg-slate-300 rounded-lg transition-colors flex items-center justify-center gap-2"
-                            >
-                                {isRejecting ? <Spinner size="sm" /> : <XCircle className="w-4 h-4" />}
-                                Rechazar
-                            </button>
-                        </div>
-                    </div>
+                <div className="mb-4">
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                        Motivo del rechazo (opcional)
+                    </label>
+                    <textarea
+                        value={rechazarMotivo}
+                        onChange={(e) => setRechazarMotivo(e.target.value)}
+                        placeholder="Ej: No es empleado de la empresa"
+                        rows={3}
+                        className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
+                    />
                 </div>
-            )}
+
+                <Modal.Footer>
+                    <Button
+                        variant="secondary"
+                        onClick={() => { setRechazarModal({ open: false, empleado: null }); setRechazarMotivo('') }}
+                    >
+                        Cancelar
+                    </Button>
+                    <Button
+                        variant="danger"
+                        onClick={handleRechazar}
+                        disabled={isRejecting}
+                        loading={isRejecting}
+                        icon={<XCircle className="w-4 h-4" />}
+                    >
+                        Rechazar
+                    </Button>
+                </Modal.Footer>
+            </Modal>
 
             {/* Indicador de carga */}
             {(isDeleting || isReactivating) && (
