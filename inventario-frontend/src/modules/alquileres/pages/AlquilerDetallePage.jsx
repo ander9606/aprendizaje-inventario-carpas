@@ -213,7 +213,7 @@ export default function AlquilerDetallePage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-full flex items-center justify-center">
         <Spinner size="lg" text="Cargando alquiler..." />
       </div>
     )
@@ -221,7 +221,7 @@ export default function AlquilerDetallePage() {
 
   if (error || !alquiler) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-6">
+      <div className="min-h-full flex items-center justify-center p-6">
         <div className="text-center">
           <Package className="w-16 h-16 text-slate-300 mx-auto mb-4" />
           <h2 className="text-xl font-bold text-slate-900 mb-2">
@@ -247,7 +247,7 @@ export default function AlquilerDetallePage() {
   // ============================================
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="bg-slate-50">
       {/* Header */}
       <div className="bg-white border-b border-slate-200 sticky top-0 z-10">
         <div className="container mx-auto px-6 py-4">
