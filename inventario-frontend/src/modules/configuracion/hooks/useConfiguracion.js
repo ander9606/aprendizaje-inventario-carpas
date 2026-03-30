@@ -54,7 +54,7 @@ export const useUpdateConfiguracion = () => {
     mutationFn: ({ clave, valor }) => apiConfiguracion.actualizarValor(clave, valor),
     retry: 0,
     onSuccess: () => {
-      queryClient.invalidateQueries(['configuracion'])
+      queryClient.invalidateQueries({ queryKey: ['configuracion'] })
     }
   })
 }
@@ -69,7 +69,7 @@ export const useUpdateConfiguraciones = () => {
     mutationFn: apiConfiguracion.actualizarValores,
     retry: 0,
     onSuccess: () => {
-      queryClient.invalidateQueries(['configuracion'])
+      queryClient.invalidateQueries({ queryKey: ['configuracion'] })
     }
   })
 }
@@ -84,7 +84,7 @@ export const useSubirLogo = () => {
     mutationFn: apiConfiguracion.subirLogo,
     retry: 0,
     onSuccess: () => {
-      queryClient.invalidateQueries(['configuracion'])
+      queryClient.invalidateQueries({ queryKey: ['configuracion'] })
     }
   })
 }
@@ -99,7 +99,7 @@ export const useEliminarLogo = () => {
     mutationFn: apiConfiguracion.eliminarLogo,
     retry: 0,
     onSuccess: () => {
-      queryClient.invalidateQueries(['configuracion'])
+      queryClient.invalidateQueries({ queryKey: ['configuracion'] })
     }
   })
 }

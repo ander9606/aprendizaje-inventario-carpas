@@ -16,7 +16,7 @@ export const useCreateCotizacion = () => {
     mutationFn: apiCotizaciones.crear,
     retry: 0,
     onSuccess: () => {
-      queryClient.invalidateQueries(['cotizaciones'])
+      queryClient.invalidateQueries({ queryKey: ['cotizaciones'] })
     }
   })
 }
@@ -31,8 +31,8 @@ export const useUpdateCotizacion = () => {
     mutationFn: ({ id, data }) => apiCotizaciones.actualizar(id, data),
     retry: 0,
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries(['cotizaciones'])
-      queryClient.invalidateQueries(['cotizaciones', variables.id, 'completa'])
+      queryClient.invalidateQueries({ queryKey: ['cotizaciones'] })
+      queryClient.invalidateQueries({ queryKey: ['cotizaciones', variables.id, 'completa'] })
     }
   })
 }
@@ -47,8 +47,8 @@ export const useAprobarCotizacion = () => {
     mutationFn: ({ id, opciones }) => apiCotizaciones.aprobar(id, opciones),
     retry: 0,
     onSuccess: () => {
-      queryClient.invalidateQueries(['cotizaciones'])
-      queryClient.invalidateQueries(['alquileres'])
+      queryClient.invalidateQueries({ queryKey: ['cotizaciones'] })
+      queryClient.invalidateQueries({ queryKey: ['alquileres'] })
     }
   })
 }
@@ -63,8 +63,8 @@ export const useCambiarEstadoCotizacion = () => {
     mutationFn: ({ id, estado }) => apiCotizaciones.cambiarEstado(id, estado),
     retry: 0,
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries(['cotizaciones'])
-      queryClient.invalidateQueries(['cotizaciones', variables.id, 'completa'])
+      queryClient.invalidateQueries({ queryKey: ['cotizaciones'] })
+      queryClient.invalidateQueries({ queryKey: ['cotizaciones', variables.id, 'completa'] })
     }
   })
 }
@@ -79,8 +79,8 @@ export const useConfirmarFechasCotizacion = () => {
     mutationFn: ({ id, fechas }) => apiCotizaciones.confirmarFechas(id, fechas),
     retry: 0,
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries(['cotizaciones'])
-      queryClient.invalidateQueries(['cotizaciones', variables.id, 'completa'])
+      queryClient.invalidateQueries({ queryKey: ['cotizaciones'] })
+      queryClient.invalidateQueries({ queryKey: ['cotizaciones', variables.id, 'completa'] })
     }
   })
 }
@@ -95,7 +95,7 @@ export const useDuplicarCotizacion = () => {
     mutationFn: apiCotizaciones.duplicar,
     retry: 0,
     onSuccess: () => {
-      queryClient.invalidateQueries(['cotizaciones'])
+      queryClient.invalidateQueries({ queryKey: ['cotizaciones'] })
     }
   })
 }
@@ -110,7 +110,7 @@ export const useDeleteCotizacion = () => {
     mutationFn: apiCotizaciones.eliminar,
     retry: 0,
     onSuccess: () => {
-      queryClient.invalidateQueries(['cotizaciones'])
+      queryClient.invalidateQueries({ queryKey: ['cotizaciones'] })
     }
   })
 }
@@ -125,8 +125,8 @@ export const useActualizarCobrarDeposito = () => {
     mutationFn: ({ id, cobrarDeposito }) => apiCotizaciones.actualizarCobrarDeposito(id, cobrarDeposito),
     retry: 0,
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries(['cotizaciones'])
-      queryClient.invalidateQueries(['cotizaciones', variables.id, 'completa'])
+      queryClient.invalidateQueries({ queryKey: ['cotizaciones'] })
+      queryClient.invalidateQueries({ queryKey: ['cotizaciones', variables.id, 'completa'] })
     }
   })
 }
@@ -141,10 +141,10 @@ export const useRegistrarSeguimiento = () => {
     mutationFn: ({ id, notas }) => apiCotizaciones.registrarSeguimiento(id, notas),
     retry: 0,
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries(['cotizaciones'])
-      queryClient.invalidateQueries(['cotizaciones', variables.id, 'completa'])
-      queryClient.invalidateQueries(['alertas-alquileres'])
-      queryClient.invalidateQueries(['alertas-resumen'])
+      queryClient.invalidateQueries({ queryKey: ['cotizaciones'] })
+      queryClient.invalidateQueries({ queryKey: ['cotizaciones', variables.id, 'completa'] })
+      queryClient.invalidateQueries({ queryKey: ['alertas-alquileres'] })
+      queryClient.invalidateQueries({ queryKey: ['alertas-resumen'] })
     }
   })
 }

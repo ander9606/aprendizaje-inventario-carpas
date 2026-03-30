@@ -16,7 +16,7 @@ export const useCreateDescuento = () => {
     mutationFn: apiDescuentos.crear,
     retry: 0,
     onSuccess: () => {
-      queryClient.invalidateQueries(['descuentos'])
+      queryClient.invalidateQueries({ queryKey: ['descuentos'] })
     }
   })
 }
@@ -31,8 +31,8 @@ export const useUpdateDescuento = () => {
     mutationFn: ({ id, data }) => apiDescuentos.actualizar(id, data),
     retry: 0,
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries(['descuentos'])
-      queryClient.invalidateQueries(['descuentos', variables.id])
+      queryClient.invalidateQueries({ queryKey: ['descuentos'] })
+      queryClient.invalidateQueries({ queryKey: ['descuentos', variables.id] })
     }
   })
 }
@@ -47,7 +47,7 @@ export const useDeleteDescuento = () => {
     mutationFn: apiDescuentos.eliminar,
     retry: 0,
     onSuccess: () => {
-      queryClient.invalidateQueries(['descuentos'])
+      queryClient.invalidateQueries({ queryKey: ['descuentos'] })
     }
   })
 }
@@ -63,9 +63,9 @@ export const useAplicarDescuento = () => {
     retry: 0,
     onSuccess: (_, variables) => {
       // Invalidar cotización completa y descuentos de la cotización
-      queryClient.invalidateQueries(['cotizaciones', variables.cotizacionId, 'completa'])
-      queryClient.invalidateQueries(['cotizaciones', variables.cotizacionId, 'descuentos'])
-      queryClient.invalidateQueries(['cotizaciones'])
+      queryClient.invalidateQueries({ queryKey: ['cotizaciones', variables.cotizacionId, 'completa'] })
+      queryClient.invalidateQueries({ queryKey: ['cotizaciones', variables.cotizacionId, 'descuentos'] })
+      queryClient.invalidateQueries({ queryKey: ['cotizaciones'] })
     }
   })
 }
@@ -81,9 +81,9 @@ export const useEliminarDescuentoCotizacion = () => {
       apiDescuentos.eliminarDeCotizacion(cotizacionId, descuentoAplicadoId),
     retry: 0,
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries(['cotizaciones', variables.cotizacionId, 'completa'])
-      queryClient.invalidateQueries(['cotizaciones', variables.cotizacionId, 'descuentos'])
-      queryClient.invalidateQueries(['cotizaciones'])
+      queryClient.invalidateQueries({ queryKey: ['cotizaciones', variables.cotizacionId, 'completa'] })
+      queryClient.invalidateQueries({ queryKey: ['cotizaciones', variables.cotizacionId, 'descuentos'] })
+      queryClient.invalidateQueries({ queryKey: ['cotizaciones'] })
     }
   })
 }
