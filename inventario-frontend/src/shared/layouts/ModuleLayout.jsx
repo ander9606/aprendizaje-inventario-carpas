@@ -6,8 +6,8 @@
 // ============================================
 
 import { useState, useEffect, useCallback } from 'react'
-import { Outlet, useLocation } from 'react-router-dom'
-import { Menu, X } from 'lucide-react'
+import { Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { Menu, X, ArrowLeft } from 'lucide-react'
 
 const ModuleLayout = ({ sidebar: SidebarComponent }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -46,6 +46,7 @@ const ModuleLayout = ({ sidebar: SidebarComponent }) => {
     }
   }, [sidebarOpen, isDesktop])
 
+  const navigate = useNavigate()
   const toggleSidebar = useCallback(() => setSidebarOpen(prev => !prev), [])
   const closeSidebar = useCallback(() => setSidebarOpen(false), [])
 
@@ -118,9 +119,22 @@ const ModuleLayout = ({ sidebar: SidebarComponent }) => {
         {/* Top bar con hamburger (mobile/tablet) o toggle (desktop) */}
         <div className={`
           sticky top-0 z-30 bg-white/80 backdrop-blur-sm border-b border-slate-200/60
-          flex items-center h-14 px-4
+          flex items-center h-14 px-4 gap-1
           ${isDesktop ? '' : ''}
         `}>
+          {/* Botón volver a módulos (solo mobile/tablet) */}
+          {!isDesktop && (
+            <button
+              onClick={() => navigate('/')}
+              className="w-10 h-10 flex items-center justify-center rounded-xl
+                         text-slate-600 hover:bg-slate-100 active:bg-slate-200
+                         transition-colors"
+              title="Volver a Módulos"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+          )}
+
           <button
             onClick={toggleSidebar}
             className="w-10 h-10 flex items-center justify-center rounded-xl
