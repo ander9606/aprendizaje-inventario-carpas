@@ -50,7 +50,7 @@ const ModuleLayout = ({ sidebar: SidebarComponent }) => {
   const closeSidebar = useCallback(() => setSidebarOpen(false), [])
 
   return (
-    <div className="min-h-screen bg-slate-50 flex">
+    <div className="h-dvh bg-slate-50 flex overflow-hidden">
       {/* ============================================
           DESKTOP: Sidebar estática colapsable
           ============================================ */}
@@ -114,7 +114,7 @@ const ModuleLayout = ({ sidebar: SidebarComponent }) => {
       {/* ============================================
           CONTENIDO PRINCIPAL
           ============================================ */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Top bar con hamburger (mobile/tablet) o toggle (desktop) */}
         <div className={`
           sticky top-0 z-30 bg-white/80 backdrop-blur-sm border-b border-slate-200/60

@@ -7,6 +7,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Calendar, User, MapPin, Phone, Mail, Truck, FileText, Edit, CheckCircle, XCircle, Ban, Download, Eye, FileEdit, CalendarCheck, MessageSquare, Clock, Shield, ShieldOff } from 'lucide-react'
 import Modal from '@shared/components/Modal'
+import ConfirmModal from '@shared/components/ConfirmModal'
 import Button from '@shared/components/Button'
 import Spinner from '@shared/components/Spinner'
 import { useGetCotizacionCompleta, useConfirmarFechasCotizacion, useRegistrarSeguimiento } from '../../hooks/cotizaciones'
@@ -736,55 +737,21 @@ const CotizacionDetalleModal = ({
           )}
 
           {/* Modal de confirmación para cancelar alquiler */}
-          {showCancelarModal && (
-            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
-              <div className="bg-white rounded-xl w-full max-w-md p-6">
-                <h3 className="text-lg font-semibold text-slate-900 mb-2 flex items-center gap-2">
-                  <Ban className="w-5 h-5 text-red-600" />
-                  Cancelar Alquiler
-                </h3>
-                <p className="text-slate-600 mb-4">
-                  ¿Está seguro de cancelar este alquiler? Esta acción liberará el inventario reservado.
-                </p>
-
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Motivo de cancelación (opcional)
-                  </label>
-                  <textarea
-                    value={notasCancelacion}
-                    onChange={(e) => setNotasCancelacion(e.target.value)}
-                    rows={3}
-                    placeholder="Ej: Cliente canceló por cambio de planes..."
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 resize-none"
-                  />
-                </div>
-
-                <div className="flex gap-3 justify-end">
-                  <Button
-                    variant="secondary"
-                    onClick={() => {
-                      setShowCancelarModal(false)
-                      setNotasCancelacion('')
-                    }}
-                    disabled={cancelarMutation.isPending}
-                  >
-                    Volver
-                  </Button>
-                  <Button
-                    variant="danger"
-                    icon={<Ban className="w-4 h-4" />}
-                    onClick={handleCancelarAlquiler}
-                    loading={cancelarMutation.isPending}
-                    disabled={cancelarMutation.isPending}
-                    className="bg-red-600 hover:bg-red-700"
-                  >
-                    Confirmar Cancelación
-                  </Button>
-                </div>
-              </div>
-            </div>
-          )}
+          <ConfirmModal
+            isOpen={showCancelarModal}
+            onClose={() => {
+              setShowCancelarModal(false)
+              setNotasCancelacion('')
+            }}
+            onConfirm={handleCancelarAlquiler}
+            title="Cancelar Alquiler"
+            message="¿Está seguro de cancelar este alquiler? Esta acción liberará el inventario reservado."
+            variant="danger"
+            confirmText="Confirmar Cancelación"
+            cancelText="Volver"
+            loading={cancelarMutation.isPending}
+            icon={Ban}
+          />
         </>
       )}
     </Modal>

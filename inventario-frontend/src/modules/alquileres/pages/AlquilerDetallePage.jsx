@@ -39,6 +39,8 @@ import FotosAlquiler from '../components/alquileres/FotosAlquiler'
 import ListaNovedades from '../../operaciones/components/ListaNovedades'
 import Button from '@shared/components/Button'
 import Spinner from '@shared/components/Spinner'
+import ConfirmModal from '@shared/components/ConfirmModal'
+import Modal from '@shared/components/Modal'
 import { toast } from 'sonner'
 
 // ============================================
@@ -213,7 +215,7 @@ export default function AlquilerDetallePage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-full flex items-center justify-center">
         <Spinner size="lg" text="Cargando alquiler..." />
       </div>
     )
@@ -221,7 +223,7 @@ export default function AlquilerDetallePage() {
 
   if (error || !alquiler) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-6">
+      <div className="min-h-full flex items-center justify-center p-6">
         <div className="text-center">
           <Package className="w-16 h-16 text-slate-300 mx-auto mb-4" />
           <h2 className="text-xl font-bold text-slate-900 mb-2">
@@ -247,7 +249,7 @@ export default function AlquilerDetallePage() {
   // ============================================
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="bg-slate-50">
       {/* Header */}
       <div className="bg-white border-b border-slate-200 sticky top-0 z-10">
         <div className="container mx-auto px-6 py-4">
@@ -683,127 +685,97 @@ export default function AlquilerDetallePage() {
       </div>
 
       {/* Modal Confirmar Cancelación */}
-      {showModalCancelar && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl w-full max-w-md p-6">
-            <h3 className="text-lg font-semibold text-slate-900 mb-2">
-              Cancelar Alquiler
-            </h3>
-            <p className="text-slate-600 mb-6">
-              ¿Estás seguro de cancelar este alquiler? Esta acción liberará todos los elementos asignados.
-            </p>
-            <div className="flex gap-3 justify-end">
-              <Button
-                variant="secondary"
-                onClick={() => setShowModalCancelar(false)}
-              >
-                No, mantener
-              </Button>
-              <Button
-                variant="danger"
-                onClick={handleCancelarAlquiler}
-                disabled={cancelarAlquiler.isPending}
-              >
-                {cancelarAlquiler.isPending ? 'Cancelando...' : 'Sí, cancelar'}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmModal
+        isOpen={showModalCancelar}
+        onClose={() => setShowModalCancelar(false)}
+        onConfirm={handleCancelarAlquiler}
+        title="Cancelar Alquiler"
+        message="¿Estás seguro de cancelar este alquiler? Esta acción liberará todos los elementos asignados."
+        variant="danger"
+        confirmText="Sí, cancelar"
+        cancelText="No, mantener"
+        loading={cancelarAlquiler.isPending}
+      />
 
       {/* Modal Extender Fecha de Retorno */}
-      {showModalExtender && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl w-full max-w-lg p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 bg-orange-100 rounded-lg">
-                <CalendarPlus className="w-5 h-5 text-orange-600" />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-slate-900">
-                  Extender Fecha de Retorno
-                </h3>
-                <p className="text-sm text-slate-500">
-                  Alquiler #{alquiler.id} - {alquiler.cliente_nombre}
-                </p>
-              </div>
-            </div>
+      <Modal isOpen={showModalExtender} onClose={() => setShowModalExtender(false)} title="Extender Fecha de Retorno" size="sm">
+        <div className="space-y-4">
+          <p className="text-sm text-slate-500">
+            Alquiler #{alquiler?.id} - {alquiler?.cliente_nombre}
+          </p>
 
-            <div className="bg-slate-50 rounded-lg p-3 mb-4">
-              <p className="text-sm text-slate-600">
-                <span className="font-medium">Retorno actual:</span>{' '}
-                {formatFecha(alquiler.fecha_retorno_esperado)}
+          <div className="bg-slate-50 rounded-lg p-3">
+            <p className="text-sm text-slate-600">
+              <span className="font-medium">Retorno actual:</span>{' '}
+              {alquiler && formatFecha(alquiler.fecha_retorno_esperado)}
+            </p>
+            {alquiler?.extensiones_count > 0 && (
+              <p className="text-xs text-orange-600 mt-1">
+                Este alquiler ya ha sido extendido {alquiler.extensiones_count} vez(es)
               </p>
-              {alquiler.extensiones_count > 0 && (
-                <p className="text-xs text-orange-600 mt-1">
-                  Este alquiler ya ha sido extendido {alquiler.extensiones_count} vez(es)
-                </p>
-              )}
-            </div>
+            )}
+          </div>
 
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Nueva Fecha de Retorno *
-                </label>
-                <input
-                  type="date"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-sm"
-                  value={extensionData.nueva_fecha_retorno}
-                  min={alquiler.fecha_retorno_esperado ? new Date(alquiler.fecha_retorno_esperado).toISOString().split('T')[0] : ''}
-                  onChange={(e) => setExtensionData(prev => ({ ...prev, nueva_fecha_retorno: e.target.value }))}
-                />
-              </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Nueva Fecha de Retorno *
+            </label>
+            <input
+              type="date"
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-sm"
+              value={extensionData.nueva_fecha_retorno}
+              min={alquiler?.fecha_retorno_esperado ? new Date(alquiler.fecha_retorno_esperado).toISOString().split('T')[0] : ''}
+              onChange={(e) => setExtensionData(prev => ({ ...prev, nueva_fecha_retorno: e.target.value }))}
+            />
+          </div>
 
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Razón de la extensión
-                </label>
-                <textarea
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-sm resize-none"
-                  rows={3}
-                  placeholder="Ej: El cliente necesita más días para su evento..."
-                  value={extensionData.razon}
-                  onChange={(e) => setExtensionData(prev => ({ ...prev, razon: e.target.value }))}
-                />
-              </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Razón de la extensión
+            </label>
+            <textarea
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-sm resize-none"
+              rows={3}
+              placeholder="Ej: El cliente necesita más días para su evento..."
+              value={extensionData.razon}
+              onChange={(e) => setExtensionData(prev => ({ ...prev, razon: e.target.value }))}
+            />
+          </div>
 
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Costo adicional (COP)
-                </label>
-                <input
-                  type="number"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-sm"
-                  placeholder="0"
-                  min="0"
-                  value={extensionData.costo_extension}
-                  onChange={(e) => setExtensionData(prev => ({ ...prev, costo_extension: e.target.value }))}
-                />
-              </div>
-            </div>
-
-            <div className="flex gap-3 justify-end mt-6">
-              <Button
-                variant="secondary"
-                onClick={() => {
-                  setShowModalExtender(false)
-                  setExtensionData({ nueva_fecha_retorno: '', razon: '', costo_extension: '' })
-                }}
-              >
-                Cancelar
-              </Button>
-              <Button
-                onClick={handleExtenderAlquiler}
-                disabled={extenderAlquiler.isPending || !extensionData.nueva_fecha_retorno}
-                icon={<CalendarPlus className="w-4 h-4" />}
-              >
-                {extenderAlquiler.isPending ? 'Extendiendo...' : 'Confirmar Extensión'}
-              </Button>
-            </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Costo adicional (COP)
+            </label>
+            <input
+              type="number"
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-sm"
+              placeholder="0"
+              min="0"
+              value={extensionData.costo_extension}
+              onChange={(e) => setExtensionData(prev => ({ ...prev, costo_extension: e.target.value }))}
+            />
           </div>
         </div>
-      )}
+
+        <Modal.Footer>
+          <Button
+            variant="secondary"
+            onClick={() => {
+              setShowModalExtender(false)
+              setExtensionData({ nueva_fecha_retorno: '', razon: '', costo_extension: '' })
+            }}
+          >
+            Cancelar
+          </Button>
+          <Button
+            onClick={handleExtenderAlquiler}
+            disabled={extenderAlquiler.isPending || !extensionData.nueva_fecha_retorno}
+            icon={<CalendarPlus className="w-4 h-4" />}
+          >
+            {extenderAlquiler.isPending ? 'Extendiendo...' : 'Confirmar Extensión'}
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </div>
   )
 }

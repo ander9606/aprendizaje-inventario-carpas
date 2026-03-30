@@ -36,6 +36,7 @@ import Spinner from '@shared/components/Spinner'
 import EventoFormModal from '../components/modals/EventoFormModal'
 import EventoDetalleModal from '../components/modals/EventoDetalleModal'
 import CotizacionFormModal from '../components/forms/CotizacionFormModal'
+import ConfirmModal from '@shared/components/ConfirmModal'
 import { toast } from 'sonner'
 
 // ============================================
@@ -627,39 +628,16 @@ export default function EventosPage() {
             )}
 
             {/* Modal confirmar eliminar */}
-            {eventoEliminar && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-xl w-full max-w-md p-6">
-                        <h3 className="text-lg font-semibold text-slate-900 mb-2">
-                            Eliminar Evento
-                        </h3>
-                        <p className="text-slate-600 mb-6">
-                            ¿Estás seguro de eliminar el evento "{eventoEliminar.nombre}"?
-                            {eventoEliminar.total_cotizaciones > 0 && (
-                                <span className="block text-red-600 mt-2 text-sm">
-                                    Este evento tiene {eventoEliminar.total_cotizaciones} cotización(es) asociada(s).
-                                    Primero debes desvincularlas.
-                                </span>
-                            )}
-                        </p>
-                        <div className="flex gap-3 justify-end">
-                            <Button
-                                variant="secondary"
-                                onClick={() => setEventoEliminar(null)}
-                            >
-                                Cancelar
-                            </Button>
-                            <Button
-                                color="red"
-                                onClick={handleEliminarEvento}
-                                disabled={eliminarEvento.isPending}
-                            >
-                                {eliminarEvento.isPending ? 'Eliminando...' : 'Eliminar'}
-                            </Button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <ConfirmModal
+                isOpen={!!eventoEliminar}
+                onClose={() => setEventoEliminar(null)}
+                onConfirm={handleEliminarEvento}
+                title="Eliminar Evento"
+                message={eventoEliminar ? `¿Estás seguro de eliminar el evento "${eventoEliminar.nombre}"?${eventoEliminar.total_cotizaciones > 0 ? ` Este evento tiene ${eventoEliminar.total_cotizaciones} cotización(es) asociada(s). Primero debes desvincularlas.` : ''}` : ''}
+                variant="danger"
+                confirmText="Eliminar"
+                loading={eliminarEvento.isPending}
+            />
         </div>
     )
 }

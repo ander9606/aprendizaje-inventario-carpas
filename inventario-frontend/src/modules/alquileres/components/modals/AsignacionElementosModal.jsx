@@ -5,7 +5,6 @@
 
 import { useState, useEffect } from 'react'
 import {
-  X,
   Package,
   CheckCircle,
   AlertTriangle,
@@ -16,6 +15,7 @@ import {
 } from 'lucide-react'
 import { useMarcarSalidaAlquiler } from '../../hooks/useAlquileres'
 import { useVerificarDisponibilidadCotizacion } from '@inventario/hooks/useDisponibilidad'
+import Modal from '@shared/components/Modal'
 import Button from '@shared/components/Button'
 import Spinner from '@shared/components/Spinner'
 
@@ -240,242 +240,222 @@ const AsignacionElementosModal = ({
   // RENDER
   // ============================================
 
-  if (!isOpen) return null
-
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-        {/* Header */}
-        <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
-          <div>
-            <h2 className="text-xl font-semibold text-slate-900 flex items-center gap-2">
-              <LogOut className="w-5 h-5 text-indigo-600" />
-              Asignar Elementos - Marcar Salida
-            </h2>
-            <p className="text-sm text-slate-500 mt-1">
-              Selecciona los elementos físicos para este alquiler
-            </p>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Asignar Elementos - Marcar Salida"
+      size="xl"
+    >
+      {/* Info del alquiler */}
+      <div className="-mx-4 lg:-mx-6 px-4 lg:px-6 py-3 bg-slate-50 border-b border-slate-200 mb-4">
+        <div className="flex flex-wrap gap-4 text-sm">
+          <div className="flex items-center gap-2">
+            <User className="w-4 h-4 text-slate-400" />
+            <span className="text-slate-600">{alquiler?.cliente_nombre}</span>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* Info del alquiler */}
-        <div className="px-6 py-3 bg-slate-50 border-b border-slate-200">
-          <div className="flex flex-wrap gap-4 text-sm">
-            <div className="flex items-center gap-2">
-              <User className="w-4 h-4 text-slate-400" />
-              <span className="text-slate-600">{alquiler?.cliente_nombre}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-slate-400" />
-              <span className="text-slate-600">{alquiler?.evento_nombre}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <LogOut className="w-4 h-4 text-slate-400" />
-              <span className="text-slate-600">Salida: {formatFecha(alquiler?.fecha_salida)}</span>
-            </div>
+          <div className="flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-slate-400" />
+            <span className="text-slate-600">{alquiler?.evento_nombre}</span>
           </div>
-        </div>
-
-        {/* Contenido */}
-        <div className="flex-1 overflow-y-auto p-6">
-          {loadingDisponibilidad ? (
-            <div className="flex justify-center py-12">
-              <Spinner size="lg" text="Cargando disponibilidad..." />
-            </div>
-          ) : !disponibilidad?.elementos || disponibilidad.elementos.length === 0 ? (
-            <div className="text-center py-12">
-              <Package className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-              <p className="text-slate-500">No hay elementos para asignar</p>
-            </div>
-          ) : (
-            <div className="space-y-6">
-              {disponibilidad.elementos.map((elem, index) => {
-                const cumple = cumpleRequerimiento(elem)
-                const cantidadActual = getCantidadSeleccionada(elem)
-
-                return (
-                  <div
-                    key={elem.elemento_id}
-                    className={`
-                      border rounded-lg p-4
-                      ${cumple ? 'border-green-200 bg-green-50/30' : 'border-slate-200'}
-                    `}
-                  >
-                    {/* Header del elemento */}
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        <Package className="w-5 h-5 text-slate-400" />
-                        <span className="font-medium text-slate-900">
-                          {elem.elemento_nombre}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {cumple ? (
-                          <CheckCircle className="w-5 h-5 text-green-500" />
-                        ) : (
-                          <AlertTriangle className="w-5 h-5 text-amber-500" />
-                        )}
-                        <span className={`
-                          text-sm font-medium
-                          ${cumple ? 'text-green-600' : 'text-amber-600'}
-                        `}>
-                          {cantidadActual} / {elem.cantidad_requerida}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Lista de series disponibles */}
-                    {elem.requiere_series && elem.series_disponibles && (
-                      <div className="space-y-2">
-                        <p className="text-xs text-slate-500 mb-2">
-                          Selecciona {elem.cantidad_requerida} serie(s):
-                        </p>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                          {elem.series_disponibles.map(serie => {
-                            const seleccionada = (elementosSeleccionados[elem.elemento_id] || []).includes(serie.id)
-
-                            return (
-                              <label
-                                key={serie.id}
-                                className={`
-                                  flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors
-                                  ${seleccionada
-                                    ? 'border-indigo-500 bg-indigo-50'
-                                    : 'border-slate-200 hover:border-slate-300'
-                                  }
-                                `}
-                              >
-                                <input
-                                  type="checkbox"
-                                  checked={seleccionada}
-                                  onChange={() => handleToggleSerie(elem.elemento_id, serie.id)}
-                                  className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
-                                />
-                                <div className="flex-1 min-w-0">
-                                  <p className="font-medium text-slate-900">
-                                    {serie.codigo}
-                                  </p>
-                                  <p className="text-xs text-slate-500">
-                                    {serie.ubicacion_nombre} • {serie.estado}
-                                  </p>
-                                </div>
-                              </label>
-                            )
-                          })}
-                        </div>
-
-                        {elem.series_disponibles.length < elem.cantidad_requerida && (
-                          <div className="flex items-center gap-2 mt-2 p-2 bg-amber-50 rounded text-amber-700 text-sm">
-                            <AlertTriangle className="w-4 h-4" />
-                            Solo hay {elem.series_disponibles.length} serie(s) disponible(s)
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Lista de lotes disponibles */}
-                    {!elem.requiere_series && elem.lotes_disponibles && (
-                      <div className="space-y-2">
-                        <p className="text-xs text-slate-500 mb-2">
-                          Asigna {elem.cantidad_requerida} unidades de los lotes disponibles:
-                        </p>
-                        <div className="space-y-2">
-                          {elem.lotes_disponibles.map(lote => {
-                            const cantidad = loteCantidades[`${elem.elemento_id}_${lote.id}`] || 0
-
-                            return (
-                              <div
-                                key={lote.id}
-                                className={`
-                                  flex items-center gap-4 p-3 rounded-lg border
-                                  ${cantidad > 0 ? 'border-indigo-300 bg-indigo-50/50' : 'border-slate-200'}
-                                `}
-                              >
-                                <div className="flex-1 min-w-0">
-                                  <p className="font-medium text-slate-900">
-                                    Lote {lote.codigo}
-                                  </p>
-                                  <p className="text-xs text-slate-500">
-                                    {lote.ubicacion_nombre} • Disponibles: {lote.cantidad_disponible}
-                                  </p>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <input
-                                    type="number"
-                                    min="0"
-                                    max={lote.cantidad_disponible}
-                                    value={cantidad}
-                                    onChange={(e) => handleCambiarCantidadLote(
-                                      elem.elemento_id,
-                                      lote.id,
-                                      e.target.value,
-                                      lote.cantidad_disponible
-                                    )}
-                                    className="w-20 px-3 py-2 border border-slate-200 rounded-lg text-center focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-                                  />
-                                  <span className="text-sm text-slate-500">unidades</span>
-                                </div>
-                              </div>
-                            )
-                          })}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
-
-              {/* Notas de salida */}
-              <div className="border-t border-slate-200 pt-4">
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Notas de salida (opcional)
-                </label>
-                <textarea
-                  value={notasSalida}
-                  onChange={(e) => setNotasSalida(e.target.value)}
-                  placeholder="Observaciones al momento de la salida..."
-                  rows={3}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-                />
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="px-6 py-4 border-t border-slate-200 flex items-center justify-between bg-slate-50">
-          <div className="text-sm text-slate-500">
-            {disponibilidad?.elementos && (
-              <span>
-                {disponibilidad.elementos.filter(e => cumpleRequerimiento(e)).length} de {disponibilidad.elementos.length} elementos listos
-              </span>
-            )}
-          </div>
-          <div className="flex gap-3">
-            <Button
-              variant="secondary"
-              onClick={onClose}
-            >
-              Cancelar
-            </Button>
-            <Button
-              variant="primary"
-              onClick={handleConfirmar}
-              disabled={!todosCompletos() || marcarSalida.isPending}
-              icon={marcarSalida.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
-            >
-              {marcarSalida.isPending ? 'Procesando...' : 'Confirmar Salida'}
-            </Button>
+          <div className="flex items-center gap-2">
+            <LogOut className="w-4 h-4 text-slate-400" />
+            <span className="text-slate-600">Salida: {formatFecha(alquiler?.fecha_salida)}</span>
           </div>
         </div>
       </div>
-    </div>
+
+      {/* Contenido */}
+      {loadingDisponibilidad ? (
+        <div className="flex justify-center py-12">
+          <Spinner size="lg" text="Cargando disponibilidad..." />
+        </div>
+      ) : !disponibilidad?.elementos || disponibilidad.elementos.length === 0 ? (
+        <div className="text-center py-12">
+          <Package className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+          <p className="text-slate-500">No hay elementos para asignar</p>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {disponibilidad.elementos.map((elem, index) => {
+            const cumple = cumpleRequerimiento(elem)
+            const cantidadActual = getCantidadSeleccionada(elem)
+
+            return (
+              <div
+                key={elem.elemento_id}
+                className={`
+                  border rounded-lg p-4
+                  ${cumple ? 'border-green-200 bg-green-50/30' : 'border-slate-200'}
+                `}
+              >
+                {/* Header del elemento */}
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <Package className="w-5 h-5 text-slate-400" />
+                    <span className="font-medium text-slate-900">
+                      {elem.elemento_nombre}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {cumple ? (
+                      <CheckCircle className="w-5 h-5 text-green-500" />
+                    ) : (
+                      <AlertTriangle className="w-5 h-5 text-amber-500" />
+                    )}
+                    <span className={`
+                      text-sm font-medium
+                      ${cumple ? 'text-green-600' : 'text-amber-600'}
+                    `}>
+                      {cantidadActual} / {elem.cantidad_requerida}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Lista de series disponibles */}
+                {elem.requiere_series && elem.series_disponibles && (
+                  <div className="space-y-2">
+                    <p className="text-xs text-slate-500 mb-2">
+                      Selecciona {elem.cantidad_requerida} serie(s):
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      {elem.series_disponibles.map(serie => {
+                        const seleccionada = (elementosSeleccionados[elem.elemento_id] || []).includes(serie.id)
+
+                        return (
+                          <label
+                            key={serie.id}
+                            className={`
+                              flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors
+                              ${seleccionada
+                                ? 'border-indigo-500 bg-indigo-50'
+                                : 'border-slate-200 hover:border-slate-300'
+                              }
+                            `}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={seleccionada}
+                              onChange={() => handleToggleSerie(elem.elemento_id, serie.id)}
+                              className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-slate-900">
+                                {serie.codigo}
+                              </p>
+                              <p className="text-xs text-slate-500">
+                                {serie.ubicacion_nombre} • {serie.estado}
+                              </p>
+                            </div>
+                          </label>
+                        )
+                      })}
+                    </div>
+
+                    {elem.series_disponibles.length < elem.cantidad_requerida && (
+                      <div className="flex items-center gap-2 mt-2 p-2 bg-amber-50 rounded text-amber-700 text-sm">
+                        <AlertTriangle className="w-4 h-4" />
+                        Solo hay {elem.series_disponibles.length} serie(s) disponible(s)
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Lista de lotes disponibles */}
+                {!elem.requiere_series && elem.lotes_disponibles && (
+                  <div className="space-y-2">
+                    <p className="text-xs text-slate-500 mb-2">
+                      Asigna {elem.cantidad_requerida} unidades de los lotes disponibles:
+                    </p>
+                    <div className="space-y-2">
+                      {elem.lotes_disponibles.map(lote => {
+                        const cantidad = loteCantidades[`${elem.elemento_id}_${lote.id}`] || 0
+
+                        return (
+                          <div
+                            key={lote.id}
+                            className={`
+                              flex items-center gap-4 p-3 rounded-lg border
+                              ${cantidad > 0 ? 'border-indigo-300 bg-indigo-50/50' : 'border-slate-200'}
+                            `}
+                          >
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-slate-900">
+                                Lote {lote.codigo}
+                              </p>
+                              <p className="text-xs text-slate-500">
+                                {lote.ubicacion_nombre} • Disponibles: {lote.cantidad_disponible}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="number"
+                                min="0"
+                                max={lote.cantidad_disponible}
+                                value={cantidad}
+                                onChange={(e) => handleCambiarCantidadLote(
+                                  elem.elemento_id,
+                                  lote.id,
+                                  e.target.value,
+                                  lote.cantidad_disponible
+                                )}
+                                className="w-20 px-3 py-2 border border-slate-200 rounded-lg text-center focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                              />
+                              <span className="text-sm text-slate-500">unidades</span>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )
+          })}
+
+          {/* Notas de salida */}
+          <div className="border-t border-slate-200 pt-4">
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Notas de salida (opcional)
+            </label>
+            <textarea
+              value={notasSalida}
+              onChange={(e) => setNotasSalida(e.target.value)}
+              placeholder="Observaciones al momento de la salida..."
+              rows={3}
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Footer */}
+      <Modal.Footer className="!justify-between">
+        <div className="text-sm text-slate-500">
+          {disponibilidad?.elementos && (
+            <span>
+              {disponibilidad.elementos.filter(e => cumpleRequerimiento(e)).length} de {disponibilidad.elementos.length} elementos listos
+            </span>
+          )}
+        </div>
+        <div className="flex gap-3">
+          <Button
+            variant="secondary"
+            onClick={onClose}
+          >
+            Cancelar
+          </Button>
+          <Button
+            variant="primary"
+            onClick={handleConfirmar}
+            disabled={!todosCompletos() || marcarSalida.isPending}
+            icon={marcarSalida.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+          >
+            {marcarSalida.isPending ? 'Procesando...' : 'Confirmar Salida'}
+          </Button>
+        </div>
+      </Modal.Footer>
+    </Modal>
   )
 }
 
