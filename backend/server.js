@@ -37,12 +37,25 @@ if (!fs.existsSync(uploadsDir)) {
 // ============================================
 
 // CORS - Configurado para frontend específico (acepta varios orígenes en dev)
-const allowedOrigins = [process.env.FRONTEND_URL || 'http://localhost:5173', 'http://localhost:5174', 'http://localhost:4173'];
+const allowedOrigins = [
+    process.env.FRONTEND_URL || 'http://localhost:5173',
+    'http://localhost:5174',
+    'http://localhost:4173',
+    'http://localhost'
+].filter(Boolean);
 const corsOptions = {
     origin: (origin, callback) => {
-        // allow requests with no origin like curl or server-to-server
+        // allow requests with no origin like curl, server-to-server, or same-origin (reverse proxy)
         if (!origin) return callback(null, true);
         if (allowedOrigins.includes(origin)) return callback(null, true);
+        // In production with reverse proxy, allow the same host on any port
+        if (process.env.FRONTEND_URL && origin.startsWith('http')) {
+            try {
+                const allowedHost = new URL(process.env.FRONTEND_URL).hostname;
+                const requestHost = new URL(origin).hostname;
+                if (allowedHost === requestHost) return callback(null, true);
+            } catch (e) { /* ignore parse errors */ }
+        }
         return callback(new Error('Not allowed by CORS'));
     },
     credentials: true,
