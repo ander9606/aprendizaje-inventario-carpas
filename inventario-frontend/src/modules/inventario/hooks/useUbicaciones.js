@@ -120,7 +120,7 @@ export const useCreateUbicacion = () => {
     mutationFn: ubicacionesAPI.crear,
     retry: 0,
     onSuccess: () => {
-      queryClient.invalidateQueries(['ubicaciones'])
+      queryClient.invalidateQueries({ queryKey: ['ubicaciones'] })
     }
   })
 }
@@ -137,7 +137,7 @@ export const useUpdateUbicacion = () => {
     mutationFn: ({ id, data }) => ubicacionesAPI.actualizar(id, data),
     retry: 0,
     onSuccess: () => {
-      queryClient.invalidateQueries(['ubicaciones'])
+      queryClient.invalidateQueries({ queryKey: ['ubicaciones'] })
     }
   })
 }
@@ -154,7 +154,7 @@ export const useMarcarComoPrincipal = () => {
     mutationFn: ubicacionesAPI.marcarComoPrincipal,
     retry: 0,
     onSuccess: () => {
-      queryClient.invalidateQueries(['ubicaciones'])
+      queryClient.invalidateQueries({ queryKey: ['ubicaciones'] })
     }
   })
 }
@@ -171,7 +171,7 @@ export const useDeleteUbicacion = () => {
     mutationFn: ubicacionesAPI.eliminar,
     retry: 0,
     onSuccess: () => {
-      queryClient.invalidateQueries(['ubicaciones'])
+      queryClient.invalidateQueries({ queryKey: ['ubicaciones'] })
     }
   })
 }

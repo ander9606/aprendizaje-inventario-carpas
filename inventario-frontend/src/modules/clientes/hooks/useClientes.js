@@ -115,7 +115,7 @@ export const useCreateCliente = () => {
     mutationFn: apiClientes.crear,
     retry: 0,
     onSuccess: () => {
-      queryClient.invalidateQueries(['clientes'])
+      queryClient.invalidateQueries({ queryKey: ['clientes'] })
     }
   })
 }
@@ -132,7 +132,7 @@ export const useUpdateCliente = () => {
     mutationFn: ({ id, data }) => apiClientes.actualizar(id, data),
     retry: 0,
     onSuccess: () => {
-      queryClient.invalidateQueries(['clientes'])
+      queryClient.invalidateQueries({ queryKey: ['clientes'] })
     }
   })
 }
@@ -149,7 +149,7 @@ export const useDeleteCliente = () => {
     mutationFn: apiClientes.eliminar,
     retry: 0,
     onSuccess: () => {
-      queryClient.invalidateQueries(['clientes'])
+      queryClient.invalidateQueries({ queryKey: ['clientes'] })
     }
   })
 }
