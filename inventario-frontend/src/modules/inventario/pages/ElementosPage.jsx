@@ -155,9 +155,13 @@ function ElementosPage() {
   // ============================================
   const handleOpenCreateModal = () => setShowElementoModal(true)
   const handleCloseElementoModal = () => setShowElementoModal(false)
-  const handleElementoCreated = () => {
+  const handleElementoCreated = (elementoData, options) => {
     setShowElementoModal(false)
-    refetch()
+    if (options?.navigateToDetail && elementoData?.id) {
+      navigate(`/inventario/categorias/${categoriaId}/subcategorias/${subcategoriaId}/elementos/${elementoData.id}`)
+    } else {
+      refetch()
+    }
   }
 
   // ============================================
