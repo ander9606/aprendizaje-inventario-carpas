@@ -228,8 +228,8 @@ function ElementoFormModal({
           setArchivoImagen(null);
 
           if (!isEditMode && formData.requiere_series) {
-            toast.success("Elemento creado. Ahora agrega las series individuales.");
-            onSuccess?.(response?.data, { navigateToDetail: true });
+            toast.success("Elemento creado. Ahora agrega las series.");
+            onSuccess?.(response?.data, { openSeriesModal: true });
           } else {
             toast.success(
               isEditMode ? "Elemento actualizado" : "Elemento creado"

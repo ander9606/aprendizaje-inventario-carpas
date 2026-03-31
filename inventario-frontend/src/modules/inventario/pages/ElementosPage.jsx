@@ -157,10 +157,9 @@ function ElementosPage() {
   const handleCloseElementoModal = () => setShowElementoModal(false)
   const handleElementoCreated = (elementoData, options) => {
     setShowElementoModal(false)
-    if (options?.navigateToDetail && elementoData?.id) {
-      navigate(`/inventario/categorias/${categoriaId}/subcategorias/${subcategoriaId}/elementos/${elementoData.id}`)
-    } else {
-      refetch()
+    refetch()
+    if (options?.openSeriesModal && elementoData?.id) {
+      setElementoParaSerie(elementoData)
     }
   }
 
