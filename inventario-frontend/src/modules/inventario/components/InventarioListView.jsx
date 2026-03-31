@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import Spinner from '@shared/components/Spinner'
 import EmptyState from '@shared/components/EmptyState'
+import { IconoCategoria } from '@shared/components/IconoCategoria'
 import { Package, Eye, Edit, Trash2 } from 'lucide-react'
 import ModalVerEstados from './ModalVerEstados'
 
@@ -55,7 +56,7 @@ const InventarioListView = ({ elementos = [], isLoading, onGoToElemento }) => {
                       onClick={() => onGoToElemento(el)}
                     >
                       <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <span className="text-base">{emoji}</span>
+                        <IconoCategoria value={emoji} size={16} />
                       </div>
                       <span className="text-sm font-medium text-slate-900 truncate">
                         {el.nombre}

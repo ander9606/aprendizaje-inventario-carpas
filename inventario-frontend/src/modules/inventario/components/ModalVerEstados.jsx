@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { X } from 'lucide-react'
 import Spinner from '@shared/components/Spinner'
+import { IconoCategoria } from '@shared/components/IconoCategoria'
 import { useGetSeries } from '../hooks/useSeries'
 import { useGetLotes } from '../hooks/useLotes'
 import { formatearFechaCorta } from '@shared/utils/helpers'
@@ -98,7 +99,7 @@ const ModalVerEstados = ({ isOpen, onClose, elemento }) => {
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-center gap-3">
               <div className="w-11 h-11 bg-blue-50 rounded-[10px] flex items-center justify-center flex-shrink-0">
-                <span className="text-[22px]">{emoji}</span>
+                <IconoCategoria value={emoji} size={22} />
               </div>
               <div>
                 <h2 className="text-lg font-bold text-slate-900">{elemento.nombre}</h2>
