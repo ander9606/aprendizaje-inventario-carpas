@@ -7,6 +7,14 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import apiCotizaciones from '../../api/apiCotizaciones'
 
 /**
+ * Invalida queries comunes tras cambio en cotizaciones
+ */
+const invalidarCotizacionesYEventos = (queryClient) => {
+  queryClient.invalidateQueries({ queryKey: ['cotizaciones'] })
+  queryClient.invalidateQueries({ queryKey: ['eventos'] })
+}
+
+/**
  * Hook para crear una nueva cotizacion
  */
 export const useCreateCotizacion = () => {
@@ -16,7 +24,7 @@ export const useCreateCotizacion = () => {
     mutationFn: apiCotizaciones.crear,
     retry: 0,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['cotizaciones'] })
+      invalidarCotizacionesYEventos(queryClient)
     }
   })
 }
@@ -31,7 +39,7 @@ export const useUpdateCotizacion = () => {
     mutationFn: ({ id, data }) => apiCotizaciones.actualizar(id, data),
     retry: 0,
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['cotizaciones'] })
+      invalidarCotizacionesYEventos(queryClient)
       queryClient.invalidateQueries({ queryKey: ['cotizaciones', variables.id, 'completa'] })
     }
   })
@@ -47,7 +55,7 @@ export const useAprobarCotizacion = () => {
     mutationFn: ({ id, opciones }) => apiCotizaciones.aprobar(id, opciones),
     retry: 0,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['cotizaciones'] })
+      invalidarCotizacionesYEventos(queryClient)
       queryClient.invalidateQueries({ queryKey: ['alquileres'] })
     }
   })
@@ -63,7 +71,7 @@ export const useCambiarEstadoCotizacion = () => {
     mutationFn: ({ id, estado }) => apiCotizaciones.cambiarEstado(id, estado),
     retry: 0,
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['cotizaciones'] })
+      invalidarCotizacionesYEventos(queryClient)
       queryClient.invalidateQueries({ queryKey: ['cotizaciones', variables.id, 'completa'] })
     }
   })
@@ -79,7 +87,7 @@ export const useConfirmarFechasCotizacion = () => {
     mutationFn: ({ id, fechas }) => apiCotizaciones.confirmarFechas(id, fechas),
     retry: 0,
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['cotizaciones'] })
+      invalidarCotizacionesYEventos(queryClient)
       queryClient.invalidateQueries({ queryKey: ['cotizaciones', variables.id, 'completa'] })
     }
   })
@@ -95,7 +103,7 @@ export const useDuplicarCotizacion = () => {
     mutationFn: apiCotizaciones.duplicar,
     retry: 0,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['cotizaciones'] })
+      invalidarCotizacionesYEventos(queryClient)
     }
   })
 }
@@ -110,7 +118,7 @@ export const useDeleteCotizacion = () => {
     mutationFn: apiCotizaciones.eliminar,
     retry: 0,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['cotizaciones'] })
+      invalidarCotizacionesYEventos(queryClient)
     }
   })
 }
@@ -125,7 +133,7 @@ export const useActualizarCobrarDeposito = () => {
     mutationFn: ({ id, cobrarDeposito }) => apiCotizaciones.actualizarCobrarDeposito(id, cobrarDeposito),
     retry: 0,
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['cotizaciones'] })
+      invalidarCotizacionesYEventos(queryClient)
       queryClient.invalidateQueries({ queryKey: ['cotizaciones', variables.id, 'completa'] })
     }
   })
@@ -141,7 +149,7 @@ export const useRegistrarSeguimiento = () => {
     mutationFn: ({ id, notas }) => apiCotizaciones.registrarSeguimiento(id, notas),
     retry: 0,
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['cotizaciones'] })
+      invalidarCotizacionesYEventos(queryClient)
       queryClient.invalidateQueries({ queryKey: ['cotizaciones', variables.id, 'completa'] })
       queryClient.invalidateQueries({ queryKey: ['alertas-alquileres'] })
       queryClient.invalidateQueries({ queryKey: ['alertas-resumen'] })
