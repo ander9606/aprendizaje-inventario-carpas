@@ -1023,7 +1023,7 @@ const CotizacionFormModal = ({
           </Button>
         </div>
       ) : (<>
-      <form onSubmit={handleSubmit} className="flex flex-col h-full">
+      <form onSubmit={handleSubmit} className="flex flex-col min-h-0">
 
         {/* STEPPER */}
         <div className="flex items-center justify-between px-2 pb-4 mb-4 border-b border-slate-200">
@@ -1064,7 +1064,7 @@ const CotizacionFormModal = ({
         )}
 
         {/* CONTENIDO ANIMADO POR PASO */}
-        <div key={pasoActual} className={`space-y-6 flex-1 overflow-y-auto touch-scroll ${direccionAnimacion === 'right' ? 'animate-slideInRight' : 'animate-slideInLeft'}`}>
+        <div key={pasoActual} className={`space-y-6 ${direccionAnimacion === 'right' ? 'animate-slideInRight' : 'animate-slideInLeft'}`}>
 
         {/* ============================================
             PASO 1: DATOS DEL EVENTO

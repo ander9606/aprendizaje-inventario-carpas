@@ -225,11 +225,17 @@ function ElementoFormModal({
             }
           }
 
-          toast.success(
-            isEditMode ? "Elemento actualizado" : "Elemento creado"
-          );
           setArchivoImagen(null);
-          onSuccess?.();
+
+          if (!isEditMode && formData.requiere_series) {
+            toast.success("Elemento creado. Ahora agrega las series.");
+            onSuccess?.(response?.data, { openSeriesModal: true });
+          } else {
+            toast.success(
+              isEditMode ? "Elemento actualizado" : "Elemento creado"
+            );
+            onSuccess?.();
+          }
           onClose();
         },
         onError: (error) => {
@@ -583,6 +589,7 @@ function ElementoFormModal({
               value={formData.costo_adquisicion}
               onChange={handleInputChange}
               min="0"
+              max="9999999.99"
               step="0.01"
               placeholder="$ 0.00"
               className="
@@ -605,6 +612,7 @@ function ElementoFormModal({
               value={formData.precio_unitario}
               onChange={handleInputChange}
               min="0"
+              max="9999999.99"
               step="0.01"
               placeholder="$ 0.00"
               className="

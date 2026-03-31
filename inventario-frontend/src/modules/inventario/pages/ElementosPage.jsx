@@ -155,9 +155,12 @@ function ElementosPage() {
   // ============================================
   const handleOpenCreateModal = () => setShowElementoModal(true)
   const handleCloseElementoModal = () => setShowElementoModal(false)
-  const handleElementoCreated = () => {
+  const handleElementoCreated = (elementoData, options) => {
     setShowElementoModal(false)
     refetch()
+    if (options?.openSeriesModal && elementoData?.id) {
+      setElementoParaSerie(elementoData)
+    }
   }
 
   // ============================================

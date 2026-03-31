@@ -8,6 +8,7 @@ import SerieItem from './SerieItem'
 import EmptyState from '@shared/components/EmptyState'
 import Button from '@shared/components/Button'
 import Spinner from '@shared/components/Spinner'
+import { IconoCategoria } from '@shared/components/IconoCategoria'
 import { Plus, Package, Hash, Ruler, AlertTriangle, DollarSign, TrendingUp } from 'lucide-react'
 import { formatearMoneda } from '@shared/utils/helpers'
 
@@ -121,7 +122,7 @@ export const ElementoSerieCard = ({
                 />
               ) : (
                 <div className="w-14 h-14 bg-blue-50 rounded-[10px] flex items-center justify-center flex-shrink-0">
-                  <span className="text-2xl">{icono}</span>
+                  <IconoCategoria value={icono} size={24} />
                 </div>
               )}
               <div className="flex-1 min-w-0">
