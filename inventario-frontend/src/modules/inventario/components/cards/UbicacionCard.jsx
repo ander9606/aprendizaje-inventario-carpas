@@ -6,6 +6,7 @@
 import { MapPin, Edit, Trash2, Package, Star } from 'lucide-react'
 import Card from '@shared/components/Card'
 import Button from '@shared/components/Button'
+import { IconoCategoria } from '@shared/components/IconoCategoria'
 import { useMarcarComoPrincipal } from '../../hooks/useUbicaciones'
 
 /**
@@ -178,8 +179,8 @@ const UbicacionCard = ({
       <Card.Header>
         <div className="flex items-start gap-3">
           {/* Emoji del tipo */}
-          <div className={`text-4xl flex-shrink-0`}>
-            {emoji}
+          <div className="flex-shrink-0">
+            <IconoCategoria value={emoji} size={36} />
           </div>
 
           <div className="flex-1 min-w-0">

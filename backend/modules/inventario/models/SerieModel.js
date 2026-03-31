@@ -136,7 +136,7 @@ class SerieModel {
                     s.ubicacion_id,
                     u.nombre AS ubicacion_nombre,
                     u.tipo AS ubicacion_tipo,
-                    u.ciudad AS ubicacion_ciudad,
+                    ci.nombre AS ubicacion_ciudad,
                     s.fecha_ingreso,
                     s.created_at,
                     s.updated_at,
@@ -147,6 +147,7 @@ class SerieModel {
                 INNER JOIN elementos e ON s.id_elemento = e.id
                 LEFT JOIN categorias c ON e.categoria_id = c.id
                 LEFT JOIN ubicaciones u ON s.ubicacion_id = u.id
+                LEFT JOIN ciudades ci ON u.ciudad_id = ci.id
                 WHERE s.id = ?
             `;
             
@@ -748,7 +749,7 @@ class SerieModel {
                     s.ubicacion_id,
                     u.nombre AS ubicacion_nombre,
                     u.tipo AS ubicacion_tipo,
-                    u.ciudad AS ubicacion_ciudad,
+                    ci.nombre AS ubicacion_ciudad,
                     s.fecha_ingreso,
                     s.created_at,
                     s.updated_at,
@@ -772,6 +773,7 @@ class SerieModel {
                 INNER JOIN elementos e ON s.id_elemento = e.id
                 LEFT JOIN categorias cat ON e.categoria_id = cat.id
                 LEFT JOIN ubicaciones u ON s.ubicacion_id = u.id
+                LEFT JOIN ciudades ci ON u.ciudad_id = ci.id
                 LEFT JOIN alquiler_elementos ae ON s.id = ae.serie_id
                 LEFT JOIN alquileres a ON ae.alquiler_id = a.id
                     AND a.estado IN ('programado', 'activo')

@@ -8,6 +8,7 @@ import LoteUbicacionGroup from './LoteUbicacionGroup'
 import EmptyState from '@shared/components/EmptyState'
 import Button from '@shared/components/Button'
 import Spinner from '@shared/components/Spinner'
+import { IconoCategoria } from '@shared/components/IconoCategoria'
 import Modal from '@shared/components/Modal'
 import { EstadoBadge } from '@shared/components/Badge'
 import UbicacionBadge from '@shared/components/UbicacionBadge'
@@ -122,7 +123,7 @@ export const ElementoLoteCard = ({
                 />
               ) : (
                 <div className="w-14 h-14 bg-blue-50 rounded-[10px] flex items-center justify-center flex-shrink-0">
-                  <span className="text-2xl">{icono}</span>
+                  <IconoCategoria value={icono} size={24} />
                 </div>
               )}
               <div className="flex-1 min-w-0">
