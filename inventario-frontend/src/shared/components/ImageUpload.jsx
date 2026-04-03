@@ -5,6 +5,7 @@
 
 import { useState, useRef } from 'react'
 import { Camera, Trash2, Upload } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 const BACKEND_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api').replace('/api', '')
 
@@ -25,6 +26,7 @@ function ImageUpload({
   size = 'md',
   className = ''
 }) {
+  const { t } = useTranslation()
   const [preview, setPreview] = useState(null)
   const fileInputRef = useRef(null)
 
@@ -97,7 +99,7 @@ function ImageUpload({
                     handleEliminar()
                   }}
                   className="p-2 bg-white/90 rounded-full hover:bg-red-50 transition-colors"
-                  title="Eliminar imagen"
+                  title={t('common.delete')}
                 >
                   <Trash2 className="w-4 h-4 text-red-600" />
                 </button>
@@ -111,7 +113,7 @@ function ImageUpload({
             ) : (
               <>
                 <Upload className="w-6 h-6 text-slate-400 mx-auto mb-1" />
-                <span className="text-xs text-slate-500">Subir imagen</span>
+                <span className="text-xs text-slate-500">{t('common.uploadImage')}</span>
               </>
             )}
           </div>

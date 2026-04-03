@@ -5,6 +5,7 @@
 
 import { ArrowLeft } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 
 /**
  * PageHeader - Header estandarizado para páginas
@@ -17,8 +18,10 @@ import { useNavigate } from 'react-router-dom'
  * @param {string} [props.backLabel] - Texto del botón "Volver"
  * @param {React.ReactNode} [props.actions] - Contenido extra (botones)
  */
-const PageHeader = ({ icon: Icon, iconColor = 'bg-slate-500', title, subtitle, backTo, backLabel = 'Volver', actions }) => {
+const PageHeader = ({ icon: Icon, iconColor = 'bg-slate-500', title, subtitle, backTo, backLabel, actions }) => {
   const navigate = useNavigate()
+  const { t } = useTranslation()
+  const resolvedBackLabel = backLabel || t('common.back')
 
   return (
     <div className="bg-white/80 backdrop-blur-sm border-b border-slate-200/60">
@@ -31,7 +34,7 @@ const PageHeader = ({ icon: Icon, iconColor = 'bg-slate-500', title, subtitle, b
                        min-h-[36px]"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span>{backLabel}</span>
+            <span>{resolvedBackLabel}</span>
           </button>
         )}
 

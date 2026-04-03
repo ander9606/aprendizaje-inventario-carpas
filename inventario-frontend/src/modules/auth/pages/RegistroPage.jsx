@@ -7,10 +7,13 @@ import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { Eye, EyeOff, UserPlus, AlertCircle, Loader2, Tent, CheckCircle, ArrowLeft } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import authAPI from '../api/apiAuth'
+import LanguageSwitcher from '@shared/components/LanguageSwitcher'
 
 const RegistroPage = () => {
     const navigate = useNavigate()
+    const { t } = useTranslation()
 
     const [showPassword, setShowPassword] = useState(false)
     const [showConfirmPassword, setShowConfirmPassword] = useState(false)
@@ -89,17 +92,17 @@ const RegistroPage = () => {
                         <CheckCircle className="w-8 h-8 text-green-600" />
                     </div>
                     <h2 className="text-2xl font-bold text-slate-900 mb-3">
-                        Solicitud enviada
+                        {t('auth.register.successTitle')}
                     </h2>
                     <p className="text-slate-600 mb-8">
-                        Tu solicitud de acceso ha sido enviada correctamente. Un administrador la revisara y te asignara los permisos correspondientes.
+                        {t('auth.register.successMessage')}
                     </p>
                     <Link
                         to="/login"
                         className="inline-flex items-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-xl font-semibold hover:bg-slate-800 transition-colors"
                     >
                         <ArrowLeft className="w-5 h-5" />
-                        Volver al login
+                        {t('auth.register.backToLogin')}
                     </Link>
                 </div>
             </div>
@@ -108,6 +111,9 @@ const RegistroPage = () => {
 
     return (
         <div className="min-h-screen flex">
+            <div className="absolute top-4 right-4 z-20">
+                <LanguageSwitcher compact />
+            </div>
             {/* PANEL IZQUIERDO - Branding */}
             <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-slate-900">
                 <div className="absolute inset-0">
@@ -131,7 +137,7 @@ const RegistroPage = () => {
                                 <Tent className="w-5 h-5 text-amber-400" />
                             </div>
                             <span className="text-amber-400/80 font-medium text-sm tracking-widest uppercase">
-                                Sistema de Gestion
+                                {t('auth.systemTitle')}
                             </span>
                         </div>
                     </div>
@@ -139,21 +145,21 @@ const RegistroPage = () => {
                     <div className="space-y-6">
                         <div>
                             <h2 className="text-4xl font-bold text-white leading-tight mb-4">
-                                Solicitar
+                                {t('auth.register.title')}
                                 <br />
-                                <span className="text-amber-400">acceso</span>
+                                <span className="text-amber-400">{t('auth.register.titleAccess')}</span>
                             </h2>
                             <p className="text-slate-400 text-lg leading-relaxed max-w-md">
-                                Completa tus datos para solicitar acceso al sistema. Un administrador revisara tu solicitud.
+                                {t('auth.register.description')}
                             </p>
                         </div>
 
                         <div className="space-y-3 max-w-md">
                             {[
-                                'Completa el formulario con tus datos',
-                                'Selecciona el rol que necesitas',
-                                'Un administrador aprobara tu solicitud',
-                                'Recibiras acceso al sistema'
+                                t('auth.register.steps.fillForm'),
+                                t('auth.register.steps.selectRole'),
+                                t('auth.register.steps.adminApproval'),
+                                t('auth.register.steps.receiveAccess')
                             ].map((step, i) => (
                                 <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
                                     <span className="w-6 h-6 rounded-full bg-amber-500/20 flex items-center justify-center text-xs font-bold text-amber-400 flex-shrink-0">
@@ -166,7 +172,7 @@ const RegistroPage = () => {
                     </div>
 
                     <p className="text-slate-600 text-xs">
-                        Gestion integral de alquiler de carpas y eventos
+                        {t('auth.comprehensiveManagement')}
                     </p>
                 </div>
             </div>
@@ -180,17 +186,17 @@ const RegistroPage = () => {
                             <Tent className="w-7 h-7 text-amber-400" />
                         </div>
                         <h1 className="text-xl font-bold text-slate-900">
-                            Gestion de Carpas y Eventos
+                            {t('auth.tentAndEventManagement')}
                         </h1>
                     </div>
 
                     {/* Titulo */}
                     <div className="mb-6">
                         <h2 className="text-2xl font-bold text-slate-900">
-                            Solicitar acceso
+                            {t('auth.register.submit')}
                         </h2>
                         <p className="text-slate-500 mt-1">
-                            Completa tus datos para solicitar acceso al sistema
+                            {t('auth.register.shortDescription')}
                         </p>
                     </div>
 
@@ -208,27 +214,27 @@ const RegistroPage = () => {
                         <div className="grid grid-cols-2 gap-3">
                             <div>
                                 <label htmlFor="nombre" className="block text-sm font-medium text-slate-700 mb-1.5">
-                                    Nombre *
+                                    {t('auth.register.firstName')} *
                                 </label>
                                 <input
                                     id="nombre"
                                     type="text"
                                     className={`w-full px-4 py-2.5 rounded-xl border-2 transition-all duration-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 ${errors.nombre ? 'border-red-300 focus:border-red-500' : 'border-slate-200 focus:border-slate-900'}`}
-                                    placeholder="Tu nombre"
-                                    {...register('nombre', { required: 'El nombre es requerido' })}
+                                    placeholder={t('auth.register.firstNamePlaceholder')}
+                                    {...register('nombre', { required: t('auth.register.firstNameRequired') })}
                                 />
                                 {errors.nombre && <p className="mt-1 text-sm text-red-600">{errors.nombre.message}</p>}
                             </div>
                             <div>
                                 <label htmlFor="apellido" className="block text-sm font-medium text-slate-700 mb-1.5">
-                                    Apellido *
+                                    {t('auth.register.lastName')} *
                                 </label>
                                 <input
                                     id="apellido"
                                     type="text"
                                     className={`w-full px-4 py-2.5 rounded-xl border-2 transition-all duration-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 ${errors.apellido ? 'border-red-300 focus:border-red-500' : 'border-slate-200 focus:border-slate-900'}`}
-                                    placeholder="Tu apellido"
-                                    {...register('apellido', { required: 'El apellido es requerido' })}
+                                    placeholder={t('auth.register.lastNamePlaceholder')}
+                                    {...register('apellido', { required: t('auth.register.lastNameRequired') })}
                                 />
                                 {errors.apellido && <p className="mt-1 text-sm text-red-600">{errors.apellido.message}</p>}
                             </div>
@@ -237,7 +243,7 @@ const RegistroPage = () => {
                         {/* Email */}
                         <div>
                             <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-1.5">
-                                Correo electronico *
+                                {t('auth.register.emailLabel')} *
                             </label>
                             <input
                                 id="email"
@@ -246,10 +252,10 @@ const RegistroPage = () => {
                                 className={`w-full px-4 py-2.5 rounded-xl border-2 transition-all duration-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 ${errors.email ? 'border-red-300 focus:border-red-500' : 'border-slate-200 focus:border-slate-900'}`}
                                 placeholder="tu@email.com"
                                 {...register('email', {
-                                    required: 'El correo es requerido',
+                                    required: t('validation.emailRequired'),
                                     pattern: {
                                         value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                                        message: 'Correo electronico invalido'
+                                        message: t('validation.emailInvalidFormat')
                                     }
                                 })}
                             />
@@ -259,13 +265,13 @@ const RegistroPage = () => {
                         {/* Telefono */}
                         <div>
                             <label htmlFor="telefono" className="block text-sm font-medium text-slate-700 mb-1.5">
-                                Telefono
+                                {t('auth.register.phoneLabel')}
                             </label>
                             <input
                                 id="telefono"
                                 type="tel"
                                 className="w-full px-4 py-2.5 rounded-xl border-2 border-slate-200 transition-all duration-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-slate-900"
-                                placeholder="300 123 4567"
+                                placeholder={t('auth.register.phonePlaceholder')}
                                 {...register('telefono')}
                             />
                         </div>
@@ -273,14 +279,14 @@ const RegistroPage = () => {
                         {/* Rol solicitado */}
                         <div>
                             <label htmlFor="rol_solicitado_id" className="block text-sm font-medium text-slate-700 mb-1.5">
-                                Rol deseado
+                                {t('auth.register.desiredRole')}
                             </label>
                             <select
                                 id="rol_solicitado_id"
                                 className="w-full px-4 py-2.5 rounded-xl border-2 border-slate-200 transition-all duration-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-slate-900"
                                 {...register('rol_solicitado_id')}
                             >
-                                <option value="">Selecciona un rol</option>
+                                <option value="">{t('auth.register.selectRole')}</option>
                                 {roles.map((rol) => (
                                     <option key={rol.id} value={rol.id}>
                                         {rol.nombre.charAt(0).toUpperCase() + rol.nombre.slice(1)} - {rol.descripcion}
@@ -288,7 +294,7 @@ const RegistroPage = () => {
                                 ))}
                             </select>
                             <p className="mt-1 text-xs text-slate-400">
-                                El administrador podra asignar un rol diferente al aprobar tu solicitud
+                                {t('auth.register.roleNote')}
                             </p>
                         </div>
 
@@ -296,7 +302,7 @@ const RegistroPage = () => {
                         <div className="grid grid-cols-2 gap-3">
                             <div>
                                 <label htmlFor="password" className="block text-sm font-medium text-slate-700 mb-1.5">
-                                    Contrasena *
+                                    {t('auth.register.password')} *
                                 </label>
                                 <div className="relative">
                                     <input
@@ -304,10 +310,10 @@ const RegistroPage = () => {
                                         type={showPassword ? 'text' : 'password'}
                                         autoComplete="new-password"
                                         className={`w-full px-4 py-2.5 pr-12 rounded-xl border-2 transition-all duration-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 ${errors.password ? 'border-red-300 focus:border-red-500' : 'border-slate-200 focus:border-slate-900'}`}
-                                        placeholder="Min. 8 caracteres"
+                                        placeholder={t('auth.register.passwordPlaceholder')}
                                         {...register('password', {
-                                            required: 'La contrasena es requerida',
-                                            minLength: { value: 8, message: 'Minimo 8 caracteres' }
+                                            required: t('validation.passwordRequired'),
+                                            minLength: { value: 8, message: t('auth.register.passwordMinLength') }
                                         })}
                                     />
                                     <button
@@ -322,7 +328,7 @@ const RegistroPage = () => {
                             </div>
                             <div>
                                 <label htmlFor="confirmarPassword" className="block text-sm font-medium text-slate-700 mb-1.5">
-                                    Confirmar *
+                                    {t('auth.register.confirmPassword')} *
                                 </label>
                                 <div className="relative">
                                     <input
@@ -330,10 +336,10 @@ const RegistroPage = () => {
                                         type={showConfirmPassword ? 'text' : 'password'}
                                         autoComplete="new-password"
                                         className={`w-full px-4 py-2.5 pr-12 rounded-xl border-2 transition-all duration-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 ${errors.confirmarPassword ? 'border-red-300 focus:border-red-500' : 'border-slate-200 focus:border-slate-900'}`}
-                                        placeholder="Repetir contrasena"
+                                        placeholder={t('auth.register.confirmPasswordPlaceholder')}
                                         {...register('confirmarPassword', {
-                                            required: 'Confirma tu contrasena',
-                                            validate: value => value === password || 'Las contrasenas no coinciden'
+                                            required: t('auth.register.confirmPasswordRequired'),
+                                            validate: value => value === password || t('validation.passwordsNoMatch')
                                         })}
                                     />
                                     <button
@@ -357,12 +363,12 @@ const RegistroPage = () => {
                             {isSubmitting ? (
                                 <>
                                     <Loader2 className="w-5 h-5 animate-spin" />
-                                    Enviando solicitud...
+                                    {t('auth.register.submitting')}
                                 </>
                             ) : (
                                 <>
                                     <UserPlus className="w-5 h-5" />
-                                    Solicitar acceso
+                                    {t('auth.register.submit')}
                                 </>
                             )}
                         </button>
@@ -370,9 +376,9 @@ const RegistroPage = () => {
 
                     {/* Link a login */}
                     <p className="text-center text-sm text-slate-500 mt-6">
-                        Ya tienes cuenta?{' '}
+                        {t('auth.register.hasAccount')}{' '}
                         <Link to="/login" className="font-semibold text-slate-900 hover:text-slate-700 transition-colors">
-                            Iniciar sesion
+                            {t('auth.register.goToLogin')}
                         </Link>
                     </p>
                 </div>

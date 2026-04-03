@@ -152,3 +152,39 @@ export const ERROR_MESSAGES = {
   LOTE_SIN_CANTIDAD: 'Cantidad insuficiente en el lote origen',
   LOTE_CANTIDAD_INVALIDA: 'La cantidad debe ser mayor a cero'
 }
+
+// ============================================
+// FUNCIONES i18n PARA ETIQUETAS Y MENSAJES
+// Usar con: const labels = getEstadoLabels(t)
+// ============================================
+export const getEstadoLabels = (t) => ({
+  [ESTADOS.BUENO]: `✅ ${t('states.good')}`,
+  [ESTADOS.ALQUILADO]: `📦 ${t('states.rented')}`,
+  [ESTADOS.MANTENIMIENTO]: `🔧 ${t('states.maintenance')}`,
+  [ESTADOS.DANADO]: `⚠️ ${t('states.damaged')}`
+})
+
+export const getSuccessMessages = (t) => ({
+  CATEGORIA_CREADA: t('messages.success.categoryCreated'),
+  CATEGORIA_ACTUALIZADA: t('messages.success.categoryUpdated'),
+  CATEGORIA_ELIMINADA: t('messages.success.categoryDeleted'),
+  ELEMENTO_CREADO: t('messages.success.elementCreated'),
+  ELEMENTO_ACTUALIZADO: t('messages.success.elementUpdated'),
+  ELEMENTO_ELIMINADO: t('messages.success.elementDeleted'),
+  SERIE_CREADA: t('messages.success.seriesCreated'),
+  LOTE_MOVIDO: t('messages.success.batchMoved')
+})
+
+export const getErrorMessages = (t) => ({
+  GENERIC: t('messages.error.generic'),
+  NETWORK: t('messages.error.network'),
+  NOT_FOUND: t('messages.error.notFound'),
+  UNAUTHORIZED: t('messages.error.unauthorized'),
+  VALIDATION: t('messages.error.validationError'),
+  ELEMENTO_CON_SERIES: t('messages.error.elementHasSeries'),
+  SERIE_NUMERO_DUPLICADO: t('messages.error.duplicateSerial'),
+  SERIE_ALQUILADA: t('messages.error.seriesRented'),
+  TRANSICION_NO_PERMITIDA: t('messages.error.transitionNotAllowed'),
+  LOTE_SIN_CANTIDAD: t('messages.error.insufficientQuantity'),
+  LOTE_CANTIDAD_INVALIDA: t('messages.error.invalidQuantity')
+})

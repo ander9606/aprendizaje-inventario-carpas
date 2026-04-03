@@ -6,8 +6,10 @@
 
 import { useRef, useState, useEffect, useCallback } from 'react'
 import { Eraser, Check, Pen } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 export default function FirmaDigital({ onConfirm, width = 400, height = 200, disabled = false }) {
+    const { t } = useTranslation()
     const canvasRef = useRef(null)
     const [isDrawing, setIsDrawing] = useState(false)
     const [hasDrawn, setHasDrawn] = useState(false)
@@ -144,7 +146,7 @@ export default function FirmaDigital({ onConfirm, width = 400, height = 200, dis
         <div className="space-y-3">
             <div className="flex items-center gap-2 text-sm text-slate-500">
                 <Pen className="w-4 h-4" />
-                <span>Firme aquí con el dedo o stylus</span>
+                <span>{t('signature.signHere')}</span>
             </div>
 
             <div className="border-2 border-slate-300 rounded-lg overflow-hidden bg-white touch-none">
@@ -168,7 +170,7 @@ export default function FirmaDigital({ onConfirm, width = 400, height = 200, dis
                     className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-slate-700 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors"
                 >
                     <Eraser className="w-4 h-4" />
-                    Limpiar
+                    {t('signature.clear')}
                 </button>
                 <button
                     onClick={confirmar}
@@ -176,7 +178,7 @@ export default function FirmaDigital({ onConfirm, width = 400, height = 200, dis
                     className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                     <Check className="w-4 h-4" />
-                    Confirmar Firma
+                    {t('signature.confirmSignature')}
                 </button>
             </div>
         </div>

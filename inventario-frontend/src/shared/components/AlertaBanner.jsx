@@ -5,6 +5,7 @@
 
 import { AlertCircle, AlertTriangle, Info, CheckCircle, X } from 'lucide-react'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 /**
  * Componente AlertaBanner - Banner de alerta
@@ -38,6 +39,7 @@ export const AlertaBanner = ({
   className = '',
   ...props
 }) => {
+  const { t } = useTranslation()
   const [isVisible, setIsVisible] = useState(true)
 
   // ============================================
@@ -145,7 +147,7 @@ export const AlertaBanner = ({
               rounded
               hover:bg-black hover:bg-opacity-5
             `}
-            aria-label="Cerrar alerta"
+            aria-label={t('common.closeAlert')}
           >
             <X className="w-4 h-4" />
           </button>

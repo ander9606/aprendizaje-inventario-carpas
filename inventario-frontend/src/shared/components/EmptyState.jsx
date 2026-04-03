@@ -4,6 +4,7 @@
 // ============================================
 
 import { PackageX, Search, Inbox } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import Button from './Button'
 
 /**
@@ -31,7 +32,8 @@ function EmptyState({
   action = null,
   className = ''
 }) {
-  
+  const { t } = useTranslation()
+
   // ============================================
   // ÍCONOS POR TIPO
   // ============================================
@@ -40,22 +42,22 @@ function EmptyState({
     'no-results': Search,
     'empty': PackageX
   }
-  
+
   // ============================================
   // TEXTOS POR DEFECTO SEGÚN TIPO
   // ============================================
   const defaults = {
     'no-data': {
-      title: 'No hay datos disponibles',
-      description: 'Aún no se han agregado elementos'
+      title: t('empty.noData'),
+      description: t('empty.noItemsYet')
     },
     'no-results': {
-      title: 'No se encontraron resultados',
-      description: 'Intenta con otros términos de búsqueda'
+      title: t('empty.noResults'),
+      description: t('empty.tryOtherSearch')
     },
     'empty': {
-      title: 'Sin elementos',
-      description: 'Esta sección está vacía'
+      title: t('empty.noElements'),
+      description: t('empty.sectionEmpty')
     }
   }
   
