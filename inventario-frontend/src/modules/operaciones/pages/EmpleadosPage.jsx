@@ -232,14 +232,14 @@ export default function EmpleadosPage() {
                                 className="p-2 hover:bg-slate-100 rounded-lg transition-colors flex items-center gap-2 text-slate-600 hover:text-slate-900"
                             >
                                 <ArrowLeft className="w-5 h-5" />
-                                <span>Volver</span>
+                                <span>{t('operations.back')}</span>
                             </button>
 
                             <div className="flex items-center gap-3">
                                 <Shield className="w-8 h-8 text-purple-600" />
                                 <div>
                                     <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-                                        Empleados
+                                        {t('operations.employees')}
                                         {isAdmin && pendientesCount > 0 && (
                                             <span className="inline-flex items-center justify-center w-6 h-6 text-xs font-bold text-white bg-amber-500 rounded-full">
                                                 {pendientesCount}
@@ -247,7 +247,7 @@ export default function EmpleadosPage() {
                                         )}
                                     </h1>
                                     <p className="text-sm text-slate-600">
-                                        Gestiona usuarios y permisos del sistema
+                                        {t('operations.employeesDescription')}
                                     </p>
                                 </div>
                             </div>
@@ -259,7 +259,7 @@ export default function EmpleadosPage() {
                                 icon={<Plus />}
                                 onClick={handleOpenCrear}
                             >
-                                Nuevo Empleado
+                                {t('operations.newEmployee')}
                             </Button>
                         )}
                     </div>
@@ -275,7 +275,7 @@ export default function EmpleadosPage() {
                                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                                 <input
                                     type="text"
-                                    placeholder="Buscar por nombre o email..."
+                                    placeholder={t('operations.searchByNameOrEmail')}
                                     className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
                                     value={searchInput}
                                     onChange={(e) => setSearchInput(e.target.value)}
@@ -289,7 +289,7 @@ export default function EmpleadosPage() {
                                 value={filtros.rol_id}
                                 onChange={(e) => handleFilterChange('rol_id', e.target.value)}
                             >
-                                <option value="">Todos los roles</option>
+                                <option value="">{t('operations.allRoles')}</option>
                                 {roles.map((rol) => (
                                     <option key={rol.id} value={rol.id}>
                                         {rol.nombre.charAt(0).toUpperCase() + rol.nombre.slice(1)}
@@ -304,10 +304,10 @@ export default function EmpleadosPage() {
                                 value={filtros.estado}
                                 onChange={(e) => handleFilterChange('estado', e.target.value)}
                             >
-                                <option value="">Todos los estados</option>
-                                <option value="activo">Activos</option>
-                                <option value="inactivo">Inactivos</option>
-                                <option value="pendiente">Pendientes</option>
+                                <option value="">{t('operations.allStates')}</option>
+                                <option value="activo">{t('operations.activos')}</option>
+                                <option value="inactivo">{t('operations.inactivos')}</option>
+                                <option value="pendiente">{t('operations.pendientes')}</option>
                             </select>
                         </div>
                     </div>
@@ -319,7 +319,7 @@ export default function EmpleadosPage() {
                         <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4">
                             <h3 className="text-lg font-semibold text-amber-800 flex items-center gap-2 mb-3">
                                 <Clock className="w-5 h-5" />
-                                Solicitudes pendientes ({empleadosPendientes.length})
+                                {t('operations.pendingRequests', { count: empleadosPendientes.length })}
                             </h3>
                             <div className="space-y-3">
                                 {empleadosPendientes.map((emp) => (

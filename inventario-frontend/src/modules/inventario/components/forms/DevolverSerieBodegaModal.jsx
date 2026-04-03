@@ -92,7 +92,7 @@ function DevolverSerieBodegaModal({
       onClose()
     } catch (error) {
       console.error('Error al devolver serie a bodega:', error)
-      const mensaje = error.response?.data?.mensaje || error.message || 'Error al devolver'
+      const mensaje = error.response?.data?.mensaje || error.message || t('inventory.errorReturning')
       toast.error(mensaje)
     } finally {
       setIsSubmitting(false)
@@ -108,9 +108,9 @@ function DevolverSerieBodegaModal({
   // Mostrar spinner mientras carga la ubicación principal
   if (isLoadingUbicacion) {
     return (
-      <Modal isOpen={isOpen} onClose={onClose} title="Cargando..." size="md">
+      <Modal isOpen={isOpen} onClose={onClose} title={t('common.loading')} size="md">
         <div className="flex justify-center items-center py-8">
-          <Spinner size="lg" text="Cargando ubicación principal..." />
+          <Spinner size="lg" text={t('inventory.loadingMainLocation')} />
         </div>
       </Modal>
     )
@@ -119,17 +119,17 @@ function DevolverSerieBodegaModal({
   // Advertencia si no hay ubicación principal
   if (!ubicacionPrincipal) {
     return (
-      <Modal isOpen={isOpen} onClose={onClose} title="Advertencia" size="md">
+      <Modal isOpen={isOpen} onClose={onClose} title={t('inventory.warning')} size="md">
         <div className="p-6 text-center">
           <AlertTriangle className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-slate-900 mb-2">
-            No hay ubicación principal configurada
+            {t('inventory.noMainLocationConfigured')}
           </h3>
           <p className="text-sm text-slate-600 mb-6">
-            Configura una ubicación como principal desde el menú de Ubicaciones para poder usar esta función.
+            {t('inventory.configureMainLocation')}
           </p>
           <Button onClick={onClose} variant="primary">
-            Entendido
+            {t('inventory.understood')}
           </Button>
         </div>
       </Modal>
@@ -142,7 +142,7 @@ function DevolverSerieBodegaModal({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={`Devolver a ${nombreUbicacionPrincipal}`}
+      title={t('inventory.returnToWarehouseTitle', { name: nombreUbicacionPrincipal })}
       size="md"
     >
       <div>
@@ -151,17 +151,17 @@ function DevolverSerieBodegaModal({
             ============================================ */}
         <div className="mb-6 p-4 bg-slate-50 border border-slate-200 rounded-lg">
           <p className="text-sm font-medium text-slate-700 mb-3">
-            Se devolverá esta serie:
+            {t('inventory.thisSeriesWillBeReturned')}
           </p>
 
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-600 w-24">Elemento:</span>
+              <span className="text-xs text-slate-600 w-24">{t('inventory.elementLabel')}</span>
               <span className="font-semibold text-slate-900">{elemento?.nombre || 'Sin nombre'}</span>
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-600 w-24">Nº Serie:</span>
+              <span className="text-xs text-slate-600 w-24">{t('inventory.serieNumber')}</span>
               <span className="font-mono font-semibold text-slate-900">{serie.numero_serie}</span>
             </div>
 

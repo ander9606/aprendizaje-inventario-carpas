@@ -153,7 +153,7 @@ const TarifaFormModal = ({
     <Modal
       isOpen={isOpen}
       onClose={handleClose}
-      title={mode === 'crear' ? 'Nueva Tarifa de Transporte' : 'Editar Tarifa'}
+      title={mode === 'crear' ? t('rentals.rateForm.newRate') : t('rentals.rateForm.editRate')}
       size="md"
     >
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -168,7 +168,7 @@ const TarifaFormModal = ({
         {/* TIPO DE CAMIÓN */}
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-2">
-            Tipo de Camión *
+            {t('rentals.rateForm.truckType')} *
           </label>
           <select
             name="tipo_camion"
@@ -182,7 +182,7 @@ const TarifaFormModal = ({
               ${errors.tipo_camion ? 'border-red-300 bg-red-50' : 'border-slate-300'}
             `}
           >
-            <option value="">Seleccionar tipo...</option>
+            <option value="">{t('rentals.rateForm.selectType')}</option>
             {CATEGORIAS_CAMION.map(cat => (
               <option key={cat.id} value={cat.nombre}>
                 {cat.nombre} - {cat.descripcion}
@@ -197,7 +197,7 @@ const TarifaFormModal = ({
         {/* CIUDAD */}
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-2">
-            Ciudad *
+            {t('rentals.rateForm.city')} *
           </label>
           <select
             name="ciudad_id"
@@ -212,7 +212,7 @@ const TarifaFormModal = ({
             `}
           >
             <option value="">
-              {loadingCiudades ? 'Cargando ciudades...' : 'Seleccionar ciudad...'}
+              {loadingCiudades ? t('rentals.rateForm.loadingCities') : t('rentals.rateForm.selectCity')}
             </option>
             {ciudades.map(ciudad => (
               <option key={ciudad.id} value={ciudad.id}>
@@ -225,7 +225,7 @@ const TarifaFormModal = ({
           )}
           {ciudades.length === 0 && !loadingCiudades && (
             <p className="mt-1 text-sm text-amber-600">
-              No hay ciudades registradas. Crea una en Configuración {'>'} Ciudades.
+              {t('rentals.rateForm.noCities')}
             </p>
           )}
         </div>
@@ -233,7 +233,7 @@ const TarifaFormModal = ({
         {/* PRECIO */}
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-2">
-            Precio *
+            {t('rentals.rateForm.price')} *
           </label>
           <div className="relative">
             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">
