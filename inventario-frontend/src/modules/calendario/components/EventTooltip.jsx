@@ -12,7 +12,6 @@ import { useTranslation } from 'react-i18next'
  * Formateador de moneda
  */
 const formatCurrency = (value) => {
-  const { t } = useTranslation()
   return new Intl.NumberFormat('es-CO', {
     style: 'currency',
     currency: 'COP',

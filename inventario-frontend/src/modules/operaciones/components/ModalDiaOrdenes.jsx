@@ -29,7 +29,6 @@ const ESTADOS_CONFIG = {
 }
 
 const formatHora = (fecha) => {
-  const { t } = useTranslation()
     if (!fecha) return '-'
     return new Date(fecha).toLocaleTimeString('es-CO', {
         hour: '2-digit',

@@ -21,7 +21,6 @@ import { useTranslation } from 'react-i18next'
  * @param {Object} props.recargoEditar - Recargo existente para editar (opcional)
  */
 const RecargoModal = ({
-  const { t } = useTranslation()
     isOpen,
     onClose,
     onSave,
@@ -29,6 +28,7 @@ const RecargoModal = ({
     fechasCotizacion,
     recargoEditar = null
 }) => {
+  const { t } = useTranslation()
     const [formData, setFormData] = useState({
         tipo: 'adelanto',
         dias: 1,

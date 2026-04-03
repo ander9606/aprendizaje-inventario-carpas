@@ -35,12 +35,12 @@ import { useTranslation } from 'react-i18next'
  * @param {Function} onSuccess - Callback al completar exitosamente
  */
 const RetornoElementosModal = ({
-  const { t } = useTranslation()
   isOpen,
   onClose,
   alquiler,
   onSuccess
 }) => {
+  const { t } = useTranslation()
   // ============================================
   // ESTADO
   // ============================================

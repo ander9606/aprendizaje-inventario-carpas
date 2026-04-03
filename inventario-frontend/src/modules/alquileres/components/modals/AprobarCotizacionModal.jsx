@@ -19,13 +19,13 @@ import { useTranslation } from 'react-i18next'
  * antes de aprobar
  */
 const AprobarCotizacionModal = ({
-  const { t } = useTranslation()
   isOpen,
   onClose,
   cotizacionId,
   onAprobar,
   isAprobando = false
 }) => {
+  const { t } = useTranslation()
   const [cobrarDeposito, setCobrarDeposito] = useState(true)
   const [depositoCobrado, setDepositoCobrado] = useState('')
   const [notasSalida, setNotasSalida] = useState('')

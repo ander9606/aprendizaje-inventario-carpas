@@ -24,7 +24,6 @@ import { useTranslation } from 'react-i18next'
  * @param {Object} props.eventoReferencia - Evento base para repetir (pre-llena todo excepto fechas)
  */
 const EventoFormModal = ({
-  const { t } = useTranslation()
     isOpen,
     onClose,
     onSave,
@@ -32,6 +31,7 @@ const EventoFormModal = ({
     clientePreseleccionado = null,
     eventoReferencia = null
 }) => {
+  const { t } = useTranslation()
     const [formData, setFormData] = useState({
         cliente_id: '',
         nombre: '',

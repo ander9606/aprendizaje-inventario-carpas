@@ -25,11 +25,11 @@ import { useTranslation } from 'react-i18next'
  * @param {Function} onDelete - Callback para eliminar ubicación
  */
 const UbicacionCard = ({
-  const { t } = useTranslation()
   ubicacion,
   onEdit,
   onDelete
 }) => {
+  const { t } = useTranslation()
 
   // ============================================
   // HOOKS

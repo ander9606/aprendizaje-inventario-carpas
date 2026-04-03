@@ -20,13 +20,13 @@ import { useTranslation } from 'react-i18next'
  * @param {string|null} preselectedTipo - Tipo preseleccionado al crear (ej: 'bodega', 'evento')
  */
 const UbicacionFormModal = ({
-  const { t } = useTranslation()
   isOpen,
   onClose,
   mode = 'crear',
   ubicacion = null,
   preselectedTipo = null
 }) => {
+  const { t } = useTranslation()
 
   // ============================================
   // ESTADO LOCAL DEL FORMULARIO

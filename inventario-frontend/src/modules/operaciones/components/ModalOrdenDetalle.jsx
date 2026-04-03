@@ -41,7 +41,6 @@ const PRIORIDAD_CONFIG = {
 }
 
 const formatFecha = (fecha) => {
-  const { t } = useTranslation()
     if (!fecha) return '-'
     return new Date(fecha).toLocaleDateString('es-CO', {
         weekday: 'long',

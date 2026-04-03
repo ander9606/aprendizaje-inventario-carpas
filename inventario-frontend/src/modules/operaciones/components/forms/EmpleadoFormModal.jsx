@@ -20,13 +20,13 @@ import { useTranslation } from 'react-i18next'
  * @param {Array} roles - Lista de roles disponibles
  */
 const EmpleadoFormModal = ({
-  const { t } = useTranslation()
     isOpen,
     onClose,
     mode = 'crear',
     empleado = null,
     roles = []
 }) => {
+  const { t } = useTranslation()
     // ============================================
     // ESTADO LOCAL DEL FORMULARIO
     // ============================================

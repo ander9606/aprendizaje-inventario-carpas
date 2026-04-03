@@ -157,13 +157,13 @@ export const LoteUbicacionGroup = ({
 // Item individual de un lote (estado + cantidad)
 // ============================================
 const LoteItem = ({
-  const { t } = useTranslation()
   lote,
   ubicacion,
   onDevolverBodega,
   onMove,
   onDelete
 }) => {
+  const { t } = useTranslation()
   // Solo mostrar "Devolver a Bodega Principal" si NO esta en Bodega Principal
   const esBodegaPrincipal = ubicacion === 'Bodega Principal' || ubicacion === 'Bodega A'
 

@@ -20,7 +20,6 @@ import { useTranslation } from 'react-i18next'
  * - Acciones: Ver, Aprobar (pendiente), Menu kebab
  */
 const CotizacionCard = ({
-  const { t } = useTranslation()
   cotizacion,
   onVerDetalle,
   onEditar,
@@ -29,6 +28,7 @@ const CotizacionCard = ({
   onEliminar,
   isAprobando = false
 }) => {
+  const { t } = useTranslation()
 
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef(null)

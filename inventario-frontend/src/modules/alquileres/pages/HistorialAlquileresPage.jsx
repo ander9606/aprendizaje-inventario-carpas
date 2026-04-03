@@ -26,7 +26,6 @@ import { useTranslation } from 'react-i18next'
 // HELPERS
 // ============================================
 const formatFecha = (fecha) => {
-  const { t } = useTranslation()
     if (!fecha) return '-'
     return new Date(fecha).toLocaleDateString('es-CO', {
         weekday: 'short',

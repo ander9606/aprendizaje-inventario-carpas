@@ -8,11 +8,11 @@ import { IconoCategoria } from '@shared/components/IconoCategoria'
 import { useTranslation } from 'react-i18next'
 
 const CategoriaCardSelector = ({
-  const { t } = useTranslation()
   categoria,
   onClick,
   disabled = false
 }) => {
+  const { t } = useTranslation()
   const { nombre, emoji, total_productos } = categoria
 
   return (

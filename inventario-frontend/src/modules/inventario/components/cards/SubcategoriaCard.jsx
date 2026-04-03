@@ -15,12 +15,12 @@ import { useUpdateCategoria, useDeleteCategoria } from '../../hooks/useCategoria
 import { useTranslation } from 'react-i18next'
 
 const SubcategoriaCard = ({ 
-  const { t } = useTranslation()
   subcategoria,
   categoriaId,
   onEdit,
   onCreateElemento
 }) => {
+  const { t } = useTranslation()
 
   const navigate = useNavigate()
 

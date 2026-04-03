@@ -12,7 +12,6 @@ import apiDisponibilidad from '../../api/apiDisponibilidad'
 import { useTranslation } from 'react-i18next'
 
 const ComponentesProductoModal = ({
-  const { t } = useTranslation()
   isOpen,
   onClose,
   producto,
@@ -20,6 +19,7 @@ const ComponentesProductoModal = ({
   fechaDesmontaje,
   cantidadSolicitada = 1
 }) => {
+  const { t } = useTranslation()
   // ============================================
   // QUERIES
   // ============================================

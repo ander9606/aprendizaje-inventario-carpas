@@ -23,13 +23,13 @@ import { useTranslation } from 'react-i18next'
  * @param {string} className - Clases CSS adicionales
  */
 const CalendarWrapper = ({
-  const { t } = useTranslation()
   events = [],
   options = {},
   handlers = {},
   className = '',
   calendarRef: externalRef
 }) => {
+  const { t } = useTranslation()
   const internalRef = useRef(null)
   const calendarRef = externalRef || internalRef
 

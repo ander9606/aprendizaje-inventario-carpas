@@ -19,12 +19,12 @@ import { useTranslation } from 'react-i18next'
  * @param {boolean} mostrar - Si debe mostrarse el componente
  */
 const VerificacionDisponibilidad = ({
-  const { t } = useTranslation()
   productos = [],
   fechaMontaje,
   fechaDesmontaje,
   mostrar = true
 }) => {
+  const { t } = useTranslation()
   const { verificar, limpiar, resultado, isLoading } = useVerificarDisponibilidadProductos()
 
   // Verificar cuando cambien los datos (el debounce está en el hook)

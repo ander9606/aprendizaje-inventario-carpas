@@ -10,7 +10,6 @@ import Modal from '@shared/components/Modal'
 import { useTranslation } from 'react-i18next'
 
 const DisponibilidadModal = ({
-  const { t } = useTranslation()
   isOpen,
   onClose,
   productos = [],
@@ -18,6 +17,7 @@ const DisponibilidadModal = ({
   fechaDesmontaje,
   productosInfo = []
 }) => {
+  const { t } = useTranslation()
   const formatFecha = (fecha) => {
     if (!fecha) return '-'
     const fechaStr = typeof fecha === 'string' ? fecha.split('T')[0] : fecha

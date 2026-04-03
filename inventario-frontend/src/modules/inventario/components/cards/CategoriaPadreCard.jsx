@@ -28,12 +28,12 @@ import { useTranslation } from 'react-i18next'
  * @param {Function} onCreateSubcategoria - Callback para crear subcategoría
  * @param {Function} onEdit - Callback para editar categoría
  */
-const CategoriaPadreCard = ({ 
-  const { t } = useTranslation()
+const CategoriaPadreCard = ({
   categoria,
   onCreateSubcategoria,
   onEdit
 }) => {
+  const { t } = useTranslation()
   
   const navigate = useNavigate()
   

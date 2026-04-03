@@ -15,12 +15,12 @@ import { useTranslation } from 'react-i18next'
  * COMPONENTE: TarifaFormModal
  */
 const TarifaFormModal = ({
-  const { t } = useTranslation()
   isOpen,
   onClose,
   mode = 'crear',
   tarifa = null
 }) => {
+  const { t } = useTranslation()
 
   // ============================================
   // ESTADO LOCAL DEL FORMULARIO

@@ -30,7 +30,6 @@ import { useTranslation } from 'react-i18next'
  * @param {boolean} inicialmenteColapsado - Si inicia colapsado
  */
 const AlertasPanel = ({
-  const { t } = useTranslation()
   alertas = [],
   resumen,
   isLoading,
@@ -40,6 +39,7 @@ const AlertasPanel = ({
   colapsable = true,
   inicialmenteColapsado = false
 }) => {
+  const { t } = useTranslation()
   const [colapsado, setColapsado] = useState(inicialmenteColapsado)
 
   // Separar por severidad

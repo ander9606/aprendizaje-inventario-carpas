@@ -7,12 +7,12 @@ import { Info, Calendar, Percent, Tag, Shield, ShieldOff } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 const ResumenCotizacion = ({
-  const { t } = useTranslation()
   resumen,
   mostrarDetalles = true,
   className = '',
   onToggleDeposito
 }) => {
+  const { t } = useTranslation()
   if (!resumen) return null
 
   const formatearMoneda = (valor) => {

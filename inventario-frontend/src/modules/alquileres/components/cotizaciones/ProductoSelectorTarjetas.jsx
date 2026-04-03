@@ -18,12 +18,12 @@ import Spinner from '@shared/components/Spinner'
 import { useTranslation } from 'react-i18next'
 
 const ProductoSelectorTarjetas = ({
-  const { t } = useTranslation()
   onProductoAgregado,
   disabled = false,
   fechaMontaje = null,
   fechaDesmontaje = null
 }) => {
+  const { t } = useTranslation()
   // ============================================
   // ESTADO
   // ============================================

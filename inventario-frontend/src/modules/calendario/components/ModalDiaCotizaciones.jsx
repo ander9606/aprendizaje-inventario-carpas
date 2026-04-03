@@ -23,7 +23,6 @@ import { useTranslation } from 'react-i18next'
 // ============================================
 
 const formatFechaCompleta = (fechaStr) => {
-  const { t } = useTranslation()
   const fecha = new Date(fechaStr + 'T12:00:00')
   return fecha.toLocaleDateString('es-CO', {
     weekday: 'long',

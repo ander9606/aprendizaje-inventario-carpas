@@ -10,7 +10,6 @@ import { useGetDescuentos, useAplicarDescuento, useEliminarDescuentoCotizacion }
 import { useTranslation } from 'react-i18next'
 
 const DescuentosSelector = ({
-  const { t } = useTranslation()
   cotizacionId,
   descuentosAplicados = [],
   baseCalculo = 0,
@@ -18,6 +17,7 @@ const DescuentosSelector = ({
   onDescuentoEliminado,
   disabled = false
 }) => {
+  const { t } = useTranslation()
   const [mostrarManual, setMostrarManual] = useState(false)
   const [descuentoManual, setDescuentoManual] = useState({ monto: '', esPorcentaje: false, notas: '' })
 

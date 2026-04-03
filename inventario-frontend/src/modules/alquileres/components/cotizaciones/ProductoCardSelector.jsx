@@ -11,7 +11,6 @@ import ComponentesProductoModal from './ComponentesProductoModal'
 import { useTranslation } from 'react-i18next'
 
 const ProductoCardSelector = ({
-  const { t } = useTranslation()
   producto,
   onAgregar,
   disabled = false,
@@ -21,6 +20,7 @@ const ProductoCardSelector = ({
   disponibilidadInfo = null, // { disponibles, estado: 'ok' | 'insuficiente' | 'sin_verificar' }
   loadingDisponibilidad = false
 }) => {
+  const { t } = useTranslation()
   const [cantidad, setCantidad] = useState(1)
   const [showComponentesModal, setShowComponentesModal] = useState(false)
 

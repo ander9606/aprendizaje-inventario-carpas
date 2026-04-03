@@ -16,7 +16,6 @@ import { apiCotizaciones } from '../../api/apiCotizaciones'
 import { useTranslation } from 'react-i18next'
 
 const CotizacionDetalleModal = ({
-  const { t } = useTranslation()
   isOpen,
   onClose,
   cotizacionId,
@@ -26,6 +25,7 @@ const CotizacionDetalleModal = ({
   onCancelarAlquiler,
   isAprobando = false
 }) => {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const [showCancelarModal, setShowCancelarModal] = useState(false)
   const [notasCancelacion, setNotasCancelacion] = useState('')

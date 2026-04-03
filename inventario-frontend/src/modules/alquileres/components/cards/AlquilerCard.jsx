@@ -3,8 +3,8 @@
 // Tarjeta moderna de alquiler con click directo
 // ============================================
 
-import {
 import { useTranslation } from 'react-i18next'
+import {
   Calendar,
   User,
   Package,

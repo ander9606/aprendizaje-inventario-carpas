@@ -15,13 +15,13 @@ import {
 } from "../../hooks/useCategorias";
 
 const SubcategoriaFormModal = ({
-  const { t } = useTranslation()
   isOpen,
   onClose,
   mode = "crear",
   padreId = null,
   subcategoria = null,
 }) => {
+  const { t } = useTranslation()
   // ============================================
   // ESTADO LOCAL
   // ============================================

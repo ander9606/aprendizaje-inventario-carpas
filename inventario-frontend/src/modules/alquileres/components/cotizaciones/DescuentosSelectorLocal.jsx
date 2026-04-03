@@ -11,12 +11,12 @@ import { useGetDescuentos } from '../../hooks/descuentos'
 import { useTranslation } from 'react-i18next'
 
 const DescuentosSelectorLocal = ({
-  const { t } = useTranslation()
   descuentosAplicados = [],
   onDescuentosChange,
   baseCalculo = 0,
   disabled = false
 }) => {
+  const { t } = useTranslation()
   const [mostrarSelector, setMostrarSelector] = useState(false)
   const [mostrarManual, setMostrarManual] = useState(false)
   const [descuentoManual, setDescuentoManual] = useState({ valor: '', tipo: 'porcentaje', descripcion: '' })

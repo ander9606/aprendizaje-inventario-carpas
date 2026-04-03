@@ -3,8 +3,8 @@
 // Muestra el historial visual de un alquiler
 // ============================================
 
-import {
 import { useTranslation } from 'react-i18next'
+import {
   FileText,
   CheckCircle,
   Calendar,
@@ -31,11 +31,11 @@ import { useTranslation } from 'react-i18next'
  * @param {Array} elementos - Lista de elementos asignados
  */
 const AlquilerTimeline = ({
-  const { t } = useTranslation()
   cotizacion,
   alquiler,
   elementos = []
 }) => {
+  const { t } = useTranslation()
 
   // ============================================
   // HELPERS

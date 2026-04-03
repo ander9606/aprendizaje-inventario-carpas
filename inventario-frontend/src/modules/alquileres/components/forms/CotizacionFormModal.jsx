@@ -26,7 +26,6 @@ import { useTranslation } from 'react-i18next'
  * CotizacionFormModal
  */
 const CotizacionFormModal = ({
-  const { t } = useTranslation()
   isOpen,
   onClose,
   mode = 'crear',
@@ -34,6 +33,7 @@ const CotizacionFormModal = ({
   eventoPreseleccionado = null,
   fechasPorConfirmarInicial = false
 }) => {
+  const { t } = useTranslation()
 
   // ============================================
   // ESTADO LOCAL
