@@ -4,6 +4,7 @@
 // ============================================
 
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Plus, MapPin, ArrowLeft, Pencil, Trash2, Search, Truck, Navigation, ExternalLink } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -34,6 +35,7 @@ const TIPOS_CAMION = [
  */
 export default function CiudadesPage() {
 
+  const { t } = useTranslation()
   const navigate = useNavigate()
 
   // ============================================
@@ -228,7 +230,7 @@ export default function CiudadesPage() {
       <Spinner
         fullScreen
         size="xl"
-        text="Cargando ciudades..."
+        text={t('clients.loadingCities')}
       />
     )
   }
@@ -239,13 +241,13 @@ export default function CiudadesPage() {
         <div className="text-center">
           <div className="text-6xl mb-4">!</div>
           <h2 className="text-2xl font-bold text-slate-900 mb-2">
-            Error al cargar ciudades
+            {t('clients.errorLoadingCities')}
           </h2>
           <p className="text-slate-600 mb-6">
-            {error.message || 'Ocurrió un error inesperado'}
+            {error.message || t('messages.error.generic')}
           </p>
           <Button onClick={() => refetch()}>
-            Reintentar
+            {t('clients.retry')}
           </Button>
         </div>
       </div>

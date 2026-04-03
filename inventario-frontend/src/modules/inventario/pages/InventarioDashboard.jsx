@@ -3,6 +3,7 @@
 // KPIs, graficas y alertas de stock
 // ============================================
 
+import { useTranslation } from 'react-i18next'
 import { useGetEstadisticasInventario } from '../hooks/useElementos'
 import { formatearMoneda, formatearNumero } from '@shared/utils/helpers'
 import Spinner from '@shared/components/Spinner'
@@ -37,6 +38,7 @@ const capitalizar = (texto) => {
 }
 
 const InventarioDashboard = () => {
+  const { t } = useTranslation()
   const { estadisticas, isLoading, error } = useGetEstadisticasInventario()
   const navigate = useNavigate()
   const [isExporting, setIsExporting] = useState(false)
@@ -45,9 +47,9 @@ const InventarioDashboard = () => {
     try {
       setIsExporting(true)
       await exportarInventarioExcel()
-      toast.success('Inventario exportado a Excel exitosamente')
+      toast.success(t('inventory.exportSuccess', 'Inventario exportado a Excel exitosamente'))
     } catch (err) {
-      toast.error('Error al exportar: ' + (err.message || 'Intenta de nuevo'))
+      toast.error(t('inventory.exportError', 'Error al exportar') + ': ' + (err.message || t('common.retry')))
     } finally {
       setIsExporting(false)
     }
@@ -65,7 +67,7 @@ const InventarioDashboard = () => {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <p className="text-red-600 text-lg">Error al cargar estadisticas</p>
+          <p className="text-red-600 text-lg">{t('inventory.errorLoadingStats')}</p>
           <p className="text-slate-500 mt-2">{error.message}</p>
         </div>
       </div>
@@ -111,17 +113,17 @@ const InventarioDashboard = () => {
             className="flex items-center gap-1.5 text-blue-600 hover:text-blue-700 active:text-blue-800
                        font-medium text-sm mb-3 transition-colors py-1.5 -ml-1 px-1 rounded-lg min-h-[36px]"
           >
-            &larr; Volver
+            &larr; {t('common.back')}
           </button>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div className="flex items-center gap-3">
               <BarChart3 className="w-6 h-6 text-blue-600" />
               <div>
                 <h1 className="text-[18px] font-bold text-slate-900">
-                  Dashboard de Inventario
+                  {t('inventory.dashboardTitle')}
                 </h1>
                 <p className="text-sm text-slate-500">
-                  Vista general del inventario y alertas
+                  {t('inventory.dashboardSubtitle')}
                 </p>
               </div>
             </div>
@@ -132,7 +134,7 @@ const InventarioDashboard = () => {
               onClick={handleExportExcel}
               disabled={isExporting}
             >
-              {isExporting ? 'Exportando...' : 'Exportar Excel'}
+              {isExporting ? t('inventory.exporting', 'Exportando...') : t('common.exportExcel')}
             </Button>
           </div>
         </div>
@@ -145,36 +147,36 @@ const InventarioDashboard = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Total Elementos */}
           <KPICard
-            titulo="Total Elementos"
+            titulo={t('inventory.totalElements')}
             valor={formatearNumero(generales?.total_elementos || 0)}
-            subtitulo="tipos de articulos"
+            subtitulo={t('inventory.elementTypes')}
             icono={Package}
             color="blue"
           />
 
           {/* Total Unidades */}
           <KPICard
-            titulo="Total Unidades"
+            titulo={t('inventory.totalUnits')}
             valor={formatearNumero(generales?.total_unidades || 0)}
-            subtitulo={`${formatearNumero(generales?.total_series || 0)} series + ${formatearNumero(generales?.total_unidades_lotes || 0)} lotes`}
+            subtitulo={`${formatearNumero(generales?.total_series || 0)} ${t('inventory.seriesPlus')} + ${formatearNumero(generales?.total_unidades_lotes || 0)} ${t('inventory.batchesLabel')}`}
             icono={Boxes}
             color="green"
           />
 
           {/* Valor del Inventario */}
           <KPICard
-            titulo="Valor del Inventario"
+            titulo={t('inventory.inventoryValue')}
             valor={formatearMoneda(generales?.valor_precio_unitario || generales?.valor_total || 0)}
-            subtitulo={Number(generales?.valor_precio_unitario) > 0 ? "valor a precio unitario" : "costo de adquisicion total"}
+            subtitulo={Number(generales?.valor_precio_unitario) > 0 ? t('inventory.unitPriceValue') : t('inventory.acquisitionCost')}
             icono={DollarSign}
             color="purple"
           />
 
           {/* Alertas Stock Bajo */}
           <KPICard
-            titulo="Alertas de Stock"
+            titulo={t('inventory.stockAlerts')}
             valor={alertasStock?.length || 0}
-            subtitulo={alertasStock?.length > 0 ? 'elementos bajo minimo' : 'todo en orden'}
+            subtitulo={alertasStock?.length > 0 ? t('inventory.belowMinimum') : t('inventory.allInOrder')}
             icono={AlertTriangle}
             color={alertasStock?.length > 0 ? 'red' : 'green'}
           />
@@ -187,7 +189,7 @@ const InventarioDashboard = () => {
           {/* PieChart - Distribucion por Estado */}
           <div className="bg-white rounded-xl border border-slate-200 p-6">
             <h3 className="text-lg font-semibold text-slate-900 mb-4">
-              Distribucion por Estado
+              {t('inventory.distributionByState')}
             </h3>
             {datosEstado.length > 0 ? (
               <ResponsiveContainer width="100%" height={280}>
@@ -206,7 +208,7 @@ const InventarioDashboard = () => {
                     ))}
                   </Pie>
                   <Tooltip
-                    formatter={(value) => [formatearNumero(value), 'Unidades']}
+                    formatter={(value) => [formatearNumero(value), t('common.units')]}
                     contentStyle={{ borderRadius: 8, border: '1px solid #E2E8F0' }}
                   />
                   <Legend />
@@ -214,7 +216,7 @@ const InventarioDashboard = () => {
               </ResponsiveContainer>
             ) : (
               <div className="h-[280px] flex items-center justify-center text-slate-400">
-                Sin datos de estado
+                {t('inventory.noStateData')}
               </div>
             )}
           </div>
@@ -222,7 +224,7 @@ const InventarioDashboard = () => {
           {/* BarChart - Top Categorias */}
           <div className="bg-white rounded-xl border border-slate-200 p-6">
             <h3 className="text-lg font-semibold text-slate-900 mb-4">
-              Top Categorías por Cantidad
+              {t('inventory.topCategoriesByQty')}
             </h3>
             {datosCategorias.length > 0 ? (
               <ResponsiveContainer width="100%" height={280}>
@@ -238,7 +240,7 @@ const InventarioDashboard = () => {
                     tick={{ fill: '#334155' }}
                   />
                   <Tooltip
-                    formatter={(value) => [formatearNumero(value), 'Unidades']}
+                    formatter={(value) => [formatearNumero(value), t('common.units')]}
                     contentStyle={{ borderRadius: 8, border: '1px solid #E2E8F0' }}
                   />
                   <Bar dataKey="cantidad" fill="#2563EB" radius={[0, 4, 4, 0]} />
@@ -246,7 +248,7 @@ const InventarioDashboard = () => {
               </ResponsiveContainer>
             ) : (
               <div className="h-[280px] flex items-center justify-center text-slate-400">
-                Sin datos de categorías
+                {t('inventory.noCategoryData')}
               </div>
             )}
           </div>
