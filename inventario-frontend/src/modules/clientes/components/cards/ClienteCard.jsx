@@ -121,7 +121,7 @@ const ClienteCard = ({
               {/* Badge: Inactivo */}
               {!cliente.activo && (
                 <span className="inline-block px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-700">
-                  Inactivo
+                  {t('common.inactive')}
                 </span>
               )}
             </div>
@@ -180,7 +180,7 @@ const ClienteCard = ({
               onClick={handleVerHistorial}
               className="w-full text-blue-600 hover:bg-blue-50"
             >
-              Ver historial de eventos
+              {t('clients.viewEventHistory')}
             </Button>
           )}
           <div className="flex gap-2 justify-between">
@@ -191,7 +191,7 @@ const ClienteCard = ({
               onClick={handleEdit}
               className="flex-1"
             >
-              Editar
+              {t('common.edit')}
             </Button>
 
             <Button
@@ -201,7 +201,7 @@ const ClienteCard = ({
               onClick={handleDelete}
               className="flex-1"
             >
-              Eliminar
+              {t('common.delete')}
             </Button>
           </div>
         </div>

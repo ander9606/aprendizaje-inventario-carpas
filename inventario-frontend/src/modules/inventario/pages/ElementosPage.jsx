@@ -336,17 +336,17 @@ function ElementosPage() {
               </div>
               <div>
                 <h1 className="text-[22px] font-bold text-slate-900">
-                  {subcategoria?.nombre || 'Elementos'}
+                  {subcategoria?.nombre || t('common.elements')}
                 </h1>
                 <p className="text-sm text-slate-500">
-                  {elementos.length} {elementos.length === 1 ? 'elemento' : 'elementos'}
+                  {elementos.length} {elementos.length === 1 ? t('common.element') : t('common.elements')}
                 </p>
               </div>
               <div className="ml-2 hidden sm:block">
                 <ViewTabs
                   tabs={[
-                    { label: 'Cards', value: 'cards' },
-                    { label: 'Listado', value: 'listado' }
+                    { label: t('common.cards'), value: 'cards' },
+                    { label: t('common.list'), value: 'listado' }
                   ]}
                   activeTab={viewMode}
                   onChange={setViewMode}
@@ -362,7 +362,7 @@ function ElementosPage() {
                 onClick={handleExportExcel}
                 disabled={isExporting}
               >
-                <span className="hidden sm:inline">{isExporting ? 'Exportando...' : 'Excel'}</span>
+                <span className="hidden sm:inline">{isExporting ? t('common.exporting') : 'Excel'}</span>
               </Button>
               <Button
                 variant="primary"
@@ -371,7 +371,7 @@ function ElementosPage() {
                 onClick={handleOpenCreateModal}
                 disabled={isDeleting || isDeletingLote || isDeletingSerie}
               >
-                Nuevo Elemento
+                {t('inventory.newElement')}
               </Button>
             </div>
           </div>
@@ -382,7 +382,7 @@ function ElementosPage() {
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               <input
                 type="text"
-                placeholder="Filtrar elementos por nombre..."
+                placeholder={t('inventory.filterElements')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
@@ -402,8 +402,8 @@ function ElementosPage() {
           <div className="mt-3 sm:hidden">
             <ViewTabs
               tabs={[
-                { label: 'Cards', value: 'cards' },
-                { label: 'Listado', value: 'listado' }
+                { label: t('common.cards'), value: 'cards' },
+                { label: t('common.list'), value: 'listado' }
               ]}
               activeTab={viewMode}
               onChange={setViewMode}
@@ -419,7 +419,7 @@ function ElementosPage() {
         <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg flex items-center gap-2">
           <Spinner size="sm" />
           <span className="text-yellow-700">
-            {isDeleting ? 'Eliminando elemento...' : isDeletingLote ? 'Eliminando lote...' : 'Eliminando serie...'}
+            {isDeleting ? t('inventory.deletingElement') : isDeletingLote ? t('inventory.deletingBatch') : t('inventory.deletingSeries')}
           </span>
         </div>
       )}

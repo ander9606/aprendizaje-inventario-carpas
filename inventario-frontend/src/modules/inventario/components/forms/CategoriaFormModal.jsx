@@ -157,7 +157,7 @@ const CategoriaFormModal = ({
           {/* Campo Nombre */}
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
-              Nombre de la Categoría *
+              {t('inventory.categoryName')} *
             </label>
             <input
               type="text"
@@ -165,7 +165,7 @@ const CategoriaFormModal = ({
               value={formData.nombre}
               onChange={handleChange}
               // 👇 Cambiamos el placeholder para que tenga sentido
-              placeholder="Ej: Carpas, Mobiliario, Iluminación..."
+              placeholder={t('inventory.categoryPlaceholder')}
               disabled={isLoading}
               className={`
                 w-full px-4 py-2.5 border rounded-lg
@@ -186,7 +186,7 @@ const CategoriaFormModal = ({
           {/* Campo Icono */}
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
-              Icono
+              {t('inventory.icon')}
             </label>
 
             <button
@@ -198,7 +198,7 @@ const CategoriaFormModal = ({
             >
               <IconoCategoria value={formData.emoji} className="text-3xl" />
               <span className="text-slate-600">
-                Haz clic para cambiar el icono
+                {t('inventory.clickToChangeIcon')}
               </span>
             </button>
           </div>
@@ -212,7 +212,7 @@ const CategoriaFormModal = ({
               disabled={isLoading}
               fullWidth
             >
-              Cancelar
+              {t('common.cancel')}
             </Button>
             <Button
               type="submit"
@@ -221,7 +221,7 @@ const CategoriaFormModal = ({
               disabled={isLoading}
               fullWidth
             >
-              {mode === "crear" ? "Crear Categoría" : "Guardar Cambios"}
+              {mode === "crear" ? t('inventory.createCategory') : t('common.saveChanges')}
             </Button>
           </div>
         </form>

@@ -4,6 +4,7 @@
 // ============================================
 
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import Modal from '@shared/components/Modal'
 import Button from '@shared/components/Button'
 import { useCreateCliente, useUpdateCliente } from '../../hooks/useClientes'
@@ -22,6 +23,8 @@ const ClienteFormModal = ({
   mode = 'crear',
   cliente = null
 }) => {
+
+  const { t } = useTranslation()
 
   // ============================================
   // ESTADO LOCAL DEL FORMULARIO
@@ -105,19 +108,19 @@ const ClienteFormModal = ({
     const newErrors = {}
 
     if (!formData.numero_documento.trim()) {
-      newErrors.numero_documento = 'El número de documento es obligatorio'
+      newErrors.numero_documento = t('validation.documentRequired')
     }
 
     if (!formData.nombre.trim()) {
-      newErrors.nombre = 'El nombre es obligatorio'
+      newErrors.nombre = t('validation.nameRequired')
     } else if (formData.nombre.trim().length < 3) {
-      newErrors.nombre = 'El nombre debe tener al menos 3 caracteres'
+      newErrors.nombre = t('validation.nameMinLength3')
     }
 
     if (formData.email && formData.email.trim()) {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
       if (!emailRegex.test(formData.email)) {
-        newErrors.email = 'Email no válido'
+        newErrors.email = t('validation.emailInvalid')
       }
     }
 

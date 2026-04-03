@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { X } from 'lucide-react'
 import Spinner from '@shared/components/Spinner'
 import { IconoCategoria } from '@shared/components/IconoCategoria'
@@ -16,15 +17,7 @@ const ESTADO_BADGE_STYLES = {
   danado: 'bg-red-100 text-red-800',
 }
 
-const ESTADO_LABEL = {
-  bueno: 'Bueno',
-  disponible: 'Bueno',
-  nuevo: 'Nuevo',
-  alquilado: 'Alquilado',
-  mantenimiento: 'Mantenimiento',
-  'dañado': 'Dañado',
-  danado: 'Dañado',
-}
+// ESTADO_LABEL is now handled via t() in EstadoBadgeInline
 
 function StatMini({ label, value, bgColor, borderColor, textColor }) {
   return (
