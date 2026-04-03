@@ -251,7 +251,7 @@ const EventoCard = ({ evento, onVer, onEditar, onEliminar, onCambiarEstado }) =>
                             {t('rentals.rentalsPage')}
                         </span>
                         <span className="font-medium text-slate-700">
-                            {alquileresFinalizados}/{totalAlquileres} finalizados
+                            {t('rentals.finishedCount', { done: alquileresFinalizados, total: totalAlquileres })}
                         </span>
                     </div>
                     <div className="h-1.5 bg-slate-200 rounded-full overflow-hidden">
@@ -493,13 +493,13 @@ export default function EventosPage() {
             {!isLoading && (
                 <div className="mb-4 text-sm text-slate-500">
                     {eventosActivos.length > 0 && (
-                        <span>{eventosActivos.length} evento{eventosActivos.length !== 1 ? 's' : ''} activo{eventosActivos.length !== 1 ? 's' : ''}</span>
+                        <span>{t('rentals.activeEventsCount', { count: eventosActivos.length })}</span>
                     )}
                     {eventosRealizados.length > 0 && (
-                        <span className="text-green-600"> · {eventosRealizados.length} realizado{eventosRealizados.length !== 1 ? 's' : ''}</span>
+                        <span className="text-green-600"> · {t('rentals.completedEventsCount', { count: eventosRealizados.length })}</span>
                     )}
                     {eventosActivos.length === 0 && eventosRealizados.length === 0 && (
-                        <span>0 eventos</span>
+                        <span>{t('rentals.zeroEvents')}</span>
                     )}
                 </div>
             )}

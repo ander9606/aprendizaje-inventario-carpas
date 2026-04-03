@@ -15,10 +15,10 @@ import { useTranslation } from 'react-i18next'
 
 // Tipos de camión disponibles
 const TIPOS_CAMION = [
-  { id: 'Pequeño', nombre: 'Pequeño', descripcion: 'Hasta 3 ton' },
-  { id: 'Mediano', nombre: 'Mediano', descripcion: '3-8 ton' },
-  { id: 'Grande', nombre: 'Grande', descripcion: '8-15 ton' },
-  { id: 'Extragrande', nombre: 'Extragrande', descripcion: '+15 ton' }
+  { id: 'Pequeño', nombreKey: 'rentals.truckSmall', descripcionKey: 'rentals.truckSmallDesc' },
+  { id: 'Mediano', nombreKey: 'rentals.truckMedium', descripcionKey: 'rentals.truckMediumDesc' },
+  { id: 'Grande', nombreKey: 'rentals.truckLarge', descripcionKey: 'rentals.truckLargeDesc' },
+  { id: 'Extragrande', nombreKey: 'rentals.truckExtraLarge', descripcionKey: 'rentals.truckExtraLargeDesc' }
 ]
 
 const formatearMoneda = (valor) => {
@@ -186,7 +186,7 @@ export default function TransportePage() {
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-slate-900">{ciudadesConEste}</p>
-                  <p className="text-sm text-slate-500">{tipo.nombre}</p>
+                  <p className="text-sm text-slate-500">{t(tipo.nombreKey)}</p>
                 </div>
               </div>
             </div>
@@ -269,7 +269,7 @@ export default function TransportePage() {
               <option value="">{t('rentals.allTrucks')}</option>
               {TIPOS_CAMION.map(tipo => (
                 <option key={tipo.id} value={tipo.id}>
-                  {tipo.nombre} ({tipo.descripcion})
+                  {t(tipo.nombreKey)} ({t(tipo.descripcionKey)})
                 </option>
               ))}
             </select>
@@ -298,9 +298,9 @@ export default function TransportePage() {
                     <th key={tipo.id} className="text-right px-4 py-3 text-sm font-semibold text-slate-700">
                       <div className="flex items-center justify-end gap-1">
                         <Truck className="w-4 h-4" />
-                        {tipo.nombre}
+                        {t(tipo.nombreKey)}
                       </div>
-                      <span className="text-xs font-normal text-slate-500">{tipo.descripcion}</span>
+                      <span className="text-xs font-normal text-slate-500">{t(tipo.descripcionKey)}</span>
                     </th>
                   ))}
                 </tr>

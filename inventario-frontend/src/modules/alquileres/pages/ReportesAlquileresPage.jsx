@@ -54,6 +54,7 @@ const calcularFechas = (periodo, anio, mes, semestre) => {
 }
 
 const ReportesAlquileresPage = () => {
+  const { t } = useTranslation()
   const hoy = new Date()
   const [periodo, setPeriodo] = useState('todo')
   const [anio, setAnio] = useState(hoy.getFullYear())
@@ -69,12 +70,12 @@ const ReportesAlquileresPage = () => {
 
   // Label descriptivo del período actual
   const periodoLabel = useMemo(() => {
-    if (periodo === 'todo') return 'Todo el historial'
+    if (periodo === 'todo') return t('rentals.allHistory')
     if (periodo === 'mensual') return `${MESES_FULL[mes - 1]} ${anio}`
-    if (periodo === 'semestral') return `${semestre === 1 ? '1er' : '2do'} Semestre ${anio}`
-    if (periodo === 'anual') return `Año ${anio}`
+    if (periodo === 'semestral') return semestre === 1 ? t('rentals.semester1', { year: anio }) : t('rentals.semester2', { year: anio })
+    if (periodo === 'anual') return t('rentals.year', { year: anio })
     return ''
-  }, [periodo, anio, mes, semestre])
+  }, [periodo, anio, mes, semestre, t])
 
   // Navegación rápida (anterior / siguiente)
   const navegar = (dir) => {
@@ -111,18 +112,18 @@ const ReportesAlquileresPage = () => {
 
   // Datos para pie chart de estados de alquileres
   const datosEstados = estadisticas ? [
-    { name: 'Programados', value: Number(estadisticas.programados) || 0, color: '#3B82F6' },
-    { name: 'Activos', value: Number(estadisticas.activos) || 0, color: '#10B981' },
-    { name: 'Finalizados', value: Number(estadisticas.finalizados) || 0, color: '#6B7280' },
-    { name: 'Cancelados', value: Number(estadisticas.cancelados) || 0, color: '#EF4444' },
+    { name: t('rentals.scheduledPlural'), value: Number(estadisticas.programados) || 0, color: '#3B82F6' },
+    { name: t('rentals.activePlural'), value: Number(estadisticas.activos) || 0, color: '#10B981' },
+    { name: t('rentals.finalizedPlural'), value: Number(estadisticas.finalizados) || 0, color: '#6B7280' },
+    { name: t('rentals.cancelledPlural'), value: Number(estadisticas.cancelados) || 0, color: '#EF4444' },
   ].filter(d => d.value > 0) : []
 
   // Datos para pie chart de cotizaciones
   const datosCotizaciones = cotizaciones ? [
-    { name: 'Aprobadas', value: cotizaciones.aprobadas || 0, color: '#10B981' },
-    { name: 'Pendientes', value: cotizaciones.pendientes || 0, color: '#F59E0B' },
-    { name: 'Rechazadas', value: cotizaciones.rechazadas || 0, color: '#EF4444' },
-    { name: 'Vencidas', value: cotizaciones.vencidas || 0, color: '#6B7280' },
+    { name: t('rentals.approvedPlural'), value: cotizaciones.aprobadas || 0, color: '#10B981' },
+    { name: t('rentals.pendingPlural'), value: cotizaciones.pendientes || 0, color: '#F59E0B' },
+    { name: t('rentals.rejectedPlural'), value: cotizaciones.rechazadas || 0, color: '#EF4444' },
+    { name: t('rentals.expiredPlural'), value: cotizaciones.vencidas || 0, color: '#6B7280' },
   ].filter(d => d.value > 0) : []
 
   return (
@@ -134,9 +135,9 @@ const ReportesAlquileresPage = () => {
             <div className="p-2 bg-blue-100 rounded-lg">
               <BarChart3 className="w-6 h-6 text-blue-600" />
             </div>
-            Reportes
+            {t('rentals.reportsLabel')}
           </h1>
-          <p className="text-slate-500 mt-1">Estadísticas y métricas del negocio</p>
+          <p className="text-slate-500 mt-1">{t('rentals.reportsDescription')}</p>
         </div>
       </div>
 
@@ -145,16 +146,16 @@ const ReportesAlquileresPage = () => {
         <div className="flex flex-col sm:flex-row sm:items-center gap-4">
           <div className="flex items-center gap-2 text-sm text-slate-600">
             <Calendar className="w-4 h-4" />
-            <span className="font-medium">Período:</span>
+            <span className="font-medium">{t('rentals.period')}:</span>
           </div>
 
           {/* Botones de tipo de período */}
           <div className="flex rounded-lg border border-slate-200 overflow-hidden">
             {[
-              { key: 'todo', label: 'Todo' },
-              { key: 'mensual', label: 'Mensual' },
-              { key: 'semestral', label: 'Semestral' },
-              { key: 'anual', label: 'Anual' },
+              { key: 'todo', label: t('rentals.periodAll') },
+              { key: 'mensual', label: t('rentals.periodMonthly') },
+              { key: 'semestral', label: t('rentals.periodSemester') },
+              { key: 'anual', label: t('rentals.periodAnnual') },
             ].map(({ key, label }) => (
               <button
                 key={key}
@@ -223,8 +224,8 @@ const ReportesAlquileresPage = () => {
                 onChange={(e) => setSemestre(Number(e.target.value))}
                 className="text-sm border border-slate-200 rounded-lg px-2 py-1.5 text-slate-700"
               >
-                <option value={1}>1er Semestre (Ene-Jun)</option>
-                <option value={2}>2do Semestre (Jul-Dic)</option>
+                <option value={1}>{t('rentals.semester1Option')}</option>
+                <option value={2}>{t('rentals.semester2Option')}</option>
               </select>
               <select
                 value={anio}
@@ -256,11 +257,11 @@ const ReportesAlquileresPage = () => {
       {/* Loading overlay */}
       {isLoading ? (
         <div className="flex justify-center py-20">
-          <Spinner size="lg" text="Cargando reportes..." />
+          <Spinner size="lg" text={t('rentals.loadingReports')} />
         </div>
       ) : error ? (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
-          Error al cargar reportes: {error.message}
+          {t('rentals.errorLoadingReports')}: {error.message}
         </div>
       ) : (
         <>
@@ -268,33 +269,33 @@ const ReportesAlquileresPage = () => {
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             <KPICard
               icon={<Package className="w-5 h-5" />}
-              label="Total Alquileres"
+              label={t('rentals.totalRentals')}
               value={estadisticas?.total || 0}
               color="blue"
             />
             <KPICard
               icon={<DollarSign className="w-5 h-5" />}
-              label="Ingresos Realizados"
+              label={t('rentals.realizedRevenue')}
               value={formatMoneyFull(estadisticas?.ingresos_realizados)}
               color="green"
-              subtitle="Finalizados"
+              subtitle={t('rentals.finalizedLabel')}
             />
             <KPICard
               icon={<Clock className="w-5 h-5" />}
-              label="Ingresos Esperados"
+              label={t('rentals.expectedRevenue')}
               value={formatMoneyFull(estadisticas?.ingresos_esperados)}
               color="amber"
-              subtitle="Programados + Activos"
+              subtitle={t('rentals.scheduledAndActive')}
             />
             <KPICard
               icon={<FileText className="w-5 h-5" />}
-              label="Cotizaciones"
+              label={t('rentals.quotesLabel')}
               value={cotizaciones?.total || 0}
               color="purple"
             />
             <KPICard
               icon={<TrendingUp className="w-5 h-5" />}
-              label="Tasa Conversión"
+              label={t('rentals.conversionRate')}
               value={`${cotizaciones?.tasaConversion || 0}%`}
               color="blue"
             />
@@ -306,7 +307,7 @@ const ReportesAlquileresPage = () => {
             <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 p-5">
               <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2">
                 <TrendingUp className="w-4 h-4 text-blue-600" />
-                Ingresos por Mes {periodo !== 'todo' && `- ${periodoLabel}`}
+                {t('rentals.revenueByMonth')} {periodo !== 'todo' && `- ${periodoLabel}`}
               </h3>
               {datosIngresos.length > 0 ? (
                 <ResponsiveContainer width="100%" height={250}>
@@ -315,7 +316,7 @@ const ReportesAlquileresPage = () => {
                     <XAxis dataKey="mes" fontSize={12} stroke="#64748B" />
                     <YAxis fontSize={11} stroke="#64748B" tickFormatter={formatMoney} />
                     <Tooltip
-                      formatter={(value) => [formatMoneyFull(value), 'Ingresos']}
+                      formatter={(value) => [formatMoneyFull(value), t('rentals.revenue')]}
                       labelStyle={{ fontWeight: 'bold' }}
                       contentStyle={{ borderRadius: 8, border: '1px solid #E2E8F0' }}
                     />
@@ -323,7 +324,7 @@ const ReportesAlquileresPage = () => {
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
-                <p className="text-slate-400 text-center py-16">Sin datos de ingresos para este período</p>
+                <p className="text-slate-400 text-center py-16">{t('rentals.noRevenueDataPeriod')}</p>
               )}
             </div>
 
@@ -331,7 +332,7 @@ const ReportesAlquileresPage = () => {
             <div className="bg-white rounded-xl border border-slate-200 p-5">
               <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2">
                 <Activity className="w-4 h-4 text-blue-600" />
-                Estado de Alquileres
+                {t('rentals.rentalStatus')}
               </h3>
               {datosEstados.length > 0 ? (
                 <ResponsiveContainer width="100%" height={250}>
@@ -353,7 +354,7 @@ const ReportesAlquileresPage = () => {
                   </PieChart>
                 </ResponsiveContainer>
               ) : (
-                <p className="text-slate-400 text-center py-16">Sin alquileres en este período</p>
+                <p className="text-slate-400 text-center py-16">{t('rentals.noRentalDataPeriod')}</p>
               )}
             </div>
           </div>
@@ -364,7 +365,7 @@ const ReportesAlquileresPage = () => {
             <div className="bg-white rounded-xl border border-slate-200 p-5">
               <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2">
                 <FileText className="w-4 h-4 text-purple-600" />
-                Cotizaciones por Estado
+                {t('rentals.quotesByStatus')}
               </h3>
               {datosCotizaciones.length > 0 ? (
                 <div className="flex items-center gap-6">
@@ -392,13 +393,13 @@ const ReportesAlquileresPage = () => {
                       </div>
                     ))}
                     <div className="pt-2 border-t border-slate-100">
-                      <span className="text-sm text-slate-500">Conversión: </span>
+                      <span className="text-sm text-slate-500">{t('rentals.conversion')}: </span>
                       <span className="font-bold text-lg text-blue-600">{cotizaciones?.tasaConversion || 0}%</span>
                     </div>
                   </div>
                 </div>
               ) : (
-                <p className="text-slate-400 text-center py-12">Sin cotizaciones en este período</p>
+                <p className="text-slate-400 text-center py-12">{t('rentals.noQuoteDataPeriod')}</p>
               )}
             </div>
 
@@ -406,7 +407,7 @@ const ReportesAlquileresPage = () => {
             <div className="bg-white rounded-xl border border-slate-200 p-5">
               <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2">
                 <MapPin className="w-4 h-4 text-green-600" />
-                Alquileres por Ciudad
+                {t('rentals.rentalsByCity')}
               </h3>
               {alquileresPorCiudad && alquileresPorCiudad.length > 0 ? (
                 <ResponsiveContainer width="100%" height={180}>
@@ -415,14 +416,14 @@ const ReportesAlquileresPage = () => {
                     <XAxis type="number" fontSize={11} stroke="#64748B" />
                     <YAxis type="category" dataKey="ciudad" fontSize={11} stroke="#64748B" width={100} />
                     <Tooltip
-                      formatter={(value) => [value, 'Alquileres']}
+                      formatter={(value) => [value, t('rentals.rentalsLabel')]}
                       contentStyle={{ borderRadius: 8, border: '1px solid #E2E8F0' }}
                     />
                     <Bar dataKey="cantidad" fill="#10B981" radius={[0, 4, 4, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
-                <p className="text-slate-400 text-center py-12">Sin datos de ciudades en este período</p>
+                <p className="text-slate-400 text-center py-12">{t('rentals.noCityDataPeriod')}</p>
               )}
             </div>
           </div>
@@ -433,7 +434,7 @@ const ReportesAlquileresPage = () => {
             <div className="bg-white rounded-xl border border-slate-200 p-5">
               <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2">
                 <Users className="w-4 h-4 text-blue-600" />
-                Top Clientes
+                {t('rentals.topClients')}
               </h3>
               {topClientes && topClientes.length > 0 ? (
                 <div className="overflow-hidden">
@@ -441,9 +442,9 @@ const ReportesAlquileresPage = () => {
                     <thead>
                       <tr className="border-b border-slate-100">
                         <th className="text-left py-2 text-slate-500 font-medium">#</th>
-                        <th className="text-left py-2 text-slate-500 font-medium">Cliente</th>
-                        <th className="text-center py-2 text-slate-500 font-medium">Alq.</th>
-                        <th className="text-right py-2 text-slate-500 font-medium">Ingresos</th>
+                        <th className="text-left py-2 text-slate-500 font-medium">{t('rentals.clientColumn')}</th>
+                        <th className="text-center py-2 text-slate-500 font-medium">{t('rentals.rentalsAbbr')}</th>
+                        <th className="text-right py-2 text-slate-500 font-medium">{t('rentals.revenueColumn')}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -459,7 +460,7 @@ const ReportesAlquileresPage = () => {
                   </table>
                 </div>
               ) : (
-                <p className="text-slate-400 text-center py-8">Sin datos de clientes en este período</p>
+                <p className="text-slate-400 text-center py-8">{t('rentals.noClientDataPeriod')}</p>
               )}
             </div>
 
@@ -467,7 +468,7 @@ const ReportesAlquileresPage = () => {
             <div className="bg-white rounded-xl border border-slate-200 p-5">
               <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2">
                 <Package className="w-4 h-4 text-amber-600" />
-                Productos Más Alquilados
+                {t('rentals.mostRentedProducts')}
               </h3>
               {productosMasAlquilados && productosMasAlquilados.length > 0 ? (
                 <div className="overflow-hidden">
@@ -475,9 +476,9 @@ const ReportesAlquileresPage = () => {
                     <thead>
                       <tr className="border-b border-slate-100">
                         <th className="text-left py-2 text-slate-500 font-medium">#</th>
-                        <th className="text-left py-2 text-slate-500 font-medium">Producto</th>
-                        <th className="text-center py-2 text-slate-500 font-medium">Veces</th>
-                        <th className="text-right py-2 text-slate-500 font-medium">Ingresos</th>
+                        <th className="text-left py-2 text-slate-500 font-medium">{t('rentals.productColumn')}</th>
+                        <th className="text-center py-2 text-slate-500 font-medium">{t('rentals.timesRented')}</th>
+                        <th className="text-right py-2 text-slate-500 font-medium">{t('rentals.revenueColumn')}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -493,7 +494,7 @@ const ReportesAlquileresPage = () => {
                   </table>
                 </div>
               ) : (
-                <p className="text-slate-400 text-center py-8">Sin datos de productos en este período</p>
+                <p className="text-slate-400 text-center py-8">{t('rentals.noProductDataPeriod')}</p>
               )}
             </div>
           </div>

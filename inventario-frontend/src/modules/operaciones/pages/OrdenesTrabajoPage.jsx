@@ -55,37 +55,37 @@ const useDebounce = (value, delay) => {
 // ============================================
 // HELPERS: Estado y tipo
 // ============================================
-const getEstadoConfig = (estado) => {
+const getEstadoConfig = (estado, t) => {
     const config = {
-        pendiente: { color: 'bg-yellow-100 text-yellow-700 border-yellow-200', icon: Clock, label: 'Pendiente' },
-        confirmado: { color: 'bg-indigo-100 text-indigo-700 border-indigo-200', icon: CheckCircle, label: 'Confirmado' },
-        en_preparacion: { color: 'bg-purple-100 text-purple-700 border-purple-200', icon: Package, label: 'Preparación' },
-        en_ruta: { color: 'bg-cyan-100 text-cyan-700 border-cyan-200', icon: Truck, label: 'En ruta' },
-        en_sitio: { color: 'bg-amber-100 text-amber-700 border-amber-200', icon: MapPin, label: 'En sitio' },
-        en_proceso: { color: 'bg-blue-100 text-blue-700 border-blue-200', icon: RefreshCw, label: 'En proceso' },
-        en_revision: { color: 'bg-amber-100 text-amber-700 border-amber-200', icon: Search, label: 'En revisión' },
-        en_reparacion: { color: 'bg-orange-100 text-orange-700 border-orange-200', icon: Wrench, label: 'En reparación' },
-        completado: { color: 'bg-green-100 text-green-700 border-green-200', icon: CheckCircle, label: 'Completado' },
-        cancelado: { color: 'bg-red-100 text-red-700 border-red-200', icon: XCircle, label: 'Cancelado' }
+        pendiente: { color: 'bg-yellow-100 text-yellow-700 border-yellow-200', icon: Clock, label: t('operations.statePendiente') },
+        confirmado: { color: 'bg-indigo-100 text-indigo-700 border-indigo-200', icon: CheckCircle, label: t('operations.stateConfirmado') },
+        en_preparacion: { color: 'bg-purple-100 text-purple-700 border-purple-200', icon: Package, label: t('operations.statePreparacion') },
+        en_ruta: { color: 'bg-cyan-100 text-cyan-700 border-cyan-200', icon: Truck, label: t('operations.stateEnRuta') },
+        en_sitio: { color: 'bg-amber-100 text-amber-700 border-amber-200', icon: MapPin, label: t('operations.stateEnSitio') },
+        en_proceso: { color: 'bg-blue-100 text-blue-700 border-blue-200', icon: RefreshCw, label: t('operations.stateEnProceso') },
+        en_revision: { color: 'bg-amber-100 text-amber-700 border-amber-200', icon: Search, label: t('operations.stateEnRevision') },
+        en_reparacion: { color: 'bg-orange-100 text-orange-700 border-orange-200', icon: Wrench, label: t('operations.stateEnReparacion') },
+        completado: { color: 'bg-green-100 text-green-700 border-green-200', icon: CheckCircle, label: t('operations.stateCompletado') },
+        cancelado: { color: 'bg-red-100 text-red-700 border-red-200', icon: XCircle, label: t('operations.stateCancelado') }
     }
     return config[estado] || config.pendiente
 }
 
-const getTipoConfig = (tipo) => {
+const getTipoConfig = (tipo, t) => {
     const config = {
-        montaje: { color: 'bg-emerald-100 text-emerald-700', icon: Package, label: 'Montaje' },
-        desmontaje: { color: 'bg-orange-100 text-orange-700', icon: Truck, label: 'Desmontaje' },
-        mantenimiento: { color: 'bg-blue-100 text-blue-700', icon: Wrench, label: 'Mantenimiento' },
-        traslado: { color: 'bg-purple-100 text-purple-700', icon: ArrowRightLeft, label: 'Traslado' },
-        revision: { color: 'bg-green-100 text-green-700', icon: ClipboardCheck, label: 'Revisión' },
-        inventario: { color: 'bg-amber-100 text-amber-700', icon: Boxes, label: 'Inventario' },
-        otro: { color: 'bg-slate-100 text-slate-700', icon: Package, label: 'Otro' }
+        montaje: { color: 'bg-emerald-100 text-emerald-700', icon: Package, label: t('operations.typeMontaje') },
+        desmontaje: { color: 'bg-orange-100 text-orange-700', icon: Truck, label: t('operations.typeDesmontaje') },
+        mantenimiento: { color: 'bg-blue-100 text-blue-700', icon: Wrench, label: t('operations.typeMantenimiento') },
+        traslado: { color: 'bg-purple-100 text-purple-700', icon: ArrowRightLeft, label: t('operations.typeTraslado') },
+        revision: { color: 'bg-green-100 text-green-700', icon: ClipboardCheck, label: t('operations.typeRevision') },
+        inventario: { color: 'bg-amber-100 text-amber-700', icon: Boxes, label: t('operations.typeInventario') },
+        otro: { color: 'bg-slate-100 text-slate-700', icon: Package, label: t('operations.typeOtro') }
     }
     return config[tipo] || config.otro
 }
 
 const formatFecha = (fecha) => {
-    if (!fecha) return 'Sin fecha'
+    if (!fecha) return null
     return new Date(fecha).toLocaleDateString('es-CO', {
         weekday: 'short',
         day: 'numeric',
@@ -179,7 +179,7 @@ const getColorProgreso = (estado) => {
 // ============================================
 // COMPONENTE: Fila clickable de orden dentro de tarjeta
 // ============================================
-const OrdenRow = ({ orden, tipo, navigate }) => {
+const OrdenRow = ({ orden, tipo, navigate, t }) => {
     if (!orden) {
         return (
             <div className="flex items-center gap-3 px-4 py-3 text-slate-400">
@@ -189,12 +189,12 @@ const OrdenRow = ({ orden, tipo, navigate }) => {
                         : <Truck className="w-4 h-4" />
                     }
                 </div>
-                <span className="text-xs italic">Sin {tipo} programado</span>
+                <span className="text-xs italic">{t('operations.noScheduled', { type: tipo })}</span>
             </div>
         )
     }
 
-    const config = getEstadoConfig(orden.estado)
+    const config = getEstadoConfig(orden.estado, t)
     const progreso = getProgresoOrden(orden.estado, tipo)
     const colorProgreso = getColorProgreso(orden.estado)
     const tieneResponsable = (orden.total_equipo || 0) > 0
@@ -228,7 +228,7 @@ const OrdenRow = ({ orden, tipo, navigate }) => {
                         </span>
                     ) : orden.estado !== 'completado' && orden.estado !== 'cancelado' && (
                         <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-50 text-amber-600 border border-amber-200">
-                            Sin resp.
+                            {t('operations.noResp')}
                         </span>
                     )}
                 </div>
@@ -243,7 +243,7 @@ const OrdenRow = ({ orden, tipo, navigate }) => {
                     <span className="text-[10px] text-slate-400 w-7 text-right">{progreso}%</span>
                     {(orden.total_elementos > 0) && (
                         <span className="text-[10px] text-slate-400">
-                            {orden.total_elementos} elem.
+                            {t('operations.elemCount', { count: orden.total_elementos })}
                         </span>
                     )}
                 </div>
@@ -262,7 +262,7 @@ const OrdenRow = ({ orden, tipo, navigate }) => {
 // ============================================
 // COMPONENTE: Tarjeta de Evento (mejorada)
 // ============================================
-const EventoCard = ({ evento, navigate }) => {
+const EventoCard = ({ evento, navigate, t }) => {
     const montaje = evento.montaje
     const desmontaje = evento.desmontaje
 
@@ -295,7 +295,7 @@ const EventoCard = ({ evento, navigate }) => {
                     <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                             <p className="font-semibold text-slate-900 truncate">
-                                {evento.evento_nombre || evento.cliente_nombre || 'Evento'}
+                                {evento.evento_nombre || evento.cliente_nombre || t('operations.event')}
                             </p>
                             {hayOrdenActiva && (
                                 <span className="relative flex h-2 w-2 shrink-0">
@@ -322,7 +322,7 @@ const EventoCard = ({ evento, navigate }) => {
                                     }}
                                     className="text-[11px] text-orange-500 hover:text-orange-700 hover:underline flex items-center gap-0.5"
                                 >
-                                    Alquiler #{evento.alquiler_id}
+                                    {t('operations.rentalLabel', { id: evento.alquiler_id })}
                                     <ExternalLink className="w-3 h-3" />
                                 </button>
                             )}
@@ -330,7 +330,7 @@ const EventoCard = ({ evento, navigate }) => {
                     </div>
                     {montaje && (
                         <div className="text-right shrink-0 ml-3">
-                            <p className="text-[11px] text-slate-400">Productos</p>
+                            <p className="text-[11px] text-slate-400">{t('operations.products')}</p>
                             <p className="text-sm font-semibold text-slate-700">{montaje.total_productos || 0}</p>
                         </div>
                     )}
@@ -348,8 +348,8 @@ const EventoCard = ({ evento, navigate }) => {
 
             {/* Órdenes clickables */}
             <div className="divide-y divide-slate-100">
-                <OrdenRow orden={montaje} tipo="montaje" navigate={navigate} />
-                <OrdenRow orden={desmontaje} tipo="desmontaje" navigate={navigate} />
+                <OrdenRow orden={montaje} tipo="montaje" navigate={navigate} t={t} />
+                <OrdenRow orden={desmontaje} tipo="desmontaje" navigate={navigate} t={t} />
             </div>
         </div>
     )
@@ -358,9 +358,9 @@ const EventoCard = ({ evento, navigate }) => {
 // ============================================
 // COMPONENTE: Fila de orden manual
 // ============================================
-const OrdenManualRow = ({ orden, navigate }) => {
-    const tipoConfig = getTipoConfig(orden.tipo)
-    const estadoConfig = getEstadoConfig(orden.estado)
+const OrdenManualRow = ({ orden, navigate, t }) => {
+    const tipoConfig = getTipoConfig(orden.tipo, t)
+    const estadoConfig = getEstadoConfig(orden.estado, t)
     const TipoIcon = tipoConfig.icon
     const EstadoIcon = estadoConfig.icon
 
@@ -421,7 +421,7 @@ const OrdenManualRow = ({ orden, navigate }) => {
 // ============================================
 // COMPONENTE: Modal Nueva Orden Manual
 // ============================================
-const ModalNuevaOrden = ({ onClose, onSave }) => {
+const ModalNuevaOrden = ({ onClose, onSave, t }) => {
     const [formData, setFormData] = useState({
         tipo: 'mantenimiento',
         fecha_programada: '',
@@ -434,11 +434,11 @@ const ModalNuevaOrden = ({ onClose, onSave }) => {
     const [saving, setSaving] = useState(false)
 
     const tiposOrden = [
-        { value: 'mantenimiento', label: 'Mantenimiento', icon: Wrench, color: 'text-blue-600' },
-        { value: 'traslado', label: 'Traslado', icon: ArrowRightLeft, color: 'text-purple-600' },
-        { value: 'revision', label: 'Revisión', icon: ClipboardCheck, color: 'text-green-600' },
-        { value: 'inventario', label: 'Inventario', icon: Boxes, color: 'text-amber-600' },
-        { value: 'otro', label: 'Otro', icon: Package, color: 'text-slate-600' }
+        { value: 'mantenimiento', label: t('operations.typeMantenimiento'), icon: Wrench, color: 'text-blue-600' },
+        { value: 'traslado', label: t('operations.typeTraslado'), icon: ArrowRightLeft, color: 'text-purple-600' },
+        { value: 'revision', label: t('operations.typeRevision'), icon: ClipboardCheck, color: 'text-green-600' },
+        { value: 'inventario', label: t('operations.typeInventario'), icon: Boxes, color: 'text-amber-600' },
+        { value: 'otro', label: t('operations.typeOtro'), icon: Package, color: 'text-slate-600' }
     ]
 
     const handleChange = (e) => {
@@ -448,7 +448,7 @@ const ModalNuevaOrden = ({ onClose, onSave }) => {
 
     const handleGuardar = async () => {
         if (!formData.fecha_programada) {
-            toast.error('La fecha es requerida')
+            toast.error(t('operations.dateIsRequired'))
             return
         }
 
@@ -473,12 +473,12 @@ const ModalNuevaOrden = ({ onClose, onSave }) => {
     }
 
     return (
-        <Modal isOpen={true} onClose={onClose} title="Nueva Orden de Trabajo" size="md">
+        <Modal isOpen={true} onClose={onClose} title={t('operations.newWorkOrder')} size="md">
             <div className="space-y-4">
                 {/* Tipo de orden */}
                 <div>
                     <label className="block text-sm font-medium text-slate-700 mb-2">
-                        Tipo de Orden
+                        {t('operations.orderType')}
                     </label>
                     <div className="grid grid-cols-2 gap-2">
                         {tiposOrden.map((tipo) => {
@@ -506,7 +506,7 @@ const ModalNuevaOrden = ({ onClose, onSave }) => {
                 <div className="grid grid-cols-2 gap-4">
                     <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1">
-                            Fecha *
+                            {t('operations.dateRequired')}
                         </label>
                         <input
                             type="date"
@@ -518,7 +518,7 @@ const ModalNuevaOrden = ({ onClose, onSave }) => {
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1">
-                            Hora
+                            {t('operations.hour')}
                         </label>
                         <input
                             type="time"
@@ -533,7 +533,7 @@ const ModalNuevaOrden = ({ onClose, onSave }) => {
                 {/* Prioridad */}
                 <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1">
-                        Prioridad
+                        {t('operations.priority')}
                     </label>
                     <select
                         name="prioridad"
@@ -541,24 +541,24 @@ const ModalNuevaOrden = ({ onClose, onSave }) => {
                         onChange={handleChange}
                         className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
                     >
-                        <option value="baja">Baja</option>
-                        <option value="normal">Normal</option>
-                        <option value="alta">Alta</option>
-                        <option value="urgente">Urgente</option>
+                        <option value="baja">{t('operations.priorityLow')}</option>
+                        <option value="normal">{t('operations.priorityNormal')}</option>
+                        <option value="alta">{t('operations.priorityHigh')}</option>
+                        <option value="urgente">{t('operations.priorityUrgent')}</option>
                     </select>
                 </div>
 
                 {/* Dirección */}
                 <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1">
-                        Dirección (opcional)
+                        {t('operations.addressOptional')}
                     </label>
                     <input
                         type="text"
                         name="direccion_destino"
                         value={formData.direccion_destino}
                         onChange={handleChange}
-                        placeholder="Dirección del destino..."
+                        placeholder={t('operations.addressPlaceholder')}
                         className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
                     />
                 </div>
@@ -566,14 +566,14 @@ const ModalNuevaOrden = ({ onClose, onSave }) => {
                 {/* Ciudad */}
                 <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1">
-                        Ciudad (opcional)
+                        {t('operations.cityOptional')}
                     </label>
                     <input
                         type="text"
                         name="ciudad_destino"
                         value={formData.ciudad_destino}
                         onChange={handleChange}
-                        placeholder="Ciudad..."
+                        placeholder={t('operations.cityPlaceholder')}
                         className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
                     />
                 </div>
@@ -581,14 +581,14 @@ const ModalNuevaOrden = ({ onClose, onSave }) => {
                 {/* Notas */}
                 <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1">
-                        Notas
+                        {t('operations.notesLabel')}
                     </label>
                     <textarea
                         name="notas"
                         value={formData.notas}
                         onChange={handleChange}
                         rows={3}
-                        placeholder="Descripción de la orden..."
+                        placeholder={t('operations.notesPlaceholder')}
                         className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 resize-none"
                     />
                 </div>
@@ -596,7 +596,7 @@ const ModalNuevaOrden = ({ onClose, onSave }) => {
 
             <Modal.Footer>
                 <Button variant="secondary" onClick={onClose}>
-                    Cancelar
+                    {t('common.cancel')}
                 </Button>
                 <Button
                     color="orange"
@@ -604,7 +604,7 @@ const ModalNuevaOrden = ({ onClose, onSave }) => {
                     onClick={handleGuardar}
                     disabled={saving || !formData.fecha_programada}
                 >
-                    {saving ? 'Creando...' : 'Crear Orden'}
+                    {saving ? t('operations.creating') : t('operations.createOrder')}
                 </Button>
             </Modal.Footer>
         </Modal>
@@ -615,6 +615,7 @@ const ModalNuevaOrden = ({ onClose, onSave }) => {
 // COMPONENTE PRINCIPAL
 // ============================================
 export default function OrdenesTrabajoPage() {
+    const { t } = useTranslation()
     const navigate = useNavigate()
     const { hasRole } = useAuth()
 
@@ -672,10 +673,10 @@ export default function OrdenesTrabajoPage() {
     const handleCrearOrden = async (datos) => {
         try {
             await crearOrdenManual.mutateAsync(datos)
-            toast.success('Orden creada correctamente')
+            toast.success(t('operations.orderCreated'))
             refetch()
         } catch (error) {
-            toast.error(error?.response?.data?.message || 'Error al crear la orden')
+            toast.error(error?.response?.data?.message || t('operations.errorCreatingOrder'))
             throw error
         }
     }
@@ -698,7 +699,7 @@ export default function OrdenesTrabajoPage() {
     if (isLoading) {
         return (
             <div className="flex justify-center py-12">
-                <Spinner size="lg" text="Cargando órdenes..." />
+                <Spinner size="lg" text={t('operations.loadingOrders')} />
             </div>
         )
     }
@@ -713,10 +714,10 @@ export default function OrdenesTrabajoPage() {
                             <div className="p-2 bg-blue-100 rounded-lg">
                                 <ClipboardList className="w-6 h-6 text-blue-600" />
                             </div>
-                            Órdenes de Trabajo
+                            {t('operations.workOrders')}
                         </h1>
                         <p className="text-slate-500 mt-1">
-                            Gestión de órdenes de montaje, desmontaje y más
+                            {t('operations.ordersManagement')}
                         </p>
                     </div>
 
@@ -727,7 +728,7 @@ export default function OrdenesTrabajoPage() {
                                 icon={<Plus />}
                                 onClick={() => setShowModalNuevaOrden(true)}
                             >
-                                Nueva Orden
+                                {t('operations.newOrder')}
                             </Button>
                         </div>
                     )}
@@ -748,7 +749,7 @@ export default function OrdenesTrabajoPage() {
                                 : 'text-slate-500 hover:text-slate-700'
                         }`}
                     >
-                        Mis Ordenes
+                        {t('operations.myOrders')}
                     </button>
                     <button
                         onClick={() => setVistaOrden('disponibles')}
@@ -758,7 +759,7 @@ export default function OrdenesTrabajoPage() {
                                 : 'text-slate-500 hover:text-slate-700'
                         }`}
                     >
-                        Sin asignar
+                        {t('operations.unassigned')}
                     </button>
                 </div>
             )}
@@ -770,7 +771,7 @@ export default function OrdenesTrabajoPage() {
                         <Search className="w-5 h-5 text-slate-400 shrink-0" />
                         <input
                             type="text"
-                            placeholder="Buscar por cliente, producto, evento o ciudad..."
+                            placeholder={t('operations.searchOrdersPlaceholder')}
                             value={busqueda}
                             onChange={(e) => setBusqueda(e.target.value)}
                             className="flex-1 border-0 focus:ring-0 text-sm placeholder:text-slate-400 outline-none"
@@ -793,7 +794,7 @@ export default function OrdenesTrabajoPage() {
                         }`}
                     >
                         <Filter className="w-5 h-5" />
-                        <span>Filtros</span>
+                        <span>{t('operations.filters')}</span>
                         {filtrosActivos && (
                             <span className="px-2 py-0.5 bg-orange-500 text-white text-xs rounded-full">
                                 {Object.values(filtros).filter(v => v !== '').length + (debouncedBusqueda ? 1 : 0)}
@@ -809,42 +810,42 @@ export default function OrdenesTrabajoPage() {
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 mb-1">
-                                    Estado
+                                    {t('operations.stateFilter')}
                                 </label>
                                 <select
                                     value={filtros.estado}
                                     onChange={(e) => setFiltros({ ...filtros, estado: e.target.value })}
                                     className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
                                 >
-                                    <option value="">Todos</option>
-                                    <option value="pendiente">Pendiente</option>
-                                    <option value="confirmado">Confirmado</option>
-                                    <option value="en_preparacion">En preparación</option>
-                                    <option value="en_ruta">En ruta</option>
-                                    <option value="en_proceso">En proceso</option>
-                                    <option value="en_revision">En revisión</option>
-                                    <option value="en_reparacion">En reparación</option>
-                                    <option value="completado">Completado</option>
-                                    <option value="cancelado">Cancelado</option>
+                                    <option value="">{t('operations.allFilter')}</option>
+                                    <option value="pendiente">{t('operations.statePendiente')}</option>
+                                    <option value="confirmado">{t('operations.stateConfirmado')}</option>
+                                    <option value="en_preparacion">{t('operations.statePreparacion')}</option>
+                                    <option value="en_ruta">{t('operations.stateEnRuta')}</option>
+                                    <option value="en_proceso">{t('operations.stateEnProceso')}</option>
+                                    <option value="en_revision">{t('operations.stateEnRevision')}</option>
+                                    <option value="en_reparacion">{t('operations.stateEnReparacion')}</option>
+                                    <option value="completado">{t('operations.stateCompletado')}</option>
+                                    <option value="cancelado">{t('operations.stateCancelado')}</option>
                                 </select>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 mb-1">
-                                    Tipo
+                                    {t('operations.typeFilter')}
                                 </label>
                                 <select
                                     value={filtros.tipo}
                                     onChange={(e) => setFiltros({ ...filtros, tipo: e.target.value })}
                                     className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
                                 >
-                                    <option value="">Todos</option>
-                                    <option value="montaje">Montaje</option>
-                                    <option value="desmontaje">Desmontaje</option>
+                                    <option value="">{t('operations.allFilter')}</option>
+                                    <option value="montaje">{t('operations.typeMontaje')}</option>
+                                    <option value="desmontaje">{t('operations.typeDesmontaje')}</option>
                                 </select>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 mb-1">
-                                    Desde
+                                    {t('operations.fromDate')}
                                 </label>
                                 <input
                                     type="date"
@@ -855,7 +856,7 @@ export default function OrdenesTrabajoPage() {
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 mb-1">
-                                    Hasta
+                                    {t('operations.toDate')}
                                 </label>
                                 <input
                                     type="date"
@@ -871,7 +872,7 @@ export default function OrdenesTrabajoPage() {
                                     onClick={handleLimpiarFiltros}
                                     className="text-sm text-orange-600 hover:text-orange-700 font-medium"
                                 >
-                                    Limpiar filtros
+                                    {t('operations.clearFilters')}
                                 </button>
                             </div>
                         )}
@@ -882,14 +883,14 @@ export default function OrdenesTrabajoPage() {
             {/* CONTADOR */}
             <div className="mb-4 text-sm text-slate-500">
                 {eventosActivos.length > 0 && (
-                    <span>{eventosActivos.length} evento{eventosActivos.length !== 1 ? 's' : ''} activo{eventosActivos.length !== 1 ? 's' : ''}</span>
+                    <span>{eventosActivos.length !== 1 ? t('operations.activeEventsCountPlural', { count: eventosActivos.length }) : t('operations.activeEventsCount', { count: eventosActivos.length })}</span>
                 )}
                 {eventosActivos.length > 0 && manualesActivos.length > 0 && <span> · </span>}
                 {manualesActivos.length > 0 && (
-                    <span>{manualesActivos.length} orden{manualesActivos.length !== 1 ? 'es' : ''} manual{manualesActivos.length !== 1 ? 'es' : ''}</span>
+                    <span>{manualesActivos.length !== 1 ? t('operations.manualOrdersCountPlural', { count: manualesActivos.length }) : t('operations.manualOrdersCount', { count: manualesActivos.length })}</span>
                 )}
                 {eventosActivos.length === 0 && manualesActivos.length === 0 && (
-                    <span>0 órdenes</span>
+                    <span>{t('operations.zeroOrders')}</span>
                 )}
             </div>
 
@@ -897,7 +898,7 @@ export default function OrdenesTrabajoPage() {
             {eventosActivos.length > 0 && (
                 <div className="mb-8">
                     <h2 className="text-sm font-semibold text-slate-700 uppercase tracking-wider mb-3">
-                        Eventos Activos
+                        {t('operations.activeEventsSection')}
                     </h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {eventosActivos.map((evento, idx) => (
@@ -905,6 +906,7 @@ export default function OrdenesTrabajoPage() {
                                 key={evento.alquiler_id || idx}
                                 evento={evento}
                                 navigate={navigate}
+                                t={t}
                             />
                         ))}
                     </div>
@@ -915,7 +917,7 @@ export default function OrdenesTrabajoPage() {
             {manualesActivos.length > 0 && (
                 <div className="mb-8">
                     <h2 className="text-sm font-semibold text-slate-700 uppercase tracking-wider mb-3">
-                        Órdenes Manuales
+                        {t('operations.manualOrdersSection')}
                     </h2>
                     <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
                         <div className="divide-y divide-slate-100">
@@ -924,6 +926,7 @@ export default function OrdenesTrabajoPage() {
                                     key={orden.id}
                                     orden={orden}
                                     navigate={navigate}
+                                    t={t}
                                 />
                             ))}
                         </div>
@@ -936,12 +939,12 @@ export default function OrdenesTrabajoPage() {
                 <div className="bg-white rounded-xl border border-slate-200 p-12 text-center">
                     <Truck className="w-12 h-12 text-slate-300 mx-auto mb-4" />
                     <h3 className="text-lg font-medium text-slate-900 mb-2">
-                        No hay órdenes de trabajo
+                        {t('operations.noWorkOrders')}
                     </h3>
                     <p className="text-slate-500 mb-4">
                         {filtrosActivos
-                            ? 'No se encontraron órdenes con los filtros aplicados'
-                            : 'Aún no se han creado órdenes de trabajo'}
+                            ? t('operations.noOrdersWithFilters')
+                            : t('operations.noOrdersYet')}
                     </p>
                     {filtrosActivos && (
                         <button
@@ -959,6 +962,7 @@ export default function OrdenesTrabajoPage() {
                 <ModalNuevaOrden
                     onClose={() => setShowModalNuevaOrden(false)}
                     onSave={handleCrearOrden}
+                    t={t}
                 />
             )}
         </div>

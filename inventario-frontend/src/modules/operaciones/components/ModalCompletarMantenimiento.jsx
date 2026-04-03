@@ -24,8 +24,8 @@ import { useTranslation } from 'react-i18next'
 const ElementoMantenimientoItem = ({ elemento, resultado, onChange }) => {
   const { t } = useTranslation()
     const estados = [
-        { value: true, label: 'Reparado', icon: CheckCircle, bgSelected: 'bg-green-100 border-green-500 text-green-700', iconColor: 'text-green-600' },
-        { value: false, label: 'No reparable', icon: XCircle, bgSelected: 'bg-red-100 border-red-500 text-red-700', iconColor: 'text-red-600' }
+        { value: true, label: t('operations.maintenanceModal.repaired'), icon: CheckCircle, bgSelected: 'bg-green-100 border-green-500 text-green-700', iconColor: 'text-green-600' },
+        { value: false, label: t('operations.maintenanceModal.notRepairable'), icon: XCircle, bgSelected: 'bg-red-100 border-red-500 text-red-700', iconColor: 'text-red-600' }
     ]
 
     return (
@@ -93,6 +93,7 @@ const ElementoMantenimientoItem = ({ elemento, resultado, onChange }) => {
 // COMPONENTE PRINCIPAL: ModalCompletarMantenimiento
 // ============================================
 const ModalCompletarMantenimiento = ({ isOpen, onClose, elementos, onConfirm, loading }) => {
+    const { t } = useTranslation()
     // Inicializar resultados: todos como null (sin decidir)
     const [resultados, setResultados] = useState(() => {
         const initial = {}
@@ -142,9 +143,9 @@ const ModalCompletarMantenimiento = ({ isOpen, onClose, elementos, onConfirm, lo
                         <Wrench className="w-5 h-5 text-orange-600" />
                     </div>
                     <div>
-                        <h3 className="font-semibold text-slate-900">Completar Mantenimiento</h3>
+                        <h3 className="font-semibold text-slate-900">{t('operations.maintenanceModal.completeMaintenanceTitle')}</h3>
                         <p className="text-sm text-slate-500">
-                            Marca el resultado de cada elemento
+                            {t('operations.maintenanceModal.markResult')}
                         </p>
                     </div>
                 </div>
@@ -154,8 +155,7 @@ const ModalCompletarMantenimiento = ({ isOpen, onClose, elementos, onConfirm, lo
             <div className="space-y-4">
                 {/* Instrucciones */}
                 <div className="p-3 rounded-lg border bg-orange-50 border-orange-200 text-sm text-orange-700">
-                    Indica si cada elemento fue reparado exitosamente o si no es reparable.
-                    Los elementos reparados volverán al inventario como disponibles.
+                    {t('operations.maintenanceModal.instructions')}
                 </div>
 
                 {/* Botón marcar todos */}
@@ -164,7 +164,7 @@ const ModalCompletarMantenimiento = ({ isOpen, onClose, elementos, onConfirm, lo
                         onClick={handleTodosReparados}
                         className="text-xs text-green-600 hover:text-green-700 font-medium hover:underline"
                     >
-                        Marcar todos como reparados
+                        {t('operations.maintenanceModal.markAllRepaired')}
                     </button>
                 </div>
 
@@ -183,15 +183,15 @@ const ModalCompletarMantenimiento = ({ isOpen, onClose, elementos, onConfirm, lo
                 {/* Resumen */}
                 {todosDecididos && (
                     <div className="flex items-center gap-4 p-3 bg-slate-50 border border-slate-200 rounded-lg text-sm">
-                        <span className="font-medium text-slate-700">Resumen:</span>
+                        <span className="font-medium text-slate-700">{t('operations.maintenanceModal.summary')}</span>
                         <span className="flex items-center gap-1 text-green-700">
                             <CheckCircle className="w-4 h-4" />
-                            {resumen.reparados} reparado{resumen.reparados !== 1 ? 's' : ''}
+                            {t('operations.maintenanceModal.repairedCount', { count: resumen.reparados })}
                         </span>
                         {resumen.noReparables > 0 && (
                             <span className="flex items-center gap-1 text-red-700">
                                 <XCircle className="w-4 h-4" />
-                                {resumen.noReparables} no reparable{resumen.noReparables !== 1 ? 's' : ''}
+                                {t('operations.maintenanceModal.notRepairableCount', { count: resumen.noReparables })}
                             </span>
                         )}
                     </div>
@@ -200,7 +200,7 @@ const ModalCompletarMantenimiento = ({ isOpen, onClose, elementos, onConfirm, lo
                 {/* Botones */}
                 <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200">
                     <Button variant="secondary" onClick={onClose}>
-                        Cancelar
+                        {t('common.cancel')}
                     </Button>
                     <Button
                         color="green"
@@ -208,7 +208,7 @@ const ModalCompletarMantenimiento = ({ isOpen, onClose, elementos, onConfirm, lo
                         onClick={handleConfirmar}
                         disabled={!todosDecididos || loading}
                     >
-                        {loading ? 'Completando...' : 'Completar Mantenimiento'}
+                        {loading ? t('operations.maintenanceModal.completing') : t('operations.maintenanceModal.completeMaintenanceTitle')}
                     </Button>
                 </div>
             </div>

@@ -113,7 +113,7 @@ const AlquilerTimeline = ({
     eventos.push({
       id: 'cotizacion_creada',
       icono: FileText,
-      titulo: 'Cotización creada',
+      titulo: t('rentals.timelineEvents.quoteCreated'),
       fecha: formatFechaHora(cotizacion.created_at),
       completado: true,
       color: 'blue'
@@ -126,7 +126,7 @@ const AlquilerTimeline = ({
     eventos.push({
       id: 'cotizacion_aprobada',
       icono: CheckCircle,
-      titulo: 'Cotización aprobada',
+      titulo: t('rentals.timelineEvents.quoteApproved'),
       fecha: formatFechaHora(fechaAprobacion),
       completado: true,
       color: 'green'
@@ -138,9 +138,9 @@ const AlquilerTimeline = ({
     eventos.push({
       id: 'alquiler_programado',
       icono: Calendar,
-      titulo: 'Alquiler programado',
+      titulo: t('rentals.timelineEvents.rentalScheduled'),
       fecha: formatFechaHora(alquiler.created_at),
-      detalle: `Retorno esperado: ${formatFecha(alquiler.fecha_retorno_esperado)}`,
+      detalle: t('rentals.timelineEvents.expectedReturn', { date: formatFecha(alquiler.fecha_retorno_esperado) }),
       completado: true,
       color: 'purple'
     })
@@ -151,9 +151,9 @@ const AlquilerTimeline = ({
     eventos.push({
       id: 'elementos_asignados',
       icono: Package,
-      titulo: 'Elementos asignados',
+      titulo: t('rentals.timelineEvents.elementsAssigned'),
       fecha: formatFechaHora(elementosAsignados.fecha),
-      detalle: `${elementosAsignados.cantidad} elemento${elementosAsignados.cantidad !== 1 ? 's' : ''}`,
+      detalle: t('rentals.timelineEvents.elementCount', { count: elementosAsignados.cantidad }),
       completado: true,
       color: 'indigo'
     })
@@ -161,9 +161,9 @@ const AlquilerTimeline = ({
     eventos.push({
       id: 'elementos_pendientes',
       icono: Package,
-      titulo: 'Asignación de elementos',
+      titulo: t('rentals.timelineEvents.elementAssignmentPending'),
       fecha: null,
-      detalle: 'Pendiente',
+      detalle: t('rentals.pending'),
       completado: false,
       color: 'gray'
     })
@@ -174,7 +174,7 @@ const AlquilerTimeline = ({
     eventos.push({
       id: 'salida_marcada',
       icono: LogOut,
-      titulo: 'Salida marcada',
+      titulo: t('rentals.timelineEvents.departureMade'),
       fecha: formatFechaHora(alquiler.fecha_salida),
       completado: true,
       color: 'orange'
@@ -183,9 +183,9 @@ const AlquilerTimeline = ({
     eventos.push({
       id: 'salida_pendiente',
       icono: LogOut,
-      titulo: 'Marcar salida',
-      fecha: `Programado: ${formatFecha(alquiler.fecha_salida)}`,
-      detalle: 'Pendiente',
+      titulo: t('rentals.timelineEvents.markDeparture'),
+      fecha: t('rentals.timelineEvents.scheduledDate', { date: formatFecha(alquiler.fecha_salida) }),
+      detalle: t('rentals.pending'),
       completado: false,
       color: 'gray'
     })
@@ -196,10 +196,10 @@ const AlquilerTimeline = ({
     eventos.push({
       id: 'retorno_registrado',
       icono: LogIn,
-      titulo: 'Retorno registrado',
+      titulo: t('rentals.timelineEvents.returnRegistered'),
       fecha: formatFechaHora(alquiler.fecha_retorno_real),
       detalle: elementosRetornados
-        ? `${elementosRetornados.cantidad} de ${elementosRetornados.total} elementos`
+        ? t('rentals.timelineEvents.elementsOfTotal', { count: elementosRetornados.cantidad, total: elementosRetornados.total })
         : null,
       completado: true,
       color: 'teal'
@@ -212,9 +212,9 @@ const AlquilerTimeline = ({
     eventos.push({
       id: 'retorno_pendiente',
       icono: LogIn,
-      titulo: 'Marcar retorno',
-      fecha: `Esperado: ${formatFecha(alquiler.fecha_retorno_esperado)}`,
-      detalle: vencido ? 'Vencido' : 'Pendiente',
+      titulo: t('rentals.timelineEvents.markReturn'),
+      fecha: t('rentals.timelineEvents.expectedDate', { date: formatFecha(alquiler.fecha_retorno_esperado) }),
+      detalle: vencido ? t('rentals.timelineEvents.overdue') : t('rentals.pending'),
       completado: false,
       color: vencido ? 'red' : 'gray'
     })
@@ -225,7 +225,7 @@ const AlquilerTimeline = ({
     eventos.push({
       id: 'cancelado',
       icono: XCircle,
-      titulo: 'Alquiler cancelado',
+      titulo: t('rentals.timelineEvents.rentalCancelled'),
       fecha: null,
       completado: true,
       color: 'red'
@@ -307,7 +307,7 @@ const AlquilerTimeline = ({
   if (eventos.length === 0) {
     return (
       <div className="text-center text-slate-500 py-4">
-        No hay eventos registrados
+        {t('rentals.timelineEvents.noEventsRegistered')}
       </div>
     )
   }
@@ -355,7 +355,7 @@ const AlquilerTimeline = ({
                     <p className={`
                       text-xs mt-0.5
                       ${evento.completado ? 'text-slate-500' : 'text-slate-400'}
-                      ${evento.detalle === 'Vencido' ? 'text-red-500 font-medium' : ''}
+                      ${evento.detalle === t('rentals.timelineEvents.overdue') ? 'text-red-500 font-medium' : ''}
                     `}>
                       {evento.detalle}
                     </p>

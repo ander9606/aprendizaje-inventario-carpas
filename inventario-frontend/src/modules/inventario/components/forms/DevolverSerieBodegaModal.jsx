@@ -39,6 +39,7 @@ function DevolverSerieBodegaModal({
   serie,
   elemento
 }) {
+  const { t } = useTranslation()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const queryClient = useQueryClient()
 
@@ -53,12 +54,12 @@ function DevolverSerieBodegaModal({
 
   const handleDevolver = async (estadoDestino) => {
     if (!serie || !elemento) {
-      toast.error('Datos incompletos')
+      toast.error(t('inventory.incompleteData'))
       return
     }
 
     if (!ubicacionPrincipal) {
-      toast.error('No hay ubicación principal configurada')
+      toast.error(t('inventory.noMainLocationError'))
       return
     }
 
@@ -84,7 +85,7 @@ function DevolverSerieBodegaModal({
       })
 
       toast.success(
-        `Serie ${serie.numero_serie} devuelta a ${ubicacionPrincipal.nombre} como "${estadoDestino}"`
+        t('inventory.serieReturnedSuccess', { serial: serie.numero_serie, name: ubicacionPrincipal.nombre, state: estadoDestino })
       )
 
       onSuccess?.()

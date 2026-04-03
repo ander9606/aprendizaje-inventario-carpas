@@ -67,6 +67,7 @@ function SerieFormModal({
   /**
    * isEditMode: true si estamos editando
    */
+  const { t } = useTranslation()
   const isEditMode = serie && serie.id
 
   // ============================================
@@ -166,25 +167,25 @@ function SerieFormModal({
 
     // Validar número de serie
     if (!formData.numero_serie.trim()) {
-      newErrors.numero_serie = 'El número de serie es obligatorio'
+      newErrors.numero_serie = t('inventory.serialRequired')
     } else if (formData.numero_serie.trim().length < 3) {
-      newErrors.numero_serie = 'Debe tener al menos 3 caracteres'
+      newErrors.numero_serie = t('inventory.serialMinLength')
     }
 
     // Validar estado
     if (!formData.estado) {
-      newErrors.estado = 'Selecciona un estado'
+      newErrors.estado = t('inventory.selectAState')
     }
 
     // Validar ubicación
     // REGLA: Si NO está alquilado, DEBE tener ubicación
     if (formData.estado !== ESTADOS.ALQUILADO && !formData.ubicacion_id) {
-      newErrors.ubicacion_id = 'La ubicación es obligatoria (excepto para alquilados)'
+      newErrors.ubicacion_id = t('inventory.locationRequiredForNonRented')
     }
 
     // Si está alquilado, ubicación debe ser null
     if (formData.estado === ESTADOS.ALQUILADO && formData.ubicacion_id) {
-      newErrors.ubicacion_id = 'Las series alquiladas no tienen ubicación física'
+      newErrors.ubicacion_id = t('inventory.rentedNoPhysicalLocation')
     }
 
     setErrors(newErrors)
@@ -286,7 +287,7 @@ function SerieFormModal({
         numero_serie: siguienteNumero
       }))
 
-      toast.success('Número generado automáticamente')
+      toast.success(t('inventory.numberGenerated'))
     } catch (error) {
       toast.error(error.message || 'Error al generar número')
     } finally {
@@ -302,7 +303,7 @@ function SerieFormModal({
 
     // Validar
     if (!validateForm()) {
-      toast.error('Por favor corrige los errores')
+      toast.error(t('inventory.fixErrors'))
       return
     }
 
@@ -330,24 +331,24 @@ function SerieFormModal({
     { id: serie.id, data: dataToSend },
     {
       onSuccess: () => {
-        toast.success('Serie actualizada exitosamente')
+        toast.success(t('inventory.serieUpdated'))
         onSuccess()
         onClose()
       },
       onError: (error) => {
-        toast.error(error.message || 'Error al actualizar serie')
+        toast.error(error.message || t('inventory.errorUpdatingSerie'))
       }
     }
   )
 } else {
   createSerieFn(dataToSend, {
     onSuccess: () => {
-      toast.success('Serie agregada exitosamente')
+      toast.success(t('inventory.serieAdded'))
       onSuccess()
       onClose()
     },
     onError: (error) => {
-      toast.error(error.message || 'Error al crear serie')
+      toast.error(error.message || t('inventory.errorCreatingSerie'))
     }
   })
 }}
@@ -361,7 +362,7 @@ function SerieFormModal({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={isEditMode ? 'Editar Serie' : `Agregar Serie a ${elemento?.nombre}`}
+      title={isEditMode ? t('inventory.editSerieTitle') : t('inventory.addSerieTitle', { name: elemento?.nombre })}
       size="md"
     >
       <form onSubmit={handleSubmit}>
@@ -371,7 +372,7 @@ function SerieFormModal({
             ============================================ */}
         <div className="mb-4">
           <label className="block text-sm font-medium text-slate-700 mb-2">
-            Número de Serie *
+            {t('inventory.serialNumberField')}
           </label>
 
           <div className="flex gap-2">
@@ -381,7 +382,7 @@ function SerieFormModal({
               name="numero_serie"
               value={formData.numero_serie}
               onChange={handleInputChange}
-              placeholder="Ej: DOITE-001"
+              placeholder={t('inventory.serialNumberPlaceholder')}
               disabled={isEditMode} // No se puede cambiar al editar
               className={`
                 flex-1 px-4 py-2 border rounded-lg
@@ -402,7 +403,7 @@ function SerieFormModal({
                 onClick={handleGenerarNumero}
                 disabled={isGeneratingNumber}
               >
-                {isGeneratingNumber ? 'Generando...' : '🎲 Auto'}
+                {isGeneratingNumber ? t('inventory.generating') : `🎲 ${t('inventory.autoGenerate')}`}
               </Button>
             )}
           </div>
@@ -416,7 +417,7 @@ function SerieFormModal({
           {/* Mensaje si está editando */}
           {isEditMode && (
             <p className="mt-1 text-sm text-slate-500">
-              El número de serie no se puede modificar
+              {t('inventory.serialCannotBeModified')}
             </p>
           )}
         </div>
@@ -426,7 +427,7 @@ function SerieFormModal({
             ============================================ */}
         <div className="mb-4">
           <label className="block text-sm font-medium text-slate-700 mb-3">
-            Estado *
+            {t('inventory.stateRequired')}
           </label>
 
           <div className="grid grid-cols-2 gap-2">
@@ -466,7 +467,7 @@ function SerieFormModal({
         {formData.estado !== ESTADOS.ALQUILADO && (
           <div className="mb-4">
             <label className="block text-sm font-medium text-slate-700 mb-2">
-              Ubicación *
+              {t('inventory.locationRequired')}
             </label>
             <div className="relative">
               <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -482,7 +483,7 @@ function SerieFormModal({
                   }
                 `}
               >
-                <option value="">Selecciona una ubicación...</option>
+                <option value="">{t('inventory.selectAnOption')}</option>
                 {ubicaciones.map((ubicacion) => (
                   <option key={ubicacion.id} value={ubicacion.id}>
                     {ubicacion.nombre}
@@ -500,8 +501,7 @@ function SerieFormModal({
         {formData.estado === ESTADOS.ALQUILADO && (
           <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
             <p className="text-sm text-blue-700">
-              ℹ️ Las series alquiladas no tienen ubicación física
-              (están fuera de las instalaciones)
+              {t('inventory.rentedNoPhysicalLocationLong')}
             </p>
           </div>
         )}
@@ -516,7 +516,7 @@ function SerieFormModal({
             onClick={onClose}
             disabled={mutationIsPending}
           >
-            Cancelar
+            {t('common.cancel')}
           </Button>
           <Button
             type="submit"
@@ -524,8 +524,8 @@ function SerieFormModal({
             disabled={mutationIsPending}
           >
             {mutationIsPending
-              ? (isEditMode ? 'Guardando...' : 'Agregando...')
-              : (isEditMode ? 'Guardar Cambios' : 'Agregar Serie')
+              ? (isEditMode ? t('inventory.saving') : t('inventory.addingSerie'))
+              : (isEditMode ? t('common.saveChanges') : t('inventory.addSerieBtnSubmit'))
             }
           </Button>
         </Modal.Footer>

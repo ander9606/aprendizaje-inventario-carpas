@@ -25,7 +25,6 @@ import { useTranslation } from 'react-i18next'
 
 // Hook personalizado para debounce
 const useDebounce = (value, delay) => {
-  const { t } = useTranslation()
     const [debouncedValue, setDebouncedValue] = useState(value)
 
     useEffect(() => {
@@ -40,6 +39,7 @@ const useDebounce = (value, delay) => {
 }
 
 export default function EmpleadosPage() {
+    const { t } = useTranslation()
     const navigate = useNavigate()
     const { hasRole } = useAuth()
 
@@ -112,13 +112,13 @@ export default function EmpleadosPage() {
             }
         } catch (error) {
             console.error('Error al cambiar estado:', error)
-            alert(error.response?.data?.message || 'Error al cambiar estado del empleado')
+            alert(error.response?.data?.message || t('operations.errorChangingEmployeeState'))
         }
     }
 
     const handleAprobar = async () => {
         if (!aprobarRolId) {
-            alert('Debes seleccionar un rol')
+            alert(t('operations.selectRoleRequired'))
             return
         }
         try {
@@ -126,7 +126,7 @@ export default function EmpleadosPage() {
             setAprobarModal({ open: false, empleado: null })
             setAprobarRolId('')
         } catch (error) {
-            alert(error.response?.data?.message || 'Error al aprobar solicitud')
+            alert(error.response?.data?.message || t('operations.errorApprovingRequest'))
         }
     }
 
@@ -136,7 +136,7 @@ export default function EmpleadosPage() {
             setRechazarModal({ open: false, empleado: null })
             setRechazarMotivo('')
         } catch (error) {
-            alert(error.response?.data?.message || 'Error al rechazar solicitud')
+            alert(error.response?.data?.message || t('operations.errorRejectingRequest'))
         }
     }
 
@@ -169,21 +169,21 @@ export default function EmpleadosPage() {
                 return (
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-700 border border-green-200">
                         <UserCheck className="w-4 h-4" />
-                        Activo
+                        {t('operations.stateActivo')}
                     </span>
                 )
             case 'inactivo':
                 return (
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-700 border border-red-200">
                         <UserX className="w-4 h-4" />
-                        Inactivo
+                        {t('operations.stateInactivo')}
                     </span>
                 )
             case 'pendiente':
                 return (
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium bg-amber-100 text-amber-700 border border-amber-200">
                         <Clock className="w-4 h-4" />
-                        Pendiente
+                        {t('operations.statePendienteEmp')}
                     </span>
                 )
             default:
@@ -195,7 +195,7 @@ export default function EmpleadosPage() {
     // RENDER: Estados de carga y error
     // ============================================
     if (isLoading) {
-        return <Spinner fullScreen size="xl" text="Cargando empleados..." />
+        return <Spinner fullScreen size="xl" text={t('operations.loadingEmployees')} />
     }
 
     if (error) {
@@ -204,12 +204,12 @@ export default function EmpleadosPage() {
                 <div className="text-center">
                     <div className="text-6xl mb-4">!</div>
                     <h2 className="text-2xl font-bold text-slate-900 mb-2">
-                        Error al cargar empleados
+                        {t('operations.errorLoadingEmployees')}
                     </h2>
                     <p className="text-slate-600 mb-6">
-                        {error.message || 'Ocurrio un error inesperado'}
+                        {error.message || t('operations.unexpectedError')}
                     </p>
-                    <Button onClick={() => refetch()}>Reintentar</Button>
+                    <Button onClick={() => refetch()}>{t('operations.retry')}</Button>
                 </div>
             </div>
         )

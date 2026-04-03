@@ -87,15 +87,15 @@ const TarifaFormModal = ({
     const newErrors = {}
 
     if (!formData.tipo_camion) {
-      newErrors.tipo_camion = 'Seleccione un tipo de camión'
+      newErrors.tipo_camion = t('rentals.rateForm.selectTruckType')
     }
 
     if (!formData.ciudad_id) {
-      newErrors.ciudad_id = 'Seleccione una ciudad'
+      newErrors.ciudad_id = t('rentals.rateForm.selectCityError')
     }
 
     if (!formData.precio || parseFloat(formData.precio) <= 0) {
-      newErrors.precio = 'El precio debe ser mayor a 0'
+      newErrors.precio = t('rentals.rateForm.pricePositive')
     }
 
     setErrors(newErrors)
@@ -123,7 +123,7 @@ const TarifaFormModal = ({
       onClose()
     } catch (error) {
       console.error('Error al guardar tarifa:', error)
-      const mensajeError = error.response?.data?.message || 'Error al guardar la tarifa'
+      const mensajeError = error.response?.data?.message || t('rentals.rateForm.errorSavingRate')
       setErrors({ submit: mensajeError })
     }
   }

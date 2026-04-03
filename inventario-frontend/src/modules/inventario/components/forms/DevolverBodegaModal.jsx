@@ -259,7 +259,7 @@ function DevolverBodegaModal({
         {!!ubicacionPrincipal.es_principal && (
           <div className="mb-4 flex items-center justify-center gap-2 text-xs text-slate-600">
             <span>⭐</span>
-            <span>Ubicación principal del sistema</span>
+            <span>{t('inventory.systemMainLocation')}</span>
           </div>
         )}
 
@@ -274,7 +274,7 @@ function DevolverBodegaModal({
             disabled={isSubmitting}
             className="w-full"
           >
-            Cancelar
+            {t('common.cancel')}
           </Button>
         </Modal.Footer>
       </div>
