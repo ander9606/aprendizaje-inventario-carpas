@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useResolverNovedad } from '../hooks/useOrdenesTrabajo'
+import { useTranslation } from 'react-i18next'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'
 
@@ -37,6 +38,7 @@ function formatFechaCorta(fecha) {
 }
 
 export default function ListaNovedades({ novedades = [], canResolve = false, showOrdenInfo = false, compact = false }) {
+  const { t } = useTranslation()
     const resolverNovedad = useResolverNovedad()
     const [expandedId, setExpandedId] = useState(null)
     const [resolucionTexto, setResolucionTexto] = useState('')

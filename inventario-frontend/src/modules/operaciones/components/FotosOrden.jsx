@@ -8,6 +8,7 @@ import { useState, useRef } from 'react'
 import { Camera, Trash2, X, Image, ChevronDown, ChevronUp, Upload, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useGetFotosOrden, useSubirFotoOrden, useEliminarFotoOrden } from '../hooks/useOrdenesTrabajo'
+import { useTranslation } from 'react-i18next'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'
 
@@ -32,6 +33,7 @@ const COLORES = {
 }
 
 export default function FotosOrden({ ordenId, tipoOrden = 'montaje', readOnly = false }) {
+  const { t } = useTranslation()
     const { fotos, porEtapa, isLoading } = useGetFotosOrden(ordenId)
     const subirFoto = useSubirFotoOrden()
     const eliminarFoto = useEliminarFotoOrden()

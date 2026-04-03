@@ -42,11 +42,13 @@ import Spinner from '@shared/components/Spinner'
 import ConfirmModal from '@shared/components/ConfirmModal'
 import Modal from '@shared/components/Modal'
 import { toast } from 'sonner'
+import { useTranslation } from 'react-i18next'
 
 // ============================================
 // COMPONENTE PRINCIPAL: AlquilerDetallePage
 // ============================================
 export default function AlquilerDetallePage() {
+  const { t } = useTranslation()
   const { id } = useParams()
   const navigate = useNavigate()
 

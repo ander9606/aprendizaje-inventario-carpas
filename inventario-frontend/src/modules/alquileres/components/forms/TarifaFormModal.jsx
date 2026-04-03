@@ -9,11 +9,13 @@ import Button from '@shared/components/Button'
 import { useCreateTarifa, useUpdateTarifa } from '../../hooks/useTarifasTransporte'
 import { useGetCiudadesActivas } from '@clientes/hooks/useCiudades'
 import { CATEGORIAS_CAMION } from '../../api/apiTarifasTransporte'
+import { useTranslation } from 'react-i18next'
 
 /**
  * COMPONENTE: TarifaFormModal
  */
 const TarifaFormModal = ({
+  const { t } = useTranslation()
   isOpen,
   onClose,
   mode = 'crear',

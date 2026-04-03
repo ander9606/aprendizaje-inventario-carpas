@@ -28,11 +28,13 @@ import {
 import { useGetOrdenes } from '../hooks/useOrdenesTrabajo'
 import Spinner from '@shared/components/Spinner'
 import Modal from '@shared/components/Modal'
+import { useTranslation } from 'react-i18next'
 
 // ============================================
 // HELPERS
 // ============================================
 const getTipoConfig = (tipo) => {
+  const { t } = useTranslation()
     const config = {
         montaje: { icon: Package, label: 'Montaje' },
         desmontaje: { icon: Truck, label: 'Desmontaje' },

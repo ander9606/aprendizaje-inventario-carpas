@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import AlertaItem from './AlertaItem'
 import Button from '@shared/components/Button'
+import { useTranslation } from 'react-i18next'
 
 /**
  * Panel de alertas que muestra alertas críticas y advertencias
@@ -29,6 +30,7 @@ import Button from '@shared/components/Button'
  * @param {boolean} inicialmenteColapsado - Si inicia colapsado
  */
 const AlertasPanel = ({
+  const { t } = useTranslation()
   alertas = [],
   resumen,
   isLoading,

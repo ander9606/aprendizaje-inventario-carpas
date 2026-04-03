@@ -9,8 +9,10 @@ import { useGetEmpleadosCampo } from '../hooks/useEmpleados'
 import Modal from '@shared/components/Modal'
 import Button from '@shared/components/Button'
 import Spinner from '@shared/components/Spinner'
+import { useTranslation } from 'react-i18next'
 
 export default function ModalAsignarResponsable({ orden, onClose, onSave }) {
+  const { t } = useTranslation()
     // Inicializar con responsables actuales
     const actuales = (orden.equipo || []).map(e => (e.empleado_id || e.id).toString())
     const [seleccionados, setSeleccionados] = useState(new Set(actuales))

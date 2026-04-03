@@ -32,6 +32,7 @@ import EmptyState from '@shared/components/EmptyState'
 import ElementoFormModal from '../components/forms/ElementoFormModal'
 import SerieFormModal from '../components/forms/SerieFormModal'
 import LoteFormModal from '../components/forms/LoteFormModal'
+import { useTranslation } from 'react-i18next'
 
 /**
  * ============================================

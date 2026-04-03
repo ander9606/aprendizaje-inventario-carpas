@@ -5,6 +5,7 @@
 
 import { Filter, Eye, EyeOff, History } from 'lucide-react'
 import { EVENT_TYPES } from '@calendario/constants/calendarConfig'
+import { useTranslation } from 'react-i18next'
 
 /**
  * CalendarFilters
@@ -15,6 +16,7 @@ import { EVENT_TYPES } from '@calendario/constants/calendarConfig'
  * @param {Function} onFilterChange - Callback para cambio de filtros
  */
 const CalendarFilters = ({
+  const { t } = useTranslation()
   filters = {},
   onFilterChange
 }) => {

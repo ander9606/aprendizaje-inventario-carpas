@@ -13,6 +13,7 @@ import UbicacionSelector from '@shared/components/UbicacionSelector'
 import { ESTADOS, SUCCESS_MESSAGES } from '@shared/utils/constants'
 import lotesAPI from '../../api/apiLotes'
 import { useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 
 /**
  * ============================================

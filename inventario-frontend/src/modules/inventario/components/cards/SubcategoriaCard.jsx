@@ -12,8 +12,10 @@ import ConfirmModal from '@shared/components/ConfirmModal'
 import SymbolPicker from '@shared/components/picker/SymbolPicker'
 import { IconoCategoria } from '@shared/components/IconoCategoria'
 import { useUpdateCategoria, useDeleteCategoria } from '../../hooks/useCategorias'
+import { useTranslation } from 'react-i18next'
 
 const SubcategoriaCard = ({ 
+  const { t } = useTranslation()
   subcategoria,
   categoriaId,
   onEdit,

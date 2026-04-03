@@ -72,6 +72,19 @@
     "approvedProducts": "Approved products",
     "noApprovedProducts": "No approved products registered",
     "rentedProducts": "Rented products",
-    "dayQuotes": "Day quotes"
+    "dayQuotes": "Day quotes",
+    "searchByEventClientId": "Search by event, client or ID...",
+    "searchByEventClient": "Search by event or client...",
+    "willAppearWhenApproved": "Will appear here when quotes are approved",
+    "newEvent": "New Event",
+    "noEvents": "No events",
+    "createFirstEvent": "Create your first event to start managing quotes",
+    "deleteEvent": "Delete Event",
+    "confirmDeleteEvent": "Are you sure you want to delete event",
+    "reactivate": "Reactivate",
+    "completedEvents": "Completed events",
+    "finalized": "finalized",
+    "active": "Active",
+    "scheduled": "Scheduled"
   }
 }

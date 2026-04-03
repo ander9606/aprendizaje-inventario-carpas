@@ -4,6 +4,7 @@
 // ============================================
 
 import {
+import { useTranslation } from 'react-i18next'
   Calendar,
   User,
   Package,
@@ -48,6 +49,7 @@ const estadoConfig = {
 }
 
 const AlquilerCard = ({ alquiler, onVerDetalle }) => {
+  const { t } = useTranslation()
 
   const formatFecha = (fecha) => {
     if (!fecha) return '-'

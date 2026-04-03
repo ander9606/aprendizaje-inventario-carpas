@@ -15,6 +15,7 @@ import {
     ChevronRight
 } from 'lucide-react'
 import { Modal } from '@shared/components/Modal'
+import { useTranslation } from 'react-i18next'
 
 const ESTADOS_CONFIG = {
     pendiente: { label: 'Pendiente', bg: 'bg-slate-100', text: 'text-slate-700' },
@@ -28,6 +29,7 @@ const ESTADOS_CONFIG = {
 }
 
 const formatHora = (fecha) => {
+  const { t } = useTranslation()
     if (!fecha) return '-'
     return new Date(fecha).toLocaleTimeString('es-CO', {
         hour: '2-digit',

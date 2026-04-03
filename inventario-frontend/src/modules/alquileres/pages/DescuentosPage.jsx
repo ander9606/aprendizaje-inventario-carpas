@@ -9,6 +9,7 @@ import Button from '@shared/components/Button'
 import Spinner from '@shared/components/Spinner'
 import Modal from '@shared/components/Modal'
 import {
+import { useTranslation } from 'react-i18next'
   useGetDescuentos,
   useCreateDescuento,
   useUpdateDescuento,
@@ -16,6 +17,7 @@ import {
 } from '../hooks/descuentos'
 
 const DescuentosPage = () => {
+  const { t } = useTranslation()
   const [modalOpen, setModalOpen] = useState(false)
   const [editando, setEditando] = useState(null)
   const [formData, setFormData] = useState({

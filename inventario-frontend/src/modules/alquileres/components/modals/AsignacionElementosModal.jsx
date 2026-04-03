@@ -18,6 +18,7 @@ import { useVerificarDisponibilidadCotizacion } from '@inventario/hooks/useDispo
 import Modal from '@shared/components/Modal'
 import Button from '@shared/components/Button'
 import Spinner from '@shared/components/Spinner'
+import { useTranslation } from 'react-i18next'
 
 /**
  * AsignacionElementosModal
@@ -31,6 +32,7 @@ import Spinner from '@shared/components/Spinner'
  * @param {Function} onSuccess - Callback al completar exitosamente
  */
 const AsignacionElementosModal = ({
+  const { t } = useTranslation()
   isOpen,
   onClose,
   alquiler,

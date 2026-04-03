@@ -6,6 +6,7 @@
 
 import { NavLink, useNavigate } from 'react-router-dom'
 import {
+import { useTranslation } from 'react-i18next'
   Truck,
   ClipboardList,
   Calendar,
@@ -16,6 +17,7 @@ import {
 } from 'lucide-react'
 
 const OperacionesSidebar = () => {
+  const { t } = useTranslation()
   const navigate = useNavigate()
 
   const navItems = [

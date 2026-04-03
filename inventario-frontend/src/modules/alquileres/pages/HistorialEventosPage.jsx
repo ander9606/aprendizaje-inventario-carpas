@@ -27,11 +27,13 @@ import Spinner from '@shared/components/Spinner'
 import Button from '@shared/components/Button'
 import EventoFormModal from '../components/modals/EventoFormModal'
 import { toast } from 'sonner'
+import { useTranslation } from 'react-i18next'
 
 // ============================================
 // HELPERS
 // ============================================
 const formatFecha = (fecha) => {
+  const { t } = useTranslation()
     if (!fecha) return '-'
     const fechaStr = typeof fecha === 'string' ? fecha.split('T')[0] : fecha
     const fechaObj = new Date(fechaStr + 'T12:00:00')

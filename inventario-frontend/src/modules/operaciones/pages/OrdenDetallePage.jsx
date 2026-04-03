@@ -70,11 +70,13 @@ import ModalNovedad from '../components/ModalNovedad'
 import ListaNovedades from '../components/ListaNovedades'
 import ConfirmModal from '@shared/components/ConfirmModal'
 import { toast } from 'sonner'
+import { useTranslation } from 'react-i18next'
 
 // ============================================
 // COMPONENTE PRINCIPAL: OrdenDetallePage
 // ============================================
 export default function OrdenDetallePage() {
+  const { t } = useTranslation()
     const { id } = useParams()
     const navigate = useNavigate()
     const { hasRole, usuario } = useAuth()

@@ -8,8 +8,10 @@ import { useState } from 'react'
 import { Bell, Check, X, AlertTriangle, MapPin, Calendar, ChevronDown, ChevronUp } from 'lucide-react'
 import { useGetMisAlertas, useResponderAsignacion } from '../hooks/useOrdenesTrabajo'
 import { toast } from 'sonner'
+import { useTranslation } from 'react-i18next'
 
 export default function AlertasAsignacion() {
+  const { t } = useTranslation()
     const { alertas, isLoading } = useGetMisAlertas()
     const responder = useResponderAsignacion()
     const [expandida, setExpandida] = useState(null)

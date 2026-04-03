@@ -6,6 +6,7 @@
 import { useEffect } from 'react'
 import { CheckCircle, XCircle, AlertTriangle, Package, RefreshCw } from 'lucide-react'
 import { useVerificarDisponibilidadProductos } from '@inventario/hooks/useDisponibilidad'
+import { useTranslation } from 'react-i18next'
 
 /**
  * VerificacionDisponibilidad
@@ -18,6 +19,7 @@ import { useVerificarDisponibilidadProductos } from '@inventario/hooks/useDispon
  * @param {boolean} mostrar - Si debe mostrarse el componente
  */
 const VerificacionDisponibilidad = ({
+  const { t } = useTranslation()
   productos = [],
   fechaMontaje,
   fechaDesmontaje,

@@ -13,6 +13,7 @@ import { Plus, Package, Hash, Ruler, AlertTriangle, DollarSign, TrendingUp } fro
 import { formatearMoneda } from '@shared/utils/helpers'
 
 import { useGetSeries } from '../../../hooks/useSeries'
+import { useTranslation } from 'react-i18next'
 
 export const ElementoSerieCard = ({
   elemento,

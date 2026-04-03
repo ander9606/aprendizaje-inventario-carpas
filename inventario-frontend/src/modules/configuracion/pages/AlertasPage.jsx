@@ -22,6 +22,7 @@ import {
 import { useGetAlertasPendientes, useGetResumenAlertas, useMarcarAlertaLeida, useMarcarAlertaResuelta } from '../hooks/useAlertas'
 import Button from '@shared/components/Button'
 import Spinner from '@shared/components/Spinner'
+import { useTranslation } from 'react-i18next'
 
 // ============================================
 // CONFIGURACIÓN DE TIPOS DE ALERTA
@@ -52,6 +53,7 @@ const TIPOS_ALERTA_CONFIG = {
  * - Navegación directa a la orden/alquiler relacionado
  */
 export default function AlertasPage() {
+  const { t } = useTranslation()
     const navigate = useNavigate()
 
     // ============================================

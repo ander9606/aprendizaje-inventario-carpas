@@ -8,8 +8,10 @@ import { useState, useEffect } from 'react'
 import { Plus, Minus, Package, DollarSign, Eye, CheckCircle, AlertTriangle, XCircle, Loader2 } from 'lucide-react'
 import Button from '@shared/components/Button'
 import ComponentesProductoModal from './ComponentesProductoModal'
+import { useTranslation } from 'react-i18next'
 
 const ProductoCardSelector = ({
+  const { t } = useTranslation()
   producto,
   onAgregar,
   disabled = false,

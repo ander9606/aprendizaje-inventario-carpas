@@ -14,6 +14,7 @@ import UbicacionSelector from '@shared/components/UbicacionSelector'
 import { ESTADOS, SUCCESS_MESSAGES } from '@shared/utils/constants';
 import { useMoverCantidad } from '../../hooks/useLotes'
 import lotesAPI from '../../api/apiLotes'
+import { useTranslation } from 'react-i18next'
 
 /**
  * ============================================

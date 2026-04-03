@@ -14,8 +14,10 @@ import {
 import { useAuth } from '@auth/hooks/useAuth'
 import PageHeader from '@shared/components/PageHeader'
 import InfoBox from '@shared/components/InfoBox'
+import { useTranslation } from 'react-i18next'
 
 export default function ConfiguracionPage() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const { hasRole } = useAuth()
 

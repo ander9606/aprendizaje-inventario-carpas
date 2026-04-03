@@ -18,11 +18,13 @@ import {
 } from 'lucide-react'
 import Modal from '@shared/components/Modal'
 import Button from '@shared/components/Button'
+import { useTranslation } from 'react-i18next'
 
 // ============================================
 // COMPONENTE: Elemento de Retorno Individual (Series - cantidad 1)
 // ============================================
 const ElementoRetornoItem = ({ elemento, retorno, onChange }) => {
+  const { t } = useTranslation()
     const estados = [
         { value: 'bueno', label: 'Bueno', icon: CheckCircle, bgSelected: 'bg-green-100 border-green-500 text-green-700', iconColor: 'text-green-600' },
         { value: 'dañado', label: 'Dañado', icon: AlertTriangle, bgSelected: 'bg-amber-100 border-amber-500 text-amber-700', iconColor: 'text-amber-600' },

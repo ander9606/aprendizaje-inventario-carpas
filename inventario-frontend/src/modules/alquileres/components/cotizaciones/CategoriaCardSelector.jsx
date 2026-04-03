@@ -5,8 +5,10 @@
 
 import { Package } from 'lucide-react'
 import { IconoCategoria } from '@shared/components/IconoCategoria'
+import { useTranslation } from 'react-i18next'
 
 const CategoriaCardSelector = ({
+  const { t } = useTranslation()
   categoria,
   onClick,
   disabled = false

@@ -5,11 +5,13 @@
 
 import { EVENT_TYPES, EVENT_COLORS, ESTADO_COLORS } from '@calendario/constants/calendarConfig'
 import { Wrench, PartyPopper, PackageOpen } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 /**
  * Icono por tipo
  */
 const getTipoIcon = (tipo) => {
+  const { t } = useTranslation()
   const iconClass = 'w-3 h-3'
   switch (tipo) {
     case EVENT_TYPES.MONTAJE:

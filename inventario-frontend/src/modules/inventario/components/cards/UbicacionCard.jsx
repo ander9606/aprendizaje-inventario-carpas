@@ -8,6 +8,7 @@ import Card from '@shared/components/Card'
 import Button from '@shared/components/Button'
 import { IconoCategoria } from '@shared/components/IconoCategoria'
 import { useMarcarComoPrincipal } from '../../hooks/useUbicaciones'
+import { useTranslation } from 'react-i18next'
 
 /**
  * UbicacionCard
@@ -24,6 +25,7 @@ import { useMarcarComoPrincipal } from '../../hooks/useUbicaciones'
  * @param {Function} onDelete - Callback para eliminar ubicación
  */
 const UbicacionCard = ({
+  const { t } = useTranslation()
   ubicacion,
   onEdit,
   onDelete

@@ -13,6 +13,7 @@ import ConfirmModal from '@shared/components/ConfirmModal'
 import SymbolPicker from '@shared/components/picker/SymbolPicker'
 import { IconoCategoria } from '@shared/components/IconoCategoria'
 import { useUpdateCategoria, useDeleteCategoria } from '../../hooks/useCategorias'
+import { useTranslation } from 'react-i18next'
 
 /**
  * CategoriaPadreCard
@@ -28,6 +29,7 @@ import { useUpdateCategoria, useDeleteCategoria } from '../../hooks/useCategoria
  * @param {Function} onEdit - Callback para editar categoría
  */
 const CategoriaPadreCard = ({ 
+  const { t } = useTranslation()
   categoria,
   onCreateSubcategoria,
   onEdit

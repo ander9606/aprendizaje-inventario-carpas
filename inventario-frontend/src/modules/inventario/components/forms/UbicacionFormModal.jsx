@@ -8,6 +8,7 @@ import Modal from '@shared/components/Modal'
 import Button from '@shared/components/Button'
 import { useCreateUbicacion, useUpdateUbicacion } from '../../hooks/useUbicaciones'
 import { useGetCiudadesActivas } from '@clientes/hooks/useCiudades'
+import { useTranslation } from 'react-i18next'
 
 /**
  * COMPONENTE: UbicacionFormModal
@@ -19,6 +20,7 @@ import { useGetCiudadesActivas } from '@clientes/hooks/useCiudades'
  * @param {string|null} preselectedTipo - Tipo preseleccionado al crear (ej: 'bodega', 'evento')
  */
 const UbicacionFormModal = ({
+  const { t } = useTranslation()
   isOpen,
   onClose,
   mode = 'crear',

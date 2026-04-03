@@ -9,6 +9,7 @@ import { X, Camera, AlertTriangle, Package, MapPin, Wrench, MessageSquare, Loade
 import { toast } from 'sonner'
 import Modal from '@shared/components/Modal'
 import { useCrearNovedad } from '../hooks/useOrdenesTrabajo'
+import { useTranslation } from 'react-i18next'
 
 const TIPOS_NOVEDAD = [
     {
@@ -65,6 +66,7 @@ const COLOR_SELECTED = {
 }
 
 export default function ModalNovedad({ ordenId, productos = [], onClose }) {
+  const { t } = useTranslation()
     const crearNovedad = useCrearNovedad()
     const fileInputRef = useRef(null)
 

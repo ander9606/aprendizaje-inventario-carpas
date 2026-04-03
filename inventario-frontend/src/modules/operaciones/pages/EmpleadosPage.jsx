@@ -21,9 +21,11 @@ import Button from '@shared/components/Button'
 import Spinner from '@shared/components/Spinner'
 import EmptyState from '@shared/components/EmptyState'
 import Modal from '@shared/components/Modal'
+import { useTranslation } from 'react-i18next'
 
 // Hook personalizado para debounce
 const useDebounce = (value, delay) => {
+  const { t } = useTranslation()
     const [debouncedValue, setDebouncedValue] = useState(value)
 
     useEffect(() => {

@@ -16,6 +16,7 @@ import { Plus, Package, MapPin, ArrowRightLeft, ArrowRight, Layers, Ruler, Alert
 import { formatearMoneda } from '@shared/utils/helpers'
 
 import { useGetLotes } from '../../../hooks/useLotes'
+import { useTranslation } from 'react-i18next'
 
 export const ElementoLoteCard = ({
   elemento,

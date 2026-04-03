@@ -19,6 +19,7 @@ import Spinner from '@shared/components/Spinner'
 import EmptyState from '@shared/components/EmptyState'
 import { toast } from 'sonner'
 import ElementoFormModal from '../components/forms/ElementoFormModal'
+import { useTranslation } from 'react-i18next'
 
 /**
  * PÁGINA: Subcategorias (Nivel 2)
@@ -54,6 +55,7 @@ import ElementoFormModal from '../components/forms/ElementoFormModal'
  * └─────────────────────────────────────────┘
  */
 export default function Subcategorias() {
+  const { t } = useTranslation()
   
   // ============================================
   // HOOKS: React Router

@@ -15,6 +15,7 @@ import { ESTADOS, ESTADO_LABELS } from '@shared/utils/constants'
 import { useCreateSerie, useUpdateSerie } from '../../hooks/useSeries'
 import { useGetUbicacionesActivas } from '../../hooks/useUbicaciones'
 import seriesAPI from '../../api/apiSeries'
+import { useTranslation } from 'react-i18next'
 
 /**
  * ============================================

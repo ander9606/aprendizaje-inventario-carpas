@@ -26,6 +26,7 @@ import Spinner from '@shared/components/Spinner'
 import Button from '@shared/components/Button'
 import { useGetOrdenCompleta, useCambiarEstadoElementosMasivo } from '../hooks/useOrdenesTrabajo'
 import { toast } from 'sonner'
+import { useTranslation } from 'react-i18next'
 
 // ============================================
 // HELPER: URL base del backend (sin /api)
@@ -37,6 +38,7 @@ const BACKEND_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
 // Solo se muestra si el elemento tiene imagen
 // ============================================
 const BotonVerFoto = ({ imagenUrl, nombreElemento }) => {
+  const { t } = useTranslation()
     const [visible, setVisible] = useState(false)
     const popoverRef = useRef(null)
     const btnRef = useRef(null)

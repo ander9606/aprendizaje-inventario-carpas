@@ -8,8 +8,10 @@ import { useState } from 'react'
 import { Save, Calendar, Clock, AlertTriangle, FileText, Flag } from 'lucide-react'
 import Modal from '@shared/components/Modal'
 import Button from '@shared/components/Button'
+import { useTranslation } from 'react-i18next'
 
 export default function ModalEditarOrden({ orden, onSaveFecha, onSaveGeneral, onClose, saving = false }) {
+  const { t } = useTranslation()
     const fechaOriginal = orden.fecha_programada?.split('T')[0] || ''
     const horaOriginal = orden.fecha_programada?.split('T')[1]?.substring(0, 5) || '09:00'
 

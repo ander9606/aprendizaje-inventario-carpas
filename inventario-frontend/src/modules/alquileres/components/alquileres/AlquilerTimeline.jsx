@@ -4,6 +4,7 @@
 // ============================================
 
 import {
+import { useTranslation } from 'react-i18next'
   FileText,
   CheckCircle,
   Calendar,
@@ -30,6 +31,7 @@ import {
  * @param {Array} elementos - Lista de elementos asignados
  */
 const AlquilerTimeline = ({
+  const { t } = useTranslation()
   cotizacion,
   alquiler,
   elementos = []

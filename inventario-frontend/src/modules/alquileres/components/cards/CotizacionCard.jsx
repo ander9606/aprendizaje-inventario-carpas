@@ -7,6 +7,7 @@ import { useState, useRef, useEffect } from 'react'
 import { Calendar, User, MapPin, Package, Eye, CheckCircle, MoreVertical, Edit, XCircle, Trash2 } from 'lucide-react'
 import Card from '@shared/components/Card'
 import Button from '@shared/components/Button'
+import { useTranslation } from 'react-i18next'
 
 /**
  * CotizacionCard
@@ -19,6 +20,7 @@ import Button from '@shared/components/Button'
  * - Acciones: Ver, Aprobar (pendiente), Menu kebab
  */
 const CotizacionCard = ({
+  const { t } = useTranslation()
   cotizacion,
   onVerDetalle,
   onEditar,

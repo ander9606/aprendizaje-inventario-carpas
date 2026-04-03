@@ -15,6 +15,7 @@ import { useMoverCantidad } from '../../hooks/useLotes'
 import { useGetUbicacionPrincipal } from '../../hooks/useUbicaciones'
 import { ESTADOS } from '@shared/utils/constants'
 import Spinner from '@shared/components/Spinner'
+import { useTranslation } from 'react-i18next'
 
 /**
  * ============================================

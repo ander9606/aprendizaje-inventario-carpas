@@ -6,11 +6,13 @@
 import { useEffect, useRef } from 'react'
 import { X, Calendar, MapPin, User, DollarSign, Wrench, PartyPopper, PackageOpen } from 'lucide-react'
 import { EVENT_TYPES } from '@calendario/constants/calendarConfig'
+import { useTranslation } from 'react-i18next'
 
 /**
  * Formateador de moneda
  */
 const formatCurrency = (value) => {
+  const { t } = useTranslation()
   return new Intl.NumberFormat('es-CO', {
     style: 'currency',
     currency: 'COP',

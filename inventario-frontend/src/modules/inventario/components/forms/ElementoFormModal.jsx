@@ -13,6 +13,7 @@ import { useGetMateriales } from "../../hooks/useMateriales";
 import { useGetUnidades } from "../../hooks/useUnidades";
 import { ESTADOS } from '@shared/utils/constants';
 import { Edit3, Package } from "lucide-react";
+import { useTranslation } from 'react-i18next'
 
 /**
  * ============================================

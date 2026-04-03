@@ -20,11 +20,13 @@ import {
 } from 'lucide-react'
 import { useGetAlquileres } from '../hooks/useAlquileres'
 import Spinner from '@shared/components/Spinner'
+import { useTranslation } from 'react-i18next'
 
 // ============================================
 // HELPERS
 // ============================================
 const formatFecha = (fecha) => {
+  const { t } = useTranslation()
     if (!fecha) return '-'
     return new Date(fecha).toLocaleDateString('es-CO', {
         weekday: 'short',

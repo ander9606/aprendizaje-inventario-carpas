@@ -38,19 +38,21 @@ import EventoDetalleModal from '../components/modals/EventoDetalleModal'
 import CotizacionFormModal from '../components/forms/CotizacionFormModal'
 import ConfirmModal from '@shared/components/ConfirmModal'
 import { toast } from 'sonner'
+import { useTranslation } from 'react-i18next'
 
 // ============================================
 // COMPONENTE: EventoCard
 // Tarjeta de evento con info del cliente y fechas
 // ============================================
 const EventoCard = ({ evento, onVer, onEditar, onEliminar, onCambiarEstado }) => {
+  const { t } = useTranslation()
   const [showMenu, setShowMenu] = useState(false)
 
   const getEstadoConfig = (estado) => {
     const config = {
-      activo: { color: 'bg-green-100 text-green-700', icon: Clock, label: 'Activo' },
-      completado: { color: 'bg-blue-100 text-blue-700', icon: CheckCircle, label: 'Completado' },
-      cancelado: { color: 'bg-red-100 text-red-700', icon: XCircle, label: 'Cancelado' }
+      activo: { color: 'bg-green-100 text-green-700', icon: Clock, label: t('clients.statusActive') },
+      completado: { color: 'bg-blue-100 text-blue-700', icon: CheckCircle, label: t('clients.statusCompleted') },
+      cancelado: { color: 'bg-red-100 text-red-700', icon: XCircle, label: t('clients.statusCancelled') }
     }
     return config[estado] || config.activo
   }
@@ -139,14 +141,14 @@ const EventoCard = ({ evento, onVer, onEditar, onEliminar, onCambiarEstado }) =>
                   className="w-full px-4 py-2 text-left text-sm hover:bg-slate-50 flex items-center gap-2"
                 >
                   <Eye className="w-4 h-4" />
-                  Ver cotizaciones
+                  {t('rentals.quotes')}
                 </button>
                 <button
                   onClick={() => { onEditar(evento); setShowMenu(false); }}
                   className="w-full px-4 py-2 text-left text-sm hover:bg-slate-50 flex items-center gap-2"
                 >
                   <Edit2 className="w-4 h-4" />
-                  Editar evento
+                  {t('common.edit')}
                 </button>
                 {evento.estado === 'activo' && (
                   <button
@@ -154,7 +156,7 @@ const EventoCard = ({ evento, onVer, onEditar, onEliminar, onCambiarEstado }) =>
                     className="w-full px-4 py-2 text-left text-sm hover:bg-slate-50 flex items-center gap-2 text-green-600"
                   >
                     <CheckCircle className="w-4 h-4" />
-                    Marcar completado
+                    {t('rentals.completed')}
                   </button>
                 )}
                 {evento.estado !== 'cancelado' && (
@@ -163,7 +165,7 @@ const EventoCard = ({ evento, onVer, onEditar, onEliminar, onCambiarEstado }) =>
                     className="w-full px-4 py-2 text-left text-sm hover:bg-slate-50 flex items-center gap-2 text-red-600"
                   >
                     <XCircle className="w-4 h-4" />
-                    Cancelar evento
+                    {t('rentals.cancelled')}
                   </button>
                 )}
                 <hr className="my-1" />
@@ -172,7 +174,7 @@ const EventoCard = ({ evento, onVer, onEditar, onEliminar, onCambiarEstado }) =>
                   className="w-full px-4 py-2 text-left text-sm hover:bg-red-50 text-red-600 flex items-center gap-2"
                 >
                   <Trash2 className="w-4 h-4" />
-                  Eliminar
+                  {t('common.delete')}
                 </button>
               </div>
             </>
@@ -199,7 +201,7 @@ const EventoCard = ({ evento, onVer, onEditar, onEliminar, onCambiarEstado }) =>
         <div className="bg-slate-50 rounded-lg p-3">
           <div className="flex items-center gap-2 text-slate-500 text-xs mb-1">
             <FileText className="w-3.5 h-3.5" />
-            Cotizaciones
+            {t('rentals.quotes')}
           </div>
           <p className="font-bold text-slate-900 text-lg">
             {evento.total_cotizaciones || 0}
@@ -208,7 +210,7 @@ const EventoCard = ({ evento, onVer, onEditar, onEliminar, onCambiarEstado }) =>
         <div className="bg-slate-50 rounded-lg p-3">
           <div className="flex items-center gap-2 text-slate-500 text-xs mb-1">
             <DollarSign className="w-3.5 h-3.5" />
-            Valor
+            {t('rentals.totalAmount')}
           </div>
           <p className="font-bold text-emerald-600 text-sm">
             {formatMoneda(evento.total_valor)}
@@ -223,7 +225,7 @@ const EventoCard = ({ evento, onVer, onEditar, onEliminar, onCambiarEstado }) =>
           {estadoConfig.label}
         </span>
         <span className="text-xs text-purple-600 font-medium hover:text-purple-700">
-          Ver cotizaciones →
+          {t('rentals.quotes')} →
         </span>
       </div>
     </div>
@@ -234,7 +236,7 @@ const EventoCard = ({ evento, onVer, onEditar, onEliminar, onCambiarEstado }) =>
 // COMPONENTE PRINCIPAL
 // ============================================
 export default function CotizacionesPage() {
-
+  const { t } = useTranslation()
   const navigate = useNavigate()
 
   // ============================================
@@ -290,11 +292,11 @@ export default function CotizacionesPage() {
   const handleCrearEvento = async (datos) => {
     try {
       await crearEvento.mutateAsync(datos)
-      toast.success('Evento creado exitosamente')
+      toast.success(t('rentals.eventCreated'))
       setShowModalEvento(false)
       refetch()
     } catch (error) {
-      toast.error(error?.response?.data?.message || 'Error al crear evento')
+      toast.error(error?.response?.data?.message || t('messages.error.createError'))
       throw error
     }
   }
@@ -302,11 +304,11 @@ export default function CotizacionesPage() {
   const handleActualizarEvento = async (datos) => {
     try {
       await actualizarEvento.mutateAsync({ id: eventoEditar.id, data: datos })
-      toast.success('Evento actualizado')
+      toast.success(t('messages.success.categoryUpdated'))
       setEventoEditar(null)
       refetch()
     } catch (error) {
-      toast.error(error?.response?.data?.message || 'Error al actualizar')
+      toast.error(error?.response?.data?.message || t('messages.error.updateError'))
       throw error
     }
   }
@@ -315,21 +317,21 @@ export default function CotizacionesPage() {
     if (!eventoEliminar) return
     try {
       await eliminarEvento.mutateAsync(eventoEliminar.id)
-      toast.success('Evento eliminado')
+      toast.success(t('messages.success.categoryDeleted'))
       setEventoEliminar(null)
       refetch()
     } catch (error) {
-      toast.error(error?.response?.data?.message || 'Error al eliminar')
+      toast.error(error?.response?.data?.message || t('messages.error.deleteError'))
     }
   }
 
   const handleCambiarEstado = async (id, estado) => {
     try {
       await cambiarEstado.mutateAsync({ id, estado })
-      toast.success(`Evento marcado como ${estado}`)
+      toast.success(t('rentals.completed'))
       refetch()
     } catch (error) {
-      toast.error(error?.response?.data?.message || 'Error al cambiar estado')
+      toast.error(error?.response?.data?.message || t('messages.error.updateError'))
     }
   }
 
@@ -367,7 +369,7 @@ export default function CotizacionesPage() {
   if (isLoading) {
     return (
       <div className="flex justify-center py-12">
-        <Spinner size="lg" text="Cargando eventos..." />
+        <Spinner size="lg" text={t('rentals.loadingQuotes')} />
       </div>
     )
   }
@@ -376,9 +378,9 @@ export default function CotizacionesPage() {
     return (
       <div className="p-6">
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
-          Error al cargar eventos: {error.message || 'Ocurrió un error inesperado'}
+          {t('rentals.errorLoadingQuotes')}: {error.message || t('common.unexpectedError')}
           <Button variant="ghost" onClick={() => refetch()} className="ml-4">
-            Reintentar
+            {t('common.retry')}
           </Button>
         </div>
       </div>
@@ -395,10 +397,10 @@ export default function CotizacionesPage() {
               <div className="p-2 bg-purple-100 rounded-lg">
                 <Calendar className="w-6 h-6 text-purple-600" />
               </div>
-              Cotizaciones
+              {t('rentals.quotes')}
             </h1>
             <p className="text-slate-500 mt-1">
-              Gestiona eventos y cotizaciones
+              {t('rentals.description')}
             </p>
           </div>
 
@@ -408,7 +410,7 @@ export default function CotizacionesPage() {
               icon={<Plus />}
               onClick={() => setShowModalEvento(true)}
             >
-              Nuevo Evento
+              {t('rentals.newEvent')}
             </Button>
           </div>
         </div>
@@ -424,7 +426,7 @@ export default function CotizacionesPage() {
               type="text"
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
-              placeholder="Buscar por evento o cliente..."
+              placeholder={t('rentals.searchByEventClient')}
               className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
             />
           </div>
@@ -437,15 +439,14 @@ export default function CotizacionesPage() {
             onClick={() => navigate('/alquileres/historial-eventos')}
             className="text-slate-600"
           >
-            Historial
+            {t('rentals.history')}
           </Button>
         </div>
       </div>
 
       {/* INFO */}
       <div className="mb-4 text-sm text-slate-500">
-        Mostrando {eventosFiltrados.length} evento{eventosFiltrados.length !== 1 ? 's' : ''} activo{eventosFiltrados.length !== 1 ? 's' : ''}
-        {busqueda ? ' encontrado' + (eventosFiltrados.length !== 1 ? 's' : '') : ''}
+        {t('common.showing')} {eventosFiltrados.length} {t('rentals.events').toLowerCase()}
       </div>
 
       {/* GRID DE EVENTOS */}
@@ -465,13 +466,13 @@ export default function CotizacionesPage() {
       ) : (
         <EmptyState
           type="no-data"
-          title="No hay eventos"
+          title={t('rentals.noEvents')}
           description={busqueda
-            ? "No se encontraron eventos con los filtros seleccionados"
-            : "Crea tu primer evento para comenzar a gestionar cotizaciones"}
+            ? t('empty.noResults')
+            : t('rentals.createFirstEvent')}
           icon={Calendar}
           action={!busqueda ? {
-            label: "Crear evento",
+            label: t('rentals.newEvent'),
             icon: <Plus />,
             onClick: () => setShowModalEvento(true)
           } : undefined}
@@ -519,10 +520,10 @@ export default function CotizacionesPage() {
         isOpen={!!eventoEliminar}
         onClose={() => setEventoEliminar(null)}
         onConfirm={handleEliminarEvento}
-        title="Eliminar Evento"
-        message={eventoEliminar ? `¿Estás seguro de eliminar el evento "${eventoEliminar.nombre}"?${eventoEliminar.total_cotizaciones > 0 ? ` Este evento tiene ${eventoEliminar.total_cotizaciones} cotización(es) asociada(s). Primero debes desvincularlas.` : ''}` : ''}
+        title={t('rentals.deleteEvent')}
+        message={eventoEliminar ? `${t('rentals.confirmDeleteEvent')} "${eventoEliminar.nombre}"?` : ''}
         variant="danger"
-        confirmText="Eliminar"
+        confirmText={t('common.delete')}
         loading={eliminarEvento.isPending}
       />
     </div>

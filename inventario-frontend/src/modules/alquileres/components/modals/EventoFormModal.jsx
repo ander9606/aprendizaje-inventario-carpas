@@ -10,6 +10,7 @@ import Button from '@shared/components/Button'
 import { useGetClientes } from '@clientes/hooks/useClientes'
 import { useGetCiudadesActivas } from '@clientes/hooks/useCiudades'
 import { useGetUbicacionesActivas } from '@inventario/hooks/useUbicaciones'
+import { useTranslation } from 'react-i18next'
 
 /**
  * Modal para crear o editar un evento
@@ -23,6 +24,7 @@ import { useGetUbicacionesActivas } from '@inventario/hooks/useUbicaciones'
  * @param {Object} props.eventoReferencia - Evento base para repetir (pre-llena todo excepto fechas)
  */
 const EventoFormModal = ({
+  const { t } = useTranslation()
     isOpen,
     onClose,
     onSave,

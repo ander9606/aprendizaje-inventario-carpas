@@ -9,6 +9,7 @@ import Modal from '@shared/components/Modal'
 import Button from '@shared/components/Button'
 import Spinner from '@shared/components/Spinner'
 import { useGetUbicacionesPorCiudad, useCreateUbicacion, useUpdateUbicacion, useDeleteUbicacion } from '@inventario/hooks/useUbicaciones'
+import { useTranslation } from 'react-i18next'
 
 // Tipos de lugar para eventos
 const TIPOS_LUGAR = [
@@ -36,6 +37,7 @@ const FORM_INICIAL = {
  * Gestiona direcciones/ubicaciones frecuentes para una ciudad
  */
 export default function DireccionesCiudadModal({ isOpen, onClose, ciudad }) {
+  const { t } = useTranslation()
   const [formData, setFormData] = useState(FORM_INICIAL)
   const [editingId, setEditingId] = useState(null)
   const [mostrarForm, setMostrarForm] = useState(false)

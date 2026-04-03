@@ -8,6 +8,7 @@ import { Eye, EyeOff, Shield } from 'lucide-react'
 import Modal from '@shared/components/Modal'
 import Button from '@shared/components/Button'
 import { useCreateEmpleado, useUpdateEmpleado } from '../../hooks/useEmpleados'
+import { useTranslation } from 'react-i18next'
 
 /**
  * COMPONENTE: EmpleadoFormModal
@@ -19,6 +20,7 @@ import { useCreateEmpleado, useUpdateEmpleado } from '../../hooks/useEmpleados'
  * @param {Array} roles - Lista de roles disponibles
  */
 const EmpleadoFormModal = ({
+  const { t } = useTranslation()
     isOpen,
     onClose,
     mode = 'crear',

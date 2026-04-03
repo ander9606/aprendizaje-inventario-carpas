@@ -7,6 +7,7 @@ import { useState, useMemo, useEffect } from 'react'
 import { Calendar, Percent, Clock, ArrowLeft, ArrowRight, DollarSign } from 'lucide-react'
 import Modal from '@shared/components/Modal'
 import Button from '@shared/components/Button'
+import { useTranslation } from 'react-i18next'
 
 /**
  * Modal para agregar recargos de adelanto o extensión
@@ -20,6 +21,7 @@ import Button from '@shared/components/Button'
  * @param {Object} props.recargoEditar - Recargo existente para editar (opcional)
  */
 const RecargoModal = ({
+  const { t } = useTranslation()
     isOpen,
     onClose,
     onSave,

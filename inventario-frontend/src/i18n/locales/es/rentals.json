@@ -72,6 +72,19 @@
     "approvedProducts": "Productos aprobados",
     "noApprovedProducts": "Sin productos aprobados registrados",
     "rentedProducts": "Productos alquilados",
-    "dayQuotes": "Cotizaciones del día"
+    "dayQuotes": "Cotizaciones del día",
+    "searchByEventClientId": "Buscar por evento, cliente o ID...",
+    "searchByEventClient": "Buscar por evento o cliente...",
+    "willAppearWhenApproved": "Aparecerán aquí cuando se aprueben cotizaciones",
+    "newEvent": "Nuevo Evento",
+    "noEvents": "No hay eventos",
+    "createFirstEvent": "Crea tu primer evento para comenzar a gestionar cotizaciones",
+    "deleteEvent": "Eliminar Evento",
+    "confirmDeleteEvent": "¿Estás seguro de eliminar el evento",
+    "reactivate": "Reactivar",
+    "completedEvents": "Eventos realizados",
+    "finalized": "finalizados",
+    "active": "Activo",
+    "scheduled": "Programado"
   }
 }

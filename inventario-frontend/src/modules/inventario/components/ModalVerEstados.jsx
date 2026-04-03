@@ -39,6 +39,7 @@ function EstadoBadgeInline({ estado }) {
 }
 
 const ModalVerEstados = ({ isOpen, onClose, elemento }) => {
+  const { t } = useTranslation()
   const esSeries = !!elemento?.requiere_series
   const elementoId = elemento?.id
 

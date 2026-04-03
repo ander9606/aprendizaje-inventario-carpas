@@ -37,9 +37,11 @@ import Button from '@shared/components/Button'
 import Modal from '@shared/components/Modal'
 import Spinner from '@shared/components/Spinner'
 import { toast } from 'sonner'
+import { useTranslation } from 'react-i18next'
 
 // Hook para debounce
 const useDebounce = (value, delay) => {
+  const { t } = useTranslation()
     const [debouncedValue, setDebouncedValue] = useState(value)
     useEffect(() => {
         const handler = setTimeout(() => {

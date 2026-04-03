@@ -31,11 +31,13 @@ import Spinner from '@shared/components/Spinner'
 import Button from '@shared/components/Button'
 import { useGetChecklist, useVerificarElementoCargue, useVerificarElementoRecogida, useVerificarElementoBodega, useMarcarDanoElemento, useGenerarOrdenMantenimiento } from '../hooks/useOrdenesTrabajo'
 import { toast } from 'sonner'
+import { useTranslation } from 'react-i18next'
 
 // ============================================
 // COMPONENTE: Fila de Elemento con Checkbox
 // ============================================
 const ElementoCheckItem = ({ elemento, modo, onToggle, onMarcarDano, isPending, isDanoPending }) => {
+  const { t } = useTranslation()
     const [showNotas, setShowNotas] = useState(false)
     const [notas, setNotas] = useState(elemento.notas || '')
     const [showDanoForm, setShowDanoForm] = useState(false)

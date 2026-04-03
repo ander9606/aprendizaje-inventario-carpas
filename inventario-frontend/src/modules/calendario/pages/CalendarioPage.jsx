@@ -19,8 +19,10 @@ import ModalDiaCotizaciones from '../components/ModalDiaCotizaciones'
 import CotizacionDetalleModal from '@alquileres/components/modals/CotizacionDetalleModal'
 import Button from '@shared/components/Button'
 import Spinner from '@shared/components/Spinner'
+import { useTranslation } from 'react-i18next'
 
 export default function CalendarioPage() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const calendarRef = useRef(null)
 

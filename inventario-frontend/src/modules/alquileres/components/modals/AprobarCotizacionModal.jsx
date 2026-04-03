@@ -10,6 +10,7 @@ import Button from '@shared/components/Button'
 import Spinner from '@shared/components/Spinner'
 import { useVerificarDisponibilidadCotizacion } from '@inventario/hooks/useDisponibilidad'
 import { useGetCotizacionCompleta } from '../../hooks/cotizaciones'
+import { useTranslation } from 'react-i18next'
 
 /**
  * AprobarCotizacionModal
@@ -18,6 +19,7 @@ import { useGetCotizacionCompleta } from '../../hooks/cotizaciones'
  * antes de aprobar
  */
 const AprobarCotizacionModal = ({
+  const { t } = useTranslation()
   isOpen,
   onClose,
   cotizacionId,

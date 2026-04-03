@@ -20,6 +20,7 @@ import {
     Star
 } from 'lucide-react'
 import { Modal } from '@shared/components/Modal'
+import { useTranslation } from 'react-i18next'
 
 const ESTADOS_CONFIG = {
     pendiente: { label: 'Pendiente', bg: 'bg-slate-100', text: 'text-slate-700', dot: 'bg-slate-400' },
@@ -40,6 +41,7 @@ const PRIORIDAD_CONFIG = {
 }
 
 const formatFecha = (fecha) => {
+  const { t } = useTranslation()
     if (!fecha) return '-'
     return new Date(fecha).toLocaleDateString('es-CO', {
         weekday: 'long',

@@ -7,6 +7,7 @@
 import { useState } from 'react'
 import { Camera, X, Image, ChevronDown, ChevronUp, Loader2 } from 'lucide-react'
 import { useGetFotosAlquiler } from '../../hooks/useAlquileres'
+import { useTranslation } from 'react-i18next'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'
 
@@ -25,6 +26,7 @@ const ORDEN_LABELS = {
 }
 
 export default function FotosAlquiler({ alquilerId }) {
+  const { t } = useTranslation()
     const { fotos, porOrden, isLoading } = useGetFotosAlquiler(alquilerId)
     const [expandedSection, setExpandedSection] = useState(null)
     const [visorAbierto, setVisorAbierto] = useState(null)

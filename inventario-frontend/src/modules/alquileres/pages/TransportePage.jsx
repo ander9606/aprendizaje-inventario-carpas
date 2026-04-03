@@ -11,6 +11,7 @@ import { useGetCiudades } from '@clientes/hooks/useCiudades'
 import { useGetDepartamentosActivos } from '@clientes/hooks/useDepartamentos'
 import Button from '@shared/components/Button'
 import Spinner from '@shared/components/Spinner'
+import { useTranslation } from 'react-i18next'
 
 // Tipos de camión disponibles
 const TIPOS_CAMION = [
@@ -21,6 +22,7 @@ const TIPOS_CAMION = [
 ]
 
 const formatearMoneda = (valor) => {
+  const { t } = useTranslation()
   if (!valor) return '-'
   return new Intl.NumberFormat('es-CO', {
     style: 'currency',

@@ -16,11 +16,13 @@ import {
 } from 'lucide-react'
 import Modal from '@shared/components/Modal'
 import Button from '@shared/components/Button'
+import { useTranslation } from 'react-i18next'
 
 // ============================================
 // COMPONENTE: Fila de elemento individual
 // ============================================
 const ElementoMantenimientoItem = ({ elemento, resultado, onChange }) => {
+  const { t } = useTranslation()
     const estados = [
         { value: true, label: 'Reparado', icon: CheckCircle, bgSelected: 'bg-green-100 border-green-500 text-green-700', iconColor: 'text-green-600' },
         { value: false, label: 'No reparable', icon: XCircle, bgSelected: 'bg-red-100 border-red-500 text-red-700', iconColor: 'text-red-600' }

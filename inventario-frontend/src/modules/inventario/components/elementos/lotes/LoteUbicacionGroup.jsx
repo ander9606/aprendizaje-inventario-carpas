@@ -8,6 +8,7 @@ import { EstadoBadge } from '@shared/components/Badge'
 import DropdownMenu from '@shared/components/DropdownMenu'
 import { Trash2, ArrowRight, Package, RotateCcw } from 'lucide-react'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 /**
  * Componente LoteUbicacionGroup - Grupo de lotes por ubicacion
@@ -156,6 +157,7 @@ export const LoteUbicacionGroup = ({
 // Item individual de un lote (estado + cantidad)
 // ============================================
 const LoteItem = ({
+  const { t } = useTranslation()
   lote,
   ubicacion,
   onDevolverBodega,

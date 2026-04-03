@@ -24,6 +24,7 @@ import Spinner from '@shared/components/Spinner'
 import ModalOrdenCargue from '@operaciones/components/ModalOrdenCargue'
 import ModalOrdenDetalle from '@operaciones/components/ModalOrdenDetalle'
 import ModalDiaOrdenes from '@operaciones/components/ModalDiaOrdenes'
+import { useTranslation } from 'react-i18next'
 
 // ============================================
 // CONSTANTES: Colores para tipos de orden
@@ -55,6 +56,7 @@ const ORDEN_COLORS_COMPLETADO = {
 }
 
 const formatHora = (fecha) => {
+  const { t } = useTranslation()
     return new Date(fecha).toLocaleTimeString('es-CO', {
         hour: '2-digit',
         minute: '2-digit'

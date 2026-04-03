@@ -124,6 +124,7 @@ export const ElementoSerieCardExample = ({ elementoId }) => {
 
 import ElementoLoteCard from '../elementos/lotes/ElementoLoteCard'
 import { useGetLotes } from '../../hooks/useLotes'
+import { useTranslation } from 'react-i18next'
 
 export const ElementoLoteCardExample = ({ elementoId }) => {
   // 1. USAR EL HOOK

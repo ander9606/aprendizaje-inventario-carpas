@@ -8,6 +8,7 @@ import { BarChart3, TrendingUp, Users, Package, MapPin, FileText, DollarSign, Ac
 import Spinner from '@shared/components/Spinner'
 import { useGetReportesAlquileres } from '../hooks/useAlquileres'
 import {
+import { useTranslation } from 'react-i18next'
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend
 } from 'recharts'
@@ -16,6 +17,7 @@ const MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'O
 const MESES_FULL = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
 
 const formatMoney = (value) => {
+  const { t } = useTranslation()
   if (value >= 1000000) return `$${(value / 1000000).toFixed(1)}M`
   if (value >= 1000) return `$${(value / 1000).toFixed(0)}K`
   return `$${value}`

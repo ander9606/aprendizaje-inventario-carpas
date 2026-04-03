@@ -15,6 +15,7 @@ import {
 } from "../../hooks/useCategorias";
 
 const SubcategoriaFormModal = ({
+  const { t } = useTranslation()
   isOpen,
   onClose,
   mode = "crear",

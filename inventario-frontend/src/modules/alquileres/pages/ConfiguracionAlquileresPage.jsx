@@ -10,11 +10,13 @@ import Button from '@shared/components/Button'
 import Spinner from '@shared/components/Spinner'
 import { useGetConfiguraciones, useUpdateConfiguraciones, useSubirLogo, useEliminarLogo } from '@configuracion/hooks/useConfiguracion'
 import InfoBox from '@shared/components/InfoBox'
+import { useTranslation } from 'react-i18next'
 
 // URL base del backend (sin /api)
 const BACKEND_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api').replace('/api', '')
 
 const ConfiguracionPage = () => {
+  const { t } = useTranslation()
   const [searchParams] = useSearchParams()
   const location = useLocation()
   const navigate = useNavigate()

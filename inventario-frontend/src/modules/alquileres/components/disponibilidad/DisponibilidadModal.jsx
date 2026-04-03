@@ -7,8 +7,10 @@ import { Package, Calendar } from 'lucide-react'
 import VerificacionDisponibilidad from './VerificacionDisponibilidad'
 import Button from '@shared/components/Button'
 import Modal from '@shared/components/Modal'
+import { useTranslation } from 'react-i18next'
 
 const DisponibilidadModal = ({
+  const { t } = useTranslation()
   isOpen,
   onClose,
   productos = [],

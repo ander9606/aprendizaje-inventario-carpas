@@ -13,8 +13,10 @@ import Spinner from '@shared/components/Spinner'
 import { useGetCotizacionCompleta, useConfirmarFechasCotizacion, useRegistrarSeguimiento } from '../../hooks/cotizaciones'
 import { useCancelarAlquiler } from '../../hooks/useAlquileres'
 import { apiCotizaciones } from '../../api/apiCotizaciones'
+import { useTranslation } from 'react-i18next'
 
 const CotizacionDetalleModal = ({
+  const { t } = useTranslation()
   isOpen,
   onClose,
   cotizacionId,

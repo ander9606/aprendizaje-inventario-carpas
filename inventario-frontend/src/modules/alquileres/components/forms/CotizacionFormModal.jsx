@@ -20,11 +20,13 @@ import { useGetCiudadesActivas } from '@clientes/hooks/useCiudades'
 import { useGetUbicacionesPorCiudad, useCreateUbicacion } from '@inventario/hooks/useUbicaciones'
 import { useGetEventosPorCliente } from '../../hooks/useEventos'
 import { useGetConfiguracionCompleta } from '@configuracion/hooks/useConfiguracion'
+import { useTranslation } from 'react-i18next'
 
 /**
  * CotizacionFormModal
  */
 const CotizacionFormModal = ({
+  const { t } = useTranslation()
   isOpen,
   onClose,
   mode = 'crear',

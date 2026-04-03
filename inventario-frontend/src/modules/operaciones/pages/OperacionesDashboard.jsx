@@ -28,11 +28,13 @@ import { useGetOrdenes, useGetEstadisticasOperaciones } from '../hooks/useOrdene
 import { useGetAlertasPendientes, useGetResumenAlertas } from '@configuracion/hooks/useAlertas'
 import AlertasAsignacion from '../components/AlertasAsignacion'
 import Spinner from '@shared/components/Spinner'
+import { useTranslation } from 'react-i18next'
 
 // ============================================
 // HELPERS: Fechas (usando hora local, no UTC)
 // ============================================
 const formatLocalDate = (date) => {
+  const { t } = useTranslation()
     const year = date.getFullYear()
     const month = String(date.getMonth() + 1).padStart(2, '0')
     const day = String(date.getDate()).padStart(2, '0')

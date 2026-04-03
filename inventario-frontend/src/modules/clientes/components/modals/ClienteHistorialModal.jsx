@@ -28,8 +28,10 @@ import { useNavigate } from 'react-router-dom'
 import { useGetHistorialEventos } from '../../hooks/useClientes'
 import Spinner from '@shared/components/Spinner'
 import Button from '@shared/components/Button'
+import { useTranslation } from 'react-i18next'
 
 const ClienteHistorialModal = ({ isOpen, onClose, clienteId, onRepetirEvento }) => {
+  const { t } = useTranslation()
     const navigate = useNavigate()
     const { historial, isLoading, error } = useGetHistorialEventos(isOpen ? clienteId : null)
     const [expandedEvento, setExpandedEvento] = useState(null)

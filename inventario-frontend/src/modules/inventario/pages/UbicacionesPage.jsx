@@ -18,11 +18,13 @@ import DireccionesCiudadModal from '@clientes/components/modals/DireccionesCiuda
 import Button from '@shared/components/Button'
 import Spinner from '@shared/components/Spinner'
 import EmptyState from '@shared/components/EmptyState'
+import { useTranslation } from 'react-i18next'
 
 // Tipos que son de almacenamiento
 const TIPOS_ALMACENAMIENTO = ['bodega', 'taller', 'transito']
 
 export default function UbicacionesPage() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
 
   // ============================================

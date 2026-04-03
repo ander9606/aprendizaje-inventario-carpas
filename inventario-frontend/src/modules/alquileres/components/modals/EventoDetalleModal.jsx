@@ -37,8 +37,10 @@ import Modal from '@shared/components/Modal'
 import CotizacionDetalleModal from './CotizacionDetalleModal'
 import AprobarCotizacionModal from './AprobarCotizacionModal'
 import ListaNovedades from '../../../operaciones/components/ListaNovedades'
+import { useTranslation } from 'react-i18next'
 
 const EventoDetalleModal = ({ isOpen, onClose, eventoId, onCrearCotizacion, onEditarCotizacion }) => {
+  const { t } = useTranslation()
     const navigate = useNavigate()
     const queryClient = useQueryClient()
     const { evento, isLoading, error } = useGetEvento(eventoId)

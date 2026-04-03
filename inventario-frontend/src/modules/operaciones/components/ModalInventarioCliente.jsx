@@ -8,6 +8,7 @@ import { useGetInventarioCliente, useGetFotosOrden, useGetFirmaCliente, useGuard
 import FirmaDigital from '@shared/components/FirmaDigital'
 import Spinner from '@shared/components/Spinner'
 import Modal from '@shared/components/Modal'
+import { useTranslation } from 'react-i18next'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'
 
@@ -34,6 +35,7 @@ function formatFecha(fecha) {
 }
 
 export default function ModalInventarioCliente({ ordenId, onClose }) {
+  const { t } = useTranslation()
     const { inventario, isLoading, error } = useGetInventarioCliente(ordenId, { enabled: !!ordenId })
     const { porEtapa } = useGetFotosOrden(ordenId)
     const { firma } = useGetFirmaCliente(ordenId)

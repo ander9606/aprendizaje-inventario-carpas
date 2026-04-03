@@ -18,8 +18,10 @@ import Modal from '@shared/components/Modal'
 import Button from '@shared/components/Button'
 import Spinner from '@shared/components/Spinner'
 import { toast } from 'sonner'
+import { useTranslation } from 'react-i18next'
 
 export default function ModalAsignarInventario({ ordenId, elementosPendientes, onClose, onSave }) {
+  const { t } = useTranslation()
     const { productos, isLoading } = useGetElementosDisponibles(ordenId)
     const crearAlerta = useCrearAlertaOperaciones()
     const [seleccion, setSeleccion] = useState({}) // { elemento_id: { serie_id?, lote_id?, cantidad? } }

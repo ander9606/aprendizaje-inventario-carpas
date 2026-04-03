@@ -8,8 +8,10 @@ import { useState } from 'react'
 import { Tag, Plus, Trash2, Percent, DollarSign, ChevronDown, ChevronUp } from 'lucide-react'
 import Button from '@shared/components/Button'
 import { useGetDescuentos } from '../../hooks/descuentos'
+import { useTranslation } from 'react-i18next'
 
 const DescuentosSelectorLocal = ({
+  const { t } = useTranslation()
   descuentosAplicados = [],
   onDescuentosChange,
   baseCalculo = 0,
