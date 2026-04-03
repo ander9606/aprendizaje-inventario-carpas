@@ -207,20 +207,20 @@ export default function CalendarioPage() {
           {/* Acciones rapidas */}
           <div className="bg-white rounded-lg border border-slate-200 p-4">
             <h3 className="text-sm font-semibold text-slate-700 mb-3">
-              Acciones Rapidas
+              {t('calendar.quickActions')}
             </h3>
             <div className="space-y-2">
               <button
                 onClick={goToToday}
                 className="w-full px-4 py-2 text-left text-sm text-slate-600 hover:bg-slate-50 rounded-lg transition-colors"
               >
-                Ir a Hoy
+                {t('calendar.goToToday')}
               </button>
               <button
                 onClick={handleIrCotizaciones}
                 className="w-full px-4 py-2 text-left text-sm text-slate-600 hover:bg-slate-50 rounded-lg transition-colors"
               >
-                Nueva Cotizacion
+                {t('calendar.newQuotation')}
               </button>
             </div>
           </div>
@@ -228,15 +228,15 @@ export default function CalendarioPage() {
           {/* Resumen del mes */}
           <div className="bg-white rounded-lg border border-slate-200 p-4">
             <h3 className="text-sm font-semibold text-slate-700 mb-3">
-              Resumen
+              {t('calendar.summary')}
             </h3>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-slate-500">Cotizaciones:</span>
+                <span className="text-slate-500">{t('calendar.quotations')}:</span>
                 <span className="font-medium">{cotizaciones?.length || 0}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">Eventos visibles:</span>
+                <span className="text-slate-500">{t('calendar.visibleEvents')}:</span>
                 <span className="font-medium">{events.length}</span>
               </div>
             </div>
