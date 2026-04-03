@@ -124,7 +124,7 @@ export default function CalendarioPage() {
   if (isLoading) {
     return (
       <div className="flex justify-center py-12">
-        <Spinner size="lg" text="Cargando calendario..." />
+        <Spinner size="lg" text={t('calendar.loadingCalendar')} />
       </div>
     )
   }
@@ -133,9 +133,9 @@ export default function CalendarioPage() {
     return (
       <div className="p-6">
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
-          Error al cargar el calendario: {error.message || 'Ocurrió un error inesperado'}
+          {t('calendar.errorLoadingCalendar')}: {error.message || t('common.unexpectedError')}
           <Button variant="ghost" onClick={handleRefresh} className="ml-4">
-            Reintentar
+            {t('common.retry')}
           </Button>
         </div>
       </div>
@@ -151,10 +151,10 @@ export default function CalendarioPage() {
             <div className="p-2 bg-blue-100 rounded-lg">
               <Calendar className="w-6 h-6 text-blue-600" />
             </div>
-            Calendario
+            {t('calendar.title')}
           </h1>
           <p className="text-slate-500 mt-1">
-            Vista de eventos y cotizaciones
+            {t('calendar.eventsAndQuotationsView')}
           </p>
         </div>
 
@@ -164,7 +164,7 @@ export default function CalendarioPage() {
             icon={<RefreshCw className="w-4 h-4" />}
             onClick={handleRefresh}
           >
-            Actualizar
+            {t('config.refresh')}
           </Button>
         </div>
       </div>

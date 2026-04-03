@@ -22,7 +22,6 @@ const TIPOS_CAMION = [
 ]
 
 const formatearMoneda = (valor) => {
-  const { t } = useTranslation()
   if (!valor) return '-'
   return new Intl.NumberFormat('es-CO', {
     style: 'currency',
@@ -32,6 +31,7 @@ const formatearMoneda = (valor) => {
 }
 
 export default function TransportePage() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const { ciudades, isLoading, error, refetch } = useGetCiudades()
   const { departamentos } = useGetDepartamentosActivos()
@@ -105,7 +105,7 @@ export default function TransportePage() {
   if (isLoading) {
     return (
       <div className="flex justify-center py-12">
-        <Spinner size="lg" text="Cargando tarifas de transporte..." />
+        <Spinner size="lg" text={t('rentals.loadingTransportRates')} />
       </div>
     )
   }
@@ -114,9 +114,9 @@ export default function TransportePage() {
     return (
       <div className="p-6">
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
-          Error al cargar tarifas: {error.message || 'Ocurrió un error inesperado'}
+          {t('rentals.errorLoadingRates')}: {error.message || t('messages.error.unexpected')}
           <Button variant="ghost" onClick={() => refetch()} className="ml-4">
-            Reintentar
+            {t('common.retry')}
           </Button>
         </div>
       </div>
@@ -133,10 +133,10 @@ export default function TransportePage() {
               <div className="p-2 bg-orange-100 rounded-lg">
                 <Truck className="w-6 h-6 text-orange-600" />
               </div>
-              Transporte
+              {t('rentals.transport')}
             </h1>
             <p className="text-slate-500 mt-1">
-              Consulta las tarifas de transporte por ciudad y tipo de camión
+              {t('rentals.transportDescription')}
             </p>
           </div>
 
@@ -145,7 +145,7 @@ export default function TransportePage() {
             icon={<ExternalLink className="w-4 h-4" />}
             onClick={() => navigate('/configuracion/ciudades')}
           >
-            Administrar Ciudades
+            {t('rentals.manageCities')}
           </Button>
         </div>
       </div>
@@ -159,7 +159,7 @@ export default function TransportePage() {
             </div>
             <div>
               <p className="text-2xl font-bold text-slate-900">{totalCiudades}</p>
-              <p className="text-sm text-slate-500">Ciudades</p>
+              <p className="text-sm text-slate-500">{t('rentals.cities')}</p>
             </div>
           </div>
         </div>
@@ -170,7 +170,7 @@ export default function TransportePage() {
             </div>
             <div>
               <p className="text-2xl font-bold text-slate-900">{ciudadesConTarifas}</p>
-              <p className="text-sm text-slate-500">Con tarifas</p>
+              <p className="text-sm text-slate-500">{t('rentals.withRates')}</p>
             </div>
           </div>
         </div>
