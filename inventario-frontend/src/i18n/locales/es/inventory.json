@@ -179,6 +179,11 @@
     "inActiveEvents": "En Eventos Activos",
     "eventNoName": "Evento sin nombre",
     "noBatchesInLocation": "No hay lotes en esta ubicación",
-    "moveToOtherLocation": "Mover a otra ubicación"
+    "moveToOtherLocation": "Mover a otra ubicación",
+    "exportSuccess": "Inventario exportado a Excel exitosamente",
+    "exportError": "Error al exportar",
+    "noCategory": "Sin categoría",
+    "noSubcategory": "Sin subcategoría",
+    "deleteCategoryError": "Error al eliminar la categoría"
   }
 }

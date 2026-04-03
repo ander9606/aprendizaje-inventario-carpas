@@ -96,7 +96,10 @@
     "confirmAction": "¿Confirmar acción?",
     "actionCannotBeUndone": "Esta acción no se puede deshacer.",
     "item": "item",
-    "items": "items"
+    "items": "items",
+    "tryAgain": "Intenta de nuevo",
+    "unexpectedError": "Ocurrió un error inesperado",
+    "noResultsFor": "No se encontraron resultados para \"{{term}}\""
   },
   "states": {
     "good": "Bueno",

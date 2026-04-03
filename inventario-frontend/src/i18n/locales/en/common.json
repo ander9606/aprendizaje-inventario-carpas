@@ -96,7 +96,10 @@
     "confirmAction": "Confirm action?",
     "actionCannotBeUndone": "This action cannot be undone.",
     "item": "item",
-    "items": "items"
+    "items": "items",
+    "tryAgain": "Try again",
+    "unexpectedError": "An unexpected error occurred",
+    "noResultsFor": "No results found for \"{{term}}\""
   },
   "states": {
     "good": "Good",
