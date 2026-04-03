@@ -60,7 +60,7 @@ const DescuentosPage = () => {
   }
 
   const handleEliminar = async (id) => {
-    if (confirm('¿Desactivar este descuento? Podrá reactivarlo más tarde.')) {
+    if (confirm(t('rentals.deactivateDiscountConfirm'))) {
       await deleteMutation.mutateAsync(id)
     }
   }
@@ -290,20 +290,20 @@ const DescuentosPage = () => {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">
-                Tipo *
+                {t('common.type')} *
               </label>
               <select
                 value={formData.tipo}
                 onChange={(e) => setFormData(prev => ({ ...prev, tipo: e.target.value }))}
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
-                <option value="porcentaje">Porcentaje (%)</option>
-                <option value="fijo">Monto Fijo ($)</option>
+                <option value="porcentaje">{t('rentals.percentageOption')}</option>
+                <option value="fijo">{t('rentals.fixedAmountOption')}</option>
               </select>
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">
-                Valor *
+                {t('rentals.value')} *
               </label>
               <div className="relative">
                 <input
@@ -330,14 +330,14 @@ const DescuentosPage = () => {
               variant="secondary"
               onClick={() => setModalOpen(false)}
             >
-              Cancelar
+              {t('common.cancel')}
             </Button>
             <Button
               type="submit"
               variant="primary"
               loading={createMutation.isPending || updateMutation.isPending}
             >
-              {editando ? 'Guardar cambios' : 'Crear descuento'}
+              {editando ? t('rentals.saveChanges') : t('rentals.createDiscount')}
             </Button>
           </div>
         </form>

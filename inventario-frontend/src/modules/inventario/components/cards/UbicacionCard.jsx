@@ -97,19 +97,19 @@ const UbicacionCard = ({
    */
   const getNombreTipo = (tipo) => {
     const nombres = {
-      bodega: 'Bodega',
-      taller: 'Taller',
-      transito: 'Tránsito',
-      finca: 'Finca',
-      hacienda: 'Hacienda',
-      jardin: 'Jardín',
-      club: 'Club',
-      hotel: 'Hotel',
-      playa: 'Playa',
-      parque: 'Parque',
-      residencia: 'Residencia',
-      evento: 'Evento',
-      otro: 'Otro'
+      bodega: t('inventory.warehouseType'),
+      taller: t('inventory.workshopType'),
+      transito: t('inventory.transitType'),
+      finca: t('inventory.farmType'),
+      hacienda: t('inventory.haciendaType'),
+      jardin: t('inventory.gardenType'),
+      club: t('inventory.clubType'),
+      hotel: t('inventory.hotelType'),
+      playa: t('inventory.beachType'),
+      parque: t('inventory.parkType'),
+      residencia: t('inventory.residenceType'),
+      evento: t('inventory.eventType'),
+      otro: t('inventory.otherType')
     }
     return nombres[tipo] || tipo
   }
@@ -139,8 +139,7 @@ const UbicacionCard = ({
     e.stopPropagation()
 
     const confirmacion = confirm(
-      `¿Estás seguro de eliminar la ubicación "${ubicacion.nombre}"?\n\n` +
-      `Esta acción no se puede deshacer.`
+      t('inventory.deleteLocationConfirm', { name: ubicacion.nombre })
     )
 
     if (confirmacion && onDelete) {
@@ -159,7 +158,7 @@ const UbicacionCard = ({
       console.log('✅ Ubicación marcada como principal')
     } catch (error) {
       console.error('❌ Error al marcar como principal:', error)
-      const mensaje = error.response?.data?.message || 'No se pudo marcar como principal'
+      const mensaje = error.response?.data?.message || t('inventory.cannotMarkAsPrincipal')
       alert(mensaje)
     }
   }
@@ -207,7 +206,7 @@ const UbicacionCard = ({
               {/* Badge: Inactiva */}
               {!ubicacion.activo && (
                 <span className="inline-block px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-700">
-                  Inactiva
+                  {t('inventory.inactiveLabel')}
                 </span>
               )}
             </div>
@@ -246,7 +245,7 @@ const UbicacionCard = ({
             <div className="flex items-center gap-2">
               <Package className="w-4 h-4 flex-shrink-0" />
               <span className="font-medium">
-                {ubicacion.total_items} {ubicacion.total_items === 1 ? 'item' : 'items'}
+                {ubicacion.total_items} {ubicacion.total_items === 1 ? t('common.item') : t('common.items')}
               </span>
             </div>
           )}
@@ -269,7 +268,7 @@ const UbicacionCard = ({
               loading={isMarcando}
               disabled={isMarcando}
             >
-              Marcar como principal
+              {t('inventory.markAsPrincipal')}
             </Button>
           </div>
         )}
@@ -284,7 +283,7 @@ const UbicacionCard = ({
             onClick={handleEdit}
             className="flex-1"
           >
-            Editar
+            {t('common.edit')}
           </Button>
 
           {/* Botón: Eliminar */}
@@ -295,7 +294,7 @@ const UbicacionCard = ({
             onClick={handleDelete}
             className="flex-1"
           >
-            Eliminar
+            {t('common.delete')}
           </Button>
         </div>
       </Card.Footer>

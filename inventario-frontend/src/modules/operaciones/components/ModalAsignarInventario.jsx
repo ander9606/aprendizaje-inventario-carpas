@@ -78,9 +78,9 @@ export default function ModalAsignarInventario({ ordenId, elementosPendientes, o
 
         setSeleccion(nuevaSeleccion)
         if (asignados > 0) {
-            toast.success(`${asignados} elemento(s) asignado(s)${sinStock > 0 ? `, ${sinStock} sin stock` : ''}`)
+            toast.success(sinStock > 0 ? t('operations.assignInventoryModal.elementsAssignedWithNoStock', { assigned: asignados, noStock: sinStock }) : t('operations.assignInventoryModal.elementsAssigned', { count: asignados }))
         } else {
-            toast.warning('No hay inventario disponible para asignar')
+            toast.warning(t('operations.assignInventoryModal.noInventoryToAssign'))
         }
     }
 
@@ -136,13 +136,13 @@ export default function ModalAsignarInventario({ ordenId, elementosPendientes, o
                 orden_id: ordenId,
                 tipo: 'conflicto_disponibilidad',
                 severidad: elementosSinStock.length > 2 ? 'critica' : 'alta',
-                titulo: `Insuficiencia de inventario - ${elementosSinStock.length} elemento(s)`,
-                mensaje: `La orden #${ordenId} requiere elementos que no están disponibles en el inventario: ${nombres}. Se necesita gestionar la adquisición o reasignación de estos elementos.`
+                titulo: t('operations.assignInventoryModal.insufficiencyTitle', { count: elementosSinStock.length }),
+                mensaje: t('operations.assignInventoryModal.insufficiencyMessage', { orderId: ordenId, names: nombres })
             })
             setAlertaEnviada(true)
-            toast.success('Alerta de insuficiencia creada. El equipo de gestión será notificado.')
+            toast.success(t('operations.assignInventoryModal.insufficiencyAlertCreated'))
         } catch (error) {
-            toast.error('Error al crear la alerta')
+            toast.error(t('operations.assignInventoryModal.insufficiencyAlertError'))
         }
     }
 
@@ -157,7 +157,7 @@ export default function ModalAsignarInventario({ ordenId, elementosPendientes, o
             }))
 
         if (!elementos.length) {
-            toast.error('Selecciona al menos un elemento del inventario')
+            toast.error(t('operations.assignInventoryModal.selectAtLeastOne'))
             return
         }
 
@@ -165,17 +165,17 @@ export default function ModalAsignarInventario({ ordenId, elementosPendientes, o
         try {
             await onSave(elementos)
         } catch (error) {
-            toast.error(error?.response?.data?.message || 'Error al asignar inventario')
+            toast.error(error?.response?.data?.message || t('operations.assignInventoryModal.assignError'))
         } finally {
             setSaving(false)
         }
     }
 
     return (
-        <Modal isOpen={true} onClose={onClose} title="Asignar Inventario" size="lg">
+        <Modal isOpen={true} onClose={onClose} title={t('operations.assignInventory')} size="lg">
             {/* Subtítulo */}
             <p className="text-sm text-slate-500 -mt-2 mb-4">
-                {elementosPendientes.length} elemento(s) sin inventario asignado
+                {t('operations.assignInventoryModal.elementsWithoutInventory', { count: elementosPendientes.length })}
             </p>
 
             {/* Barra de acciones rápidas */}
@@ -187,7 +187,7 @@ export default function ModalAsignarInventario({ ordenId, elementosPendientes, o
                         icon={Zap}
                         onClick={handleAutoAsignar}
                     >
-                        Auto-asignar disponibles
+                        {t('operations.assignInventoryModal.autoAssign')}
                     </Button>
                     <Button
                         size="sm"
@@ -195,10 +195,10 @@ export default function ModalAsignarInventario({ ordenId, elementosPendientes, o
                         onClick={handleLimpiarSeleccion}
                         disabled={Object.keys(seleccion).length === 0}
                     >
-                        Limpiar selección
+                        {t('operations.assignInventoryModal.clearSelection')}
                     </Button>
                     <span className="ml-auto text-xs text-slate-500">
-                        Prioriza: bueno → nuevo
+                        {t('operations.assignInventoryModal.priorityHint')}
                     </span>
                 </div>
             )}
@@ -206,7 +206,7 @@ export default function ModalAsignarInventario({ ordenId, elementosPendientes, o
             {/* Body */}
             {isLoading ? (
                 <div className="py-8 text-center">
-                    <Spinner size="md" text="Buscando inventario disponible..." />
+                    <Spinner size="md" text={t('operations.assignInventoryModal.searchingInventory')} />
                 </div>
             ) : (
                 <div className="space-y-6">
@@ -243,10 +243,10 @@ export default function ModalAsignarInventario({ ordenId, elementosPendientes, o
                                         <div className="py-2 space-y-2">
                                             <p className="text-sm text-red-600 flex items-center gap-2">
                                                 <AlertTriangle className="w-4 h-4" />
-                                                No hay inventario disponible para este elemento
+                                                {t('operations.assignInventoryModal.noInventoryAvailable')}
                                             </p>
                                             <p className="text-xs text-slate-500">
-                                                No existen series ni lotes disponibles en el almacen. Reporta esta insuficiencia para que se gestione.
+                                                {t('operations.assignInventoryModal.noSeriesOrLots')}
                                             </p>
                                         </div>
                                     ) : (
@@ -255,7 +255,7 @@ export default function ModalAsignarInventario({ ordenId, elementosPendientes, o
                                             {series.length > 0 && (
                                                 <div>
                                                     <p className="text-xs font-medium text-slate-500 uppercase mb-1.5">
-                                                        Series disponibles
+                                                        {t('operations.assignInventoryModal.availableSeries')}
                                                     </p>
                                                     <div className="space-y-1">
                                                         {series.map(serie => (
@@ -298,7 +298,7 @@ export default function ModalAsignarInventario({ ordenId, elementosPendientes, o
                                             {lotes.length > 0 && (
                                                 <div>
                                                     <p className="text-xs font-medium text-slate-500 uppercase mb-1.5">
-                                                        Lotes disponibles
+                                                        {t('operations.assignInventoryModal.availableLots')}
                                                     </p>
                                                     <div className="space-y-1">
                                                         {lotes.map(lote => (
@@ -322,11 +322,11 @@ export default function ModalAsignarInventario({ ordenId, elementosPendientes, o
                                                                     {lote.identificador}
                                                                 </span>
                                                                 <span className="text-xs text-slate-500">
-                                                                    Disp: {lote.cantidad}
+                                                                    {t('operations.assignInventoryModal.available', { count: lote.cantidad })}
                                                                 </span>
                                                                 {selActual?.lote_id === lote.id && (
                                                                     <div className="flex items-center gap-1 ml-auto">
-                                                                        <span className="text-xs text-slate-500">Cant:</span>
+                                                                        <span className="text-xs text-slate-500">{t('operations.assignInventoryModal.qtyLabel')}</span>
                                                                         <input
                                                                             type="number"
                                                                             min={1}
@@ -364,13 +364,13 @@ export default function ModalAsignarInventario({ ordenId, elementosPendientes, o
                         <div className="flex items-center gap-2">
                             <AlertTriangle className="w-4 h-4 text-red-500 shrink-0" />
                             <p className="text-sm text-red-700">
-                                <span className="font-medium">{elementosSinStock.length} elemento(s)</span> sin stock en inventario
+                                {t('operations.assignInventoryModal.elementsNoStock', { count: elementosSinStock.length })}
                             </p>
                         </div>
                         {alertaEnviada ? (
                             <span className="text-xs text-green-600 font-medium flex items-center gap-1">
                                 <CheckCircle className="w-3.5 h-3.5" />
-                                Alerta enviada
+                                {t('operations.assignInventoryModal.alertSent')}
                             </span>
                         ) : (
                             <Button
@@ -381,7 +381,7 @@ export default function ModalAsignarInventario({ ordenId, elementosPendientes, o
                                 onClick={handleReportarInsuficiencia}
                                 disabled={crearAlerta.isPending}
                             >
-                                {crearAlerta.isPending ? 'Enviando...' : 'Reportar Insuficiencia'}
+                                {crearAlerta.isPending ? t('operations.assignInventoryModal.sending') : t('operations.assignInventoryModal.reportInsufficiency')}
                             </Button>
                         )}
                     </div>
@@ -391,11 +391,11 @@ export default function ModalAsignarInventario({ ordenId, elementosPendientes, o
             {/* Footer */}
             <Modal.Footer className="justify-between">
                 <p className="text-sm text-slate-500">
-                    {Object.values(seleccion).filter(Boolean).length} de {elementosPendientes.length} asignados
+                    {t('operations.assignInventoryModal.assignedOf', { assigned: Object.values(seleccion).filter(Boolean).length, total: elementosPendientes.length })}
                 </p>
                 <div className="flex gap-3">
                     <Button variant="secondary" onClick={onClose}>
-                        Cancelar
+                        {t('common.cancel')}
                     </Button>
                     <Button
                         color="green"
@@ -403,7 +403,7 @@ export default function ModalAsignarInventario({ ordenId, elementosPendientes, o
                         onClick={handleGuardar}
                         disabled={saving || !todosAsignados}
                     >
-                        {saving ? 'Asignando...' : 'Confirmar Asignación'}
+                        {saving ? t('operations.assignInventoryModal.assigning') : t('operations.assignInventoryModal.confirmAssignment')}
                     </Button>
                 </div>
             </Modal.Footer>

@@ -42,7 +42,7 @@ export default function ModalEditarOrden({ orden, onSaveFecha, onSaveGeneral, on
 
         // Si la fecha cambió, el motivo es obligatorio
         if (fechaCambio && !formData.motivo.trim()) {
-            setError('Debes indicar el motivo del cambio de fecha')
+            setError(t('operations.editOrderModal.dateChangeReasonRequired'))
             return
         }
 
@@ -81,7 +81,7 @@ export default function ModalEditarOrden({ orden, onSaveFecha, onSaveGeneral, on
             if (err?.response?.status === 409 && err?.response?.data?.data?.requiereAprobacion) {
                 setConflicto(err.response.data.data.validacion)
             } else {
-                setError(err?.response?.data?.message || err?.message || 'Error al guardar cambios')
+                setError(err?.response?.data?.message || err?.message || t('operations.editOrderModal.saveError'))
             }
         } finally {
             setGuardando(false)
@@ -91,14 +91,14 @@ export default function ModalEditarOrden({ orden, onSaveFecha, onSaveGeneral, on
     const inputClass = "w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 text-sm"
 
     return (
-        <Modal isOpen={true} onClose={onClose} title={`Editar Orden #${orden.id}`} size="sm">
+        <Modal isOpen={true} onClose={onClose} title={t('operations.editOrderModal.editOrderTitle', { id: orden.id })} size="sm">
             <div className="space-y-4">
                 {/* Fecha y Hora */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                         <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700 mb-1.5">
                             <Calendar className="w-3.5 h-3.5" />
-                            Fecha
+                            {t('operations.editOrderModal.date')}
                         </label>
                         <input
                             type="date"
@@ -111,7 +111,7 @@ export default function ModalEditarOrden({ orden, onSaveFecha, onSaveGeneral, on
                     <div>
                         <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700 mb-1.5">
                             <Clock className="w-3.5 h-3.5" />
-                            Hora
+                            {t('operations.editOrderModal.hour')}
                         </label>
                         <input
                             type="time"
@@ -128,7 +128,7 @@ export default function ModalEditarOrden({ orden, onSaveFecha, onSaveGeneral, on
                     <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 space-y-2">
                         <p className="text-xs text-amber-700 flex items-center gap-1.5">
                             <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
-                            La fecha cambió. Indica el motivo (se registra en auditoría).
+                            {t('operations.editOrderModal.dateChangedReason')}
                         </p>
                         <textarea
                             name="motivo"
@@ -136,7 +136,7 @@ export default function ModalEditarOrden({ orden, onSaveFecha, onSaveGeneral, on
                             onChange={handleChange}
                             rows={2}
                             className={`${inputClass} bg-white`}
-                            placeholder="Ej: El cliente solicitó cambio de fecha..."
+                            placeholder={t('operations.editOrderModal.dateChangePlaceholder')}
                         />
                     </div>
                 )}
@@ -145,7 +145,7 @@ export default function ModalEditarOrden({ orden, onSaveFecha, onSaveGeneral, on
                 <div>
                     <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700 mb-1.5">
                         <Flag className="w-3.5 h-3.5" />
-                        Prioridad
+                        {t('operations.editOrderModal.priority')}
                     </label>
                     <select
                         name="prioridad"
@@ -153,10 +153,10 @@ export default function ModalEditarOrden({ orden, onSaveFecha, onSaveGeneral, on
                         onChange={handleChange}
                         className={inputClass}
                     >
-                        <option value="baja">Baja</option>
-                        <option value="normal">Normal</option>
-                        <option value="alta">Alta</option>
-                        <option value="urgente">Urgente</option>
+                        <option value="baja">{t('operations.editOrderModal.priorityLow')}</option>
+                        <option value="normal">{t('operations.editOrderModal.priorityNormal')}</option>
+                        <option value="alta">{t('operations.editOrderModal.priorityHigh')}</option>
+                        <option value="urgente">{t('operations.editOrderModal.priorityUrgent')}</option>
                     </select>
                 </div>
 
@@ -164,7 +164,7 @@ export default function ModalEditarOrden({ orden, onSaveFecha, onSaveGeneral, on
                 <div>
                     <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700 mb-1.5">
                         <FileText className="w-3.5 h-3.5" />
-                        Notas
+                        {t('common.notes')}
                     </label>
                     <textarea
                         name="notas"
@@ -172,7 +172,7 @@ export default function ModalEditarOrden({ orden, onSaveFecha, onSaveGeneral, on
                         onChange={handleChange}
                         rows={3}
                         className={`${inputClass} resize-none`}
-                        placeholder="Notas adicionales..."
+                        placeholder={t('operations.editOrderModal.additionalNotes')}
                     />
                 </div>
 
@@ -187,7 +187,7 @@ export default function ModalEditarOrden({ orden, onSaveFecha, onSaveGeneral, on
                 {conflicto && (
                     <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg space-y-2">
                         <p className="text-sm font-medium text-amber-800">
-                            El cambio de fecha genera conflictos:
+                            {t('operations.editOrderModal.dateConflicts')}
                         </p>
                         <ul className="text-xs text-amber-700 space-y-1 list-disc list-inside">
                             {conflicto.conflictos?.map((c, i) => (
@@ -200,7 +200,7 @@ export default function ModalEditarOrden({ orden, onSaveFecha, onSaveGeneral, on
                             onClick={() => handleGuardar(true)}
                             disabled={guardando}
                         >
-                            {guardando ? 'Guardando...' : 'Forzar Cambio de Fecha'}
+                            {guardando ? t('operations.editOrderModal.saving') : t('operations.editOrderModal.forceeDateChange')}
                         </Button>
                     </div>
                 )}
@@ -208,7 +208,7 @@ export default function ModalEditarOrden({ orden, onSaveFecha, onSaveGeneral, on
 
             <Modal.Footer>
                 <Button variant="secondary" onClick={onClose}>
-                    Cancelar
+                    {t('common.cancel')}
                 </Button>
                 <Button
                     color="orange"
@@ -216,7 +216,7 @@ export default function ModalEditarOrden({ orden, onSaveFecha, onSaveGeneral, on
                     onClick={() => handleGuardar(false)}
                     disabled={guardando || !hayCambios || saving}
                 >
-                    {guardando ? 'Guardando...' : 'Guardar Cambios'}
+                    {guardando ? t('operations.editOrderModal.saving') : t('operations.employee.saveChanges')}
                 </Button>
             </Modal.Footer>
         </Modal>

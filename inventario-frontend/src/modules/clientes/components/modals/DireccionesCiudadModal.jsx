@@ -11,18 +11,18 @@ import Spinner from '@shared/components/Spinner'
 import { useGetUbicacionesPorCiudad, useCreateUbicacion, useUpdateUbicacion, useDeleteUbicacion } from '@inventario/hooks/useUbicaciones'
 import { useTranslation } from 'react-i18next'
 
-// Tipos de lugar para eventos
-const TIPOS_LUGAR = [
-  { id: 'finca', nombre: 'Finca', emoji: '🏡' },
-  { id: 'hacienda', nombre: 'Hacienda', emoji: '🏘️' },
-  { id: 'jardin', nombre: 'Jardin', emoji: '🌿' },
-  { id: 'club', nombre: 'Club', emoji: '🏛️' },
-  { id: 'hotel', nombre: 'Hotel', emoji: '🏨' },
-  { id: 'playa', nombre: 'Playa', emoji: '🏖️' },
-  { id: 'parque', nombre: 'Parque', emoji: '🌳' },
-  { id: 'residencia', nombre: 'Residencia', emoji: '🏠' },
-  { id: 'evento', nombre: 'Salon de eventos', emoji: '🎪' },
-  { id: 'otro', nombre: 'Otro', emoji: '📍' }
+// Tipos de lugar para eventos - keys for i18n
+const TIPOS_LUGAR_KEYS = [
+  { id: 'finca', i18nKey: 'clients.placeTypes.farm', emoji: '🏡' },
+  { id: 'hacienda', i18nKey: 'clients.placeTypes.hacienda', emoji: '🏘️' },
+  { id: 'jardin', i18nKey: 'clients.placeTypes.garden', emoji: '🌿' },
+  { id: 'club', i18nKey: 'clients.placeTypes.club', emoji: '🏛️' },
+  { id: 'hotel', i18nKey: 'clients.placeTypes.hotel', emoji: '🏨' },
+  { id: 'playa', i18nKey: 'clients.placeTypes.beach', emoji: '🏖️' },
+  { id: 'parque', i18nKey: 'clients.placeTypes.park', emoji: '🌳' },
+  { id: 'residencia', i18nKey: 'clients.placeTypes.residence', emoji: '🏠' },
+  { id: 'evento', i18nKey: 'clients.placeTypes.eventHall', emoji: '🎪' },
+  { id: 'otro', i18nKey: 'clients.placeTypes.other', emoji: '📍' }
 ]
 
 const FORM_INICIAL = {
@@ -84,7 +84,7 @@ export default function DireccionesCiudadModal({ isOpen, onClose, ciudad }) {
   const validate = () => {
     const newErrors = {}
     if (!formData.nombre.trim()) {
-      newErrors.nombre = 'El nombre es obligatorio'
+      newErrors.nombre = t('clients.nameRequired')
     }
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
@@ -112,22 +112,23 @@ export default function DireccionesCiudadModal({ isOpen, onClose, ciudad }) {
       }
       handleCancelarForm()
     } catch (error) {
-      const mensaje = error.response?.data?.message || 'Error al guardar'
+      const mensaje = error.response?.data?.message || t('clients.errorSaving')
       setErrors({ submit: mensaje })
     }
   }
 
   const handleDelete = async (id) => {
-    if (!confirm('¿Eliminar esta direccion?')) return
+    if (!confirm(t('clients.confirmDeleteAddress'))) return
     try {
       await eliminarUbicacion(id)
     } catch (error) {
-      alert(error.response?.data?.message || 'Error al eliminar')
+      alert(error.response?.data?.message || t('clients.errorDeleting'))
     }
   }
 
   const getTipoInfo = (tipo) => {
-    return TIPOS_LUGAR.find(t => t.id === tipo) || TIPOS_LUGAR[TIPOS_LUGAR.length - 1]
+    const found = TIPOS_LUGAR_KEYS.find(tk => tk.id === tipo) || TIPOS_LUGAR_KEYS[TIPOS_LUGAR_KEYS.length - 1]
+    return { ...found, nombre: t(found.i18nKey) }
   }
 
   if (!ciudad) return null
@@ -140,7 +141,7 @@ export default function DireccionesCiudadModal({ isOpen, onClose, ciudad }) {
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={`Direcciones - ${ciudad.nombre}`}
+      title={`${t('clients.addressesOf')} ${ciudad.nombre}`}
       size="lg"
     >
       <div className="space-y-4">
@@ -149,7 +150,7 @@ export default function DireccionesCiudadModal({ isOpen, onClose, ciudad }) {
           <div className="flex items-center gap-2">
             <MapPin className="w-5 h-5 text-green-600" />
             <span className="text-sm text-slate-600">
-              {ubicaciones.length} direccion{ubicaciones.length !== 1 ? 'es' : ''} registrada{ubicaciones.length !== 1 ? 's' : ''}
+              {t('clients.addressCount', { count: ubicaciones.length })}
             </span>
           </div>
           {!mostrarForm && (
@@ -160,7 +161,7 @@ export default function DireccionesCiudadModal({ isOpen, onClose, ciudad }) {
               icon={<Plus className="w-4 h-4" />}
               onClick={handleOpenCrear}
             >
-              Agregar direccion
+              {t('clients.addAddress')}
             </Button>
           )}
         </div>
@@ -170,7 +171,7 @@ export default function DireccionesCiudadModal({ isOpen, onClose, ciudad }) {
           <form onSubmit={handleSubmit} className="bg-blue-50 border border-blue-200 rounded-xl p-4 space-y-3">
             <div className="flex items-center justify-between mb-1">
               <h4 className="text-sm font-semibold text-blue-800">
-                {editingId ? 'Editar direccion' : 'Nueva direccion'}
+                {editingId ? t('clients.editAddress') : t('clients.newAddress')}
               </h4>
               <button
                 type="button"
@@ -188,13 +189,13 @@ export default function DireccionesCiudadModal({ isOpen, onClose, ciudad }) {
             {/* Nombre */}
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">
-                Nombre del lugar *
+                {t('clients.placeName')} *
               </label>
               <input
                 type="text"
                 value={formData.nombre}
                 onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-                placeholder="Ej: Finca La Esperanza, Hotel Dann Carlton..."
+                placeholder={t('clients.placeNamePlaceholder')}
                 className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.nombre ? 'border-red-300' : 'border-slate-300'}`}
                 disabled={isSaving}
               />
@@ -204,10 +205,10 @@ export default function DireccionesCiudadModal({ isOpen, onClose, ciudad }) {
             {/* Tipo de lugar */}
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">
-                Tipo de lugar
+                {t('clients.placeType')}
               </label>
               <div className="flex flex-wrap gap-1.5">
-                {TIPOS_LUGAR.map(tipo => (
+                {TIPOS_LUGAR_KEYS.map(tipo => (
                   <button
                     key={tipo.id}
                     type="button"
@@ -222,7 +223,7 @@ export default function DireccionesCiudadModal({ isOpen, onClose, ciudad }) {
                     `}
                   >
                     <span>{tipo.emoji}</span>
-                    {tipo.nombre}
+                    {t(tipo.i18nKey)}
                   </button>
                 ))}
               </div>
@@ -231,13 +232,13 @@ export default function DireccionesCiudadModal({ isOpen, onClose, ciudad }) {
             {/* Direccion */}
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">
-                Direccion
+                {t('clients.addressField')}
               </label>
               <input
                 type="text"
                 value={formData.direccion}
                 onChange={(e) => setFormData({ ...formData, direccion: e.target.value })}
-                placeholder="Ej: Km 5 Via Las Palmas, Calle 10 #43-20..."
+                placeholder={t('clients.addressPlaceholder')}
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 disabled={isSaving}
               />
@@ -246,13 +247,13 @@ export default function DireccionesCiudadModal({ isOpen, onClose, ciudad }) {
             {/* Notas */}
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">
-                Notas (opcional)
+                {t('clients.notesOptional')}
               </label>
               <input
                 type="text"
                 value={formData.observaciones}
                 onChange={(e) => setFormData({ ...formData, observaciones: e.target.value })}
-                placeholder="Indicaciones de acceso, contacto del lugar..."
+                placeholder={t('clients.notesPlaceholder')}
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 disabled={isSaving}
               />
@@ -267,7 +268,7 @@ export default function DireccionesCiudadModal({ isOpen, onClose, ciudad }) {
                 onClick={handleCancelarForm}
                 disabled={isSaving}
               >
-                Cancelar
+                {t('common.cancel')}
               </Button>
               <Button
                 type="submit"
@@ -276,7 +277,7 @@ export default function DireccionesCiudadModal({ isOpen, onClose, ciudad }) {
                 disabled={isSaving}
                 icon={isSaving ? <Spinner size="sm" /> : <Check className="w-4 h-4" />}
               >
-                {isSaving ? 'Guardando...' : (editingId ? 'Guardar cambios' : 'Agregar')}
+                {isSaving ? t('clients.saving') : (editingId ? t('clients.saveChanges') : t('common.add'))}
               </Button>
             </div>
           </form>
@@ -285,13 +286,13 @@ export default function DireccionesCiudadModal({ isOpen, onClose, ciudad }) {
         {/* Lista de direcciones */}
         {isLoading ? (
           <div className="py-8 flex justify-center">
-            <Spinner size="md" text="Cargando direcciones..." />
+            <Spinner size="md" text={t('clients.loadingAddresses')} />
           </div>
         ) : ubicaciones.length === 0 && !mostrarForm ? (
           <div className="py-8 text-center border-2 border-dashed border-slate-200 rounded-xl bg-slate-50/50">
             <Navigation className="w-10 h-10 mx-auto text-slate-300 mb-2" />
-            <p className="text-sm font-medium text-slate-600">No hay direcciones para {ciudad.nombre}</p>
-            <p className="text-xs text-slate-500 mt-1">Agrega lugares frecuentes para agilizar las cotizaciones</p>
+            <p className="text-sm font-medium text-slate-600">{t('clients.noAddressesFor')} {ciudad.nombre}</p>
+            <p className="text-xs text-slate-500 mt-1">{t('clients.addFrequentPlaces')}</p>
           </div>
         ) : (
           <div className="space-y-2 max-h-[50vh] overflow-y-auto custom-scrollbar">
@@ -335,7 +336,7 @@ export default function DireccionesCiudadModal({ isOpen, onClose, ciudad }) {
                       type="button"
                       onClick={() => handleOpenEditar(ubicacion)}
                       className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                      title="Editar"
+                      title={t('common.edit')}
                       disabled={isSaving || isDeleting}
                     >
                       <Pencil className="w-3.5 h-3.5" />
@@ -344,7 +345,7 @@ export default function DireccionesCiudadModal({ isOpen, onClose, ciudad }) {
                       type="button"
                       onClick={() => handleDelete(ubicacion.id)}
                       className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                      title="Eliminar"
+                      title={t('common.delete')}
                       disabled={isSaving || isDeleting}
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -364,7 +365,7 @@ export default function DireccionesCiudadModal({ isOpen, onClose, ciudad }) {
             size="sm"
             onClick={onClose}
           >
-            Cerrar
+            {t('common.close')}
           </Button>
         </div>
       </div>

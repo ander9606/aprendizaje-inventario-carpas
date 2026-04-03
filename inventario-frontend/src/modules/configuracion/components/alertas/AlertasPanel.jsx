@@ -59,10 +59,10 @@ const AlertasPanel = ({
         <div className="flex items-center gap-2">
           <Bell className="w-5 h-5 text-slate-600" />
           <h3 className="font-semibold text-slate-800">
-            Alertas
+            {t('config.alerts')}
             {resumen && (
               <span className="ml-2 text-sm font-normal text-slate-500">
-                ({resumen.total} {resumen.total === 1 ? 'alerta' : 'alertas'})
+                ({t('config.alertCount', { count: resumen.total })})
               </span>
             )}
           </h3>
@@ -92,7 +92,7 @@ const AlertasPanel = ({
               disabled={isLoading}
               icon={<RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />}
             >
-              {isLoading ? '' : 'Actualizar'}
+              {isLoading ? '' : t('config.refresh')}
             </Button>
           )}
 
@@ -119,7 +119,7 @@ const AlertasPanel = ({
           {isLoading && (
             <div className="text-center py-4 text-slate-500">
               <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2" />
-              <p className="text-sm">Cargando alertas...</p>
+              <p className="text-sm">{t('config.loadingAlerts')}</p>
             </div>
           )}
 
@@ -129,7 +129,7 @@ const AlertasPanel = ({
               <div className="flex items-center gap-2 mb-2">
                 <AlertTriangle className="w-4 h-4 text-red-500" />
                 <span className="text-sm font-medium text-red-700">
-                  Críticas ({criticas.length})
+                  {t('config.critical')} ({criticas.length})
                 </span>
               </div>
               <div className="space-y-2">
@@ -151,7 +151,7 @@ const AlertasPanel = ({
               <div className="flex items-center gap-2 mb-2">
                 <AlertCircle className="w-4 h-4 text-amber-500" />
                 <span className="text-sm font-medium text-amber-700">
-                  Advertencias ({advertencias.length})
+                  {t('config.warnings')} ({advertencias.length})
                 </span>
               </div>
               <div className="space-y-2">
@@ -173,7 +173,7 @@ const AlertasPanel = ({
               <div className="flex items-center gap-2 mb-2">
                 <Info className="w-4 h-4 text-blue-500" />
                 <span className="text-sm font-medium text-blue-700">
-                  Seguimiento ({informativas.length})
+                  {t('config.tracking')} ({informativas.length})
                 </span>
               </div>
               <div className="space-y-2">
@@ -193,7 +193,7 @@ const AlertasPanel = ({
           {!isLoading && alertas.length === 0 && (
             <div className="text-center py-4 text-slate-500">
               <Bell className="w-8 h-8 mx-auto mb-2 text-slate-300" />
-              <p className="text-sm">No hay alertas pendientes</p>
+              <p className="text-sm">{t('config.noPendingAlertsShort')}</p>
             </div>
           )}
         </div>
@@ -206,7 +206,7 @@ const AlertasPanel = ({
             <div className="flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 text-red-500" />
               <span className="text-sm text-red-700 font-medium">
-                {resumen.criticas} crítica{resumen.criticas !== 1 ? 's' : ''}
+                {t('config.criticalCount', { count: resumen.criticas })}
               </span>
             </div>
           )}
@@ -214,7 +214,7 @@ const AlertasPanel = ({
             <div className="flex items-center gap-2">
               <AlertCircle className="w-4 h-4 text-amber-500" />
               <span className="text-sm text-amber-700 font-medium">
-                {resumen.advertencias} advertencia{resumen.advertencias !== 1 ? 's' : ''}
+                {t('config.warningCount', { count: resumen.advertencias })}
               </span>
             </div>
           )}
@@ -222,7 +222,7 @@ const AlertasPanel = ({
             onClick={() => setColapsado(false)}
             className="text-sm text-primary-600 hover:underline ml-auto"
           >
-            Ver todas
+            {t('config.viewAll')}
           </button>
         </div>
       )}

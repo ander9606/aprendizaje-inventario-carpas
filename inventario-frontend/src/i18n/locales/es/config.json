@@ -55,6 +55,21 @@
       "dateChange": "Cambio de fecha",
       "incident": "Incidencia",
       "availableStock": "Stock disponible"
-    }
+    },
+    "alertCount_one": "{{count}} alerta",
+    "alertCount_other": "{{count}} alertas",
+    "criticalCount_one": "{{count}} crítica",
+    "criticalCount_other": "{{count}} críticas",
+    "warningCount_one": "{{count}} advertencia",
+    "warningCount_other": "{{count}} advertencias",
+    "clearFilters": "Limpiar filtros",
+    "allSeverities": "Todas",
+    "allTypes": "Todos",
+    "notification": "Notificación",
+    "orderClickDetail": "Orden #{{id}} - Click para ver detalle",
+    "clientLabel": "Cliente:",
+    "viewAll": "Ver todas",
+    "info": "Info",
+    "total": "Total"
   }
 }

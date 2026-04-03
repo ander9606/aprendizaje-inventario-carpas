@@ -129,21 +129,21 @@ const UbicacionFormModal = ({
 
     // Validar nombre
     if (!formData.nombre.trim()) {
-      newErrors.nombre = 'El nombre es obligatorio'
+      newErrors.nombre = t('validation.nameRequired')
     } else if (formData.nombre.trim().length < 3) {
-      newErrors.nombre = 'El nombre debe tener al menos 3 caracteres'
+      newErrors.nombre = t('validation.nameMinLength')
     }
 
     // Validar ciudad
     if (!formData.ciudad_id) {
-      newErrors.ciudad_id = 'Seleccione una ciudad'
+      newErrors.ciudad_id = t('validation.selectCity')
     }
 
     // Validar email si se proporciona
     if (formData.email && formData.email.trim()) {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
       if (!emailRegex.test(formData.email)) {
-        newErrors.email = 'Email no válido'
+        newErrors.email = t('validation.emailInvalid')
       }
     }
 
@@ -194,7 +194,7 @@ const UbicacionFormModal = ({
       console.error('❌ Error al guardar ubicación:', error)
 
       const mensajeError = error.response?.data?.message ||
-        (mode === 'crear' ? 'Error al crear la ubicación' : 'Error al actualizar la ubicación')
+        (mode === 'crear' ? t('inventory.errorCreatingLocation') : t('inventory.errorUpdatingLocation'))
 
       setErrors({ submit: mensajeError })
     }
@@ -217,7 +217,7 @@ const UbicacionFormModal = ({
     <Modal
       isOpen={isOpen}
       onClose={handleClose}
-      title={mode === 'crear' ? 'Nueva Ubicación' : 'Editar Ubicación'}
+      title={mode === 'crear' ? t('inventory.newLocationTitle') : t('inventory.editLocationTitle')}
       size="lg"
     >
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -235,19 +235,19 @@ const UbicacionFormModal = ({
             SECCIÓN: INFORMACIÓN BÁSICA
             ============================================ */}
         <div className="space-y-4">
-          <h3 className="font-semibold text-slate-900">Información Básica</h3>
+          <h3 className="font-semibold text-slate-900">{t('inventory.basicInfo')}</h3>
 
           {/* Nombre */}
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
-              Nombre *
+              {t('common.name')} *
             </label>
             <input
               type="text"
               name="nombre"
               value={formData.nombre}
               onChange={handleChange}
-              placeholder="Ej: Bodega Principal, Finca El Bosque..."
+              placeholder={t('inventory.locationNamePlaceholder')}
               disabled={isLoading}
               className={`
                 w-full px-4 py-2.5 border rounded-lg
@@ -264,7 +264,7 @@ const UbicacionFormModal = ({
           {/* Tipo */}
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
-              Tipo de Ubicación *
+              {t('inventory.locationType')}
             </label>
             <select
               name="tipo"
@@ -277,24 +277,24 @@ const UbicacionFormModal = ({
                 disabled:bg-slate-100 disabled:cursor-not-allowed
               "
             >
-              <optgroup label="Almacenamiento">
-                <option value="bodega">Bodega</option>
-                <option value="taller">Taller</option>
-                <option value="transito">Tránsito</option>
+              <optgroup label={t('inventory.storageOptgroup')}>
+                <option value="bodega">{t('inventory.warehouseOption')}</option>
+                <option value="taller">{t('inventory.workshopOption')}</option>
+                <option value="transito">{t('inventory.transitOption')}</option>
               </optgroup>
-              <optgroup label="Lugares de Eventos">
-                <option value="finca">Finca</option>
-                <option value="hacienda">Hacienda / Quinta</option>
-                <option value="jardin">Jardín de Eventos</option>
-                <option value="club">Club</option>
-                <option value="hotel">Hotel / Resort</option>
-                <option value="playa">Playa</option>
-                <option value="parque">Parque</option>
-                <option value="residencia">Residencia Particular</option>
-                <option value="evento">Evento Temporal</option>
+              <optgroup label={t('inventory.eventVenuesOptgroup')}>
+                <option value="finca">{t('inventory.farmOption')}</option>
+                <option value="hacienda">{t('inventory.haciendaOption')}</option>
+                <option value="jardin">{t('inventory.gardenOption')}</option>
+                <option value="club">{t('inventory.clubOption')}</option>
+                <option value="hotel">{t('inventory.hotelOption')}</option>
+                <option value="playa">{t('inventory.beachOption')}</option>
+                <option value="parque">{t('inventory.parkOption')}</option>
+                <option value="residencia">{t('inventory.residenceOption')}</option>
+                <option value="evento">{t('inventory.tempEventOption')}</option>
               </optgroup>
-              <optgroup label="Otros">
-                <option value="otro">Otro</option>
+              <optgroup label={t('inventory.othersOptgroup')}>
+                <option value="otro">{t('inventory.otherOption')}</option>
               </optgroup>
             </select>
           </div>
@@ -304,12 +304,12 @@ const UbicacionFormModal = ({
             SECCIÓN: UBICACIÓN
             ============================================ */}
         <div className="space-y-4">
-          <h3 className="font-semibold text-slate-900">Ubicación</h3>
+          <h3 className="font-semibold text-slate-900">{t('inventory.locationSection')}</h3>
 
           {/* Ciudad */}
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
-              Ciudad *
+              {t('inventory.city')}
             </label>
             <select
               name="ciudad_id"
@@ -324,7 +324,7 @@ const UbicacionFormModal = ({
               `}
             >
               <option value="">
-                {loadingCiudades ? 'Cargando ciudades...' : 'Seleccionar ciudad...'}
+                {loadingCiudades ? t('inventory.loadingCities') : t('inventory.selectCity')}
               </option>
               {ciudades.map(ciudad => (
                 <option key={ciudad.id} value={ciudad.id}>
@@ -337,7 +337,7 @@ const UbicacionFormModal = ({
             )}
             {ciudades.length === 0 && !loadingCiudades && (
               <p className="mt-1 text-xs text-amber-600">
-                No hay ciudades disponibles. Crea una en Configuración {'>'} Ciudades.
+                {t('inventory.noCitiesAvailable')}
               </p>
             )}
           </div>
@@ -345,14 +345,14 @@ const UbicacionFormModal = ({
           {/* Dirección */}
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
-              Dirección
+              {t('inventory.addressLabel')}
             </label>
             <input
               type="text"
               name="direccion"
               value={formData.direccion}
               onChange={handleChange}
-              placeholder="Calle, número, colonia..."
+              placeholder={t('inventory.addressPlaceholder')}
               disabled={isLoading}
               className="
                 w-full px-4 py-2.5 border border-slate-300 rounded-lg
@@ -367,19 +367,19 @@ const UbicacionFormModal = ({
             SECCIÓN: CONTACTO
             ============================================ */}
         <div className="space-y-4">
-          <h3 className="font-semibold text-slate-900">Contacto</h3>
+          <h3 className="font-semibold text-slate-900">{t('inventory.contactSection')}</h3>
 
           {/* Responsable */}
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
-              Responsable
+              {t('inventory.responsiblePerson')}
             </label>
             <input
               type="text"
               name="responsable"
               value={formData.responsable}
               onChange={handleChange}
-              placeholder="Nombre del responsable"
+              placeholder={t('inventory.responsiblePlaceholder')}
               disabled={isLoading}
               className="
                 w-full px-4 py-2.5 border border-slate-300 rounded-lg
@@ -393,14 +393,14 @@ const UbicacionFormModal = ({
             {/* Teléfono */}
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
-                Teléfono
+                {t('common.phone')}
               </label>
               <input
                 type="tel"
                 name="telefono"
                 value={formData.telefono}
                 onChange={handleChange}
-                placeholder="123-456-7890"
+                placeholder={t('inventory.phonePlaceholder')}
                 disabled={isLoading}
                 className="
                   w-full px-4 py-2.5 border border-slate-300 rounded-lg
@@ -413,7 +413,7 @@ const UbicacionFormModal = ({
             {/* Email */}
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
-                Email
+                {t('common.email')}
               </label>
               <input
                 type="email"
@@ -440,12 +440,12 @@ const UbicacionFormModal = ({
             SECCIÓN: INFORMACIÓN ADICIONAL
             ============================================ */}
         <div className="space-y-4">
-          <h3 className="font-semibold text-slate-900">Información Adicional</h3>
+          <h3 className="font-semibold text-slate-900">{t('inventory.additionalInfo')}</h3>
 
           {/* Capacidad Estimada */}
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
-              Capacidad Estimada (m²)
+              {t('inventory.estimatedCapacity')}
             </label>
             <input
               type="number"
@@ -466,13 +466,13 @@ const UbicacionFormModal = ({
           {/* Observaciones */}
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
-              Observaciones
+              {t('inventory.observations')}
             </label>
             <textarea
               name="observaciones"
               value={formData.observaciones}
               onChange={handleChange}
-              placeholder="Notas adicionales sobre la ubicación..."
+              placeholder={t('inventory.observationsPlaceholder')}
               rows={3}
               disabled={isLoading}
               className="
@@ -500,7 +500,7 @@ const UbicacionFormModal = ({
               "
             />
             <label htmlFor="activo" className="text-sm font-medium text-slate-700">
-              Ubicación activa
+              {t('inventory.activeLocation')}
             </label>
           </div>
 
@@ -520,13 +520,13 @@ const UbicacionFormModal = ({
               "
             />
             <label htmlFor="es_principal" className="text-sm font-medium text-slate-700 flex items-center gap-2">
-              Marcar como ubicación principal
+              {t('inventory.markAsMainLocation')}
             </label>
           </div>
           <p className="text-xs text-slate-500 -mt-2">
             {formData.es_principal
-              ? 'Esta será la ubicación principal del sistema. La anterior será desmarcada automáticamente.'
-              : 'La ubicación principal se usa como predeterminada en el sistema.'}
+              ? t('inventory.mainLocationInfo')
+              : t('inventory.mainLocationDefault')}
           </p>
         </div>
 
@@ -542,7 +542,7 @@ const UbicacionFormModal = ({
             disabled={isLoading}
             fullWidth
           >
-            Cancelar
+            {t('common.cancel')}
           </Button>
 
           {/* Botón Guardar */}
@@ -553,7 +553,7 @@ const UbicacionFormModal = ({
             disabled={isLoading}
             fullWidth
           >
-            {mode === 'crear' ? 'Crear Ubicación' : 'Guardar Cambios'}
+            {mode === 'crear' ? t('inventory.createLocation') : t('common.saveChanges')}
           </Button>
         </div>
       </form>

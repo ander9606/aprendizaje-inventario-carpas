@@ -55,6 +55,21 @@
       "dateChange": "Date change",
       "incident": "Incident",
       "availableStock": "Available stock"
-    }
+    },
+    "alertCount_one": "{{count}} alert",
+    "alertCount_other": "{{count}} alerts",
+    "criticalCount_one": "{{count}} critical",
+    "criticalCount_other": "{{count}} critical",
+    "warningCount_one": "{{count}} warning",
+    "warningCount_other": "{{count}} warnings",
+    "clearFilters": "Clear filters",
+    "allSeverities": "All",
+    "allTypes": "All",
+    "notification": "Notification",
+    "orderClickDetail": "Order #{{id}} - Click to view detail",
+    "clientLabel": "Client:",
+    "viewAll": "View all",
+    "info": "Info",
+    "total": "Total"
   }
 }

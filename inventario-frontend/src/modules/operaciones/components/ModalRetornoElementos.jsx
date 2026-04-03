@@ -26,9 +26,9 @@ import { useTranslation } from 'react-i18next'
 const ElementoRetornoItem = ({ elemento, retorno, onChange }) => {
   const { t } = useTranslation()
     const estados = [
-        { value: 'bueno', label: 'Bueno', icon: CheckCircle, bgSelected: 'bg-green-100 border-green-500 text-green-700', iconColor: 'text-green-600' },
-        { value: 'dañado', label: 'Dañado', icon: AlertTriangle, bgSelected: 'bg-amber-100 border-amber-500 text-amber-700', iconColor: 'text-amber-600' },
-        { value: 'perdido', label: 'Perdido', icon: XCircle, bgSelected: 'bg-red-100 border-red-500 text-red-700', iconColor: 'text-red-600' }
+        { value: 'bueno', label: t('operations.returnModal.good'), icon: CheckCircle, bgSelected: 'bg-green-100 border-green-500 text-green-700', iconColor: 'text-green-600' },
+        { value: 'dañado', label: t('operations.returnModal.damaged'), icon: AlertTriangle, bgSelected: 'bg-amber-100 border-amber-500 text-amber-700', iconColor: 'text-amber-600' },
+        { value: 'perdido', label: t('operations.returnModal.lost'), icon: XCircle, bgSelected: 'bg-red-100 border-red-500 text-red-700', iconColor: 'text-red-600' }
     ]
 
     const handleEstadoChange = (estado) => {
@@ -97,7 +97,7 @@ const ElementoRetornoItem = ({ elemento, retorno, onChange }) => {
                 <div className="space-y-2 pt-2 border-t border-slate-200">
                     <div>
                         <label className="block text-xs font-medium text-slate-600 mb-1">
-                            Costo del daño
+                            {t('operations.returnModal.damageCost')}
                         </label>
                         <div className="relative">
                             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">$</span>
@@ -114,14 +114,14 @@ const ElementoRetornoItem = ({ elemento, retorno, onChange }) => {
                     </div>
                     <div>
                         <label className="block text-xs font-medium text-slate-600 mb-1">
-                            Descripción del daño
+                            {t('operations.returnModal.damageDescription')}
                         </label>
                         <input
                             type="text"
                             value={retorno.notas || ''}
                             onChange={(e) => onChange({ ...retorno, notas: e.target.value })}
                             className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
-                            placeholder="Describir el daño o pérdida..."
+                            placeholder={t('operations.returnModal.describeDamage')}
                         />
                     </div>
                 </div>
@@ -135,6 +135,7 @@ const ElementoRetornoItem = ({ elemento, retorno, onChange }) => {
 // Permite dividir la cantidad entre bueno/dañado/perdido
 // ============================================
 const ElementoLoteRetornoItem = ({ elemento, retorno, onChange }) => {
+    const { t } = useTranslation()
     // Soportar diferentes nombres de campos según el origen de datos
     const cantidadTotal = elemento.cantidad_lote || elemento.cantidad || 1
     const loteCodigo = elemento.lote_codigo || elemento.lote_numero || `Lote #${elemento.lote_id}`
@@ -229,7 +230,7 @@ const ElementoLoteRetornoItem = ({ elemento, retorno, onChange }) => {
                             {loteCodigo}
                         </span>
                         <span className="px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded font-medium">
-                            {cantidadTotal} unidades
+                            {t('operations.returnModal.units', { count: cantidadTotal })}
                         </span>
                     </div>
                 </div>
@@ -241,7 +242,7 @@ const ElementoLoteRetornoItem = ({ elemento, retorno, onChange }) => {
                         className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-green-600 hover:bg-green-100 rounded transition-colors"
                     >
                         <CheckCheck className="w-3 h-3" />
-                        Todos OK
+                        {t('operations.returnModal.allOk')}
                     </button>
                 )}
             </div>
@@ -252,7 +253,7 @@ const ElementoLoteRetornoItem = ({ elemento, retorno, onChange }) => {
                 <div className="flex sm:flex-col items-center sm:items-stretch gap-2 sm:gap-0">
                     <label className="flex items-center gap-1 text-xs font-medium text-green-700 sm:mb-1 min-w-[70px] sm:min-w-0">
                         <CheckCircle className="w-3 h-3" />
-                        Buenos
+                        {t('operations.returnModal.goodPlural')}
                     </label>
                     <input
                         type="number"
@@ -268,7 +269,7 @@ const ElementoLoteRetornoItem = ({ elemento, retorno, onChange }) => {
                 <div className="flex sm:flex-col items-center sm:items-stretch gap-2 sm:gap-0">
                     <label className="flex items-center gap-1 text-xs font-medium text-amber-700 sm:mb-1 min-w-[70px] sm:min-w-0">
                         <AlertTriangle className="w-3 h-3" />
-                        Dañados
+                        {t('operations.returnModal.damagedPlural')}
                     </label>
                     <input
                         type="number"
@@ -284,7 +285,7 @@ const ElementoLoteRetornoItem = ({ elemento, retorno, onChange }) => {
                 <div className="flex sm:flex-col items-center sm:items-stretch gap-2 sm:gap-0">
                     <label className="flex items-center gap-1 text-xs font-medium text-red-700 sm:mb-1 min-w-[70px] sm:min-w-0">
                         <XCircle className="w-3 h-3" />
-                        Perdidos
+                        {t('operations.returnModal.lostPlural')}
                     </label>
                     <input
                         type="number"
@@ -301,7 +302,7 @@ const ElementoLoteRetornoItem = ({ elemento, retorno, onChange }) => {
             {!esValido && (
                 <div className="flex items-center gap-2 px-2 py-1.5 bg-red-100 text-red-700 rounded text-xs mb-2">
                     <AlertTriangle className="w-3 h-3 shrink-0" />
-                    La suma ({sumaActual}) no coincide con el total ({cantidadTotal})
+                    {t('operations.returnModal.sumMismatch', { sum: sumaActual, total: cantidadTotal })}
                 </div>
             )}
 
@@ -310,7 +311,7 @@ const ElementoLoteRetornoItem = ({ elemento, retorno, onChange }) => {
                 <div className="space-y-2 pt-2 border-t border-slate-200">
                     <div>
                         <label className="block text-xs font-medium text-slate-600 mb-1">
-                            Costo total de daños/pérdidas
+                            {t('operations.returnModal.totalDamageCost')}
                         </label>
                         <div className="relative">
                             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">$</span>
@@ -327,14 +328,14 @@ const ElementoLoteRetornoItem = ({ elemento, retorno, onChange }) => {
                     </div>
                     <div>
                         <label className="block text-xs font-medium text-slate-600 mb-1">
-                            Descripción del daño
+                            {t('operations.returnModal.damageDescription')}
                         </label>
                         <input
                             type="text"
                             value={retorno.notas || ''}
                             onChange={(e) => onChange({ ...retorno, notas: e.target.value })}
                             className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
-                            placeholder="Describir el daño o pérdida..."
+                            placeholder={t('operations.returnModal.describeDamage')}
                         />
                     </div>
                 </div>
@@ -347,6 +348,7 @@ const ElementoLoteRetornoItem = ({ elemento, retorno, onChange }) => {
 // COMPONENTE: Grupo de Producto
 // ============================================
 const ProductoGroup = ({ producto, elementos, retornos, onRetornoChange, onMarcarTodosBuenos }) => {
+    const { t } = useTranslation()
     const [expanded, setExpanded] = useState(true)
 
     // Calcular resumen del grupo
@@ -420,7 +422,7 @@ const ProductoGroup = ({ producto, elementos, retornos, onRetornoChange, onMarca
                             className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-green-600 hover:bg-green-50 rounded-md transition-colors"
                         >
                             <CheckCheck className="w-3 h-3" />
-                            Todos OK
+                            {t('operations.returnModal.allOk')}
                         </button>
                     )}
                 </div>
@@ -473,6 +475,7 @@ const ModalRetornoElementos = ({
     deposito = 0,
     onSave
 }) => {
+    const { t } = useTranslation()
     const [retornos, setRetornos] = useState([])
     const [saving, setSaving] = useState(false)
     const [confirmacion, setConfirmacion] = useState({ visible: false, sinMarcar: 0 })

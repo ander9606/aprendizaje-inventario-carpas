@@ -141,8 +141,8 @@ const CategoriaPadreCard = ({
           
           // Mostrar mensaje al usuario
           const mensaje = error.response?.data?.mensaje || 'No se pudo actualizar el emoji.'
-          toast.error(mensaje)
-          
+          toast.error(t('inventory.errorUpdatingEmoji'))
+
           // Revertir al emoji original
           setEmojiActual(categoria.emoji || '📦')
         }
@@ -171,12 +171,12 @@ const CategoriaPadreCard = ({
       {
         onSuccess: () => {
           setShowDeleteConfirm(false)
-          toast.success(`Categoría "${categoria.nombre}" eliminada`)
+          toast.success(t('inventory.categoryDeletedSuccess', { name: categoria.nombre }))
         },
         onError: (error) => {
           setShowDeleteConfirm(false)
           const mensaje = error.response?.data?.mensaje ||
-            'No se pudo eliminar la categoría. Puede tener subcategorías o elementos.'
+            t('inventory.cannotDeleteCategory')
           toast.error(mensaje)
         }
       }
@@ -200,7 +200,7 @@ const CategoriaPadreCard = ({
           <button
             onClick={() => setMostrarEmojiPicker(true)}
             className="w-11 h-11 bg-blue-50 rounded-[10px] flex items-center justify-center flex-shrink-0 cursor-pointer hover:bg-blue-100 transition-colors"
-            title="Click para cambiar el icono"
+            title={t('inventory.changeIcon')}
             type="button"
           >
             <IconoCategoria
@@ -230,8 +230,7 @@ const CategoriaPadreCard = ({
         <div className="flex items-center gap-2 text-slate-600">
           <Folder className="w-5 h-5" />
           <span className="font-medium">
-            {categoria.total_subcategorias || 0} subcategoría
-            {categoria.total_subcategorias !== 1 ? 's' : ''}
+            {categoria.total_subcategorias || 0} {t('common.subcategory')}{categoria.total_subcategorias !== 1 ? 's' : ''}
           </span>
         </div>
       </Card.Content>
@@ -247,7 +246,7 @@ const CategoriaPadreCard = ({
       fullWidth
       onClick={handleVerSubcategorias}
     >
-      Ver subcategorías
+      {t('inventory.viewSubcategories')}
     </Button>
 
     <Button
@@ -257,7 +256,7 @@ const CategoriaPadreCard = ({
       icon={<Plus />}
       onClick={handleCreateSubcategoria}
     >
-      Nueva subcategoría
+      {t('inventory.newSubcategoryBtn')}
     </Button>
   </div>
 
@@ -270,7 +269,7 @@ const CategoriaPadreCard = ({
       onClick={handleEdit}
       className="flex-1"
     >
-      Editar
+      {t('common.edit')}
     </Button>
 
     <Button
@@ -283,7 +282,7 @@ const CategoriaPadreCard = ({
       disabled={deleteCategoria.isLoading}
       className="flex-1"
     >
-      Eliminar
+      {t('common.delete')}
     </Button>
   </div>
 </Card.Footer>
@@ -306,10 +305,10 @@ const CategoriaPadreCard = ({
         isOpen={showDeleteConfirm}
         onClose={() => setShowDeleteConfirm(false)}
         onConfirm={handleConfirmDelete}
-        title={`¿Eliminar "${categoria.nombre}"?`}
-        message="Se eliminarán todos los datos asociados a esta categoría. Esta acción no se puede deshacer."
+        title={t('inventory.deleteElementConfirmTitle', { name: categoria.nombre })}
+        message={t('inventory.deleteAllDataWarning')}
         variant="danger"
-        confirmText="Eliminar"
+        confirmText={t('common.delete')}
         loading={deleteCategoria.isLoading}
       />
     </Card>

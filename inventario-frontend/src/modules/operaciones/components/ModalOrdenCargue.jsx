@@ -126,7 +126,7 @@ const ProductoItem = ({ producto, elementos, expanded, onToggle }) => {
                 <div className="flex items-center gap-2">
                     {elementosProducto.length > 0 && (
                         <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full">
-                            {elementosProducto.length} items
+                            {t('operations.loadingOrder.items', { count: elementosProducto.length })}
                         </span>
                     )}
                     {expanded ? (
@@ -141,10 +141,10 @@ const ProductoItem = ({ producto, elementos, expanded, onToggle }) => {
                 <div className="border-t border-slate-200 bg-white">
                     <div className="px-4 py-2 bg-slate-100 border-b border-slate-200 hidden sm:block">
                         <div className="grid grid-cols-12 gap-2 text-xs font-medium text-slate-600">
-                            <div className="col-span-5">Elemento</div>
-                            <div className="col-span-3">Serie</div>
-                            <div className="col-span-2 text-center">Cantidad</div>
-                            <div className="col-span-2 text-center">Estado</div>
+                            <div className="col-span-5">{t('operations.loadingOrder.element')}</div>
+                            <div className="col-span-3">{t('operations.loadingOrder.series')}</div>
+                            <div className="col-span-2 text-center">{t('operations.loadingOrder.qty')}</div>
+                            <div className="col-span-2 text-center">{t('operations.loadingOrder.statusLabel')}</div>
                         </div>
                     </div>
                     <div className="divide-y divide-slate-100">
@@ -205,7 +205,7 @@ const ProductoItem = ({ producto, elementos, expanded, onToggle }) => {
             {expanded && elementosProducto.length === 0 && (
                 <div className="px-4 py-6 text-center text-sm text-slate-500 bg-white border-t border-slate-200">
                     <AlertCircle className="w-5 h-5 mx-auto mb-2 text-amber-500" />
-                    Sin elementos asignados
+                    {t('operations.loadingOrder.noElementsAssigned')}
                 </div>
             )}
         </div>
@@ -216,23 +216,24 @@ const ProductoItem = ({ producto, elementos, expanded, onToggle }) => {
 // COMPONENTE: Badge de Estado
 // ============================================
 const EstadoBadge = ({ estado }) => {
+    const { t } = useTranslation()
     const config = {
         // Estados de alquiler_elementos
-        nuevo: { bg: 'bg-green-100', text: 'text-green-700', label: 'Nuevo' },
-        bueno: { bg: 'bg-blue-100', text: 'text-blue-700', label: 'Bueno' },
-        mantenimiento: { bg: 'bg-amber-100', text: 'text-amber-700', label: 'Mtto' },
+        nuevo: { bg: 'bg-green-100', text: 'text-green-700', key: 'nuevo' },
+        bueno: { bg: 'bg-blue-100', text: 'text-blue-700', key: 'bueno' },
+        mantenimiento: { bg: 'bg-amber-100', text: 'text-amber-700', key: 'mantenimiento' },
         // Estados de orden_trabajo_elementos
-        pendiente: { bg: 'bg-amber-100', text: 'text-amber-700', label: 'Pendiente' },
-        cargado: { bg: 'bg-green-100', text: 'text-green-700', label: 'Cargado' },
-        descargado: { bg: 'bg-blue-100', text: 'text-blue-700', label: 'Descargado' },
-        instalado: { bg: 'bg-emerald-100', text: 'text-emerald-700', label: 'Instalado' },
-        verificado: { bg: 'bg-green-100', text: 'text-green-700', label: 'Verificado' },
-        con_problema: { bg: 'bg-red-100', text: 'text-red-700', label: 'Con problema' }
+        pendiente: { bg: 'bg-amber-100', text: 'text-amber-700', key: 'pendiente' },
+        cargado: { bg: 'bg-green-100', text: 'text-green-700', key: 'cargado' },
+        descargado: { bg: 'bg-blue-100', text: 'text-blue-700', key: 'descargado' },
+        instalado: { bg: 'bg-emerald-100', text: 'text-emerald-700', key: 'instalado' },
+        verificado: { bg: 'bg-green-100', text: 'text-green-700', key: 'verificado' },
+        con_problema: { bg: 'bg-red-100', text: 'text-red-700', key: 'con_problema' }
     }
-    const c = config[estado] || { bg: 'bg-slate-100', text: 'text-slate-700', label: estado || '-' }
+    const c = config[estado] || { bg: 'bg-slate-100', text: 'text-slate-700', key: estado }
     return (
         <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${c.bg} ${c.text}`}>
-            {c.label}
+            {c.key ? t(`operations.statuses.${c.key}`, { defaultValue: estado || '-' }) : estado || '-'}
         </span>
     )
 }
@@ -423,7 +424,7 @@ const ModalOrdenCargue = ({ isOpen, onClose, ordenId, ordenInfo, elementos, onCo
     // Handler para confirmar cargue de todos los elementos
     const handleConfirmarCargue = async () => {
         if (!elementos || elementos.length === 0) {
-            toast.error('No hay elementos para marcar como cargados')
+            toast.error(t('operations.loadingOrder.noElementsToMark'))
             return
         }
 
@@ -435,11 +436,11 @@ const ModalOrdenCargue = ({ isOpen, onClose, ordenId, ordenInfo, elementos, onCo
                 elementoIds,
                 estado: 'cargado'
             })
-            toast.success(`${elementoIds.length} elemento(s) marcados como "cargado"`)
+            toast.success(t('operations.loadingOrder.elementsMarkedLoaded', { count: elementoIds.length }))
             onConfirmado?.()
             onClose()
         } catch (error) {
-            toast.error(error?.response?.data?.message || 'Error al confirmar cargue')
+            toast.error(error?.response?.data?.message || t('operations.loadingOrder.confirmLoadingError'))
         }
     }
 
@@ -500,9 +501,9 @@ const ModalOrdenCargue = ({ isOpen, onClose, ordenId, ordenInfo, elementos, onCo
                         <Truck className="w-5 h-5 text-blue-600" />
                     </div>
                     <div>
-                        <h3 className="font-semibold text-slate-900">Orden de Cargue</h3>
+                        <h3 className="font-semibold text-slate-900">{t('operations.loadingOrder.loadingOrderTitle')}</h3>
                         <p className="text-sm text-slate-500">
-                            {ordenInfo?.tipo === 'montaje' ? 'Montaje' : 'Desmontaje'} #{ordenId}
+                            {ordenInfo?.tipo === 'montaje' ? t('operations.assembly') : t('operations.disassembly')} #{ordenId}
                         </p>
                     </div>
                 </div>
@@ -511,7 +512,7 @@ const ModalOrdenCargue = ({ isOpen, onClose, ordenId, ordenInfo, elementos, onCo
         >
             {isLoading ? (
                 <div className="py-12 flex justify-center">
-                    <Spinner size="lg" text="Cargando orden..." />
+                    <Spinner size="lg" text={t('operations.loadingOrder.loadingOrderLabel')} />
                 </div>
             ) : (
                 <div className="space-y-6">
@@ -546,13 +547,13 @@ const ModalOrdenCargue = ({ isOpen, onClose, ordenId, ordenInfo, elementos, onCo
                         <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 rounded-lg">
                             <Package className="w-4 h-4 text-blue-600" />
                             <span className="text-sm font-medium text-blue-700">
-                                {productos.length} productos
+                                {t('operations.loadingOrder.products', { count: productos.length })}
                             </span>
                         </div>
                         <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 rounded-lg">
                             <Box className="w-4 h-4 text-emerald-600" />
                             <span className="text-sm font-medium text-emerald-700">
-                                {elementosCargue.length} elementos
+                                {t('operations.loadingOrder.elements', { count: elementosCargue.length })}
                             </span>
                         </div>
                         <div className="flex-1" />
@@ -561,14 +562,14 @@ const ModalOrdenCargue = ({ isOpen, onClose, ordenId, ordenInfo, elementos, onCo
                                 onClick={expandAll}
                                 className="text-xs text-blue-600 hover:text-blue-700"
                             >
-                                Expandir todo
+                                {t('operations.loadingOrder.expandAll')}
                             </button>
                             <span className="text-slate-300">|</span>
                             <button
                                 onClick={collapseAll}
                                 className="text-xs text-blue-600 hover:text-blue-700"
                             >
-                                Colapsar todo
+                                {t('operations.loadingOrder.collapseAll')}
                             </button>
                         </div>
                     </div>
@@ -577,7 +578,7 @@ const ModalOrdenCargue = ({ isOpen, onClose, ordenId, ordenInfo, elementos, onCo
                     <div className="space-y-3">
                         <h4 className="font-medium text-slate-900 flex items-center gap-2">
                             <Package className="w-4 h-4 text-slate-400" />
-                            Productos Cotizados
+                            {t('operations.loadingOrder.quotedProducts')}
                         </h4>
                         {productos.length > 0 ? (
                             <div className="space-y-2">
@@ -593,7 +594,7 @@ const ModalOrdenCargue = ({ isOpen, onClose, ordenId, ordenInfo, elementos, onCo
                             </div>
                         ) : (
                             <div className="py-8 text-center text-slate-500">
-                                No hay productos en esta orden
+                                {t('operations.loadingOrder.noProducts')}
                             </div>
                         )}
                     </div>
@@ -603,14 +604,14 @@ const ModalOrdenCargue = ({ isOpen, onClose, ordenId, ordenInfo, elementos, onCo
                         <div className="space-y-3 pt-4 border-t border-slate-200">
                             <h4 className="font-medium text-slate-900 flex items-center gap-2">
                                 <Truck className="w-4 h-4 text-slate-400" />
-                                Resumen de Cargue
+                                {t('operations.loadingOrder.loadingSummary')}
                             </h4>
                             <div className="bg-slate-50 rounded-lg overflow-hidden">
                                 <div className="px-4 py-2 bg-slate-100 border-b border-slate-200">
                                     <div className="grid grid-cols-12 gap-2 text-xs font-medium text-slate-600">
-                                        <div className="col-span-6">Elemento</div>
-                                        <div className="col-span-2 text-center">Cantidad</div>
-                                        <div className="col-span-4">Series</div>
+                                        <div className="col-span-6">{t('operations.loadingOrder.element')}</div>
+                                        <div className="col-span-2 text-center">{t('operations.loadingOrder.qty')}</div>
+                                        <div className="col-span-4">{t('operations.loadingOrder.series')}</div>
                                     </div>
                                 </div>
                                 <div className="divide-y divide-slate-200">
@@ -639,14 +640,14 @@ const ModalOrdenCargue = ({ isOpen, onClose, ordenId, ordenInfo, elementos, onCo
                             className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"
                         >
                             <Printer className="w-4 h-4" />
-                            Imprimir Checklist
+                            {t('operations.loadingOrder.printChecklist')}
                         </button>
                         <div className="flex items-center gap-3">
                             <Button
                                 variant="secondary"
                                 onClick={onClose}
                             >
-                                Cerrar
+                                {t('common.close')}
                             </Button>
                             <Button
                                 color="green"
@@ -654,7 +655,7 @@ const ModalOrdenCargue = ({ isOpen, onClose, ordenId, ordenInfo, elementos, onCo
                                 onClick={handleConfirmarCargue}
                                 disabled={cambiarEstadoMasivo.isPending || !elementos?.length}
                             >
-                                {cambiarEstadoMasivo.isPending ? 'Confirmando...' : 'Confirmar Cargue'}
+                                {cambiarEstadoMasivo.isPending ? t('operations.loadingOrder.confirming') : t('operations.loadingOrder.confirmLoading')}
                             </Button>
                         </div>
                     </div>

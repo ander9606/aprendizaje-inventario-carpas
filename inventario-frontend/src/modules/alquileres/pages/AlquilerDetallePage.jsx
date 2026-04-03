@@ -111,25 +111,25 @@ export default function AlquilerDetallePage() {
   const getEstadoConfig = (estado) => {
     const configs = {
       programado: {
-        label: 'Programado',
+        label: t('rentals.statusScheduled'),
         icon: Clock,
         bgColor: 'bg-yellow-100',
         textColor: 'text-yellow-700'
       },
       activo: {
-        label: 'Activo',
+        label: t('rentals.statusActive'),
         icon: Truck,
         bgColor: 'bg-green-100',
         textColor: 'text-green-700'
       },
       finalizado: {
-        label: 'Finalizado',
+        label: t('rentals.statusFinalized'),
         icon: CheckCircle,
         bgColor: 'bg-blue-100',
         textColor: 'text-blue-700'
       },
       cancelado: {
-        label: 'Cancelado',
+        label: t('rentals.statusCancelled'),
         icon: XCircle,
         bgColor: 'bg-red-100',
         textColor: 'text-red-700'
@@ -146,14 +146,14 @@ export default function AlquilerDetallePage() {
 
   const getOrdenEstadoConfig = (estado) => {
     const configs = {
-      pendiente: { label: 'Pendiente', icon: Clock, bg: 'bg-yellow-100', text: 'text-yellow-700', border: 'border-yellow-200' },
-      confirmado: { label: 'Confirmado', icon: CheckCircle, bg: 'bg-indigo-100', text: 'text-indigo-700', border: 'border-indigo-200' },
-      en_preparacion: { label: 'Preparación', icon: Package, bg: 'bg-purple-100', text: 'text-purple-700', border: 'border-purple-200' },
-      en_ruta: { label: 'En ruta', icon: Truck, bg: 'bg-cyan-100', text: 'text-cyan-700', border: 'border-cyan-200' },
-      en_sitio: { label: 'En sitio', icon: MapPin, bg: 'bg-amber-100', text: 'text-amber-700', border: 'border-amber-200' },
-      en_proceso: { label: 'En proceso', icon: RefreshCw, bg: 'bg-blue-100', text: 'text-blue-700', border: 'border-blue-200' },
-      completado: { label: 'Completado', icon: CheckCircle, bg: 'bg-green-100', text: 'text-green-700', border: 'border-green-200' },
-      cancelado: { label: 'Cancelado', icon: XCircle, bg: 'bg-red-100', text: 'text-red-700', border: 'border-red-200' }
+      pendiente: { label: t('rentals.statusPending'), icon: Clock, bg: 'bg-yellow-100', text: 'text-yellow-700', border: 'border-yellow-200' },
+      confirmado: { label: t('rentals.statusConfirmed'), icon: CheckCircle, bg: 'bg-indigo-100', text: 'text-indigo-700', border: 'border-indigo-200' },
+      en_preparacion: { label: t('rentals.statusPreparation'), icon: Package, bg: 'bg-purple-100', text: 'text-purple-700', border: 'border-purple-200' },
+      en_ruta: { label: t('rentals.statusOnRoute'), icon: Truck, bg: 'bg-cyan-100', text: 'text-cyan-700', border: 'border-cyan-200' },
+      en_sitio: { label: t('rentals.statusOnSite'), icon: MapPin, bg: 'bg-amber-100', text: 'text-amber-700', border: 'border-amber-200' },
+      en_proceso: { label: t('rentals.statusInProcess'), icon: RefreshCw, bg: 'bg-blue-100', text: 'text-blue-700', border: 'border-blue-200' },
+      completado: { label: t('rentals.statusCompleted'), icon: CheckCircle, bg: 'bg-green-100', text: 'text-green-700', border: 'border-green-200' },
+      cancelado: { label: t('rentals.statusCancelled'), icon: XCircle, bg: 'bg-red-100', text: 'text-red-700', border: 'border-red-200' }
     }
     return configs[estado] || configs.pendiente
   }
@@ -168,18 +168,18 @@ export default function AlquilerDetallePage() {
 
   const handleCancelarAlquiler = async () => {
     try {
-      await cancelarAlquiler.mutateAsync({ id: alquiler.id, notas: 'Cancelado desde detalle' })
-      toast.success('Alquiler cancelado')
+      await cancelarAlquiler.mutateAsync({ id: alquiler.id, notas: t('rentals.cancelledFromDetail') })
+      toast.success(t('rentals.rentalCancelled'))
       setShowModalCancelar(false)
       refetch()
     } catch (error) {
-      toast.error(error?.response?.data?.message || 'Error al cancelar')
+      toast.error(error?.response?.data?.message || t('rentals.errorCancelling'))
     }
   }
 
   const handleExtenderAlquiler = async () => {
     if (!extensionData.nueva_fecha_retorno) {
-      toast.error('Seleccione la nueva fecha de retorno')
+      toast.error(t('rentals.selectNewReturnDate'))
       return
     }
     try {
@@ -189,12 +189,12 @@ export default function AlquilerDetallePage() {
         razon: extensionData.razon,
         costo_extension: extensionData.costo_extension ? parseFloat(extensionData.costo_extension) : 0
       })
-      toast.success(resultado.mensaje || 'Alquiler extendido')
+      toast.success(resultado.mensaje || t('rentals.rentalExtended'))
       setShowModalExtender(false)
       setExtensionData({ nueva_fecha_retorno: '', razon: '', costo_extension: '' })
       refetch()
     } catch (error) {
-      toast.error(error?.response?.data?.message || 'Error al extender alquiler')
+      toast.error(error?.response?.data?.message || t('rentals.errorExtending'))
     }
   }
 
@@ -218,7 +218,7 @@ export default function AlquilerDetallePage() {
   if (isLoading) {
     return (
       <div className="min-h-full flex items-center justify-center">
-        <Spinner size="lg" text="Cargando alquiler..." />
+        <Spinner size="lg" text={t('rentals.loadingRental')} />
       </div>
     )
   }
@@ -229,13 +229,13 @@ export default function AlquilerDetallePage() {
         <div className="text-center">
           <Package className="w-16 h-16 text-slate-300 mx-auto mb-4" />
           <h2 className="text-xl font-bold text-slate-900 mb-2">
-            Alquiler no encontrado
+            {t('rentals.rentalNotFound')}
           </h2>
           <p className="text-slate-600 mb-6">
-            El alquiler que buscas no existe o fue eliminado
+            {t('rentals.rentalNotFoundDescription')}
           </p>
           <Button onClick={handleVolver}>
-            Volver a Alquileres
+            {t('rentals.backToRentals')}
           </Button>
         </div>
       </div>
@@ -267,7 +267,7 @@ export default function AlquilerDetallePage() {
               <div>
                 <div className="flex items-center gap-3">
                   <h1 className="text-xl font-bold text-slate-900">
-                    Alquiler #{alquiler.id}
+                    {t('rentals.rentalNumber', { id: alquiler.id })}
                   </h1>
                   <span className={`
                     inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full
@@ -279,7 +279,7 @@ export default function AlquilerDetallePage() {
                   {retornoVencido && (
                     <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-700">
                       <AlertTriangle className="w-3 h-3" />
-                      Retorno vencido
+                      {t('rentals.returnOverdue')}
                     </span>
                   )}
                 </div>
@@ -299,7 +299,7 @@ export default function AlquilerDetallePage() {
                   icon={<CalendarPlus className="w-4 h-4" />}
                   onClick={handleAbrirModalExtender}
                 >
-                  Extender Fecha
+                  {t('rentals.extendDate')}
                 </Button>
               )}
 
@@ -324,23 +324,23 @@ export default function AlquilerDetallePage() {
                           if (alquiler.cotizacion_id) {
                             navigate('/alquileres/cotizaciones')
                           } else {
-                            toast.info('Cotización no disponible')
+                            toast.info(t('rentals.quoteNotAvailable'))
                           }
                         }}
                       >
                         <FileText className="w-4 h-4" />
-                        Ver Cotización
+                        {t('rentals.viewQuote')}
                       </button>
                       <button
                         className="w-full px-4 py-2 text-left text-sm hover:bg-slate-50 flex items-center gap-2"
                         onClick={() => {
                           // TODO: Implementar imprimir
-                          toast.info('Funcionalidad en desarrollo')
+                          toast.info(t('rentals.featureInDevelopment'))
                           setShowMenuAcciones(false)
                         }}
                       >
                         <Printer className="w-4 h-4" />
-                        Imprimir
+                        {t('common.print')}
                       </button>
                       {(alquiler.estado === 'programado' || alquiler.estado === 'activo') && (
                         <>
@@ -353,7 +353,7 @@ export default function AlquilerDetallePage() {
                             }}
                           >
                             <XCircle className="w-4 h-4" />
-                            Cancelar Alquiler
+                            {t('rentals.cancelRental')}
                           </button>
                         </>
                       )}
@@ -374,14 +374,14 @@ export default function AlquilerDetallePage() {
             {/* Información General */}
             <div className="bg-white rounded-xl border border-slate-200 p-6">
               <h2 className="text-lg font-semibold text-slate-900 mb-4">
-                Información General
+                {t('rentals.generalInfo')}
               </h2>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="flex items-start gap-3">
                   <User className="w-5 h-5 text-slate-400 mt-0.5" />
                   <div>
-                    <p className="text-sm text-slate-500">Cliente</p>
+                    <p className="text-sm text-slate-500">{t('rentals.clientLabel')}</p>
                     <p className="font-medium text-slate-900">{alquiler.cliente_nombre}</p>
                   </div>
                 </div>
@@ -389,7 +389,7 @@ export default function AlquilerDetallePage() {
                 <div className="flex items-start gap-3">
                   <Calendar className="w-5 h-5 text-slate-400 mt-0.5" />
                   <div>
-                    <p className="text-sm text-slate-500">Evento</p>
+                    <p className="text-sm text-slate-500">{t('rentals.eventLabel')}</p>
                     <p className="font-medium text-slate-900">{alquiler.evento_nombre}</p>
                   </div>
                 </div>
@@ -397,7 +397,7 @@ export default function AlquilerDetallePage() {
                 <div className="flex items-start gap-3">
                   <LogOut className="w-5 h-5 text-slate-400 mt-0.5" />
                   <div>
-                    <p className="text-sm text-slate-500">Fecha Salida</p>
+                    <p className="text-sm text-slate-500">{t('rentals.departureDate')}</p>
                     <p className="font-medium text-slate-900">{formatFecha(alquiler.fecha_salida)}</p>
                   </div>
                 </div>
@@ -405,16 +405,16 @@ export default function AlquilerDetallePage() {
                 <div className="flex items-start gap-3">
                   <LogIn className="w-5 h-5 text-slate-400 mt-0.5" />
                   <div>
-                    <p className="text-sm text-slate-500">Retorno Esperado</p>
+                    <p className="text-sm text-slate-500">{t('rentals.expectedReturn')}</p>
                     <p className={`font-medium ${retornoVencido ? 'text-red-600' : 'text-slate-900'}`}>
                       {formatFecha(alquiler.fecha_retorno_esperado)}
                     </p>
                     {alquiler.extensiones_count > 0 && alquiler.fecha_retorno_original && (
                       <p className="text-xs text-slate-400 mt-0.5 flex items-center gap-1">
                         <History className="w-3 h-3" />
-                        Original: {formatFecha(alquiler.fecha_retorno_original)}
+                        {t('rentals.originalLabel')}: {formatFecha(alquiler.fecha_retorno_original)}
                         <span className="text-orange-500 font-medium ml-1">
-                          ({alquiler.extensiones_count} extensi{alquiler.extensiones_count === 1 ? 'ón' : 'ones'})
+                          ({t('rentals.extensionCount', { count: alquiler.extensiones_count })})
                         </span>
                       </p>
                     )}
@@ -425,7 +425,7 @@ export default function AlquilerDetallePage() {
                   <div className="flex items-start gap-3">
                     <CheckCircle className="w-5 h-5 text-green-500 mt-0.5" />
                     <div>
-                      <p className="text-sm text-slate-500">Retorno Real</p>
+                      <p className="text-sm text-slate-500">{t('rentals.actualReturn')}</p>
                       <p className="font-medium text-slate-900">{formatFecha(alquiler.fecha_retorno_real)}</p>
                     </div>
                   </div>
@@ -435,7 +435,7 @@ export default function AlquilerDetallePage() {
                   <div className="flex items-start gap-3 md:col-span-2">
                     <MapPin className="w-5 h-5 text-slate-400 mt-0.5" />
                     <div>
-                      <p className="text-sm text-slate-500">Dirección del Evento</p>
+                      <p className="text-sm text-slate-500">{t('rentals.eventAddress')}</p>
                       <p className="font-medium text-slate-900">{alquiler.evento_direccion}</p>
                     </div>
                   </div>
@@ -447,7 +447,7 @@ export default function AlquilerDetallePage() {
             {(alquiler.orden_montaje_id || alquiler.orden_desmontaje_id) && (
               <div className="bg-white rounded-xl border border-slate-200 p-6">
                 <h2 className="text-lg font-semibold text-slate-900 mb-4">
-                  Órdenes de Trabajo
+                  {t('rentals.workOrders')}
                 </h2>
                 <div className="space-y-3">
                   {/* Orden de Montaje */}
@@ -463,8 +463,8 @@ export default function AlquilerDetallePage() {
                           <Package className="w-5 h-5 text-emerald-600" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium text-slate-900">Montaje</p>
-                          <p className="text-sm text-slate-500">Orden #{alquiler.orden_montaje_id}</p>
+                          <p className="font-medium text-slate-900">{t('rentals.assembly')}</p>
+                          <p className="text-sm text-slate-500">{t('rentals.orderNumber', { id: alquiler.orden_montaje_id })}</p>
                         </div>
                         <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${cfg.bg} ${cfg.text} ${cfg.border}`}>
                           <Icon className="w-3.5 h-3.5" />
@@ -488,8 +488,8 @@ export default function AlquilerDetallePage() {
                           <Truck className="w-5 h-5 text-orange-600" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium text-slate-900">Desmontaje</p>
-                          <p className="text-sm text-slate-500">Orden #{alquiler.orden_desmontaje_id}</p>
+                          <p className="font-medium text-slate-900">{t('rentals.disassembly')}</p>
+                          <p className="text-sm text-slate-500">{t('rentals.orderNumber', { id: alquiler.orden_desmontaje_id })}</p>
                         </div>
                         <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${cfg.bg} ${cfg.text} ${cfg.border}`}>
                           <Icon className="w-3.5 h-3.5" />
@@ -506,25 +506,25 @@ export default function AlquilerDetallePage() {
             {/* Resumen Financiero */}
             <div className="bg-white rounded-xl border border-slate-200 p-6">
               <h2 className="text-lg font-semibold text-slate-900 mb-4">
-                Resumen Financiero
+                {t('rentals.financialSummary')}
               </h2>
 
               <div className="grid grid-cols-3 gap-4">
                 <div className="bg-slate-50 rounded-lg p-4 text-center">
                   <DollarSign className="w-6 h-6 text-slate-400 mx-auto mb-2" />
-                  <p className="text-sm text-slate-500">Total</p>
+                  <p className="text-sm text-slate-500">{t('rentals.totalLabel')}</p>
                   <p className="text-xl font-bold text-slate-900">{formatMoneda(alquiler.total)}</p>
                 </div>
 
                 <div className="bg-green-50 rounded-lg p-4 text-center">
                   <DollarSign className="w-6 h-6 text-green-500 mx-auto mb-2" />
-                  <p className="text-sm text-slate-500">Depósito</p>
+                  <p className="text-sm text-slate-500">{t('rentals.depositLabel')}</p>
                   <p className="text-xl font-bold text-green-700">{formatMoneda(alquiler.deposito_cobrado)}</p>
                 </div>
 
                 <div className={`rounded-lg p-4 text-center ${alquiler.costo_danos > 0 ? 'bg-red-50' : 'bg-slate-50'}`}>
                   <AlertTriangle className={`w-6 h-6 mx-auto mb-2 ${alquiler.costo_danos > 0 ? 'text-red-500' : 'text-slate-400'}`} />
-                  <p className="text-sm text-slate-500">Daños</p>
+                  <p className="text-sm text-slate-500">{t('rentals.damagesLabel')}</p>
                   <p className={`text-xl font-bold ${alquiler.costo_danos > 0 ? 'text-red-700' : 'text-slate-900'}`}>
                     {formatMoneda(alquiler.costo_danos || 0)}
                   </p>
@@ -536,17 +536,17 @@ export default function AlquilerDetallePage() {
             {alquiler.productos && alquiler.productos.length > 0 && (
               <div className="bg-white rounded-xl border border-slate-200 p-6">
                 <h2 className="text-lg font-semibold text-slate-900 mb-4">
-                  Productos Cotizados
+                  {t('rentals.quotedProducts')}
                 </h2>
 
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead>
                       <tr className="border-b border-slate-200">
-                        <th className="text-left py-3 px-4 text-sm font-medium text-slate-500">Producto</th>
-                        <th className="text-center py-3 px-4 text-sm font-medium text-slate-500">Cantidad</th>
-                        <th className="text-right py-3 px-4 text-sm font-medium text-slate-500">Precio Unit.</th>
-                        <th className="text-right py-3 px-4 text-sm font-medium text-slate-500">Subtotal</th>
+                        <th className="text-left py-3 px-4 text-sm font-medium text-slate-500">{t('rentals.productColumn')}</th>
+                        <th className="text-center py-3 px-4 text-sm font-medium text-slate-500">{t('rentals.quantityColumn')}</th>
+                        <th className="text-right py-3 px-4 text-sm font-medium text-slate-500">{t('rentals.unitPriceColumn')}</th>
+                        <th className="text-right py-3 px-4 text-sm font-medium text-slate-500">{t('rentals.subtotalColumn')}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -569,7 +569,7 @@ export default function AlquilerDetallePage() {
             {/* Elementos Asignados */}
             <div className="bg-white rounded-xl border border-slate-200 p-6">
               <h2 className="text-lg font-semibold text-slate-900 mb-4">
-                Elementos Asignados
+                {t('rentals.assignedElements')}
               </h2>
 
               {alquiler.elementos && alquiler.elementos.length > 0 ? (
@@ -577,11 +577,11 @@ export default function AlquilerDetallePage() {
                   <table className="w-full">
                     <thead>
                       <tr className="border-b border-slate-200">
-                        <th className="text-left py-3 px-4 text-sm font-medium text-slate-500">Elemento</th>
-                        <th className="text-left py-3 px-4 text-sm font-medium text-slate-500">Serie</th>
-                        <th className="text-center py-3 px-4 text-sm font-medium text-slate-500">Cantidad</th>
-                        <th className="text-center py-3 px-4 text-sm font-medium text-slate-500">Estado Salida</th>
-                        <th className="text-center py-3 px-4 text-sm font-medium text-slate-500">Estado Retorno</th>
+                        <th className="text-left py-3 px-4 text-sm font-medium text-slate-500">{t('rentals.elementColumn')}</th>
+                        <th className="text-left py-3 px-4 text-sm font-medium text-slate-500">{t('rentals.seriesColumn')}</th>
+                        <th className="text-center py-3 px-4 text-sm font-medium text-slate-500">{t('rentals.quantityColumn')}</th>
+                        <th className="text-center py-3 px-4 text-sm font-medium text-slate-500">{t('rentals.departureState')}</th>
+                        <th className="text-center py-3 px-4 text-sm font-medium text-slate-500">{t('rentals.returnState')}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -627,9 +627,9 @@ export default function AlquilerDetallePage() {
               ) : (
                 <div className="text-center py-8">
                   <Package className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-                  <p className="text-slate-500">No hay elementos asignados</p>
+                  <p className="text-slate-500">{t('rentals.noAssignedElements')}</p>
                   <p className="text-xs text-slate-400 mt-2">
-                    Los elementos se asignan automáticamente al aprobar la cotización.
+                    {t('rentals.elementsAutoAssigned')}
                   </p>
                   {alquiler.orden_montaje_id && (
                     <Link to={`/operaciones/ordenes/${alquiler.orden_montaje_id}`}>
@@ -639,7 +639,7 @@ export default function AlquilerDetallePage() {
                         className="mt-4"
                         icon={<ExternalLink className="w-4 h-4" />}
                       >
-                        Ver en Operaciones
+                        {t('rentals.viewInOperations')}
                       </Button>
                     </Link>
                   )}
@@ -656,7 +656,7 @@ export default function AlquilerDetallePage() {
             <div className="bg-white rounded-xl border border-slate-200 p-6">
               <div className="flex items-center gap-3 mb-4">
                 <AlertTriangle className="w-5 h-5 text-amber-500" />
-                <h3 className="text-lg font-semibold text-slate-900">Novedades</h3>
+                <h3 className="text-lg font-semibold text-slate-900">{t('rentals.novelties')}</h3>
                 <span className="text-xs font-medium px-2 py-0.5 bg-slate-100 text-slate-600 rounded-full">
                   {novedadesAlquiler.length}
                 </span>
@@ -673,7 +673,7 @@ export default function AlquilerDetallePage() {
           <div className="lg:col-span-1">
             <div className="bg-white rounded-xl border border-slate-200 p-6 sticky top-24">
               <h2 className="text-lg font-semibold text-slate-900 mb-4">
-                Historial
+                {t('rentals.historyLabel')}
               </h2>
 
               <AlquilerTimeline
@@ -691,16 +691,16 @@ export default function AlquilerDetallePage() {
         isOpen={showModalCancelar}
         onClose={() => setShowModalCancelar(false)}
         onConfirm={handleCancelarAlquiler}
-        title="Cancelar Alquiler"
-        message="¿Estás seguro de cancelar este alquiler? Esta acción liberará todos los elementos asignados."
+        title={t('rentals.cancelRentalTitle')}
+        message={t('rentals.cancelRentalMessage')}
         variant="danger"
-        confirmText="Sí, cancelar"
-        cancelText="No, mantener"
+        confirmText={t('rentals.yesCancelIt')}
+        cancelText={t('rentals.noKeepIt')}
         loading={cancelarAlquiler.isPending}
       />
 
       {/* Modal Extender Fecha de Retorno */}
-      <Modal isOpen={showModalExtender} onClose={() => setShowModalExtender(false)} title="Extender Fecha de Retorno" size="sm">
+      <Modal isOpen={showModalExtender} onClose={() => setShowModalExtender(false)} title={t('rentals.extendReturnDate')} size="sm">
         <div className="space-y-4">
           <p className="text-sm text-slate-500">
             Alquiler #{alquiler?.id} - {alquiler?.cliente_nombre}
@@ -708,19 +708,19 @@ export default function AlquilerDetallePage() {
 
           <div className="bg-slate-50 rounded-lg p-3">
             <p className="text-sm text-slate-600">
-              <span className="font-medium">Retorno actual:</span>{' '}
+              <span className="font-medium">{t('rentals.currentReturn')}:</span>{' '}
               {alquiler && formatFecha(alquiler.fecha_retorno_esperado)}
             </p>
             {alquiler?.extensiones_count > 0 && (
               <p className="text-xs text-orange-600 mt-1">
-                Este alquiler ya ha sido extendido {alquiler.extensiones_count} vez(es)
+                {t('rentals.alreadyExtended', { count: alquiler.extensiones_count })}
               </p>
             )}
           </div>
 
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">
-              Nueva Fecha de Retorno *
+              {t('rentals.newReturnDate')} *
             </label>
             <input
               type="date"
@@ -733,12 +733,12 @@ export default function AlquilerDetallePage() {
 
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">
-              Razón de la extensión
+              {t('rentals.extensionReason')}
             </label>
             <textarea
               className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-sm resize-none"
               rows={3}
-              placeholder="Ej: El cliente necesita más días para su evento..."
+              placeholder={t('rentals.extensionReasonPlaceholder')}
               value={extensionData.razon}
               onChange={(e) => setExtensionData(prev => ({ ...prev, razon: e.target.value }))}
             />
@@ -746,7 +746,7 @@ export default function AlquilerDetallePage() {
 
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">
-              Costo adicional (COP)
+              {t('rentals.additionalCost')}
             </label>
             <input
               type="number"
@@ -767,14 +767,14 @@ export default function AlquilerDetallePage() {
               setExtensionData({ nueva_fecha_retorno: '', razon: '', costo_extension: '' })
             }}
           >
-            Cancelar
+            {t('common.cancel')}
           </Button>
           <Button
             onClick={handleExtenderAlquiler}
             disabled={extenderAlquiler.isPending || !extensionData.nueva_fecha_retorno}
             icon={<CalendarPlus className="w-4 h-4" />}
           >
-            {extenderAlquiler.isPending ? 'Extendiendo...' : 'Confirmar Extensión'}
+            {extenderAlquiler.isPending ? t('rentals.extending') : t('rentals.confirmExtension')}
           </Button>
         </Modal.Footer>
       </Modal>

@@ -56,6 +56,7 @@ const formatMoneda = (valor) => {
 // COMPONENTE: EventoHistorialCard
 // ============================================
 const EventoHistorialCard = ({ evento, onRepetirEvento }) => {
+    const { t } = useTranslation()
     const [expanded, setExpanded] = useState(false)
     const esCancelado = evento.estado === 'cancelado'
 
@@ -83,7 +84,7 @@ const EventoHistorialCard = ({ evento, onRepetirEvento }) => {
                         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium shrink-0 ${
                             esCancelado ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'
                         }`}>
-                            {esCancelado ? 'Cancelado' : 'Completado'}
+                            {esCancelado ? t('rentals.statusCancelled') : t('rentals.statusCompleted')}
                         </span>
                     </div>
                     <div className="flex flex-wrap items-center gap-3 text-sm text-slate-500">
@@ -121,7 +122,7 @@ const EventoHistorialCard = ({ evento, onRepetirEvento }) => {
                             {formatMoneda(evento.total_valor)}
                         </p>
                         <p className="text-xs text-slate-500">
-                            {evento.total_cotizaciones || 0} cotizacion{evento.total_cotizaciones !== 1 ? 'es' : ''}
+                            {t('rentals.quotesCount', { count: evento.total_cotizaciones || 0 })}
                         </p>
                     </div>
                     {expanded
@@ -144,7 +145,7 @@ const EventoHistorialCard = ({ evento, onRepetirEvento }) => {
                         <div>
                             <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1">
                                 <Package className="w-3.5 h-3.5" />
-                                Productos alquilados
+                                {t('rentals.rentedProductsList')}
                             </p>
                             <div className="bg-white rounded-lg border border-slate-200 divide-y divide-slate-100">
                                 {evento.productos_resumen.split(', ').map((prod, idx) => (
@@ -160,17 +161,17 @@ const EventoHistorialCard = ({ evento, onRepetirEvento }) => {
                     <div className="grid grid-cols-3 gap-3">
                         <div className="bg-white rounded-lg border border-slate-200 p-3 text-center">
                             <p className="text-lg font-bold text-slate-900">{evento.total_cotizaciones || 0}</p>
-                            <p className="text-xs text-slate-500">Cotizaciones</p>
+                            <p className="text-xs text-slate-500">{t('rentals.quotesLabel')}</p>
                         </div>
                         <div className="bg-white rounded-lg border border-slate-200 p-3 text-center">
                             <p className="text-lg font-bold text-emerald-600">{formatMoneda(evento.total_valor)}</p>
-                            <p className="text-xs text-slate-500">Valor total</p>
+                            <p className="text-xs text-slate-500">{t('rentals.totalValue')}</p>
                         </div>
                         <div className="bg-white rounded-lg border border-slate-200 p-3 text-center">
                             <p className="text-lg font-bold text-slate-900">
                                 {formatFecha(evento.fecha_inicio)}
                             </p>
-                            <p className="text-xs text-slate-500">Fecha inicio</p>
+                            <p className="text-xs text-slate-500">{t('rentals.startDate')}</p>
                         </div>
                     </div>
 
@@ -194,7 +195,7 @@ const EventoHistorialCard = ({ evento, onRepetirEvento }) => {
                                     onRepetirEvento(evento)
                                 }}
                             >
-                                Repetir este evento
+                                {t('rentals.repeatThisEvent')}
                             </Button>
                         </div>
                     )}
@@ -208,6 +209,7 @@ const EventoHistorialCard = ({ evento, onRepetirEvento }) => {
 // COMPONENTE PRINCIPAL
 // ============================================
 export default function HistorialEventosPage() {
+    const { t } = useTranslation()
     const navigate = useNavigate()
     const [busqueda, setBusqueda] = useState('')
     const [filtroEstado, setFiltroEstado] = useState('')
@@ -249,12 +251,12 @@ export default function HistorialEventosPage() {
                 fecha_fin: datos.fecha_fin
             })
             const productosCopiados = resultado?.data?.productos_copiados || 0
-            toast.success(`Evento repetido con ${productosCopiados} producto${productosCopiados !== 1 ? 's' : ''}`)
+            toast.success(t('rentals.eventRepeatedWithProducts', { count: productosCopiados }))
             setEventoRepetir(null)
             refetch()
             navigate('/alquileres/cotizaciones')
         } catch (error) {
-            toast.error(error?.response?.data?.message || 'Error al repetir evento')
+            toast.error(error?.response?.data?.message || t('rentals.errorRepeatingEvent'))
             throw error
         }
     }
@@ -262,7 +264,7 @@ export default function HistorialEventosPage() {
     if (isLoading) {
         return (
             <div className="flex justify-center py-12">
-                <Spinner size="lg" text="Cargando historial..." />
+                <Spinner size="lg" text={t('rentals.loadingHistory')} />
             </div>
         )
     }
@@ -275,10 +277,10 @@ export default function HistorialEventosPage() {
                     <div className="p-2 bg-purple-100 rounded-lg">
                         <Archive className="w-6 h-6 text-purple-600" />
                     </div>
-                    Historial de Eventos
+                    {t('rentals.eventHistory')}
                 </h1>
                 <p className="text-slate-500 mt-1">
-                    {historial.length} evento{historial.length !== 1 ? 's' : ''} finalizado{historial.length !== 1 ? 's' : ''}
+                    {t('rentals.eventCount', { count: historial.length })}
                 </p>
             </div>
 
@@ -289,7 +291,7 @@ export default function HistorialEventosPage() {
                         <Search className="w-5 h-5 text-slate-400 shrink-0" />
                         <input
                             type="text"
-                            placeholder="Buscar por evento, cliente o ciudad..."
+                            placeholder={t('rentals.searchByEventClientCity')}
                             value={busqueda}
                             onChange={(e) => setBusqueda(e.target.value)}
                             className="flex-1 border-0 focus:ring-0 text-sm placeholder:text-slate-400 outline-none"
@@ -314,7 +316,7 @@ export default function HistorialEventosPage() {
                                         : 'border-slate-200 hover:bg-slate-50 text-slate-600'
                                 }`}
                             >
-                                {estado === '' ? 'Todos' : estado === 'completado' ? 'Completados' : 'Cancelados'}
+                                {estado === '' ? t('rentals.allFilter') : estado === 'completado' ? t('rentals.completedFilter') : t('rentals.cancelledFilter')}
                             </button>
                         ))}
                     </div>
@@ -324,8 +326,8 @@ export default function HistorialEventosPage() {
             {/* Contador */}
             <div className="mb-4 text-sm text-slate-500">
                 {busqueda || filtroEstado
-                    ? `${filtrado.length} resultado${filtrado.length !== 1 ? 's' : ''}`
-                    : `${historial.length} registro${historial.length !== 1 ? 's' : ''}`
+                    ? t('rentals.resultCount', { count: filtrado.length })
+                    : t('rentals.recordCount', { count: historial.length })
                 }
             </div>
 
@@ -334,12 +336,12 @@ export default function HistorialEventosPage() {
                 <div className="bg-white rounded-xl border border-slate-200 p-12 text-center">
                     <Archive className="w-12 h-12 text-slate-300 mx-auto mb-4" />
                     <h3 className="text-lg font-medium text-slate-900 mb-2">
-                        {historial.length === 0 ? 'Sin historial' : 'Sin resultados'}
+                        {historial.length === 0 ? t('rentals.noHistory') : t('rentals.noResultsSearch')}
                     </h3>
                     <p className="text-slate-500">
                         {historial.length === 0
-                            ? 'Los eventos completados o cancelados aparecerán aquí'
-                            : `No se encontraron eventos con "${busqueda}"`
+                            ? t('rentals.eventsFinishedOrCancelledAppearHere')
+                            : t('rentals.noEventsMatchSearch', { search: busqueda })
                         }
                     </p>
                     {(busqueda || filtroEstado) && (
@@ -347,7 +349,7 @@ export default function HistorialEventosPage() {
                             onClick={() => { setBusqueda(''); setFiltroEstado('') }}
                             className="mt-4 text-purple-600 hover:text-purple-700 font-medium text-sm"
                         >
-                            Limpiar filtros
+                            {t('rentals.clearFilters')}
                         </button>
                     )}
                 </div>

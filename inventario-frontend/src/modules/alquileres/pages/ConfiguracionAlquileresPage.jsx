@@ -39,24 +39,24 @@ const ConfiguracionPage = () => {
   // Categorías disponibles con sus configuraciones
   const categorias = {
     impuestos: {
-      label: 'Impuestos',
+      label: t('rentals.taxes'),
       icon: Percent,
-      descripcion: 'Configuración de IVA y otros impuestos'
+      descripcion: t('rentals.taxesDescription')
     },
     dias_extra: {
-      label: 'Días Extra',
+      label: t('rentals.extraDays'),
       icon: Calendar,
-      descripcion: 'Días gratis y recargos por tiempo adicional'
+      descripcion: t('rentals.extraDaysDescription')
     },
     empresa: {
-      label: 'Datos Empresa',
+      label: t('rentals.companyDataTab'),
       icon: Building,
-      descripcion: 'Información de la empresa para documentos'
+      descripcion: t('rentals.companyDataTabDescription')
     },
     cotizaciones: {
-      label: 'Cotizaciones',
+      label: t('rentals.quotesConfig'),
       icon: Settings,
-      descripcion: 'Configuración de cotizaciones'
+      descripcion: t('rentals.quotesConfigDescription')
     }
   }
 
@@ -129,7 +129,7 @@ const ConfiguracionPage = () => {
 
   // Handler para eliminar logo
   const handleEliminarLogo = async () => {
-    if (!confirm('¿Eliminar el logo de la empresa?')) return
+    if (!confirm(t('rentals.deleteLogoConfirm'))) return
 
     try {
       await eliminarLogoMutation.mutateAsync()
@@ -176,7 +176,7 @@ const ConfiguracionPage = () => {
             />
             <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-500/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-slate-900"></div>
             <span className="ml-3 text-sm text-slate-600">
-              {valor === 'true' || valor === true ? 'Activo' : 'Inactivo'}
+              {valor === 'true' || valor === true ? t('rentals.activeBoolean') : t('rentals.inactiveBoolean')}
             </span>
           </label>
         )
@@ -207,7 +207,7 @@ const ConfiguracionPage = () => {
     return (
       <div className="mb-6 pb-6 border-b border-slate-200">
         <label className="block text-sm font-medium text-slate-700 mb-3">
-          Logo de la empresa
+          {t('rentals.companyLogo')}
         </label>
         <div className="flex items-start gap-6">
           {/* Preview del logo */}
@@ -215,7 +215,7 @@ const ConfiguracionPage = () => {
             {logoUrl ? (
               <img
                 src={`${BACKEND_URL}${logoUrl}`}
-                alt="Logo empresa"
+                alt={t('rentals.logoAlt')}
                 className="w-full h-full object-contain p-2"
                 onError={(e) => {
                   e.target.style.display = 'none'
@@ -227,15 +227,14 @@ const ConfiguracionPage = () => {
               className={`flex-col items-center justify-center text-slate-400 ${logoUrl ? 'hidden' : 'flex'}`}
             >
               <ImageIcon className="w-10 h-10 mb-1" />
-              <span className="text-xs">Sin logo</span>
+              <span className="text-xs">{t('rentals.noLogo')}</span>
             </div>
           </div>
 
           {/* Controles */}
           <div className="flex flex-col gap-3">
             <p className="text-sm text-slate-500">
-              Sube el logo de tu empresa para que aparezca en cotizaciones y facturas.
-              Formatos: JPG, PNG, WebP o SVG. Tamaño máximo: 2MB.
+              {t('rentals.logoUploadHint')}
             </p>
 
             <div className="flex items-center gap-2">
@@ -257,7 +256,7 @@ const ConfiguracionPage = () => {
                 ) : (
                   <Upload className="w-4 h-4" />
                 )}
-                {logoUrl ? 'Cambiar logo' : 'Subir logo'}
+                {logoUrl ? t('rentals.changeLogo') : t('rentals.uploadLogo')}
               </button>
 
               {logoUrl && (
@@ -267,18 +266,18 @@ const ConfiguracionPage = () => {
                   className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-red-700 bg-red-50 border border-red-200 rounded-xl hover:bg-red-100 transition-colors disabled:opacity-50"
                 >
                   <Trash2 className="w-4 h-4" />
-                  Eliminar
+                  {t('rentals.deleteLogo')}
                 </button>
               )}
             </div>
 
             {subirLogoMutation.isError && (
               <p className="text-sm text-red-600">
-                Error al subir: {subirLogoMutation.error?.response?.data?.message || 'Intenta de nuevo'}
+                {t('rentals.uploadError')}: {subirLogoMutation.error?.response?.data?.message || t('rentals.tryAgain')}
               </p>
             )}
             {subirLogoMutation.isSuccess && (
-              <p className="text-sm text-green-600">Logo actualizado correctamente</p>
+              <p className="text-sm text-green-600">{t('rentals.logoUpdated')}</p>
             )}
           </div>
         </div>
@@ -300,7 +299,7 @@ const ConfiguracionPage = () => {
           className="flex items-center gap-2 text-slate-600 hover:text-slate-900 mb-4 transition-colors text-sm"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>Volver a Configuración</span>
+          <span>{t('rentals.backToConfig')}</span>
         </button>
       )}
 
@@ -312,10 +311,10 @@ const ConfiguracionPage = () => {
               <div className="w-10 h-10 rounded-xl bg-slate-500 flex items-center justify-center shadow-sm">
                 {isStandalone ? <Building className="w-5 h-5 text-white" /> : <Settings className="w-5 h-5 text-white" />}
               </div>
-              {isStandalone ? 'Datos de la Empresa' : 'Configuración'}
+              {isStandalone ? t('rentals.companyData') : t('rentals.configTitle')}
             </h1>
             <p className="text-slate-500 mt-1">
-              {isStandalone ? 'Logo, nombre y datos de contacto para documentos' : 'Ajusta los parámetros del sistema de alquileres'}
+              {isStandalone ? t('rentals.companyDataDescription') : t('rentals.configDescription')}
             </p>
           </div>
 
@@ -327,7 +326,7 @@ const ConfiguracionPage = () => {
                 icon={<RotateCcw className="w-4 h-4" />}
                 onClick={handleResetear}
               >
-                Descartar
+                {t('rentals.discard')}
               </Button>
               <Button
                 variant="primary"
@@ -335,7 +334,7 @@ const ConfiguracionPage = () => {
                 onClick={handleGuardar}
                 loading={updateMutation.isPending}
               >
-                Guardar cambios
+                {t('rentals.saveChanges')}
               </Button>
             </div>
           )}
@@ -370,7 +369,7 @@ const ConfiguracionPage = () => {
       {/* Contenido */}
       {isLoading ? (
         <div className="py-12">
-          <Spinner size="lg" text="Cargando configuración..." />
+          <Spinner size="lg" text={t('rentals.loadingConfig')} />
         </div>
       ) : (
         <div className="bg-white rounded-xl border border-slate-200 p-6">
@@ -390,7 +389,7 @@ const ConfiguracionPage = () => {
           {/* Formulario de configuraciones */}
           {configuracionesCategoria.length === 0 ? (
             <p className="text-slate-500 text-center py-8">
-              No hay configuraciones en esta categoría
+              {t('rentals.noConfigInCategory')}
             </p>
           ) : (
             <div className="space-y-6">
@@ -415,8 +414,7 @@ const ConfiguracionPage = () => {
           {/* Nota informativa */}
           <div className="mt-8">
             <InfoBox variant="info">
-              <strong>Nota:</strong> Los cambios en la configuración afectarán a las nuevas cotizaciones.
-              Las cotizaciones existentes mantienen los valores con los que fueron creadas.
+              {t('rentals.configNote')}
             </InfoBox>
           </div>
         </div>

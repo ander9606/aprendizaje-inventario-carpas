@@ -24,28 +24,28 @@ const OperacionesSidebar = () => {
     {
       to: '/operaciones',
       icon: LayoutDashboard,
-      label: 'Dashboard',
+      label: t('operations.dashboard'),
       end: true
     },
     {
       to: '/operaciones/ordenes',
       icon: ClipboardList,
-      label: 'Órdenes de Trabajo'
+      label: t('operations.workOrders')
     },
     {
       to: '/operaciones/calendario',
       icon: Calendar,
-      label: 'Calendario'
+      label: t('operations.sidebar.calendar')
     },
     {
       to: '/operaciones/alertas',
       icon: AlertTriangle,
-      label: 'Alertas'
+      label: t('operations.sidebar.alerts')
     },
     {
       to: '/operaciones/historial',
       icon: Archive,
-      label: 'Historial'
+      label: t('operations.sidebar.history')
     }
   ]
 
@@ -69,7 +69,7 @@ const OperacionesSidebar = () => {
                      w-full min-h-[44px]"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>Volver a Módulos</span>
+          <span>{t('operations.sidebar.backToModules')}</span>
         </button>
 
         {/* Título del módulo */}
@@ -78,7 +78,7 @@ const OperacionesSidebar = () => {
             <Truck className="w-5 h-5 text-white" />
           </div>
           <h2 className="text-base font-semibold text-slate-900">
-            Operaciones
+            {t('operations.title')}
           </h2>
         </div>
 
