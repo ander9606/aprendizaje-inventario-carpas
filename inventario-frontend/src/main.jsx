@@ -11,6 +11,9 @@ import { Toaster } from 'sonner'
 import App from './App.jsx'
 import './index.css'
 
+// Inicializar i18n (debe importarse antes de renderizar)
+import './i18n'
+
 // Importar configuración de auth
 import useAuthStore from '@shared/stores/authStore'
 import { configureAuthInterceptor } from '@shared/api/Axios.config'

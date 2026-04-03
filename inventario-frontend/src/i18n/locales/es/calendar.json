@@ -1,0 +1,22 @@
+{
+  "calendar": {
+    "title": "Calendario",
+    "loadingCalendar": "Cargando calendario...",
+    "errorLoadingCalendar": "Error al cargar el calendario:",
+    "filters": "Filtros:",
+    "assembly": "Montaje",
+    "event": "Evento",
+    "disassembly": "Desmontaje",
+    "status": "Estado:",
+    "allStatuses": "Todos",
+    "pendingStatus": "Pendientes",
+    "approvedStatus": "Aprobadas",
+    "rejectedStatus": "Rechazadas",
+    "expiredStatus": "Vencidas",
+    "completedStatus": "Finalizados",
+    "legend": "Leyenda",
+    "dayQuotes": "Cotizaciones del día",
+    "stats": "Estadísticas",
+    "operationsCalendar": "Calendario de Operaciones"
+  }
+}

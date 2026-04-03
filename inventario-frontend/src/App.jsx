@@ -7,6 +7,7 @@
 
 import { lazy, Suspense } from 'react'
 import { Routes, Route } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 
 // Auth (carga inmediata - se necesita al inicio)
 import ProtectedRoute from './modules/auth/components/ProtectedRoute'
@@ -70,14 +71,17 @@ const AlertasPage = lazy(() => import('./modules/configuracion/pages/AlertasPage
 // LOADING FALLBACK
 // ============================================
 
-const LoadingFallback = () => (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
-        <div className="flex flex-col items-center gap-3">
-            <div className="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin" />
-            <span className="text-sm text-slate-500">Cargando...</span>
+const LoadingFallback = () => {
+    const { t } = useTranslation()
+    return (
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
+            <div className="flex flex-col items-center gap-3">
+                <div className="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                <span className="text-sm text-slate-500">{t('common.loading')}</span>
+            </div>
         </div>
-    </div>
-)
+    )
+}
 
 /**
  * COMPONENTE: App
@@ -106,6 +110,29 @@ const LoadingFallback = () => (
  * /alquileres/clientes                                                                  → Clientes
  * /alquileres/calendario                                                                → Calendario
  */
+const NotFoundPage = () => {
+    const { t } = useTranslation()
+    return (
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
+            <div className="text-center">
+                <div className="text-6xl mb-4">🔍</div>
+                <h1 className="text-2xl font-bold text-slate-900 mb-2">
+                    {t('pageNotFound.title')}
+                </h1>
+                <p className="text-slate-600 mb-6">
+                    {t('pageNotFound.description')}
+                </p>
+                <a
+                    href="/"
+                    className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                    {t('pageNotFound.backHome')}
+                </a>
+            </div>
+        </div>
+    )
+}
+
 function App() {
     return (
         <Suspense fallback={<LoadingFallback />}>
@@ -225,25 +252,7 @@ function App() {
                     ============================================ */}
                 <Route
                     path="*"
-                    element={
-                        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
-                            <div className="text-center">
-                                <div className="text-6xl mb-4">🔍</div>
-                                <h1 className="text-2xl font-bold text-slate-900 mb-2">
-                                    Página no encontrada
-                                </h1>
-                                <p className="text-slate-600 mb-6">
-                                    La página que buscas no existe
-                                </p>
-                                <a
-                                    href="/"
-                                    className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                                >
-                                    Volver al inicio
-                                </a>
-                            </div>
-                        </div>
-                    }
+                    element={<NotFoundPage />}
                 />
             </Routes>
         </Suspense>

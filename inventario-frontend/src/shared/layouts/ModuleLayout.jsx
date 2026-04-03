@@ -8,8 +8,11 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { Menu, X, ArrowLeft } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+import LanguageSwitcher from '@shared/components/LanguageSwitcher'
 
 const ModuleLayout = ({ sidebar: SidebarComponent }) => {
+  const { t } = useTranslation()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024)
   const location = useLocation()
@@ -129,7 +132,7 @@ const ModuleLayout = ({ sidebar: SidebarComponent }) => {
               className="w-10 h-10 flex items-center justify-center rounded-xl
                          text-slate-600 hover:bg-slate-100 active:bg-slate-200
                          transition-colors"
-              title="Volver a Módulos"
+              title={t('common.backToModules')}
             >
               <ArrowLeft className="w-5 h-5" />
             </button>
@@ -140,10 +143,14 @@ const ModuleLayout = ({ sidebar: SidebarComponent }) => {
             className="w-10 h-10 flex items-center justify-center rounded-xl
                        text-slate-600 hover:bg-slate-100 active:bg-slate-200
                        transition-colors"
-            title={sidebarOpen ? 'Cerrar menú' : 'Abrir menú'}
+            title={sidebarOpen ? t('common.closeMenu') : t('common.openMenu')}
           >
             <Menu className="w-5 h-5" />
           </button>
+
+          {/* Spacer para empujar LanguageSwitcher a la derecha */}
+          <div className="flex-1" />
+          <LanguageSwitcher />
         </div>
 
         {/* Contenido de la página */}
