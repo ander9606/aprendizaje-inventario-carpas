@@ -3,6 +3,7 @@
 // Vista detallada de una plantilla de producto compuesto
 // ============================================
 
+import { useTranslation } from 'react-i18next'
 import { Layers, RefreshCw, Plus, Package, Star, Loader2 } from 'lucide-react'
 import { useGetComponentesAgrupados } from '../../hooks/useElementosCompuestos'
 

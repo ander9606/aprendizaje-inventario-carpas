@@ -3,6 +3,7 @@
 // Tarjeta para mostrar plantillas de productos compuestos
 // ============================================
 
+import { useTranslation } from 'react-i18next'
 import { Package, DollarSign, Eye, Edit, Trash2, ImageIcon } from 'lucide-react'
 
 const BACKEND_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api').replace('/api', '')

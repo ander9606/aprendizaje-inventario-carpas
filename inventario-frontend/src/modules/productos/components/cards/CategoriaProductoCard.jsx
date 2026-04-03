@@ -4,6 +4,7 @@
 // ============================================
 
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Folder, Package, Plus, Edit, Trash2, ChevronRight } from 'lucide-react'
 import Card from '@shared/components/Card'
 import Button from '@shared/components/Button'

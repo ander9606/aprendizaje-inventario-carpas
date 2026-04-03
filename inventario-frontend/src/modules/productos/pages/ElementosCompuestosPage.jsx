@@ -5,6 +5,7 @@
 
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import {
   Tent,
@@ -47,6 +48,7 @@ import ProductSubcategoriaCard from '../components/cards/ProductSubcategoriaCard
  */
 function ElementosCompuestosPage() {
   const navigate = useNavigate()
+  const { t } = useTranslation()
 
   // ============================================
   // ESTADOS DE NAVEGACIÓN

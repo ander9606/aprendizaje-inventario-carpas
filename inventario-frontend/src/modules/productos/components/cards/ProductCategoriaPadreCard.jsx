@@ -4,6 +4,7 @@
 // ============================================
 
 import { useState, useRef, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Folder, Tent, FolderOpen, Edit, Plus, MoreVertical, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import Card from '@shared/components/Card'
