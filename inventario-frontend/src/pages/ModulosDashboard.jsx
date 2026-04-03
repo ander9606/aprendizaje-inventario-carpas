@@ -4,6 +4,7 @@
 // ============================================
 
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import {
   Package,
   Tent,
@@ -21,62 +22,63 @@ const BACKEND_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
 
 export default function ModulosDashboard() {
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const { data: config, isLoading } = useGetConfiguracionCompleta()
   const { usuario, logout, getIniciales, getNombreCompleto } = useAuth()
 
-  const empresaNombre = config?.empresa_nombre || 'Sistema de Gestión'
+  const empresaNombre = config?.empresa_nombre || t('modules.title')
   const empresaLogo = config?.empresa_logo || ''
 
   const modulos = [
     {
       id: 'inventario',
-      nombre: 'Inventario',
-      descripcion: 'Elementos físicos del inventario: carpas, mesas, sillas, accesorios.',
+      nombre: t('inventory.title'),
+      descripcion: t('inventory.description'),
       icon: Package,
       color: 'blue',
       ruta: '/inventario',
       estado: 'activo',
-      tags: ['Categorías', 'Series', 'Lotes']
+      tags: t('inventory.tags', { returnObjects: true })
     },
     {
       id: 'productos',
-      nombre: 'Productos',
-      descripcion: 'Plantillas de productos combinando elementos para cotizar.',
+      nombre: t('products.title'),
+      descripcion: t('products.description'),
       icon: Tent,
       color: 'emerald',
       ruta: '/productos/alquiler',
       estado: 'activo',
-      tags: ['Plantillas', 'Combos']
+      tags: t('products.tags', { returnObjects: true })
     },
     {
       id: 'alquileres',
-      nombre: 'Alquileres',
-      descripcion: 'Cotizaciones, contratos y gestión de alquileres.',
+      nombre: t('rentals.title'),
+      descripcion: t('rentals.description'),
       icon: Calendar,
       color: 'purple',
       ruta: '/alquileres',
       estado: 'activo',
-      tags: ['Cotizaciones', 'Clientes']
+      tags: t('rentals.tags', { returnObjects: true })
     },
     {
       id: 'operaciones',
-      nombre: 'Operaciones',
-      descripcion: 'Montajes, desmontajes, órdenes de trabajo y equipos.',
+      nombre: t('operations.title'),
+      descripcion: t('operations.description'),
       icon: Truck,
       color: 'orange',
       ruta: '/operaciones',
       estado: 'activo',
-      tags: ['Órdenes', 'Calendario']
+      tags: t('operations.tags', { returnObjects: true })
     },
     {
       id: 'configuracion',
-      nombre: 'Configuración',
-      descripcion: 'Datos maestros: ubicaciones, tarifas, empresa y empleados.',
+      nombre: t('config.title'),
+      descripcion: t('config.description'),
       icon: Settings,
       color: 'slate',
       ruta: '/configuracion',
       estado: 'activo',
-      tags: ['Ubicaciones', 'Empresa']
+      tags: t('config.tags', { returnObjects: true })
     }
   ]
 
@@ -152,7 +154,7 @@ export default function ModulosDashboard() {
                 {isLoading ? <span className="inline-block w-32 h-5 bg-slate-100 rounded animate-pulse" /> : empresaNombre}
               </h1>
               <p className="text-xs text-slate-500">
-                Sistema de Gestión
+                {t('modules.title')}
               </p>
             </div>
           </div>
@@ -181,7 +183,7 @@ export default function ModulosDashboard() {
                 onClick={logout}
                 className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-slate-600
                            hover:bg-slate-100 active:bg-slate-200 rounded-xl transition-colors"
-                title="Cerrar sesión"
+                title={t('modules.logout')}
               >
                 <LogOut className="w-5 h-5" />
               </button>
@@ -196,10 +198,10 @@ export default function ModulosDashboard() {
       <main className="max-w-6xl mx-auto px-4 lg:px-6 py-6 lg:py-10">
         <div className="mb-8">
           <h2 className="text-2xl font-bold text-slate-900 mb-1">
-            Módulos
+            {t('modules.modulesTitle')}
           </h2>
           <p className="text-slate-500">
-            Selecciona un módulo para comenzar a trabajar
+            {t('modules.selectModule')}
           </p>
         </div>
 
@@ -254,7 +256,7 @@ export default function ModulosDashboard() {
                 <div className="flex items-center gap-1.5">
                   <ArrowRight className={`w-4 h-4 transition-transform duration-200 ${colors.arrow}`} />
                   <span className={`text-sm font-medium ${colors.arrow.split(' ')[0]}`}>
-                    Abrir
+                    {t('common.open')}
                   </span>
                 </div>
               </div>
@@ -266,7 +268,7 @@ export default function ModulosDashboard() {
       {/* Footer */}
       <footer className="max-w-6xl mx-auto px-4 lg:px-6 pb-8 pt-4">
         <p className="text-center text-xs text-slate-400">
-          Sistema de gestión integral de alquiler de carpas y eventos
+          {t('modules.footer')}
         </p>
       </footer>
     </div>
