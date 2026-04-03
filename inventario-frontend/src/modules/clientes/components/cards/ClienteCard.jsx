@@ -3,6 +3,7 @@
 // Muestra una tarjeta de cliente
 // ============================================
 
+import { useTranslation } from 'react-i18next'
 import { User, Phone, Mail, MapPin, Edit, Trash2, FileText, History } from 'lucide-react'
 import Card from '@shared/components/Card'
 import Button from '@shared/components/Button'
@@ -27,6 +28,7 @@ const ClienteCard = ({
   onDelete,
   onVerHistorial
 }) => {
+  const { t } = useTranslation()
 
   // ============================================
   // HELPERS
@@ -37,9 +39,9 @@ const ClienteCard = ({
    */
   const getNombreTipoDocumento = (tipo) => {
     const nombres = {
-      CC: 'Cédula',
+      CC: t('clients.idCard'),
       NIT: 'NIT',
-      CE: 'Cédula Ext.'
+      CE: t('clients.foreignId')
     }
     return nombres[tipo] || tipo
   }
@@ -71,8 +73,7 @@ const ClienteCard = ({
     e.stopPropagation()
 
     const confirmacion = confirm(
-      `¿Estás seguro de eliminar el cliente "${cliente.nombre}"?\n\n` +
-      `Esta acción no se puede deshacer.`
+      t('clients.confirmDeleteClient', { name: cliente.nombre })
     )
 
     if (confirmacion && onDelete) {

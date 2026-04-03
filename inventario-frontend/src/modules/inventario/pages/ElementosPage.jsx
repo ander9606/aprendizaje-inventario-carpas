@@ -4,6 +4,7 @@
 // ============================================
 
 import { useState, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Plus, FileSpreadsheet, Search, X } from 'lucide-react'
 import ViewTabs from '@shared/components/ViewTabs'
@@ -51,6 +52,7 @@ function ElementosPage() {
   // ============================================
   // HOOKS DE REACT ROUTER
   // ============================================
+  const { t } = useTranslation()
   const { categoriaId, subcategoriaId } = useParams()
   const navigate = useNavigate()
 
@@ -141,10 +143,10 @@ function ElementosPage() {
     setIsExporting(true)
     try {
       await exportarInventarioExcel()
-      toast.success('Inventario exportado a Excel exitosamente')
+      toast.success(t('inventory.exportSuccess'))
     } catch (error) {
       console.error('Error al exportar:', error)
-      toast.error('Error al exportar el inventario')
+      toast.error(t('inventory.exportError'))
     } finally {
       setIsExporting(false)
     }
@@ -175,8 +177,8 @@ function ElementosPage() {
     setDeleteConfirm({
       type: 'elemento',
       data: elemento,
-      title: `¿Eliminar "${elemento.nombre}"?`,
-      message: `Se eliminarán todas las ${elemento.requiere_series ? 'series' : 'unidades en lotes'} asociadas. Esta acción no se puede deshacer.`
+      title: t('inventory.deleteElementConfirm', { name: elemento.nombre }),
+      message: t('inventory.associatedWarning', { type: elemento.requiere_series ? t('inventory.series') : t('inventory.batches') })
     })
   }
 
@@ -186,13 +188,13 @@ function ElementosPage() {
       if (type === 'elemento') {
         await deleteElemento(data.id)
         refetch()
-        toast.success(`Elemento "${data.nombre}" eliminado`)
+        toast.success(t('inventory.elementDeleted', { name: data.nombre }))
       } else if (type === 'serie') {
         await deleteSerie(data.id)
-        toast.success(`Serie "${data.numero_serie}" eliminada`)
+        toast.success(t('inventory.serieDeleted', { serial: data.numero_serie }))
       } else if (type === 'lote') {
         await deleteLote(data.id)
-        toast.success('Lote eliminado exitosamente')
+        toast.success(t('inventory.batchDeleted'))
       }
     } catch (error) {
       const mensaje = error.response?.data?.mensaje || error.message || 'Error desconocido'
@@ -222,8 +224,8 @@ function ElementosPage() {
     setDeleteConfirm({
       type: 'serie',
       data: serie,
-      title: `¿Eliminar serie "${serie.numero_serie}"?`,
-      message: 'Se eliminará esta unidad del inventario. Esta acción no se puede deshacer.'
+      title: t('inventory.deleteSeriesWarning', { serial: serie.numero_serie }),
+      message: t('inventory.deleteSeriesMessage')
     })
   }
 
@@ -250,8 +252,8 @@ function ElementosPage() {
       type: 'lote',
       data: lote,
       extra: ubicacion,
-      title: `¿Eliminar lote?`,
-      message: `Se eliminarán ${lote.cantidad} unidades en estado "${lote.estado}" de "${ubicacion || 'Sin ubicación'}". Esta acción no se puede deshacer.`
+      title: t('inventory.deleteBatchConfirm'),
+      message: t('inventory.deleteBatchMessage', { count: lote.cantidad, state: lote.estado, location: ubicacion || t('inventory.noLocation') })
     })
   }
 
@@ -273,13 +275,12 @@ function ElementosPage() {
   // NOTA: La ruta /subcategorias/:id no existe como página separada
   // Las subcategorías se muestran en la página de categoría
   const breadcrumbItems = [
-    { label: 'Inventario', path: '/inventario' },
+    { label: t('common.inventory'), path: '/inventario' },
     {
-      label: subcategoria?.categoria_padre_nombre || 'Categoría',
+      label: subcategoria?.categoria_padre_nombre || t('inventory.categories'),
       path: `/inventario/categorias/${categoriaId}`
     },
-    // La subcategoría no tiene página propia, mostramos solo el nombre
-    { label: subcategoria?.nombre || 'Elementos' }
+    { label: subcategoria?.nombre || t('common.elements') }
   ]
 
   // ============================================
@@ -301,13 +302,13 @@ function ElementosPage() {
       <div className="container mx-auto px-4 py-8">
         <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
           <h2 className="text-xl font-bold text-red-700 mb-2">
-            Error al cargar elementos
+            {t('inventory.errorLoadingElements')}
           </h2>
           <p className="text-red-600 mb-4">
-            {error.message || 'Ocurrió un error desconocido'}
+            {error.message || t('common.unknownError')}
           </p>
           <Button variant="outline" onClick={refetch}>
-            Reintentar
+            {t('common.retry')}
           </Button>
         </div>
       </div>

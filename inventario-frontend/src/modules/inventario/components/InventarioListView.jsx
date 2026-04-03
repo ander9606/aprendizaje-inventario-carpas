@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import Spinner from '@shared/components/Spinner'
 import EmptyState from '@shared/components/EmptyState'
 import { IconoCategoria } from '@shared/components/IconoCategoria'
@@ -6,6 +7,7 @@ import { Package, Eye, Edit, Trash2 } from 'lucide-react'
 import ModalVerEstados from './ModalVerEstados'
 
 const InventarioListView = ({ elementos = [], isLoading, onGoToElemento }) => {
+  const { t } = useTranslation()
   const [elementoModal, setElementoModal] = useState(null)
 
   if (isLoading) {
@@ -20,8 +22,8 @@ const InventarioListView = ({ elementos = [], isLoading, onGoToElemento }) => {
     return (
       <EmptyState
         type="no-data"
-        title="No hay elementos registrados"
-        description="Crea categorías y elementos para verlos aquí"
+        title={t('inventory.inventoryListNoElements')}
+        description={t('inventory.inventoryListCreate')}
         icon={Package}
       />
     )
