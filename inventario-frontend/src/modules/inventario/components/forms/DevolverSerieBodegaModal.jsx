@@ -166,12 +166,12 @@ function DevolverSerieBodegaModal({
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-600 w-24">Ubicación:</span>
-              <UbicacionBadge ubicacion={serie.ubicacion || 'Sin ubicación'} size="sm" />
+              <span className="text-xs text-slate-600 w-24">{t('common.location')}:</span>
+              <UbicacionBadge ubicacion={serie.ubicacion || t('inventory.noLocation')} size="sm" />
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-600 w-24">Estado actual:</span>
+              <span className="text-xs text-slate-600 w-24">{t('inventory.currentState')}</span>
               <EstadoBadge estado={serie.estado} size="sm" />
             </div>
           </div>
@@ -182,7 +182,7 @@ function DevolverSerieBodegaModal({
             ============================================ */}
         <div className="mb-6">
           <p className="text-sm font-medium text-slate-700 mb-3 text-center">
-            ¿En qué estado quieres devolver a {nombreUbicacionPrincipal}?
+            {t('inventory.whatStateToReturn', { name: nombreUbicacionPrincipal })}
           </p>
 
           <div className="grid grid-cols-2 gap-3">
@@ -200,8 +200,8 @@ function DevolverSerieBodegaModal({
             >
               <div className="flex flex-col items-center gap-2">
                 <CheckCircle className="w-8 h-8 text-green-600" />
-                <span className="font-semibold text-green-700">Bueno</span>
-                <span className="text-xs text-slate-600">Funcionando correctamente</span>
+                <span className="font-semibold text-green-700">{t('states.good')}</span>
+                <span className="text-xs text-slate-600">{t('inventory.workingCorrectly')}</span>
               </div>
             </button>
 
@@ -219,8 +219,8 @@ function DevolverSerieBodegaModal({
             >
               <div className="flex flex-col items-center gap-2">
                 <XCircle className="w-8 h-8 text-red-600" />
-                <span className="font-semibold text-red-700">Dañado</span>
-                <span className="text-xs text-slate-600">Requiere reparación</span>
+                <span className="font-semibold text-red-700">{t('states.damaged')}</span>
+                <span className="text-xs text-slate-600">{t('inventory.requiresRepair')}</span>
               </div>
             </button>
           </div>
@@ -233,8 +233,7 @@ function DevolverSerieBodegaModal({
           <p className="text-xs text-blue-700 flex items-start gap-2">
             <span className="text-sm">💡</span>
             <span>
-              Al devolver, la serie <strong>{serie.numero_serie}</strong> se moverá
-              a {nombreUbicacionPrincipal} y cambiará al estado que selecciones.
+              <span dangerouslySetInnerHTML={{ __html: t('inventory.returnSerieInfo', { serial: serie.numero_serie, name: nombreUbicacionPrincipal }) }} />
             </span>
           </p>
         </div>
@@ -243,7 +242,7 @@ function DevolverSerieBodegaModal({
         {!!ubicacionPrincipal.es_principal && (
           <div className="mb-4 flex items-center justify-center gap-2 text-xs text-slate-600">
             <span>⭐</span>
-            <span>Ubicación principal del sistema</span>
+            <span>{t('inventory.systemMainLocation')}</span>
           </div>
         )}
 
@@ -258,7 +257,7 @@ function DevolverSerieBodegaModal({
             disabled={isSubmitting}
             className="w-full"
           >
-            Cancelar
+            {t('common.cancel')}
           </Button>
         </Modal.Footer>
       </div>

@@ -54,6 +54,8 @@ function CrearLoteModal({
   // 1. ESTADOS DEL FORMULARIO
   // ============================================
 
+  const { t } = useTranslation()
+
   const [formData, setFormData] = useState({
     cantidad: '',
     estado: ESTADOS.BUENO,
@@ -92,17 +94,17 @@ function CrearLoteModal({
 
     // Validar cantidad
     if (!formData.cantidad) {
-      newErrors.cantidad = 'Ingresa la cantidad'
+      newErrors.cantidad = t('inventory.enterQuantity')
     } else {
       const cantidad = Number(formData.cantidad)
       if (isNaN(cantidad) || cantidad <= 0) {
-        newErrors.cantidad = 'La cantidad debe ser mayor a 0'
+        newErrors.cantidad = t('inventory.quantityMustBePositive')
       }
     }
 
     // Validar ubicación
     if (!formData.ubicacion.trim()) {
-      newErrors.ubicacion = 'Selecciona la ubicación'
+      newErrors.ubicacion = t('inventory.selectLocation')
     }
 
     // Validar estado

@@ -270,7 +270,7 @@ const TarifaFormModal = ({
             className="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-2 focus:ring-blue-500"
           />
           <label htmlFor="activo" className="text-sm font-medium text-slate-700">
-            Tarifa activa
+            {t('rentals.rateForm.rateActive')}
           </label>
         </div>
 
@@ -283,7 +283,7 @@ const TarifaFormModal = ({
             disabled={isLoading}
             fullWidth
           >
-            Cancelar
+            {t('common.cancel')}
           </Button>
 
           <Button
@@ -293,7 +293,7 @@ const TarifaFormModal = ({
             disabled={isLoading}
             fullWidth
           >
-            {mode === 'crear' ? 'Crear Tarifa' : 'Guardar Cambios'}
+            {mode === 'crear' ? t('rentals.rateForm.createRate') : t('common.save')}
           </Button>
         </div>
       </form>

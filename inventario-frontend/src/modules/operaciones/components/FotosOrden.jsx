@@ -13,15 +13,15 @@ import { useTranslation } from 'react-i18next'
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'
 
 const ETAPAS_MONTAJE = [
-    { key: 'cargue', label: 'Cargue', color: 'blue' },
-    { key: 'llegada_sitio', label: 'Llegada al sitio', color: 'purple' },
-    { key: 'montaje_terminado', label: 'Montaje terminado', color: 'green' }
+    { key: 'cargue', labelKey: 'operations.photosOrder.loadingStage', color: 'blue' },
+    { key: 'llegada_sitio', labelKey: 'operations.photosOrder.arrivalStage', color: 'purple' },
+    { key: 'montaje_terminado', labelKey: 'operations.photosOrder.assemblyDoneStage', color: 'green' }
 ]
 
 const ETAPAS_DESMONTAJE = [
-    { key: 'antes_desmontaje', label: 'Antes del desmontaje', color: 'amber' },
-    { key: 'desmontaje_terminado', label: 'Desmontaje terminado', color: 'green' },
-    { key: 'retorno', label: 'Retorno', color: 'slate' }
+    { key: 'antes_desmontaje', labelKey: 'operations.photosOrder.beforeDisassemblyStage', color: 'amber' },
+    { key: 'desmontaje_terminado', labelKey: 'operations.photosOrder.disassemblyDoneStage', color: 'green' },
+    { key: 'retorno', labelKey: 'operations.photosOrder.returnStage', color: 'slate' }
 ]
 
 const COLORES = {
@@ -58,12 +58,12 @@ export default function FotosOrden({ ordenId, tipoOrden = 'montaje', readOnly = 
         if (!file) return
 
         if (!file.type.startsWith('image/')) {
-            toast.error('Solo se permiten imágenes')
+            toast.error(t('operations.photosOrder.onlyImagesError'))
             return
         }
 
         if (file.size > 5 * 1024 * 1024) {
-            toast.error('La imagen no puede superar 5MB')
+            toast.error(t('operations.photosOrder.imageSizeError'))
             return
         }
 
@@ -85,22 +85,22 @@ export default function FotosOrden({ ordenId, tipoOrden = 'montaje', readOnly = 
 
         try {
             await subirFoto.mutateAsync({ ordenId, formData })
-            toast.success('Foto subida correctamente')
+            toast.success(t('operations.photosOrder.photoUploaded'))
             cancelarPreview()
         } catch {
-            toast.error('Error al subir la foto')
+            toast.error(t('operations.photosOrder.uploadError'))
         }
     }
 
     const handleEliminarFoto = async (fotoId) => {
-        if (!confirm('¿Eliminar esta foto?')) return
+        if (!confirm(t('operations.photosOrder.deletePhoto'))) return
 
         try {
             await eliminarFoto.mutateAsync({ ordenId, fotoId })
-            toast.success('Foto eliminada')
+            toast.success(t('operations.photosOrder.photoDeleted'))
             setVisorAbierto(null)
         } catch {
-            toast.error('Error al eliminar la foto')
+            toast.error(t('operations.photosOrder.deleteError'))
         }
     }
 
@@ -121,11 +121,11 @@ export default function FotosOrden({ ordenId, tipoOrden = 'montaje', readOnly = 
             <div className="bg-white rounded-xl border border-slate-200 p-6">
                 <div className="flex items-center gap-3 mb-4">
                     <Camera className="w-5 h-5 text-slate-400" />
-                    <h3 className="text-lg font-semibold text-slate-900">Fotos de Operación</h3>
+                    <h3 className="text-lg font-semibold text-slate-900">{t('operations.photosOrder.operationPhotos')}</h3>
                 </div>
                 <div className="flex items-center justify-center py-8 text-slate-400">
                     <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                    Cargando fotos...
+                    {t('operations.photosOrder.loadingPhotos')}
                 </div>
             </div>
         )
@@ -137,7 +137,7 @@ export default function FotosOrden({ ordenId, tipoOrden = 'montaje', readOnly = 
             <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
                     <Camera className="w-5 h-5 text-slate-400" />
-                    <h3 className="text-lg font-semibold text-slate-900">Fotos de Operación</h3>
+                    <h3 className="text-lg font-semibold text-slate-900">{t('operations.photosOrder.operationPhotos')}</h3>
                     {fotos.length > 0 && (
                         <span className="text-xs font-medium px-2 py-0.5 bg-slate-100 text-slate-600 rounded-full">
                             {fotos.length}

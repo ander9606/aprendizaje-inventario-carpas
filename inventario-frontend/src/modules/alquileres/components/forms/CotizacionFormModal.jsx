@@ -588,21 +588,21 @@ const CotizacionFormModal = ({
 
     // Cliente solo es requerido si no viene de evento preseleccionado
     if (!eventoPreseleccionado && !formData.cliente_id) {
-      newErrors.cliente_id = 'Seleccione un cliente'
+      newErrors.cliente_id = t('rentals.quoteForm.selectClientError')
     }
     // Fecha solo obligatoria si NO es borrador
     if (!fechasPorConfirmar && !formData.fecha_evento) {
-      newErrors.fecha_evento = 'La fecha del evento es obligatoria (o marque "Fechas por confirmar")'
+      newErrors.fecha_evento = t('rentals.quoteForm.eventDateRequired')
     }
     // Ciudad solo es requerida si no viene de evento preseleccionado
     if (!eventoPreseleccionado && !formData.evento_ciudad_id) {
-      newErrors.evento_ciudad = 'Seleccione una ciudad'
+      newErrors.evento_ciudad = t('rentals.quoteForm.selectCityError')
     }
     if (productosSeleccionados.length === 0) {
-      newErrors.productos = 'Debe agregar al menos un producto'
+      newErrors.productos = t('rentals.quoteForm.addAtLeastOneProduct')
     }
     if (productosSeleccionados.some(p => !p.compuesto_id)) {
-      newErrors.productos = 'Seleccione un producto para cada linea'
+      newErrors.productos = t('rentals.quoteForm.selectProductForLine')
     }
 
     setErrors(newErrors)
@@ -735,7 +735,7 @@ const CotizacionFormModal = ({
       }
     } catch (error) {
       console.error('Error al guardar cotizacion:', error)
-      const mensajeError = error.response?.data?.message || 'Error al guardar la cotizacion'
+      const mensajeError = error.response?.data?.message || t('rentals.quoteForm.errorSavingQuote')
       setErrors({ submit: mensajeError })
     }
   }
@@ -785,21 +785,21 @@ const CotizacionFormModal = ({
     const newErrors = {}
     if (paso === 1) {
       if (!eventoPreseleccionado && !formData.cliente_id) {
-        newErrors.cliente_id = 'Seleccione un cliente'
+        newErrors.cliente_id = t('rentals.quoteForm.selectClientError')
       }
       if (!fechasPorConfirmar && !formData.fecha_evento) {
-        newErrors.fecha_evento = 'La fecha del evento es obligatoria'
+        newErrors.fecha_evento = t('rentals.quoteForm.eventDateRequiredSimple')
       }
     } else if (paso === 2) {
       if (productosSeleccionados.length === 0) {
-        newErrors.productos = 'Debe agregar al menos un producto'
+        newErrors.productos = t('rentals.quoteForm.addAtLeastOneProduct')
       }
       if (productosSeleccionados.some(p => !p.compuesto_id)) {
-        newErrors.productos = 'Seleccione un producto para cada linea'
+        newErrors.productos = t('rentals.quoteForm.selectProductForLine')
       }
     } else if (paso === 3) {
       if (!eventoPreseleccionado && !formData.evento_ciudad_id) {
-        newErrors.evento_ciudad = 'Seleccione una ciudad'
+        newErrors.evento_ciudad = t('rentals.quoteForm.selectCityError')
       }
     }
     if (Object.keys(newErrors).length > 0) {
@@ -878,7 +878,7 @@ const CotizacionFormModal = ({
     <Modal
       isOpen={isOpen}
       onClose={handleClose}
-      title={cotizacionCreada ? (cotizacionCreada.modo === 'crear' ? 'Cotizacion Creada' : 'Cotizacion Actualizada') : (mode === 'crear' ? 'Nueva Cotizacion' : 'Editar Cotizacion')}
+      title={cotizacionCreada ? (cotizacionCreada.modo === 'crear' ? t('rentals.quoteForm.quoteCreatedTitle') : t('rentals.quoteForm.quoteUpdatedTitle')) : (mode === 'crear' ? t('rentals.quoteForm.newQuote') : t('rentals.quoteForm.editQuote'))}
       size={cotizacionCreada ? 'md' : (pasoActual === 2 ? 'full' : 'xl')}
     >
       {/* PANTALLA DE ÉXITO POST-SUBMIT */}

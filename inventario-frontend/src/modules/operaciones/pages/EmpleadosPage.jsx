@@ -341,7 +341,7 @@ export default function EmpleadosPage() {
                                         <div className="flex items-center gap-3">
                                             {emp.rol_solicitado_nombre && (
                                                 <span className="text-sm text-slate-500">
-                                                    Solicita: <span className="font-medium text-slate-700">{emp.rol_solicitado_nombre.charAt(0).toUpperCase() + emp.rol_solicitado_nombre.slice(1)}</span>
+                                                    {t('operations.requests')} <span className="font-medium text-slate-700">{emp.rol_solicitado_nombre.charAt(0).toUpperCase() + emp.rol_solicitado_nombre.slice(1)}</span>
                                                 </span>
                                             )}
                                             <span className="text-sm text-slate-400">
@@ -353,7 +353,7 @@ export default function EmpleadosPage() {
                                                 className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-green-700 bg-green-100 hover:bg-green-200 rounded-lg transition-colors"
                                             >
                                                 <CheckCircle className="w-4 h-4" />
-                                                Aprobar
+                                                {t('operations.approve')}
                                             </button>
                                             <button
                                                 onClick={() => setRechazarModal({ open: true, empleado: emp })}
@@ -361,7 +361,7 @@ export default function EmpleadosPage() {
                                                 className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-red-700 bg-red-100 hover:bg-red-200 rounded-lg transition-colors"
                                             >
                                                 <XCircle className="w-4 h-4" />
-                                                Rechazar
+                                                {t('operations.reject')}
                                             </button>
                                         </div>
                                     </div>
@@ -374,10 +374,13 @@ export default function EmpleadosPage() {
                 {/* INFO */}
                 <div className="mb-6">
                     <h2 className="text-xl font-semibold text-slate-900 mb-1">
-                        {debouncedSearch || filtros.rol_id || filtros.estado ? 'Resultados de busqueda' : 'Todos los Empleados'}
+                        {debouncedSearch || filtros.rol_id || filtros.estado ? t('operations.searchResults') : t('operations.allEmployees')}
                     </h2>
                     <p className="text-slate-600">
-                        {(filtros.estado ? empleados : empleadosLista)?.length || 0} empleado{(filtros.estado ? empleados : empleadosLista)?.length !== 1 ? 's' : ''} encontrado{(filtros.estado ? empleados : empleadosLista)?.length !== 1 ? 's' : ''}
+                        {((filtros.estado ? empleados : empleadosLista)?.length || 0) !== 1
+                            ? t('operations.employeesFoundCountPlural', { count: (filtros.estado ? empleados : empleadosLista)?.length || 0 })
+                            : t('operations.employeesFoundCount', { count: 1 })
+                        }
                     </p>
                 </div>
 
@@ -388,19 +391,19 @@ export default function EmpleadosPage() {
                             <thead className="bg-slate-50 border-b border-slate-200">
                                 <tr>
                                     <th className="px-6 py-4 text-left text-sm font-semibold text-slate-600">
-                                        Empleado
+                                        {t('operations.employeeColumn')}
                                     </th>
                                     <th className="px-6 py-4 text-left text-sm font-semibold text-slate-600">
-                                        Email
+                                        {t('operations.emailColumn')}
                                     </th>
                                     <th className="px-6 py-4 text-left text-sm font-semibold text-slate-600">
-                                        Rol
+                                        {t('operations.roleColumn')}
                                     </th>
                                     <th className="px-6 py-4 text-left text-sm font-semibold text-slate-600">
-                                        Estado
+                                        {t('operations.stateColumn')}
                                     </th>
                                     <th className="px-6 py-4 text-right text-sm font-semibold text-slate-600">
-                                        Acciones
+                                        {t('operations.actionsColumn')}
                                     </th>
                                 </tr>
                             </thead>
@@ -435,7 +438,7 @@ export default function EmpleadosPage() {
                                                     {empleado.rol_nombre?.charAt(0).toUpperCase() + empleado.rol_nombre?.slice(1)}
                                                 </span>
                                             ) : (
-                                                <span className="text-sm text-slate-400 italic">Sin rol</span>
+                                                <span className="text-sm text-slate-400 italic">{t('operations.noRole')}</span>
                                             )}
                                         </td>
                                         <td className="px-6 py-4">
@@ -449,13 +452,13 @@ export default function EmpleadosPage() {
                                                             onClick={() => handleOpenAprobar(empleado)}
                                                             className="px-3 py-1.5 text-sm font-medium text-green-600 hover:text-green-700 hover:bg-green-50 rounded-lg transition-colors"
                                                         >
-                                                            Aprobar
+                                                            {t('operations.approve')}
                                                         </button>
                                                         <button
                                                             onClick={() => setRechazarModal({ open: true, empleado })}
                                                             className="px-3 py-1.5 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
                                                         >
-                                                            Rechazar
+                                                            {t('operations.reject')}
                                                         </button>
                                                     </>
                                                 )}
@@ -465,7 +468,7 @@ export default function EmpleadosPage() {
                                                             onClick={() => handleEdit(empleado)}
                                                             className="px-3 py-1.5 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"
                                                         >
-                                                            Editar
+                                                            {t('common.edit')}
                                                         </button>
                                                         {isAdmin && (
                                                             <button
@@ -476,7 +479,7 @@ export default function EmpleadosPage() {
                                                                         : 'text-green-600 hover:text-green-700 hover:bg-green-50'
                                                                 }`}
                                                             >
-                                                                {empleado.estado === 'activo' ? 'Desactivar' : 'Reactivar'}
+                                                                {empleado.estado === 'activo' ? t('operations.deactivate') : t('operations.reactivate')}
                                                             </button>
                                                         )}
                                                     </>
