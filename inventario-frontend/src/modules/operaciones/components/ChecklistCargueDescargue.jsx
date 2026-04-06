@@ -36,7 +36,8 @@ import { useTranslation } from 'react-i18next'
 // ============================================
 // COMPONENTE: Fila de Elemento con Checkbox
 // ============================================
-const ElementoCheckItem = ({ elemento, modo, onToggle, onMarcarDano, isPending, isDanoPending, t }) => {
+const ElementoCheckItem = ({ elemento, modo, onToggle, onMarcarDano, isPending, isDanoPending }) => {
+    const { t } = useTranslation()
     const [showNotas, setShowNotas] = useState(false)
     const [notas, setNotas] = useState(elemento.notas || '')
     const [showDanoForm, setShowDanoForm] = useState(false)
@@ -249,7 +250,8 @@ const ElementoCheckItem = ({ elemento, modo, onToggle, onMarcarDano, isPending, 
 // ============================================
 // COMPONENTE: Grupo de Producto
 // ============================================
-const ProductoGroup = ({ compuestoId, nombre, elementos, modo, onToggle, onMarcarDano, isPending, isDanoPending, t }) => {
+const ProductoGroup = ({ compuestoId, nombre, elementos, modo, onToggle, onMarcarDano, isPending, isDanoPending }) => {
+    const { t } = useTranslation()
     const [expanded, setExpanded] = useState(true)
 
     const verificados = elementos.filter(e =>
@@ -304,7 +306,6 @@ const ProductoGroup = ({ compuestoId, nombre, elementos, modo, onToggle, onMarca
                             onMarcarDano={onMarcarDano}
                             isPending={isPending}
                             isDanoPending={isDanoPending}
-                            t={t}
                         />
                     ))}
                 </div>
