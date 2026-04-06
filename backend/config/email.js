@@ -1,30 +1,21 @@
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 const logger = require('../utils/logger');
 
 /**
- * Configuración del transporter de email
- * Usa Gmail con App Password por defecto
+ * Configuración del cliente de email con Resend
+ * Usa API HTTP en vez de SMTP (evita bloqueos de puertos)
  */
-const crearTransporter = () => {
-    const config = {
-        host: process.env.SMTP_HOST || 'smtp.gmail.com',
-        port: parseInt(process.env.SMTP_PORT) || 587,
-        secure: false,
-        auth: {
-            user: process.env.SMTP_USER,
-            pass: process.env.SMTP_PASS
-        }
-    };
+const crearCliente = () => {
+    const apiKey = process.env.RESEND_API_KEY;
 
-    // Si no hay credenciales SMTP configuradas, retornar null
-    if (!config.auth.user || !config.auth.pass) {
-        logger.warn('email', 'Credenciales SMTP no configuradas. Los emails no se enviarán.');
+    if (!apiKey) {
+        logger.warn('email', 'RESEND_API_KEY no configurada. Los emails no se enviarán.');
         return null;
     }
 
-    return nodemailer.createTransport(config);
+    return new Resend(apiKey);
 };
 
-const transporter = crearTransporter();
+const resend = crearCliente();
 
-module.exports = { transporter };
+module.exports = { resend };
