@@ -12,7 +12,6 @@ import { useTranslation } from 'react-i18next'
  * Tarjeta individual de estadística
  */
 const StatCard = (props) => {
-  const { t } = useTranslation()
   const { icon, label, value, color = 'slate' } = props
   const IconComponent = icon
 
