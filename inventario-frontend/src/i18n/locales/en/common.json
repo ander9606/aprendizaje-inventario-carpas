@@ -52,7 +52,7 @@
     "category": "Category",
     "subcategory": "Subcategory",
     "element": "Element",
-    "elements": "Elements",
+    "elements": "elements",
     "material": "Material",
     "code": "Code",
     "price": "Price",
@@ -102,7 +102,26 @@
     "items": "items",
     "tryAgain": "Try again",
     "unexpectedError": "An unexpected error occurred",
-    "noResultsFor": "No results found for \"{{term}}\""
+    "noResultsFor": "No results found for \"{{term}}\"",
+    "inventory": "Inventory",
+    "filterBy": "Filter by",
+    "filtered": "Filtered",
+    "noResultsFound": "No results found",
+    "print": "Print",
+    "tryOtherFilters": "Try other filters",
+    "noResults": "No results",
+    "unknownError": "Unknown error",
+    "messages": {
+      "error": {
+        "deleteError": "Error deleting",
+        "saveCategory": "Error saving category",
+        "unexpected": "Unexpected error"
+      },
+      "success": {
+        "categoryDeleted": "Category deleted",
+        "subcategoryDeleted": "Subcategory deleted"
+      }
+    }
   },
   "states": {
     "good": "Good",
@@ -178,7 +197,9 @@
       "updateError": "Error updating",
       "deleteError": "Error deleting",
       "duplicateName": "A record with this name already exists",
-      "cannotDeleteHasChildren": "Cannot delete. Has associated elements."
+      "cannotDeleteHasChildren": "Cannot delete. Has associated elements.",
+      "saveCategory": "Error saving category",
+      "unexpected": "Unexpected error"
     }
   },
   "signature": {

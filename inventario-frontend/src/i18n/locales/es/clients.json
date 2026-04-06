@@ -97,6 +97,18 @@
     "createFirstCity": "Crear primera ciudad",
     "cityPlaceholder": "Ej: Medellín",
     "departmentName": "Nombre del departamento",
-    "documentPlaceholder": "Ej: 123456789"
+    "documentPlaceholder": "Ej: 123456789",
+    "addressCount": "{{count}} dirección(es)",
+    "createFirstClient": "Crear primer cliente",
+    "createFirstClientDescription": "Crea tu primer cliente para empezar",
+    "deletingClient": "Eliminando cliente...",
+    "errorLoadingCities": "Error al cargar ciudades",
+    "errorRepeatingEvent": "Error al repetir evento",
+    "loadingCities": "Cargando ciudades...",
+    "manageClientsDescription": "Gestiona tus clientes",
+    "noClientsCreated": "No hay clientes creados",
+    "quotationsCount": "{{count}} cotización(es)",
+    "retry": "Reintentar",
+    "showingClients": "Mostrando {{count}} cliente(s)"
   }
 }

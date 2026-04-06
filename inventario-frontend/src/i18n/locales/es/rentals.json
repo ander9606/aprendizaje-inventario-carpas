@@ -65,7 +65,23 @@
     "quoteCreated": "Cotización creada exitosamente",
     "rentalCreated": "Alquiler creado exitosamente",
     "eventCreated": "Evento creado exitosamente",
-    "eventDetail": "Detalle del Evento",
+    "eventDetail": {
+      "cannotAddQuotes": "No se pueden agregar más cotizaciones",
+      "confirmDeleteQuote": "¿Eliminar esta cotización?",
+      "draft": "Borrador",
+      "errorApprovingQuote": "Error al aprobar cotización",
+      "errorDeletingQuote": "Error al eliminar cotización",
+      "errorLoading": "Error al cargar el evento",
+      "errorRejectingQuote": "Error al rechazar cotización",
+      "eventClosed": "Evento cerrado",
+      "eventDates": "Fechas del evento",
+      "eventQuotes": "Cotizaciones del evento",
+      "noDates": "Sin fechas",
+      "pendingApproval": "{{count}} pendiente(s) de aprobación",
+      "summary": "Resumen",
+      "until": "hasta",
+      "withRental": "Con alquiler"
+    },
     "historyTitle": "Historial de Alquileres",
     "historyEvents": "Historial de Eventos",
     "reportsTitle": "Reportes de Alquileres",
@@ -747,6 +763,7 @@
     "addressPlaceholder": "Ej: Calle 80 #45-20, Finca La Esperanza...",
     "deleteTransport": "Eliminar transporte",
     "deliveryInstructionsPlaceholder": "Instrucciones especiales de entrega, horarios, acceso al lugar...",
-    "locationNamePlaceholder": "Ej: \"Finca Villa María\", \"Club El Lago\""
+    "locationNamePlaceholder": "Ej: \"Finca Villa María\", \"Club El Lago\"",
+    "eventDetailTitle": "Detalle del Evento"
   }
 }

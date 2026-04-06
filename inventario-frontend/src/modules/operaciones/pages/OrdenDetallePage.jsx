@@ -415,7 +415,7 @@ export default function OrdenDetallePage() {
     if (isLoading) {
         return (
             <div className="flex justify-center py-12">
-                <Spinner size="lg" text={t('operations.loadingOrder')} />
+                <Spinner size="lg" text={t('operations.loadingOrderSpinner')} />
             </div>
         )
     }

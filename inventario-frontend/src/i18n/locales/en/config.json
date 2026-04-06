@@ -88,6 +88,9 @@
     "info": "Info",
     "total": "Total",
     "subtitle": "Manage system master data",
-    "backToModules": "Back to Modules"
+    "backToModules": "Back to Modules",
+    "alertCount": "{{count}} alert(s)",
+    "criticalCount": "{{count}} critical",
+    "warningCount": "{{count}} warning(s)"
   }
 }

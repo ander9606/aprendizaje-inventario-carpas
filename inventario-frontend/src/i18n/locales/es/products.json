@@ -81,6 +81,16 @@
     "searchInventoryElement": "Buscar elemento del inventario...",
     "groupNamePlaceholder": "Nombre del grupo (ej: anclajes)",
     "searchElement": "Buscar elemento...",
-    "searchAdditionalElement": "Buscar elemento adicional..."
+    "searchAdditionalElement": "Buscar elemento adicional...",
+    "categoryCard": {
+      "confirmDeleteCategory": "¿Eliminar esta categoría?",
+      "confirmDeleteSubcategory": "¿Eliminar esta subcategoría?",
+      "deleteHasProductsWarning": "Esta categoría tiene productos asociados",
+      "deleteHasSubcategoriesWarning": "Esta categoría tiene subcategorías",
+      "productsCount": "{{count}} producto(s)",
+      "subcategoriesCount": "{{count}} subcategoría(s)",
+      "templatesCount": "{{count}} plantilla(s)",
+      "viewProducts": "Ver productos"
+    }
   }
 }

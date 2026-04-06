@@ -81,6 +81,16 @@
     "searchInventoryElement": "Search inventory element...",
     "groupNamePlaceholder": "Group name (e.g.: anchors)",
     "searchElement": "Search element...",
-    "searchAdditionalElement": "Search additional element..."
+    "searchAdditionalElement": "Search additional element...",
+    "categoryCard": {
+      "confirmDeleteCategory": "Delete this category?",
+      "confirmDeleteSubcategory": "Delete this subcategory?",
+      "deleteHasProductsWarning": "This category has associated products",
+      "deleteHasSubcategoriesWarning": "This category has subcategories",
+      "productsCount": "{{count}} product(s)",
+      "subcategoriesCount": "{{count}} subcategory(ies)",
+      "templatesCount": "{{count}} template(s)",
+      "viewProducts": "View products"
+    }
   }
 }

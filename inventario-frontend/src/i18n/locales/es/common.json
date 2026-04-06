@@ -52,7 +52,7 @@
     "category": "Categoría",
     "subcategory": "Subcategoría",
     "element": "Elemento",
-    "elements": "Elementos",
+    "elements": "elementos",
     "material": "Material",
     "code": "Código",
     "price": "Precio",
@@ -102,7 +102,26 @@
     "items": "items",
     "tryAgain": "Intenta de nuevo",
     "unexpectedError": "Ocurrió un error inesperado",
-    "noResultsFor": "No se encontraron resultados para \"{{term}}\""
+    "noResultsFor": "No se encontraron resultados para \"{{term}}\"",
+    "inventory": "Inventario",
+    "filterBy": "Filtrar por",
+    "filtered": "Filtrado",
+    "noResultsFound": "No se encontraron resultados",
+    "print": "Imprimir",
+    "tryOtherFilters": "Intenta con otros filtros",
+    "noResults": "Sin resultados",
+    "unknownError": "Error desconocido",
+    "messages": {
+      "error": {
+        "deleteError": "Error al eliminar",
+        "saveCategory": "Error al guardar categoría",
+        "unexpected": "Error inesperado"
+      },
+      "success": {
+        "categoryDeleted": "Categoría eliminada",
+        "subcategoryDeleted": "Subcategoría eliminada"
+      }
+    }
   },
   "states": {
     "good": "Bueno",
@@ -178,7 +197,9 @@
       "updateError": "Error al actualizar",
       "deleteError": "Error al eliminar",
       "duplicateName": "Ya existe un registro con este nombre",
-      "cannotDeleteHasChildren": "No se puede eliminar. Tiene elementos asociados."
+      "cannotDeleteHasChildren": "No se puede eliminar. Tiene elementos asociados.",
+      "saveCategory": "Error al guardar categoría",
+      "unexpected": "Error inesperado"
     }
   },
   "signature": {

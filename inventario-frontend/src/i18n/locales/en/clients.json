@@ -97,6 +97,18 @@
     "createFirstCity": "Create first city",
     "cityPlaceholder": "E.g.: New York",
     "departmentName": "Department name",
-    "documentPlaceholder": "E.g.: 123456789"
+    "documentPlaceholder": "E.g.: 123456789",
+    "addressCount": "{{count}} address(es)",
+    "createFirstClient": "Create first client",
+    "createFirstClientDescription": "Create your first client to get started",
+    "deletingClient": "Deleting client...",
+    "errorLoadingCities": "Error loading cities",
+    "errorRepeatingEvent": "Error repeating event",
+    "loadingCities": "Loading cities...",
+    "manageClientsDescription": "Manage your clients",
+    "noClientsCreated": "No clients created",
+    "quotationsCount": "{{count}} quotation(s)",
+    "retry": "Retry",
+    "showingClients": "Showing {{count}} client(s)"
   }
 }

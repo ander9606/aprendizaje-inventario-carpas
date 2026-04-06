@@ -65,7 +65,23 @@
     "quoteCreated": "Quote created successfully",
     "rentalCreated": "Rental created successfully",
     "eventCreated": "Event created successfully",
-    "eventDetail": "Event Detail",
+    "eventDetail": {
+      "cannotAddQuotes": "Cannot add more quotations",
+      "confirmDeleteQuote": "Delete this quotation?",
+      "draft": "Draft",
+      "errorApprovingQuote": "Error approving quotation",
+      "errorDeletingQuote": "Error deleting quotation",
+      "errorLoading": "Error loading the event",
+      "errorRejectingQuote": "Error rejecting quotation",
+      "eventClosed": "Event closed",
+      "eventDates": "Event dates",
+      "eventQuotes": "Event quotations",
+      "noDates": "No dates",
+      "pendingApproval": "{{count}} pending approval",
+      "summary": "Summary",
+      "until": "until",
+      "withRental": "With rental"
+    },
     "historyTitle": "Rental History",
     "historyEvents": "Event History",
     "reportsTitle": "Rental Reports",
@@ -747,6 +763,7 @@
     "addressPlaceholder": "E.g.: 123 Main St, La Esperanza Farm...",
     "deleteTransport": "Delete transport",
     "deliveryInstructionsPlaceholder": "Special delivery instructions, schedules, site access...",
-    "locationNamePlaceholder": "E.g.: \"Villa Maria Farm\", \"Lake Club\""
+    "locationNamePlaceholder": "E.g.: \"Villa Maria Farm\", \"Lake Club\"",
+    "eventDetailTitle": "Event Detail"
   }
 }
