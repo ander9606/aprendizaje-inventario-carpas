@@ -218,6 +218,70 @@ class AuthModel {
     }
 
     /**
+     * Actualizar perfil del empleado (nombre, apellido, telefono)
+     * @param {number} id
+     * @param {Object} datos
+     */
+    static async actualizarPerfil(id, datos) {
+        const campos = [];
+        const valores = [];
+
+        if (datos.nombre) {
+            campos.push('nombre = ?');
+            valores.push(datos.nombre);
+        }
+        if (datos.apellido) {
+            campos.push('apellido = ?');
+            valores.push(datos.apellido);
+        }
+        if (datos.telefono !== undefined) {
+            campos.push('telefono = ?');
+            valores.push(datos.telefono);
+        }
+
+        if (campos.length === 0) return;
+
+        valores.push(id);
+        await pool.query(
+            `UPDATE empleados SET ${campos.join(', ')} WHERE id = ?`,
+            valores
+        );
+    }
+
+    /**
+     * Obtener historial de auditoría del usuario
+     * @param {number} empleadoId
+     * @param {number} limit
+     * @param {number} offset
+     * @returns {Promise<{registros: Array, total: number}>}
+     */
+    static async obtenerHistorialUsuario(empleadoId, limit = 20, offset = 0) {
+        const [countRows] = await pool.query(
+            'SELECT COUNT(*) as total FROM audit_log WHERE empleado_id = ?',
+            [empleadoId]
+        );
+
+        const [rows] = await pool.query(`
+            SELECT id, accion, tabla_afectada, registro_id, datos_anteriores, datos_nuevos, ip_address, created_at
+            FROM audit_log
+            WHERE empleado_id = ?
+            ORDER BY created_at DESC
+            LIMIT ? OFFSET ?
+        `, [empleadoId, limit, offset]);
+
+        return {
+            registros: rows.map(r => ({
+                ...r,
+                datos_anteriores: r.datos_anteriores && typeof r.datos_anteriores === 'string'
+                    ? JSON.parse(r.datos_anteriores) : r.datos_anteriores,
+                datos_nuevos: r.datos_nuevos && typeof r.datos_nuevos === 'string'
+                    ? JSON.parse(r.datos_nuevos) : r.datos_nuevos
+            })),
+            total: countRows[0].total
+        };
+    }
+
+    /**
      * Registrar acción en audit_log
      * @param {Object} datos
      */

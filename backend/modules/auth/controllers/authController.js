@@ -1,12 +1,24 @@
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 const AuthModel = require('../models/AuthModel');
+const VerificacionEmailModel = require('../models/VerificacionEmailModel');
 const TokenService = require('../services/TokenService');
+const EmailService = require('../services/EmailService');
 const AppError = require('../../../utils/AppError');
 const logger = require('../../../utils/logger');
 
 // Configuración de seguridad
 const MAX_INTENTOS_FALLIDOS = 5;
 const MINUTOS_BLOQUEO = 15;
+const MINUTOS_EXPIRACION_CODIGO = 30;
+const MAX_INTENTOS_VERIFICACION = 5;
+
+/**
+ * Generar código numérico de 6 dígitos
+ */
+const generarCodigo = () => {
+    return crypto.randomInt(100000, 999999).toString();
+};
 
 /**
  * POST /api/auth/login
@@ -224,7 +236,64 @@ const me = async (req, res, next) => {
                 telefono: empleado.telefono,
                 rol: empleado.rol_nombre,
                 permisos: empleado.permisos,
-                ultimo_login: empleado.ultimo_login
+                ultimo_login: empleado.ultimo_login,
+                created_at: empleado.created_at
+            }
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * PUT /api/auth/perfil
+ * Actualizar perfil del usuario autenticado
+ */
+const actualizarPerfil = async (req, res, next) => {
+    try {
+        const { nombre, apellido, telefono } = req.body;
+
+        if (!nombre && !apellido && telefono === undefined) {
+            throw new AppError('Debe proporcionar al menos un campo para actualizar', 400);
+        }
+
+        const datos = {};
+        if (nombre) datos.nombre = nombre.trim();
+        if (apellido) datos.apellido = apellido.trim();
+        if (telefono !== undefined) datos.telefono = telefono?.trim() || null;
+
+        const empleadoAnterior = await AuthModel.obtenerPorId(req.usuario.id);
+        await AuthModel.actualizarPerfil(req.usuario.id, datos);
+        const empleadoActualizado = await AuthModel.obtenerPorId(req.usuario.id);
+
+        await AuthModel.registrarAuditoria({
+            empleado_id: req.usuario.id,
+            accion: 'ACTUALIZAR_PERFIL',
+            tabla_afectada: 'empleados',
+            registro_id: req.usuario.id,
+            datos_anteriores: {
+                nombre: empleadoAnterior.nombre,
+                apellido: empleadoAnterior.apellido,
+                telefono: empleadoAnterior.telefono
+            },
+            datos_nuevos: datos,
+            ip_address: req.ip,
+            user_agent: req.get('User-Agent')
+        });
+
+        logger.info('auth', `Perfil actualizado: ${req.usuario.email}`);
+
+        res.json({
+            success: true,
+            message: 'Perfil actualizado correctamente',
+            data: {
+                id: empleadoActualizado.id,
+                nombre: empleadoActualizado.nombre,
+                apellido: empleadoActualizado.apellido,
+                email: empleadoActualizado.email,
+                telefono: empleadoActualizado.telefono,
+                rol: empleadoActualizado.rol_nombre,
+                permisos: empleadoActualizado.permisos
             }
         });
     } catch (error) {
@@ -270,9 +339,6 @@ const cambiarPassword = async (req, res, next) => {
         // Actualizar contraseña
         await AuthModel.cambiarPassword(empleado.id, nuevoHash);
 
-        // Revocar todos los tokens excepto el actual (opcional: forzar re-login)
-        // await TokenService.revocarTodosTokensEmpleado(empleado.id);
-
         await AuthModel.registrarAuditoria({
             empleado_id: empleado.id,
             accion: 'CAMBIO_PASSWORD',
@@ -314,8 +380,39 @@ const getSessions = async (req, res, next) => {
 };
 
 /**
+ * GET /api/auth/historial
+ * Obtener historial de actividad del usuario autenticado
+ */
+const obtenerHistorial = async (req, res, next) => {
+    try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = Math.min(parseInt(req.query.limit) || 20, 100);
+        const offset = (page - 1) * limit;
+
+        const { registros, total } = await AuthModel.obtenerHistorialUsuario(
+            req.usuario.id,
+            limit,
+            offset
+        );
+
+        res.json({
+            success: true,
+            data: registros,
+            pagination: {
+                page,
+                limit,
+                total,
+                totalPages: Math.ceil(total / limit)
+            }
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
  * POST /api/auth/registro
- * Solicitar acceso al sistema (auto-registro)
+ * Paso 1: Enviar código de verificación al email
  */
 const registro = async (req, res, next) => {
     try {
@@ -326,7 +423,7 @@ const registro = async (req, res, next) => {
             throw new AppError('Nombre, apellido, email y contraseña son requeridos', 400);
         }
 
-        // Normalizar inputs antes de validar
+        // Normalizar inputs
         const emailNormalizado = email.trim().toLowerCase();
         const nombreNormalizado = nombre.trim();
         const apellidoNormalizado = apellido.trim();
@@ -336,23 +433,114 @@ const registro = async (req, res, next) => {
             throw new AppError('La contraseña debe tener al menos 8 caracteres', 400);
         }
 
-        // Validar formato de email (después del trim)
+        // Validar formato de email
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(emailNormalizado)) {
             throw new AppError('El formato del email no es válido', 400);
         }
 
+        // Verificar si el email ya está registrado como empleado
+        const existente = await AuthModel.buscarPorEmail(emailNormalizado);
+        if (existente) {
+            if (existente.estado === 'pendiente') {
+                throw new AppError('Ya existe una solicitud pendiente con este email', 400);
+            }
+            throw new AppError('Ya existe un empleado registrado con este email', 400);
+        }
+
         // Hash de la contraseña
         const password_hash = await bcrypt.hash(password, 10);
 
-        // Crear solicitud
-        const solicitud = await AuthModel.registrarSolicitud({
-            nombre: nombreNormalizado,
-            apellido: apellidoNormalizado,
+        // Generar código de verificación
+        const codigo = generarCodigo();
+        const expira_en = new Date();
+        expira_en.setMinutes(expira_en.getMinutes() + MINUTOS_EXPIRACION_CODIGO);
+
+        // Guardar en tabla de verificación
+        await VerificacionEmailModel.crear({
             email: emailNormalizado,
-            telefono: telefono?.trim() || null,
-            password_hash,
-            rol_solicitado_id: rol_solicitado_id ? parseInt(rol_solicitado_id) : null
+            codigo,
+            datos_registro: {
+                nombre: nombreNormalizado,
+                apellido: apellidoNormalizado,
+                telefono: telefono?.trim() || null,
+                password_hash,
+                rol_solicitado_id: rol_solicitado_id ? parseInt(rol_solicitado_id) : null
+            },
+            expira_en
+        });
+
+        // Enviar email con código
+        try {
+            await EmailService.enviarCodigoVerificacion(emailNormalizado, codigo, nombreNormalizado);
+        } catch (emailError) {
+            logger.error('auth', `Error enviando email de verificación a ${emailNormalizado}: ${emailError.message}`);
+            // No fallar el registro si el email no se puede enviar (modo desarrollo)
+        }
+
+        logger.info('auth', `Código de verificación enviado a: ${emailNormalizado}`);
+
+        res.status(201).json({
+            success: true,
+            message: 'Código de verificación enviado a tu correo electrónico.',
+            data: {
+                email: emailNormalizado,
+                expira_en: MINUTOS_EXPIRACION_CODIGO
+            }
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * POST /api/auth/verificar-email
+ * Paso 2: Verificar código y crear solicitud de acceso
+ */
+const verificarEmail = async (req, res, next) => {
+    try {
+        const { email, codigo } = req.body;
+
+        if (!email || !codigo) {
+            throw new AppError('Email y código son requeridos', 400);
+        }
+
+        const emailNormalizado = email.trim().toLowerCase();
+
+        // Buscar verificación pendiente
+        const verificacion = await VerificacionEmailModel.buscarPorEmail(emailNormalizado);
+
+        if (!verificacion) {
+            throw new AppError('No se encontró una verificación pendiente. El código puede haber expirado.', 400);
+        }
+
+        // Verificar intentos
+        if (verificacion.intentos >= MAX_INTENTOS_VERIFICACION) {
+            throw new AppError('Demasiados intentos. Solicita un nuevo código.', 429);
+        }
+
+        // Verificar código
+        if (verificacion.codigo !== codigo.trim()) {
+            await VerificacionEmailModel.incrementarIntentos(verificacion.id);
+            const intentosRestantes = MAX_INTENTOS_VERIFICACION - verificacion.intentos - 1;
+            throw new AppError(
+                `Código incorrecto. ${intentosRestantes > 0 ? `Te quedan ${intentosRestantes} intentos.` : 'Solicita un nuevo código.'}`,
+                400
+            );
+        }
+
+        // Código correcto - marcar como verificado
+        await VerificacionEmailModel.marcarVerificado(verificacion.id);
+
+        // Crear empleado con estado pendiente
+        const datos = verificacion.datos_registro;
+        const solicitud = await AuthModel.registrarSolicitud({
+            nombre: datos.nombre,
+            apellido: datos.apellido,
+            email: emailNormalizado,
+            telefono: datos.telefono,
+            password_hash: datos.password_hash,
+            rol_solicitado_id: datos.rol_solicitado_id
         });
 
         // Registrar en auditoría
@@ -361,16 +549,82 @@ const registro = async (req, res, next) => {
             accion: 'SOLICITUD_ACCESO',
             tabla_afectada: 'empleados',
             registro_id: solicitud.id,
-            datos_nuevos: { nombre, apellido, email, rol_solicitado_id },
+            datos_nuevos: { nombre: datos.nombre, apellido: datos.apellido, email: emailNormalizado, email_verificado: true },
             ip_address: req.ip,
             user_agent: req.get('User-Agent')
         });
 
-        logger.info('auth', `Nueva solicitud de acceso: ${email}`);
+        logger.info('auth', `Email verificado y solicitud creada: ${emailNormalizado}`);
 
-        res.status(201).json({
+        res.json({
             success: true,
-            message: 'Solicitud de acceso enviada correctamente. Un administrador revisará tu solicitud.'
+            message: 'Email verificado correctamente. Tu solicitud de acceso ha sido enviada. Un administrador la revisará.'
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * POST /api/auth/reenviar-codigo
+ * Reenviar código de verificación
+ */
+const reenviarCodigo = async (req, res, next) => {
+    try {
+        const { email } = req.body;
+
+        if (!email) {
+            throw new AppError('Email es requerido', 400);
+        }
+
+        const emailNormalizado = email.trim().toLowerCase();
+
+        // Verificar si ya existe como empleado
+        const existente = await AuthModel.buscarPorEmail(emailNormalizado);
+        if (existente) {
+            throw new AppError('Este email ya está registrado en el sistema', 400);
+        }
+
+        // Buscar verificación pendiente para obtener datos
+        const verificacionAnterior = await VerificacionEmailModel.buscarPorEmail(emailNormalizado);
+
+        if (!verificacionAnterior) {
+            throw new AppError('No se encontró una solicitud de registro para este email. Regístrate nuevamente.', 400);
+        }
+
+        // Generar nuevo código
+        const codigo = generarCodigo();
+        const expira_en = new Date();
+        expira_en.setMinutes(expira_en.getMinutes() + MINUTOS_EXPIRACION_CODIGO);
+
+        // Crear nueva verificación (la anterior se elimina automáticamente)
+        await VerificacionEmailModel.crear({
+            email: emailNormalizado,
+            codigo,
+            datos_registro: verificacionAnterior.datos_registro,
+            expira_en
+        });
+
+        // Enviar email
+        try {
+            await EmailService.enviarCodigoVerificacion(
+                emailNormalizado,
+                codigo,
+                verificacionAnterior.datos_registro.nombre
+            );
+        } catch (emailError) {
+            logger.error('auth', `Error reenviando código a ${emailNormalizado}: ${emailError.message}`);
+        }
+
+        logger.info('auth', `Código reenviado a: ${emailNormalizado}`);
+
+        res.json({
+            success: true,
+            message: 'Nuevo código de verificación enviado.',
+            data: {
+                email: emailNormalizado,
+                expira_en: MINUTOS_EXPIRACION_CODIGO
+            }
         });
     } catch (error) {
         next(error);
@@ -400,8 +654,12 @@ module.exports = {
     logoutAll,
     refresh,
     me,
+    actualizarPerfil,
     cambiarPassword,
     getSessions,
+    obtenerHistorial,
     registro,
+    verificarEmail,
+    reenviarCodigo,
     getRolesRegistro
 };

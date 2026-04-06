@@ -11,10 +11,12 @@ import {
   Shield,
   Building
 } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '@auth/hooks/useAuth'
 import PageHeader from '@shared/components/PageHeader'
 import InfoBox from '@shared/components/InfoBox'
 import { useTranslation } from 'react-i18next'
+import empleadosAPI from '@operaciones/api/apiEmpleados'
 
 export default function ConfiguracionPage() {
   const { t } = useTranslation()
@@ -22,6 +24,16 @@ export default function ConfiguracionPage() {
   const { hasRole } = useAuth()
 
   const canSeeEmpleados = hasRole(['admin', 'gerente'])
+
+  // Obtener conteo de pendientes para el badge
+  const { data: pendientesData } = useQuery({
+    queryKey: ['empleados', 'pendientes', 'count'],
+    queryFn: () => empleadosAPI.contarPendientes(),
+    enabled: canSeeEmpleados,
+    staleTime: 2 * 60 * 1000,
+  })
+
+  const pendientesCount = pendientesData?.data?.total || 0
 
   const opciones = [
     {
@@ -58,7 +70,8 @@ export default function ConfiguracionPage() {
       icon: Shield,
       color: 'purple',
       ruta: '/configuracion/empleados',
-      tags: ['Roles', 'Permisos']
+      tags: ['Roles', 'Permisos'],
+      badge: pendientesCount > 0 ? pendientesCount : null
     }] : [])
   ]
 
@@ -137,9 +150,16 @@ export default function ConfiguracionPage() {
                 </div>
 
                 {/* Contenido */}
-                <h3 className="text-lg font-semibold text-slate-900 mb-1.5">
-                  {opcion.nombre}
-                </h3>
+                <div className="flex items-center gap-2 mb-1.5">
+                  <h3 className="text-lg font-semibold text-slate-900">
+                    {opcion.nombre}
+                  </h3>
+                  {opcion.badge && (
+                    <span className="inline-flex items-center justify-center min-w-[22px] h-[22px] px-1.5 rounded-full bg-red-500 text-white text-xs font-bold">
+                      {opcion.badge}
+                    </span>
+                  )}
+                </div>
                 <p className="text-sm text-slate-500 leading-relaxed mb-4">
                   {opcion.descripcion}
                 </p>
