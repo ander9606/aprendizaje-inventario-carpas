@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
 const EmpleadoModel = require('../models/EmpleadoModel');
 const AuthModel = require('../../auth/models/AuthModel');
+const EmailService = require('../../auth/services/EmailService');
 const AppError = require('../../../utils/AppError');
 const logger = require('../../../utils/logger');
 
@@ -375,6 +376,13 @@ const aprobar = async (req, res, next) => {
 
         logger.info('empleados', `Solicitud aprobada: ${empleado.email} con rol ${empleado.rol_nombre} por ${req.usuario.email}`);
 
+        // Enviar email de notificación al usuario aprobado
+        try {
+            await EmailService.enviarAprobacion(empleado.email, empleado.nombre);
+        } catch (emailError) {
+            logger.error('empleados', `Error enviando email de aprobación a ${empleado.email}: ${emailError.message}`);
+        }
+
         res.json({
             success: true,
             message: 'Solicitud aprobada correctamente',
@@ -408,6 +416,13 @@ const rechazar = async (req, res, next) => {
         });
 
         logger.info('empleados', `Solicitud rechazada: ${empleado.email} por ${req.usuario.email}`);
+
+        // Enviar email de notificación al usuario rechazado
+        try {
+            await EmailService.enviarRechazo(empleado.email, empleado.nombre, motivo);
+        } catch (emailError) {
+            logger.error('empleados', `Error enviando email de rechazo a ${empleado.email}: ${emailError.message}`);
+        }
 
         res.json({
             success: true,

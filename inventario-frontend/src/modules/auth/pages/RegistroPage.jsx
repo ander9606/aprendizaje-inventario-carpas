@@ -1,12 +1,12 @@
 // ============================================
 // PAGINA: REGISTRO / SOLICITAR ACCESO
-// Auto-registro con aprobacion del admin
+// Auto-registro con verificacion de email y aprobacion del admin
 // ============================================
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
-import { Eye, EyeOff, UserPlus, AlertCircle, Loader2, Tent, CheckCircle, ArrowLeft } from 'lucide-react'
+import { Eye, EyeOff, UserPlus, AlertCircle, Loader2, Tent, CheckCircle, ArrowLeft, Mail, RefreshCw } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import authAPI from '../api/apiAuth'
 import LanguageSwitcher from '@shared/components/LanguageSwitcher'
@@ -19,8 +19,18 @@ const RegistroPage = () => {
     const [showConfirmPassword, setShowConfirmPassword] = useState(false)
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [submitError, setSubmitError] = useState(null)
-    const [submitSuccess, setSubmitSuccess] = useState(false)
+
+    // Flujo: 'formulario' -> 'verificacion' -> 'exito'
+    const [paso, setPaso] = useState('formulario')
+    const [emailRegistro, setEmailRegistro] = useState('')
     const [roles, setRoles] = useState([])
+
+    // Estado verificación
+    const [codigoDigitos, setCodigoDigitos] = useState(['', '', '', '', '', ''])
+    const [verificando, setVerificando] = useState(false)
+    const [verificacionError, setVerificacionError] = useState(null)
+    const [countdown, setCountdown] = useState(0)
+    const inputRefs = useRef([])
 
     const {
         register,
@@ -57,9 +67,24 @@ const RegistroPage = () => {
 
     // Enfocar nombre al cargar
     useEffect(() => {
-        setFocus('nombre')
-    }, [setFocus])
+        if (paso === 'formulario') setFocus('nombre')
+    }, [setFocus, paso])
 
+    // Countdown para reenvío
+    useEffect(() => {
+        if (countdown <= 0) return
+        const timer = setTimeout(() => setCountdown(c => c - 1), 1000)
+        return () => clearTimeout(timer)
+    }, [countdown])
+
+    // Enfocar primer input de código al entrar en verificación
+    useEffect(() => {
+        if (paso === 'verificacion') {
+            setTimeout(() => inputRefs.current[0]?.focus(), 100)
+        }
+    }, [paso])
+
+    // Paso 1: Enviar formulario de registro → recibir código
     const onSubmit = async (data) => {
         setIsSubmitting(true)
         setSubmitError(null)
@@ -73,7 +98,9 @@ const RegistroPage = () => {
                 password: data.password,
                 rol_solicitado_id: data.rol_solicitado_id ? parseInt(data.rol_solicitado_id) : null
             })
-            setSubmitSuccess(true)
+            setEmailRegistro(data.email.trim().toLowerCase())
+            setCountdown(60)
+            setPaso('verificacion')
         } catch (error) {
             setSubmitError(
                 error.response?.data?.message || 'Error al enviar la solicitud. Intenta de nuevo.'
@@ -83,8 +110,96 @@ const RegistroPage = () => {
         }
     }
 
-    // Pantalla de exito
-    if (submitSuccess) {
+    // Manejar input de código (6 dígitos individuales)
+    const handleCodigoChange = useCallback((index, value) => {
+        if (!/^\d*$/.test(value)) return
+
+        const nuevosDigitos = [...codigoDigitos]
+        nuevosDigitos[index] = value.slice(-1)
+        setCodigoDigitos(nuevosDigitos)
+        setVerificacionError(null)
+
+        // Auto-avanzar al siguiente input
+        if (value && index < 5) {
+            inputRefs.current[index + 1]?.focus()
+        }
+    }, [codigoDigitos])
+
+    const handleCodigoKeyDown = useCallback((index, e) => {
+        if (e.key === 'Backspace' && !codigoDigitos[index] && index > 0) {
+            inputRefs.current[index - 1]?.focus()
+        }
+    }, [codigoDigitos])
+
+    // Manejar pegado de código completo
+    const handlePaste = useCallback((e) => {
+        e.preventDefault()
+        const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6)
+        if (pasted.length === 0) return
+
+        const nuevosDigitos = [...codigoDigitos]
+        for (let i = 0; i < 6; i++) {
+            nuevosDigitos[i] = pasted[i] || ''
+        }
+        setCodigoDigitos(nuevosDigitos)
+
+        const focusIndex = Math.min(pasted.length, 5)
+        inputRefs.current[focusIndex]?.focus()
+    }, [codigoDigitos])
+
+    // Paso 2: Verificar código
+    const handleVerificar = async () => {
+        const codigo = codigoDigitos.join('')
+        if (codigo.length !== 6) {
+            setVerificacionError('Ingresa los 6 dígitos del código.')
+            return
+        }
+
+        setVerificando(true)
+        setVerificacionError(null)
+
+        try {
+            await authAPI.verificarEmail(emailRegistro, codigo)
+            setPaso('exito')
+        } catch (error) {
+            setVerificacionError(
+                error.response?.data?.message || 'Error al verificar. Intenta de nuevo.'
+            )
+        } finally {
+            setVerificando(false)
+        }
+    }
+
+    // Auto-submit cuando se completan los 6 dígitos
+    useEffect(() => {
+        const codigo = codigoDigitos.join('')
+        if (codigo.length === 6 && paso === 'verificacion') {
+            handleVerificar()
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [codigoDigitos])
+
+    // Reenviar código
+    const handleReenviar = async () => {
+        if (countdown > 0) return
+
+        try {
+            await authAPI.reenviarCodigo(emailRegistro)
+            setCountdown(60)
+            setCodigoDigitos(['', '', '', '', '', ''])
+            setVerificacionError(null)
+            inputRefs.current[0]?.focus()
+        } catch (error) {
+            setVerificacionError(
+                error.response?.data?.message || 'Error al reenviar código.'
+            )
+        }
+    }
+
+    // ==========================================
+    // PANTALLA DE ÉXITO (paso 3)
+    // ==========================================
+    if (paso === 'exito') {
         return (
             <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6">
                 <div className="w-full max-w-md text-center">
@@ -109,6 +224,119 @@ const RegistroPage = () => {
         )
     }
 
+    // ==========================================
+    // PANTALLA DE VERIFICACIÓN DE CÓDIGO (paso 2)
+    // ==========================================
+    if (paso === 'verificacion') {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6">
+                <div className="w-full max-w-md">
+                    <div className="text-center mb-8">
+                        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 mb-6">
+                            <Mail className="w-8 h-8 text-blue-600" />
+                        </div>
+                        <h2 className="text-2xl font-bold text-slate-900 mb-2">
+                            Verifica tu correo
+                        </h2>
+                        <p className="text-slate-500">
+                            Enviamos un código de 6 dígitos a
+                        </p>
+                        <p className="font-semibold text-slate-700 mt-1">{emailRegistro}</p>
+                    </div>
+
+                    {/* Error */}
+                    {verificacionError && (
+                        <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3 mb-6">
+                            <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                            <p className="text-sm text-red-600">{verificacionError}</p>
+                        </div>
+                    )}
+
+                    {/* Inputs de código */}
+                    <div className="flex justify-center gap-3 mb-8" onPaste={handlePaste}>
+                        {codigoDigitos.map((digito, index) => (
+                            <input
+                                key={index}
+                                ref={el => inputRefs.current[index] = el}
+                                type="text"
+                                inputMode="numeric"
+                                maxLength={1}
+                                value={digito}
+                                onChange={e => handleCodigoChange(index, e.target.value)}
+                                onKeyDown={e => handleCodigoKeyDown(index, e)}
+                                className={`w-12 h-14 text-center text-2xl font-bold rounded-xl border-2 transition-all duration-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 ${
+                                    verificacionError
+                                        ? 'border-red-300 focus:border-red-500'
+                                        : 'border-slate-200 focus:border-blue-500'
+                                }`}
+                            />
+                        ))}
+                    </div>
+
+                    {/* Botón verificar */}
+                    <button
+                        onClick={handleVerificar}
+                        disabled={verificando || codigoDigitos.join('').length !== 6}
+                        className={`w-full py-3.5 px-4 rounded-xl font-semibold text-white flex items-center justify-center gap-2 transition-all duration-200 ${
+                            verificando || codigoDigitos.join('').length !== 6
+                                ? 'bg-slate-400 cursor-not-allowed'
+                                : 'bg-slate-900 hover:bg-slate-800 active:bg-slate-950 shadow-lg shadow-slate-900/20'
+                        }`}
+                    >
+                        {verificando ? (
+                            <>
+                                <Loader2 className="w-5 h-5 animate-spin" />
+                                Verificando...
+                            </>
+                        ) : (
+                            <>
+                                <CheckCircle className="w-5 h-5" />
+                                Verificar código
+                            </>
+                        )}
+                    </button>
+
+                    {/* Reenviar código */}
+                    <div className="text-center mt-6">
+                        <p className="text-sm text-slate-500 mb-2">
+                            ¿No recibiste el código?
+                        </p>
+                        <button
+                            onClick={handleReenviar}
+                            disabled={countdown > 0}
+                            className={`inline-flex items-center gap-2 text-sm font-semibold transition-colors ${
+                                countdown > 0
+                                    ? 'text-slate-400 cursor-not-allowed'
+                                    : 'text-blue-600 hover:text-blue-700'
+                            }`}
+                        >
+                            <RefreshCw className="w-4 h-4" />
+                            {countdown > 0 ? `Reenviar en ${countdown}s` : 'Reenviar código'}
+                        </button>
+                    </div>
+
+                    {/* Volver */}
+                    <div className="text-center mt-6">
+                        <button
+                            onClick={() => {
+                                setPaso('formulario')
+                                setCodigoDigitos(['', '', '', '', '', ''])
+                                setVerificacionError(null)
+                            }}
+                            className="text-sm text-slate-500 hover:text-slate-700 transition-colors"
+                        >
+                            <ArrowLeft className="w-4 h-4 inline mr-1" />
+                            Volver al formulario
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )
+    }
+
+    // ==========================================
+    // FORMULARIO DE REGISTRO (paso 1)
+    // ==========================================
     return (
         <div className="min-h-screen flex">
             <div className="absolute top-4 right-4 z-20">
@@ -157,7 +385,7 @@ const RegistroPage = () => {
                         <div className="space-y-3 max-w-md">
                             {[
                                 t('auth.register.steps.fillForm'),
-                                t('auth.register.steps.selectRole'),
+                                'Verifica tu correo electrónico',
                                 t('auth.register.steps.adminApproval'),
                                 t('auth.register.steps.receiveAccess')
                             ].map((step, i) => (

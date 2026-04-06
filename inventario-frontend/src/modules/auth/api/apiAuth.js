@@ -1,20 +1,11 @@
 // ============================================
 // API: AUTENTICACIÓN
-// Llamadas al backend para login, logout, refresh
+// Llamadas al backend para login, logout, refresh,
+// verificación de email, perfil e historial
 // ============================================
 
 import api from '@shared/api/Axios.config'
 
-/**
- * API de Autenticación
- *
- * Endpoints:
- * - POST /auth/login     → Iniciar sesión
- * - POST /auth/logout    → Cerrar sesión
- * - POST /auth/refresh   → Renovar token
- * - GET  /auth/me        → Obtener perfil
- * - PUT  /auth/password  → Cambiar contraseña
- */
 const authAPI = {
     /**
      * Iniciar sesión
@@ -64,6 +55,15 @@ const authAPI = {
     },
 
     /**
+     * Actualizar perfil del usuario autenticado
+     * @param {Object} datos - { nombre, apellido, telefono }
+     */
+    actualizarPerfil: async (datos) => {
+        const response = await api.put('/auth/perfil', datos)
+        return response.data
+    },
+
+    /**
      * Cambiar contraseña
      * @param {string} passwordActual
      * @param {string} passwordNuevo
@@ -86,11 +86,39 @@ const authAPI = {
     },
 
     /**
-     * Solicitar acceso al sistema (auto-registro)
+     * Obtener historial de actividad del usuario
+     * @param {Object} params - { page, limit }
+     */
+    obtenerHistorial: async (params = {}) => {
+        const response = await api.get('/auth/historial', { params })
+        return response.data
+    },
+
+    /**
+     * Paso 1: Solicitar acceso (envía código de verificación al email)
      * @param {Object} datos - { nombre, apellido, email, telefono, password, rol_solicitado_id }
      */
     registro: async (datos) => {
         const response = await api.post('/auth/registro', datos)
+        return response.data
+    },
+
+    /**
+     * Paso 2: Verificar código de email y crear solicitud
+     * @param {string} email
+     * @param {string} codigo
+     */
+    verificarEmail: async (email, codigo) => {
+        const response = await api.post('/auth/verificar-email', { email, codigo })
+        return response.data
+    },
+
+    /**
+     * Reenviar código de verificación
+     * @param {string} email
+     */
+    reenviarCodigo: async (email) => {
+        const response = await api.post('/auth/reenviar-codigo', { email })
         return response.data
     },
 

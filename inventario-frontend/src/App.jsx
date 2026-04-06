@@ -67,6 +67,9 @@ const CalendarioOperaciones = lazy(() => import('./modules/calendario/pages/Cale
 const ConfiguracionPage = lazy(() => import('./modules/configuracion/pages/ConfiguracionPage'))
 const AlertasPage = lazy(() => import('./modules/configuracion/pages/AlertasPage'))
 
+// Perfil de usuario
+const PerfilPage = lazy(() => import('./modules/auth/pages/PerfilPage'))
+
 // ============================================
 // LOADING FALLBACK
 // ============================================
@@ -221,6 +224,7 @@ function App() {
                         ============================================ */}
 
                     <Route path="/configuracion" element={<ConfiguracionPage />} />
+                    <Route path="/configuracion/perfil" element={<PerfilPage />} />
                     <Route path="/configuracion/ciudades" element={<CiudadesPage />} />
                     <Route path="/configuracion/ubicaciones" element={<UbicacionesPage />} />
                     <Route path="/configuracion/empresa" element={<ConfiguracionAlquileresPage />} />

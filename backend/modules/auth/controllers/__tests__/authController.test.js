@@ -10,6 +10,7 @@ jest.mock('../../../../config/database', () => ({
 }));
 jest.mock('bcryptjs');
 jest.mock('../../models/AuthModel');
+jest.mock('../../models/VerificacionEmailModel');
 jest.mock('../../services/TokenService', () => ({
     generarAccessToken: jest.fn(),
     generarRefreshToken: jest.fn(),
@@ -18,7 +19,12 @@ jest.mock('../../services/TokenService', () => ({
     revocarRefreshToken: jest.fn(),
     revocarTodosTokensEmpleado: jest.fn(),
     obtenerSesionesActivas: jest.fn(),
-    actualizarUltimoUso: jest.fn() // mantenemos por si se implementa en el futuro
+    actualizarUltimoUso: jest.fn()
+}));
+jest.mock('../../services/EmailService', () => ({
+    enviarCodigoVerificacion: jest.fn().mockResolvedValue(),
+    enviarAprobacion: jest.fn().mockResolvedValue(),
+    enviarRechazo: jest.fn().mockResolvedValue()
 }));
 jest.mock('../../../../utils/logger', () => ({
     info: jest.fn(),
@@ -28,7 +34,9 @@ jest.mock('../../../../utils/logger', () => ({
 
 const bcrypt = require('bcryptjs');
 const AuthModel = require('../../models/AuthModel');
+const VerificacionEmailModel = require('../../models/VerificacionEmailModel');
 const TokenService = require('../../services/TokenService');
+const EmailService = require('../../services/EmailService');
 const authController = require('../authController');
 
 // Helpers
@@ -450,13 +458,13 @@ describe('getSessions', () => {
 });
 
 // ============================================
-// REGISTRO (auto-registro con aprobación)
+// REGISTRO (envía código de verificación)
 // ============================================
 describe('registro', () => {
-    test('crea solicitud de acceso exitosamente', async () => {
+    test('envía código de verificación exitosamente', async () => {
         bcrypt.hash.mockResolvedValue('$2a$10$hashNuevo');
-        AuthModel.registrarSolicitud.mockResolvedValue({ id: 10 });
-        AuthModel.registrarAuditoria.mockResolvedValue();
+        AuthModel.buscarPorEmail.mockResolvedValue(null);
+        VerificacionEmailModel.crear.mockResolvedValue({ id: 1, email: 'maria@test.com' });
 
         const req = mockReq({
             body: {
@@ -474,19 +482,18 @@ describe('registro', () => {
         expect(res.status).toHaveBeenCalledWith(201);
         expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
             success: true,
-            message: expect.stringContaining('Solicitud de acceso enviada')
+            message: expect.stringContaining('Código de verificación')
         }));
-        // Verifica que hashea el password
         expect(bcrypt.hash).toHaveBeenCalledWith('securepass123', 10);
-        // Verifica que normaliza email
-        expect(AuthModel.registrarSolicitud).toHaveBeenCalledWith(expect.objectContaining({
+        expect(VerificacionEmailModel.crear).toHaveBeenCalledWith(expect.objectContaining({
             email: 'maria@test.com'
         }));
+        expect(EmailService.enviarCodigoVerificacion).toHaveBeenCalled();
     });
 
     test('rechaza si faltan campos requeridos', async () => {
         const req = mockReq({
-            body: { nombre: 'María', email: 'maria@test.com' } // sin apellido ni password
+            body: { nombre: 'María', email: 'maria@test.com' }
         });
         const next = mockNext();
 
@@ -517,12 +524,24 @@ describe('registro', () => {
         expect(next.mock.calls[0][0].message).toContain('formato del email');
     });
 
+    test('rechaza si el email ya está registrado', async () => {
+        AuthModel.buscarPorEmail.mockResolvedValue({ ...empleadoMock, estado: 'activo' });
+
+        const req = mockReq({
+            body: { nombre: 'M', apellido: 'G', email: 'juan@test.com', password: 'securepass123' }
+        });
+        const next = mockNext();
+
+        await authController.registro(req, mockRes(), next);
+
+        expect(next.mock.calls[0][0].message).toContain('Ya existe');
+    });
+
     test('normaliza email a minúsculas y trimea espacios', async () => {
         bcrypt.hash.mockResolvedValue('hash');
-        AuthModel.registrarSolicitud.mockResolvedValue({ id: 11 });
-        AuthModel.registrarAuditoria.mockResolvedValue();
+        AuthModel.buscarPorEmail.mockResolvedValue(null);
+        VerificacionEmailModel.crear.mockResolvedValue({ id: 1 });
 
-        // Con espacios alrededor — ahora funciona porque trim() se aplica ANTES de la regex
         const req = mockReq({
             body: {
                 nombre: '  María  ',
@@ -534,10 +553,208 @@ describe('registro', () => {
 
         await authController.registro(req, mockRes(), mockNext());
 
-        expect(AuthModel.registrarSolicitud).toHaveBeenCalledWith(expect.objectContaining({
+        expect(VerificacionEmailModel.crear).toHaveBeenCalledWith(expect.objectContaining({
+            email: 'maria@test.com'
+        }));
+    });
+});
+
+// ============================================
+// VERIFICAR EMAIL
+// ============================================
+describe('verificarEmail', () => {
+    const verificacionMock = {
+        id: 1,
+        email: 'maria@test.com',
+        codigo: '123456',
+        intentos: 0,
+        datos_registro: {
             nombre: 'María',
             apellido: 'García',
-            email: 'maria@test.com'
+            telefono: null,
+            password_hash: 'hash123',
+            rol_solicitado_id: null
+        }
+    };
+
+    test('verifica código correcto y crea solicitud', async () => {
+        VerificacionEmailModel.buscarPorEmail.mockResolvedValue(verificacionMock);
+        VerificacionEmailModel.marcarVerificado.mockResolvedValue();
+        AuthModel.registrarSolicitud.mockResolvedValue({ id: 10 });
+        AuthModel.registrarAuditoria.mockResolvedValue();
+
+        const req = mockReq({ body: { email: 'maria@test.com', codigo: '123456' } });
+        const res = mockRes();
+
+        await authController.verificarEmail(req, res, mockNext());
+
+        expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+            success: true,
+            message: expect.stringContaining('verificado correctamente')
+        }));
+        expect(VerificacionEmailModel.marcarVerificado).toHaveBeenCalledWith(1);
+        expect(AuthModel.registrarSolicitud).toHaveBeenCalled();
+    });
+
+    test('rechaza código incorrecto', async () => {
+        VerificacionEmailModel.buscarPorEmail.mockResolvedValue(verificacionMock);
+        VerificacionEmailModel.incrementarIntentos.mockResolvedValue(1);
+
+        const req = mockReq({ body: { email: 'maria@test.com', codigo: '999999' } });
+        const next = mockNext();
+
+        await authController.verificarEmail(req, mockRes(), next);
+
+        expect(next.mock.calls[0][0].message).toContain('incorrecto');
+    });
+
+    test('rechaza si no hay verificación pendiente', async () => {
+        VerificacionEmailModel.buscarPorEmail.mockResolvedValue(null);
+
+        const req = mockReq({ body: { email: 'maria@test.com', codigo: '123456' } });
+        const next = mockNext();
+
+        await authController.verificarEmail(req, mockRes(), next);
+
+        expect(next.mock.calls[0][0].message).toContain('expirado');
+    });
+
+    test('rechaza si excede intentos máximos', async () => {
+        VerificacionEmailModel.buscarPorEmail.mockResolvedValue({ ...verificacionMock, intentos: 5 });
+
+        const req = mockReq({ body: { email: 'maria@test.com', codigo: '123456' } });
+        const next = mockNext();
+
+        await authController.verificarEmail(req, mockRes(), next);
+
+        expect(next.mock.calls[0][0].message).toContain('Demasiados intentos');
+    });
+
+    test('rechaza si faltan campos', async () => {
+        const req = mockReq({ body: { email: 'maria@test.com' } });
+        const next = mockNext();
+
+        await authController.verificarEmail(req, mockRes(), next);
+
+        expect(next.mock.calls[0][0].message).toContain('requeridos');
+    });
+});
+
+// ============================================
+// REENVIAR CÓDIGO
+// ============================================
+describe('reenviarCodigo', () => {
+    test('reenvía código exitosamente', async () => {
+        AuthModel.buscarPorEmail.mockResolvedValue(null);
+        VerificacionEmailModel.buscarPorEmail.mockResolvedValue({
+            id: 1,
+            email: 'maria@test.com',
+            datos_registro: { nombre: 'María' }
+        });
+        VerificacionEmailModel.crear.mockResolvedValue({ id: 2 });
+
+        const req = mockReq({ body: { email: 'maria@test.com' } });
+        const res = mockRes();
+
+        await authController.reenviarCodigo(req, res, mockNext());
+
+        expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+            success: true,
+            message: expect.stringContaining('Nuevo código')
+        }));
+    });
+
+    test('rechaza si el email ya está registrado', async () => {
+        AuthModel.buscarPorEmail.mockResolvedValue(empleadoMock);
+
+        const req = mockReq({ body: { email: 'juan@test.com' } });
+        const next = mockNext();
+
+        await authController.reenviarCodigo(req, mockRes(), next);
+
+        expect(next.mock.calls[0][0].message).toContain('ya está registrado');
+    });
+
+    test('rechaza si no hay verificación pendiente', async () => {
+        AuthModel.buscarPorEmail.mockResolvedValue(null);
+        VerificacionEmailModel.buscarPorEmail.mockResolvedValue(null);
+
+        const req = mockReq({ body: { email: 'nueva@test.com' } });
+        const next = mockNext();
+
+        await authController.reenviarCodigo(req, mockRes(), next);
+
+        expect(next.mock.calls[0][0].message).toContain('Regístrate nuevamente');
+    });
+});
+
+// ============================================
+// ACTUALIZAR PERFIL
+// ============================================
+describe('actualizarPerfil', () => {
+    test('actualiza nombre y apellido', async () => {
+        AuthModel.obtenerPorId.mockResolvedValueOnce({ ...empleadoMock, telefono: null });
+        AuthModel.actualizarPerfil.mockResolvedValue();
+        AuthModel.obtenerPorId.mockResolvedValueOnce({ ...empleadoMock, nombre: 'Juan Carlos', telefono: null, rol_nombre: 'admin', permisos: {} });
+        AuthModel.registrarAuditoria.mockResolvedValue();
+
+        const req = mockReq({
+            body: { nombre: 'Juan Carlos', apellido: 'Pérez' },
+            usuario: { id: 1, email: 'juan@test.com' }
+        });
+        const res = mockRes();
+
+        await authController.actualizarPerfil(req, res, mockNext());
+
+        expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+            success: true,
+            message: expect.stringContaining('actualizado')
+        }));
+        expect(AuthModel.actualizarPerfil).toHaveBeenCalledWith(1, expect.objectContaining({
+            nombre: 'Juan Carlos'
+        }));
+    });
+
+    test('rechaza si no se envían campos', async () => {
+        const req = mockReq({
+            body: {},
+            usuario: { id: 1, email: 'juan@test.com' }
+        });
+        const next = mockNext();
+
+        await authController.actualizarPerfil(req, mockRes(), next);
+
+        expect(next.mock.calls[0][0].message).toContain('al menos un campo');
+    });
+});
+
+// ============================================
+// OBTENER HISTORIAL
+// ============================================
+describe('obtenerHistorial', () => {
+    test('retorna historial paginado', async () => {
+        AuthModel.obtenerHistorialUsuario.mockResolvedValue({
+            registros: [{ id: 1, accion: 'LOGIN', created_at: '2026-01-01' }],
+            total: 1
+        });
+
+        const req = mockReq({
+            query: { page: '1', limit: '20' },
+            usuario: { id: 1 }
+        });
+        const res = mockRes();
+
+        await authController.obtenerHistorial(req, res, mockNext());
+
+        expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+            success: true,
+            data: expect.arrayContaining([
+                expect.objectContaining({ accion: 'LOGIN' })
+            ]),
+            pagination: expect.objectContaining({
+                page: 1,
+                total: 1
+            })
         }));
     });
 });
