@@ -8,6 +8,7 @@ import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import useAuthStore from '@shared/stores/authStore'
+import LanguageSwitcher from '@shared/components/LanguageSwitcher'
 
 /**
  * ProtectedRoute - Protege rutas que requieren autenticación
@@ -98,7 +99,14 @@ const ProtectedRoute = ({ roles = null, redirectTo = '/login' }) => {
     // ============================================
     // AUTORIZADO → Renderizar contenido
     // ============================================
-    return <Outlet />
+    return (
+        <>
+            <div className="fixed top-3 right-3 z-50">
+                <LanguageSwitcher />
+            </div>
+            <Outlet />
+        </>
+    )
 }
 
 export default ProtectedRoute
