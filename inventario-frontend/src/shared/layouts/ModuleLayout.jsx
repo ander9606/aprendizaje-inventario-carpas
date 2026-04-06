@@ -9,7 +9,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { Menu, X, ArrowLeft } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import LanguageSwitcher from '@shared/components/LanguageSwitcher'
+
 
 const ModuleLayout = ({ sidebar: SidebarComponent }) => {
   const { t } = useTranslation()
@@ -148,9 +148,7 @@ const ModuleLayout = ({ sidebar: SidebarComponent }) => {
             <Menu className="w-5 h-5" />
           </button>
 
-          {/* Spacer para empujar LanguageSwitcher a la derecha */}
           <div className="flex-1" />
-          <LanguageSwitcher />
         </div>
 
         {/* Contenido de la página */}
