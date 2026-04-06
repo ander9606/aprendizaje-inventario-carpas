@@ -75,7 +75,7 @@ function ImageUpload({
           <>
             <img
               src={displayUrl}
-              alt="Imagen"
+              alt={t('common.image')}
               className="w-full h-full object-cover rounded-lg"
             />
             {/* Overlay con acciones */}
@@ -87,7 +87,7 @@ function ImageUpload({
                   fileInputRef.current?.click()
                 }}
                 className="p-2 bg-white/90 rounded-full hover:bg-white transition-colors"
-                title="Cambiar imagen"
+                title={t('common.changeImage')}
               >
                 <Camera className="w-4 h-4 text-slate-700" />
               </button>

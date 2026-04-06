@@ -2,7 +2,10 @@
   "operations": {
     "title": "Operaciones",
     "description": "Montajes, desmontajes, órdenes de trabajo y equipos.",
-    "tags": ["Órdenes", "Calendario"],
+    "tags": [
+      "Órdenes",
+      "Calendario"
+    ],
     "workOrders": "Órdenes de Trabajo",
     "workOrder": "Orden de Trabajo",
     "employees": "Empleados",
@@ -20,7 +23,7 @@
     "dayOrders": "Órdenes del día",
     "clientInventory": "Inventario del Cliente",
     "orderLoading": "Orden de Cargue",
-    "loadingChecklist": "Checklist de Cargue/Descargue",
+    "loadingChecklist": "Checklist de Cargue",
     "orderPhotos": "Fotos de la Orden",
     "incidents": "Novedades",
     "newIncident": "Nueva Novedad",
@@ -36,20 +39,39 @@
     "onSite": "En sitio",
     "completed": "Completada",
     "cancelled": "Cancelada",
-
     "loadingOperations": "Cargando operaciones...",
     "loadingOrders": "Cargando órdenes...",
     "loadingEmployees": "Cargando empleados...",
-    "loadingOrder": "Cargando orden...",
+    "loadingOrder": {
+      "loadingOrderTitle": "Orden de Cargue",
+      "loadingOrderLabel": "Cargando orden...",
+      "products": "{{count}} productos",
+      "elements": "{{count}} elementos",
+      "expandAll": "Expandir todo",
+      "collapseAll": "Colapsar todo",
+      "quotedProducts": "Productos Cotizados",
+      "noProducts": "No hay productos en esta orden",
+      "loadingSummary": "Resumen de Cargue",
+      "element": "Elemento",
+      "series": "Serie",
+      "qty": "Cantidad",
+      "statusLabel": "Estado",
+      "printChecklist": "Imprimir Checklist",
+      "confirmLoading": "Confirmar Cargue",
+      "confirming": "Confirmando...",
+      "noElementsToMark": "No hay elementos para marcar como cargados",
+      "elementsMarkedLoaded": "{{count}} elemento(s) marcados como \"cargado\"",
+      "confirmLoadingError": "Error al confirmar cargue",
+      "noElementsAssigned": "Sin elementos asignados",
+      "items": "{{count}} items"
+    },
     "loadingHistory": "Cargando historial...",
-
     "activeEvents": "Eventos activos",
     "overdue": "Vencidos",
     "pendingPlural": "Pendientes",
     "inProcess": "En proceso",
     "noResponsible": "Sin responsable",
     "noResp": "Sin resp.",
-
     "overdueSection": "Atrasados",
     "overdueSubtitle": "{{count}} evento(s) con fecha vencida",
     "today": "Hoy",
@@ -72,10 +94,8 @@
     "products": "Productos",
     "event": "Evento",
     "expiredBadge": "Vencida",
-
     "noScheduled": "Sin {{type}} programado",
     "noDate": "Sin fecha",
-
     "statePendiente": "Pendiente",
     "stateConfirmado": "Confirmado",
     "statePreparacion": "Preparación",
@@ -89,7 +109,6 @@
     "stateEnRetorno": "En Retorno",
     "stateDescargue": "Descargue en Bodega",
     "stateEnPreparacion": "En Preparación",
-
     "typeMontaje": "Montaje",
     "typeDesmontaje": "Desmontaje",
     "typeMantenimiento": "Mantenimiento",
@@ -97,7 +116,6 @@
     "typeRevision": "Revisión",
     "typeInventario": "Inventario",
     "typeOtro": "Otro",
-
     "ordersManagement": "Gestión de órdenes de montaje, desmontaje y más",
     "myOrders": "Mis Ordenes",
     "unassigned": "Sin asignar",
@@ -121,7 +139,6 @@
     "noOrdersYet": "Aún no se han creado órdenes de trabajo",
     "orderCreated": "Orden creada correctamente",
     "errorCreatingOrder": "Error al crear la orden",
-
     "newWorkOrder": "Nueva Orden de Trabajo",
     "orderType": "Tipo de Orden",
     "dateRequired": "Fecha *",
@@ -140,13 +157,11 @@
     "creating": "Creando...",
     "createOrder": "Crear Orden",
     "dateIsRequired": "La fecha es requerida",
-
     "orderNumber": "Orden #{{id}}",
     "client": "Cliente",
     "errorLoadingOrder": "Error al cargar la orden",
     "orderNotFound": "No se encontró la orden solicitada",
     "backToOrders": "Volver a Órdenes",
-
     "stateConfirmedMsg": "Orden confirmada",
     "statePreparationStarted": "Preparación iniciada",
     "stateOnRoute": "Orden en ruta",
@@ -160,7 +175,6 @@
     "stateOrderCancelled": "Orden cancelada",
     "stateChangedTo": "Estado cambiado a {{state}}",
     "errorChangingState": "Error al cambiar estado",
-
     "responsiblesAssigned": "Responsables asignados correctamente",
     "selfAssigned": "Te has asignado a esta orden",
     "errorSelfAssign": "Error al asignarse",
@@ -173,7 +187,6 @@
     "errorRegisteringReturn": "Error al registrar retorno",
     "maintenanceCompletedMsg": "Mantenimiento completado exitosamente",
     "errorCompletingMaintenance": "Error al completar mantenimiento",
-
     "confirmOrder": "Confirmar Orden",
     "startPreparation": "Iniciar Preparación",
     "confirmLoading": "Confirmar Cargue",
@@ -191,13 +204,10 @@
     "startRepair": "Iniciar Reparación",
     "cancelOrder": "Cancelar Orden",
     "assignInventoryNow": "Asignar Inventario Ahora",
-
     "insufficiencyReported": "Insuficiencia de inventario reportada",
     "insufficiencyAutoNotify": "Se notificará automáticamente cuando el inventario esté disponible.",
-
     "stepOf": "Paso {{current}} de {{total}}",
     "orderCancelled": "Esta orden fue cancelada",
-
     "waitingAssembly": "Esperando montaje",
     "disassemblyWaitingAssembly": "El desmontaje no puede avanzar hasta que la orden de montaje esté completada.",
     "viewAssembly": "Ver montaje #{{id}} — {{status}}",
@@ -207,13 +217,11 @@
     "elementsWithoutLoading": "{{pending}} de {{total}} elemento(s) sin confirmar cargue",
     "elementsLoadedVerified": "{{count}} elemento(s) cargados y verificados",
     "assemblyStillIn": "Montaje #{{id}} aún en {{status}}",
-
     "maintenanceCompletedBanner": "Mantenimiento Completado",
     "orderCompletedBanner": "Orden Completada",
     "maintenanceRestoredMsg": "Los elementos reparados fueron restaurados al inventario disponible",
     "orderCompletedMsg": "Esta orden fue completada exitosamente",
     "shareInventory": "Compartir Inventario",
-
     "actionsLabel": "Acciones",
     "checklistCompleted": "Checklist completado",
     "loadingChecklist2": "Checklist de Cargue",
@@ -232,17 +240,15 @@
     "warehouseChecklistDesc": "Verifica cada elemento al descargar del vehículo en bodega. Debe completarse para finalizar la orden.",
     "pendingInventory": "Inventario pendiente",
     "elementsUnassigned": "{{count}} elemento(s) sin asignar del almacen",
-
     "eventInfo": "Info del Evento",
     "dateLabel": "Fecha",
     "hourLabel": "Hora",
-    "location": "Ubicación",
-    "noLocation": "Sin ubicación",
+    "location": "Lugar",
+    "noLocation": "Sin lugar",
     "phone": "Teléfono",
     "rentalNumber": "Alquiler #{{id}}",
     "quotationNumber": "Cotización #{{id}}",
     "notesSection": "Notas",
-
     "productsCount": "Productos ({{count}})",
     "elementsTotal": "{{count}} elementos en total",
     "ready": "Listo",
@@ -252,12 +258,10 @@
     "elementsAssigned": "{{count}} elementos asignados",
     "loadedAndPending": "{{loaded}} cargados, {{pending}} pendientes",
     "noElementsAssigned": "No hay elementos asignados a esta orden",
-
     "report": "Reportar",
     "pendingCountSingular": "{{count}} pendiente",
     "pendingCountPlural": "{{count}} pendientes",
-
-    "responsible": "Responsable",
+    "responsible": "Encargado",
     "change": "Cambiar",
     "assign": "Asignar",
     "employeeLabel": "Empleado",
@@ -265,13 +269,11 @@
     "assignResponsibleAction": "Asignar responsable",
     "assigning": "Asignando...",
     "assignMe": "Asignarme",
-
     "assemblyInProgress": "Montaje en curso",
     "disassemblyInProgress": "Desmontaje en curso",
     "elapsedTime": "Tiempo transcurrido",
     "finishAssembly": "Finalizar Montaje",
     "registerReturn": "Registrar Retorno",
-
     "times": "Tiempos",
     "preparation": "Preparación",
     "travel": "Desplazamiento",
@@ -279,7 +281,6 @@
     "disassemblyOnSite": "Desmontaje en sitio",
     "totalOperation": "Total operación",
     "history": "Historial",
-
     "confirmExitTitle": "Confirmar ejecución de salida",
     "confirmExitMessage": "Esta acción cambiará el estado del alquiler a \"activo\" y marcará los elementos como despachados. Los inventarios quedarán registrados como en uso.",
     "confirmExitButton": "Ejecutar Salida",
@@ -292,7 +293,6 @@
     "confirmCancelTitle": "Cancelar orden de trabajo",
     "confirmCancelMessage": "¿Estás seguro de cancelar esta orden? Esta acción no se puede deshacer y los recursos asignados serán liberados.",
     "confirmCancelButton": "Sí, cancelar orden",
-
     "descMaintPendiente": "Orden de mantenimiento creada. Asigna un técnico y comienza la revisión.",
     "descMaintConfirmado": "Orden confirmada. Inicia la revisión de los elementos dañados.",
     "descMaintPreparacion": "Inicia la revisión de los elementos dañados.",
@@ -300,7 +300,6 @@
     "descMaintReparacion": "Reparación en curso. Al finalizar, completa el mantenimiento indicando el resultado de cada elemento.",
     "descMaintCompletado": "Mantenimiento completado. Los elementos reparados fueron restaurados al inventario.",
     "descMaintCancelado": "Esta orden de mantenimiento fue cancelada.",
-
     "descPendiente": "Esta orden está pendiente de confirmación. Asigna un responsable y confirma para iniciar.",
     "descConfirmado": "Orden confirmada. Inicia la preparación de los elementos necesarios.",
     "descPreparacionMontaje": "Preparando elementos para despacho. Cuando todo esté listo, ejecuta la salida.",
@@ -314,7 +313,6 @@
     "descDescargue": "Descargando elementos del vehículo en bodega. Completa el checklist para finalizar.",
     "descCompletado": "Esta orden ha sido completada exitosamente.",
     "descCancelado": "Esta orden fue cancelada.",
-
     "flowPendiente": "Pendiente",
     "flowPendienteShort": "Pend.",
     "flowConfirmado": "Confirmado",
@@ -339,7 +337,6 @@
     "flowEnRetornoShort": "Ret.",
     "flowDescargue": "Descargue",
     "flowDescargueShort": "Desc.",
-
     "employeesDescription": "Gestiona usuarios y permisos del sistema",
     "back": "Volver",
     "searchByNameOrEmail": "Buscar por nombre o email...",
@@ -369,7 +366,7 @@
     "reactivate": "Reactivar",
     "noEmployees": "No hay empleados",
     "noEmployeesWithFilters": "No se encontraron empleados con los filtros aplicados",
-    "createFirstEmployee": "Crea tu primer empleado para comenzar",
+    "createFirstEmployee": "Crear primer empleado",
     "createFirstEmployeeAction": "Crear primer empleado",
     "errorLoadingEmployees": "Error al cargar empleados",
     "unexpectedError": "Ocurrio un error inesperado",
@@ -382,20 +379,19 @@
     "approveAccessFor": "Aprobar acceso para",
     "assignRoleRequired": "Asignar rol *",
     "selectARole": "Selecciona un rol",
-    "userRequested": "El usuario solicito:",
+    "userRequested": "El usuario solicitó",
     "rejectRequest": "Rechazar solicitud",
     "rejectAccessFor": "Rechazar acceso para",
     "rejectionReasonOptional": "Motivo del rechazo (opcional)",
     "rejectionPlaceholder": "Ej: No es empleado de la empresa",
     "deactivating": "Desactivando...",
     "reactivating": "Reactivando...",
-
     "finalizedOrdersCount": "{{count}} orden finalizada",
     "finalizedOrdersCountPlural": "{{count}} órdenes finalizadas",
     "searchHistoryPlaceholder": "Buscar por cliente, evento, ciudad, producto, encargado o ID...",
-    "resultsCount": "{{count}} resultado",
+    "resultsCount": "{{count}} resultado(s)",
     "resultsCountPlural": "{{count}} resultados",
-    "recordsCount": "{{count}} registro",
+    "recordsCount": "{{count}} registro(s)",
     "recordsCountPlural": "{{count}} registros",
     "noHistory": "Sin historial",
     "noResults": "Sin resultados",
@@ -407,8 +403,8 @@
     "unassignedManager": "Sin asignar",
     "product": "Producto",
     "noProducts": "Sin productos",
-    "start": "Inicio: ",
-    "end": "Fin: ",
+    "start": "Inicio",
+    "end": "Fin",
     "noData": "Sin datos",
     "place": "Lugar",
     "noPlace": "Sin lugar",
@@ -423,14 +419,12 @@
     "noClient": "Sin cliente",
     "rentalLabel": "Alquiler #{{id}}",
     "elemCount": "{{count}} elem.",
-
     "sidebar": {
       "backToModules": "Volver a Módulos",
       "calendar": "Calendario",
       "alerts": "Alertas",
       "history": "Historial"
     },
-
     "employee": {
       "personalInfo": "Información Personal",
       "firstName": "Nombre",
@@ -460,7 +454,6 @@
       "updateError": "Error al actualizar el empleado",
       "employee": "Empleado"
     },
-
     "orderDetailModal": {
       "confirmed": "Confirmado",
       "preparation": "Preparación",
@@ -481,7 +474,6 @@
       "quotationValue": "Valor cotización:",
       "viewFullDetail": "Ver Detalle Completo"
     },
-
     "dayOrdersModal": {
       "ordersOfDay": "Ordenes del día",
       "total": "Total:",
@@ -493,7 +485,6 @@
       "noDayOperations": "Este día no tiene operaciones",
       "noTeam": "Sin equipo"
     },
-
     "editOrderModal": {
       "editOrderTitle": "Editar Orden #{{id}}",
       "date": "Fecha",
@@ -512,31 +503,6 @@
       "dateConflicts": "El cambio de fecha genera conflictos:",
       "saveError": "Error al guardar cambios"
     },
-
-    "loadingOrder": {
-      "loadingOrderTitle": "Orden de Cargue",
-      "loadingOrderLabel": "Cargando orden...",
-      "products": "{{count}} productos",
-      "elements": "{{count}} elementos",
-      "expandAll": "Expandir todo",
-      "collapseAll": "Colapsar todo",
-      "quotedProducts": "Productos Cotizados",
-      "noProducts": "No hay productos en esta orden",
-      "loadingSummary": "Resumen de Cargue",
-      "element": "Elemento",
-      "series": "Serie",
-      "qty": "Cantidad",
-      "statusLabel": "Estado",
-      "printChecklist": "Imprimir Checklist",
-      "confirmLoading": "Confirmar Cargue",
-      "confirming": "Confirmando...",
-      "noElementsToMark": "No hay elementos para marcar como cargados",
-      "elementsMarkedLoaded": "{{count}} elemento(s) marcados como \"cargado\"",
-      "confirmLoadingError": "Error al confirmar cargue",
-      "noElementsAssigned": "Sin elementos asignados",
-      "items": "{{count}} items"
-    },
-
     "assignInventoryModal": {
       "elementsWithoutInventory": "{{count}} elemento(s) sin inventario asignado",
       "autoAssign": "Auto-asignar disponibles",
@@ -566,32 +532,7 @@
       "insufficiencyTitle": "Insuficiencia de inventario - {{count}} elemento(s)",
       "insufficiencyMessage": "La orden #{{orderId}} requiere elementos que no están disponibles en el inventario: {{names}}. Se necesita gestionar la adquisición o reasignación de estos elementos."
     },
-
-    "incidentsList": {
-      "pendingIncidents": "{{count}} novedad pendiente",
-      "pendingIncidents_plural": "{{count}} novedades pendientes",
-      "reported": "Reportada: {{date}}",
-      "reportedBy": "Por: {{name}}",
-      "quantityLabel": "Cantidad: {{count}}",
-      "resolution": "Resolución:",
-      "resolvedBy": "Por {{name}} - {{date}}",
-      "resolve": "Resolver",
-      "confirm": "Confirmar",
-      "enterResolution": "Ingresa la resolución",
-      "incidentResolved": "Novedad resuelta",
-      "resolveError": "Error al resolver la novedad",
-      "describeResolution": "Describe la resolución...",
-      "evidence": "Evidencia",
-      "cancellation": "Cancelación",
-      "additionalRequest": "Solicitud adicional",
-      "locationChange": "Cambio ubicación",
-      "damage": "Daño",
-      "other": "Otro",
-      "inReview": "En revisión",
-      "resolved": "Resuelta",
-      "rejected": "Rechazada"
-    },
-
+    "incidentsList": "Lista de Novedades",
     "returnModal": {
       "registerReturn": "Registrar Retorno",
       "orderClient": "Orden #{{id}} - {{client}}",
@@ -623,7 +564,6 @@
       "yesContinue": "Sí, continuar",
       "quantity": "Cantidad: {{count}}"
     },
-
     "alertsAssignment": {
       "pendingAssignments": "{{count}} asignacion pendiente",
       "pendingAssignments_plural": "{{count}} asignaciones pendientes",
@@ -640,7 +580,6 @@
       "assignmentRejected": "Asignacion rechazada. Se notifico al administrador.",
       "rejectError": "Error al rechazar"
     },
-
     "incidentModal": {
       "reportIncident": "Reportar Novedad",
       "incidentType": "Tipo de novedad *",
@@ -671,7 +610,6 @@
       "incidentReported": "Novedad reportada correctamente",
       "reportError": "Error al reportar la novedad"
     },
-
     "maintenanceModal": {
       "completeMaintenanceTitle": "Completar Mantenimiento",
       "markResult": "Marca el resultado de cada elemento",
@@ -686,7 +624,6 @@
       "notRepairableCount_plural": "{{count}} no reparables",
       "completing": "Completando..."
     },
-
     "clientInventoryModal": {
       "clientInventoryTitle": "Inventario del Cliente",
       "share": "Compartir",
@@ -714,7 +651,6 @@
       "stateGood": "Buen estado",
       "stateMaintenance": "Aceptable"
     },
-
     "photosOrder": {
       "operationPhotos": "Fotos de Operación",
       "loadingPhotos": "Cargando fotos...",
@@ -742,7 +678,6 @@
       "disassemblyDoneStage": "Desmontaje terminado",
       "returnStage": "Retorno"
     },
-
     "assignResponsibleModal": {
       "assignResponsiblesTitle": "Asignar Responsables",
       "selectResponsibles": "Selecciona los encargados de esta orden",
@@ -751,7 +686,6 @@
       "noEmployeesAvailable": "No hay empleados disponibles",
       "saveCount": "Guardar ({{count}})"
     },
-
     "checklist": {
       "loadingTitle": "Checklist de Cargue",
       "loadingPrintTitle": "CHECKLIST DE CARGUE",
@@ -804,7 +738,6 @@
       "generalObservations": "Observaciones generales",
       "verifiedCount": "Verificados: {{verified}} de {{total}}"
     },
-
     "statuses": {
       "nuevo": "Nuevo",
       "bueno": "Bueno",
@@ -823,12 +756,56 @@
       "completado": "Completado",
       "cancelado": "Cancelado"
     },
-
     "priorities": {
       "baja": "Baja",
       "normal": "Normal",
       "alta": "Alta",
       "urgente": "Urgente"
-    }
+    },
+    "maintenance": "Mantenimiento",
+    "transfer": "Traslado",
+    "inspection": "Revisión",
+    "inventoryCheck": "Inventario",
+    "other": "Otro",
+    "eventDetail": "Detalle del Evento",
+    "incident": "Novedad",
+    "finishedOrdersCount": "{{count}} orden(es) finalizada(s)",
+    "searchPlaceholder": "Buscar por cliente, evento, ciudad, producto, encargado o ID...",
+    "type_montaje": "Montaje",
+    "type_desmontaje": "Desmontaje",
+    "type_mantenimiento": "Mantenimiento",
+    "ordersWillAppearHere": "Las órdenes completadas aparecerán aquí una vez finalizado el desmontaje",
+    "noOrdersFound": "No se encontraron órdenes con \"{{query}}\"",
+    "noEmployeesFiltered": "No se encontraron empleados con los filtros aplicados",
+    "assignRole": "Asignar rol",
+    "selectRole": "Selecciona un rol",
+    "rejectionReason": "Motivo del rechazo (opcional)",
+    "rejectionReasonPlaceholder": "Ej: No es empleado de la empresa",
+    "unloadingChecklist": "Checklist de Descargue",
+    "checkAll": "Marcar todos",
+    "uncheckAll": "Desmarcar todos",
+    "itemsChecked": "{{checked}}/{{total}} elementos",
+    "completeChecklist": "Completar checklist",
+    "noElements": "No hay elementos para verificar",
+    "noIncidentsRegistered": "No hay novedades registradas",
+    "registerIncident": "Registrar novedad",
+    "incidentType": "Tipo de novedad",
+    "damage": "Daño",
+    "missing": "Faltante",
+    "observation": "Observación",
+    "editIncident": "Editar Novedad",
+    "element": "Elemento",
+    "selectElement": "Selecciona un elemento",
+    "incidentDescription": "Descripción de la novedad",
+    "severity": "Severidad",
+    "low": "Baja",
+    "medium": "Media",
+    "high": "Alta",
+    "selectSeverity": "Selecciona severidad",
+    "photo": "Foto (opcional)",
+    "noPhotos": "No hay fotos",
+    "uploadPhoto": "Subir foto",
+    "deletePhoto": "Eliminar foto",
+    "confirmDeletePhoto": "¿Eliminar esta foto?"
   }
 }

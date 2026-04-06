@@ -2,7 +2,10 @@
   "operations": {
     "title": "Operations",
     "description": "Assembly, disassembly, work orders and teams.",
-    "tags": ["Orders", "Calendar"],
+    "tags": [
+      "Orders",
+      "Calendar"
+    ],
     "workOrders": "Work Orders",
     "workOrder": "Work Order",
     "employees": "Employees",
@@ -20,7 +23,7 @@
     "dayOrders": "Day orders",
     "clientInventory": "Client Inventory",
     "orderLoading": "Loading Order",
-    "loadingChecklist": "Loading/Unloading Checklist",
+    "loadingChecklist": "Loading Checklist",
     "orderPhotos": "Order Photos",
     "incidents": "Incidents",
     "newIncident": "New Incident",
@@ -36,20 +39,39 @@
     "onSite": "On site",
     "completed": "Completed",
     "cancelled": "Cancelled",
-
     "loadingOperations": "Loading operations...",
     "loadingOrders": "Loading orders...",
     "loadingEmployees": "Loading employees...",
-    "loadingOrder": "Loading order...",
+    "loadingOrder": {
+      "loadingOrderTitle": "Loading Order",
+      "loadingOrderLabel": "Loading order...",
+      "products": "{{count}} products",
+      "elements": "{{count}} elements",
+      "expandAll": "Expand all",
+      "collapseAll": "Collapse all",
+      "quotedProducts": "Quoted Products",
+      "noProducts": "No products in this order",
+      "loadingSummary": "Loading Summary",
+      "element": "Element",
+      "series": "Series",
+      "qty": "Quantity",
+      "statusLabel": "Status",
+      "printChecklist": "Print Checklist",
+      "confirmLoading": "Confirm Loading",
+      "confirming": "Confirming...",
+      "noElementsToMark": "No elements to mark as loaded",
+      "elementsMarkedLoaded": "{{count}} element(s) marked as \"loaded\"",
+      "confirmLoadingError": "Error confirming loading",
+      "noElementsAssigned": "No elements assigned",
+      "items": "{{count}} items"
+    },
     "loadingHistory": "Loading history...",
-
     "activeEvents": "Active events",
     "overdue": "Overdue",
     "pendingPlural": "Pending",
     "inProcess": "In process",
     "noResponsible": "No responsible",
     "noResp": "No resp.",
-
     "overdueSection": "Overdue",
     "overdueSubtitle": "{{count}} event(s) past due",
     "today": "Today",
@@ -72,10 +94,8 @@
     "products": "Products",
     "event": "Event",
     "expiredBadge": "Expired",
-
     "noScheduled": "No {{type}} scheduled",
     "noDate": "No date",
-
     "statePendiente": "Pending",
     "stateConfirmado": "Confirmed",
     "statePreparacion": "Preparation",
@@ -89,7 +109,6 @@
     "stateEnRetorno": "Returning",
     "stateDescargue": "Warehouse Unloading",
     "stateEnPreparacion": "In Preparation",
-
     "typeMontaje": "Assembly",
     "typeDesmontaje": "Disassembly",
     "typeMantenimiento": "Maintenance",
@@ -97,7 +116,6 @@
     "typeRevision": "Inspection",
     "typeInventario": "Inventory",
     "typeOtro": "Other",
-
     "ordersManagement": "Management of assembly, disassembly and more orders",
     "myOrders": "My Orders",
     "unassigned": "Unassigned",
@@ -121,7 +139,6 @@
     "noOrdersYet": "No work orders have been created yet",
     "orderCreated": "Order created successfully",
     "errorCreatingOrder": "Error creating order",
-
     "newWorkOrder": "New Work Order",
     "orderType": "Order Type",
     "dateRequired": "Date *",
@@ -140,13 +157,11 @@
     "creating": "Creating...",
     "createOrder": "Create Order",
     "dateIsRequired": "Date is required",
-
     "orderNumber": "Order #{{id}}",
     "client": "Client",
     "errorLoadingOrder": "Error loading order",
     "orderNotFound": "The requested order was not found",
     "backToOrders": "Back to Orders",
-
     "stateConfirmedMsg": "Order confirmed",
     "statePreparationStarted": "Preparation started",
     "stateOnRoute": "Order en route",
@@ -160,7 +175,6 @@
     "stateOrderCancelled": "Order cancelled",
     "stateChangedTo": "Status changed to {{state}}",
     "errorChangingState": "Error changing status",
-
     "responsiblesAssigned": "Responsibles assigned successfully",
     "selfAssigned": "You have been assigned to this order",
     "errorSelfAssign": "Error assigning yourself",
@@ -173,7 +187,6 @@
     "errorRegisteringReturn": "Error registering return",
     "maintenanceCompletedMsg": "Maintenance completed successfully",
     "errorCompletingMaintenance": "Error completing maintenance",
-
     "confirmOrder": "Confirm Order",
     "startPreparation": "Start Preparation",
     "confirmLoading": "Confirm Loading",
@@ -191,13 +204,10 @@
     "startRepair": "Start Repair",
     "cancelOrder": "Cancel Order",
     "assignInventoryNow": "Assign Inventory Now",
-
     "insufficiencyReported": "Inventory insufficiency reported",
     "insufficiencyAutoNotify": "You will be automatically notified when inventory becomes available.",
-
     "stepOf": "Step {{current}} of {{total}}",
     "orderCancelled": "This order was cancelled",
-
     "waitingAssembly": "Waiting for assembly",
     "disassemblyWaitingAssembly": "Disassembly cannot proceed until the assembly order is completed.",
     "viewAssembly": "View assembly #{{id}} — {{status}}",
@@ -207,13 +217,11 @@
     "elementsWithoutLoading": "{{pending}} of {{total}} element(s) without loading confirmation",
     "elementsLoadedVerified": "{{count}} element(s) loaded and verified",
     "assemblyStillIn": "Assembly #{{id}} still in {{status}}",
-
     "maintenanceCompletedBanner": "Maintenance Completed",
     "orderCompletedBanner": "Order Completed",
     "maintenanceRestoredMsg": "Repaired elements have been restored to available inventory",
     "orderCompletedMsg": "This order was completed successfully",
     "shareInventory": "Share Inventory",
-
     "actionsLabel": "Actions",
     "checklistCompleted": "Checklist completed",
     "loadingChecklist2": "Loading Checklist",
@@ -232,7 +240,6 @@
     "warehouseChecklistDesc": "Verify each element when unloading from the vehicle at the warehouse. Must be completed to finish the order.",
     "pendingInventory": "Pending inventory",
     "elementsUnassigned": "{{count}} element(s) unassigned from warehouse",
-
     "eventInfo": "Event Info",
     "dateLabel": "Date",
     "hourLabel": "Time",
@@ -242,7 +249,6 @@
     "rentalNumber": "Rental #{{id}}",
     "quotationNumber": "Quotation #{{id}}",
     "notesSection": "Notes",
-
     "productsCount": "Products ({{count}})",
     "elementsTotal": "{{count}} elements in total",
     "ready": "Ready",
@@ -252,11 +258,9 @@
     "elementsAssigned": "{{count}} elements assigned",
     "loadedAndPending": "{{loaded}} loaded, {{pending}} pending",
     "noElementsAssigned": "No elements assigned to this order",
-
     "report": "Report",
     "pendingCountSingular": "{{count}} pending",
     "pendingCountPlural": "{{count}} pending",
-
     "responsible": "Responsible",
     "change": "Change",
     "assign": "Assign",
@@ -265,13 +269,11 @@
     "assignResponsibleAction": "Assign responsible",
     "assigning": "Assigning...",
     "assignMe": "Assign me",
-
     "assemblyInProgress": "Assembly in progress",
     "disassemblyInProgress": "Disassembly in progress",
     "elapsedTime": "Elapsed time",
     "finishAssembly": "Finish Assembly",
     "registerReturn": "Register Return",
-
     "times": "Times",
     "preparation": "Preparation",
     "travel": "Travel",
@@ -279,7 +281,6 @@
     "disassemblyOnSite": "Disassembly on site",
     "totalOperation": "Total operation",
     "history": "History",
-
     "confirmExitTitle": "Confirm exit execution",
     "confirmExitMessage": "This action will change the rental status to \"active\" and mark elements as dispatched. Inventories will be recorded as in use.",
     "confirmExitButton": "Execute Exit",
@@ -292,7 +293,6 @@
     "confirmCancelTitle": "Cancel work order",
     "confirmCancelMessage": "Are you sure you want to cancel this order? This action cannot be undone and assigned resources will be released.",
     "confirmCancelButton": "Yes, cancel order",
-
     "descMaintPendiente": "Maintenance order created. Assign a technician and start the review.",
     "descMaintConfirmado": "Order confirmed. Start the review of damaged elements.",
     "descMaintPreparacion": "Start the review of damaged elements.",
@@ -300,7 +300,6 @@
     "descMaintReparacion": "Repair in progress. When finished, complete the maintenance indicating the result of each element.",
     "descMaintCompletado": "Maintenance completed. Repaired elements have been restored to inventory.",
     "descMaintCancelado": "This maintenance order was cancelled.",
-
     "descPendiente": "This order is pending confirmation. Assign a responsible and confirm to start.",
     "descConfirmado": "Order confirmed. Start the preparation of necessary elements.",
     "descPreparacionMontaje": "Preparing elements for dispatch. When everything is ready, execute the exit.",
@@ -314,7 +313,6 @@
     "descDescargue": "Unloading elements from the vehicle at the warehouse. Complete the checklist to finish.",
     "descCompletado": "This order has been completed successfully.",
     "descCancelado": "This order was cancelled.",
-
     "flowPendiente": "Pending",
     "flowPendienteShort": "Pend.",
     "flowConfirmado": "Confirmed",
@@ -339,7 +337,6 @@
     "flowEnRetornoShort": "Ret.",
     "flowDescargue": "Unloading",
     "flowDescargueShort": "Unl.",
-
     "employeesDescription": "Manage users and system permissions",
     "back": "Back",
     "searchByNameOrEmail": "Search by name or email...",
@@ -369,7 +366,7 @@
     "reactivate": "Reactivate",
     "noEmployees": "No employees",
     "noEmployeesWithFilters": "No employees found with the applied filters",
-    "createFirstEmployee": "Create your first employee to get started",
+    "createFirstEmployee": "Create first employee",
     "createFirstEmployeeAction": "Create first employee",
     "errorLoadingEmployees": "Error loading employees",
     "unexpectedError": "An unexpected error occurred",
@@ -382,20 +379,19 @@
     "approveAccessFor": "Approve access for",
     "assignRoleRequired": "Assign role *",
     "selectARole": "Select a role",
-    "userRequested": "User requested:",
+    "userRequested": "User requested",
     "rejectRequest": "Reject request",
     "rejectAccessFor": "Reject access for",
     "rejectionReasonOptional": "Rejection reason (optional)",
     "rejectionPlaceholder": "E.g.: Not a company employee",
     "deactivating": "Deactivating...",
     "reactivating": "Reactivating...",
-
     "finalizedOrdersCount": "{{count}} finalized order",
     "finalizedOrdersCountPlural": "{{count}} finalized orders",
     "searchHistoryPlaceholder": "Search by client, event, city, product, manager or ID...",
-    "resultsCount": "{{count}} result",
+    "resultsCount": "{{count}} result(s)",
     "resultsCountPlural": "{{count}} results",
-    "recordsCount": "{{count}} record",
+    "recordsCount": "{{count}} record(s)",
     "recordsCountPlural": "{{count}} records",
     "noHistory": "No history",
     "noResults": "No results",
@@ -407,8 +403,8 @@
     "unassignedManager": "Unassigned",
     "product": "Product",
     "noProducts": "No products",
-    "start": "Start: ",
-    "end": "End: ",
+    "start": "Start",
+    "end": "End",
     "noData": "No data",
     "place": "Place",
     "noPlace": "No place",
@@ -423,14 +419,12 @@
     "noClient": "No client",
     "rentalLabel": "Rental #{{id}}",
     "elemCount": "{{count}} elem.",
-
     "sidebar": {
       "backToModules": "Back to Modules",
       "calendar": "Calendar",
       "alerts": "Alerts",
       "history": "History"
     },
-
     "employee": {
       "personalInfo": "Personal Information",
       "firstName": "First Name",
@@ -460,7 +454,6 @@
       "updateError": "Error updating employee",
       "employee": "Employee"
     },
-
     "orderDetailModal": {
       "confirmed": "Confirmed",
       "preparation": "Preparation",
@@ -481,7 +474,6 @@
       "quotationValue": "Quotation value:",
       "viewFullDetail": "View Full Detail"
     },
-
     "dayOrdersModal": {
       "ordersOfDay": "Day orders",
       "total": "Total:",
@@ -493,7 +485,6 @@
       "noDayOperations": "No operations for this day",
       "noTeam": "No team"
     },
-
     "editOrderModal": {
       "editOrderTitle": "Edit Order #{{id}}",
       "date": "Date",
@@ -512,31 +503,6 @@
       "dateConflicts": "The date change causes conflicts:",
       "saveError": "Error saving changes"
     },
-
-    "loadingOrder": {
-      "loadingOrderTitle": "Loading Order",
-      "loadingOrderLabel": "Loading order...",
-      "products": "{{count}} products",
-      "elements": "{{count}} elements",
-      "expandAll": "Expand all",
-      "collapseAll": "Collapse all",
-      "quotedProducts": "Quoted Products",
-      "noProducts": "No products in this order",
-      "loadingSummary": "Loading Summary",
-      "element": "Element",
-      "series": "Series",
-      "qty": "Quantity",
-      "statusLabel": "Status",
-      "printChecklist": "Print Checklist",
-      "confirmLoading": "Confirm Loading",
-      "confirming": "Confirming...",
-      "noElementsToMark": "No elements to mark as loaded",
-      "elementsMarkedLoaded": "{{count}} element(s) marked as \"loaded\"",
-      "confirmLoadingError": "Error confirming loading",
-      "noElementsAssigned": "No elements assigned",
-      "items": "{{count}} items"
-    },
-
     "assignInventoryModal": {
       "elementsWithoutInventory": "{{count}} element(s) without assigned inventory",
       "autoAssign": "Auto-assign available",
@@ -566,32 +532,7 @@
       "insufficiencyTitle": "Inventory insufficiency - {{count}} element(s)",
       "insufficiencyMessage": "Order #{{orderId}} requires elements that are not available in inventory: {{names}}. Acquisition or reassignment of these elements needs to be managed."
     },
-
-    "incidentsList": {
-      "pendingIncidents": "{{count}} pending incident",
-      "pendingIncidents_plural": "{{count}} pending incidents",
-      "reported": "Reported: {{date}}",
-      "reportedBy": "By: {{name}}",
-      "quantityLabel": "Quantity: {{count}}",
-      "resolution": "Resolution:",
-      "resolvedBy": "By {{name}} - {{date}}",
-      "resolve": "Resolve",
-      "confirm": "Confirm",
-      "enterResolution": "Enter the resolution",
-      "incidentResolved": "Incident resolved",
-      "resolveError": "Error resolving incident",
-      "describeResolution": "Describe the resolution...",
-      "evidence": "Evidence",
-      "cancellation": "Cancellation",
-      "additionalRequest": "Additional request",
-      "locationChange": "Location change",
-      "damage": "Damage",
-      "other": "Other",
-      "inReview": "In review",
-      "resolved": "Resolved",
-      "rejected": "Rejected"
-    },
-
+    "incidentsList": "Incidents List",
     "returnModal": {
       "registerReturn": "Register Return",
       "orderClient": "Order #{{id}} - {{client}}",
@@ -623,7 +564,6 @@
       "yesContinue": "Yes, continue",
       "quantity": "Quantity: {{count}}"
     },
-
     "alertsAssignment": {
       "pendingAssignments": "{{count}} pending assignment",
       "pendingAssignments_plural": "{{count}} pending assignments",
@@ -640,7 +580,6 @@
       "assignmentRejected": "Assignment rejected. Administrator has been notified.",
       "rejectError": "Error rejecting"
     },
-
     "incidentModal": {
       "reportIncident": "Report Incident",
       "incidentType": "Incident type *",
@@ -671,7 +610,6 @@
       "incidentReported": "Incident reported successfully",
       "reportError": "Error reporting incident"
     },
-
     "maintenanceModal": {
       "completeMaintenanceTitle": "Complete Maintenance",
       "markResult": "Mark the result for each element",
@@ -686,7 +624,6 @@
       "notRepairableCount_plural": "{{count}} not repairable",
       "completing": "Completing..."
     },
-
     "clientInventoryModal": {
       "clientInventoryTitle": "Client Inventory",
       "share": "Share",
@@ -714,7 +651,6 @@
       "stateGood": "Good condition",
       "stateMaintenance": "Acceptable"
     },
-
     "photosOrder": {
       "operationPhotos": "Operation Photos",
       "loadingPhotos": "Loading photos...",
@@ -742,7 +678,6 @@
       "disassemblyDoneStage": "Disassembly completed",
       "returnStage": "Return"
     },
-
     "assignResponsibleModal": {
       "assignResponsiblesTitle": "Assign Responsibles",
       "selectResponsibles": "Select the people in charge of this order",
@@ -751,7 +686,6 @@
       "noEmployeesAvailable": "No employees available",
       "saveCount": "Save ({{count}})"
     },
-
     "checklist": {
       "loadingTitle": "Loading Checklist",
       "loadingPrintTitle": "LOADING CHECKLIST",
@@ -804,7 +738,6 @@
       "generalObservations": "General observations",
       "verifiedCount": "Verified: {{verified}} of {{total}}"
     },
-
     "statuses": {
       "nuevo": "New",
       "bueno": "Good",
@@ -823,12 +756,56 @@
       "completado": "Completed",
       "cancelado": "Cancelled"
     },
-
     "priorities": {
       "baja": "Low",
       "normal": "Normal",
       "alta": "High",
       "urgente": "Urgent"
-    }
+    },
+    "maintenance": "Maintenance",
+    "transfer": "Transfer",
+    "inspection": "Inspection",
+    "inventoryCheck": "Inventory",
+    "other": "Other",
+    "eventDetail": "Event Detail",
+    "incident": "Incident",
+    "finishedOrdersCount": "{{count}} finished order(s)",
+    "searchPlaceholder": "Search by client, event, city, product, responsible or ID...",
+    "type_montaje": "Assembly",
+    "type_desmontaje": "Disassembly",
+    "type_mantenimiento": "Maintenance",
+    "ordersWillAppearHere": "Completed orders will appear here once disassembly is finished",
+    "noOrdersFound": "No orders found matching \"{{query}}\"",
+    "noEmployeesFiltered": "No employees found with the applied filters",
+    "assignRole": "Assign role",
+    "selectRole": "Select a role",
+    "rejectionReason": "Rejection reason (optional)",
+    "rejectionReasonPlaceholder": "E.g.: Not a company employee",
+    "unloadingChecklist": "Unloading Checklist",
+    "checkAll": "Check all",
+    "uncheckAll": "Uncheck all",
+    "itemsChecked": "{{checked}}/{{total}} items",
+    "completeChecklist": "Complete checklist",
+    "noElements": "No elements to verify",
+    "noIncidentsRegistered": "No incidents registered",
+    "registerIncident": "Register incident",
+    "incidentType": "Incident type",
+    "damage": "Damage",
+    "missing": "Missing",
+    "observation": "Observation",
+    "editIncident": "Edit Incident",
+    "element": "Element",
+    "selectElement": "Select an element",
+    "incidentDescription": "Incident description",
+    "severity": "Severity",
+    "low": "Low",
+    "medium": "Medium",
+    "high": "High",
+    "selectSeverity": "Select severity",
+    "photo": "Photo (optional)",
+    "noPhotos": "No photos",
+    "uploadPhoto": "Upload photo",
+    "deletePhoto": "Delete photo",
+    "confirmDeletePhoto": "Delete this photo?"
   }
 }

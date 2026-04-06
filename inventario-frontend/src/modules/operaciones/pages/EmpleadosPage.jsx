@@ -494,15 +494,15 @@ export default function EmpleadosPage() {
                 ) : (
                     <EmptyState
                         type="no-data"
-                        title="No hay empleados"
+                        title={t('operations.noEmployees')}
                         description={
                             debouncedSearch || filtros.rol_id || filtros.estado
-                                ? "No se encontraron empleados con los filtros aplicados"
-                                : "Crea tu primer empleado para comenzar"
+                                ? t('operations.noEmployeesFiltered')
+                                : t('operations.createFirstEmployee')
                         }
                         icon={Users}
                         action={canCreate ? {
-                            label: "Crear primer empleado",
+                            label: t('operations.createFirstEmployee'),
                             icon: <Plus />,
                             onClick: handleOpenCrear
                         } : undefined}
@@ -528,21 +528,21 @@ export default function EmpleadosPage() {
             />
 
             {/* MODAL APROBAR */}
-            <Modal isOpen={aprobarModal.open} onClose={() => { setAprobarModal({ open: false, empleado: null }); setAprobarRolId('') }} title="Aprobar solicitud" size="sm">
+            <Modal isOpen={aprobarModal.open} onClose={() => { setAprobarModal({ open: false, empleado: null }); setAprobarRolId('') }} title={t('operations.approveRequest')} size="sm">
                 <p className="text-sm text-slate-600 mb-4">
-                    Aprobar acceso para <span className="font-semibold">{aprobarModal.empleado?.nombre} {aprobarModal.empleado?.apellido}</span>
+                    {t('operations.approveAccessFor')} <span className="font-semibold">{aprobarModal.empleado?.nombre} {aprobarModal.empleado?.apellido}</span>
                 </p>
 
                 <div className="mb-4">
                     <label className="block text-sm font-medium text-slate-700 mb-2">
-                        Asignar rol *
+                        {t('operations.assignRole')} *
                     </label>
                     <select
                         value={aprobarRolId}
                         onChange={(e) => setAprobarRolId(e.target.value)}
                         className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                     >
-                        <option value="">Selecciona un rol</option>
+                        <option value="">{t('operations.selectRole')}</option>
                         {roles.map((rol) => (
                             <option key={rol.id} value={rol.id}>
                                 {rol.nombre.charAt(0).toUpperCase() + rol.nombre.slice(1)}
@@ -551,7 +551,7 @@ export default function EmpleadosPage() {
                     </select>
                     {aprobarModal.empleado?.rol_solicitado_nombre && (
                         <p className="mt-1 text-xs text-slate-500">
-                            El usuario solicito: {aprobarModal.empleado.rol_solicitado_nombre.charAt(0).toUpperCase() + aprobarModal.empleado.rol_solicitado_nombre.slice(1)}
+                            {t('operations.userRequested')}: {aprobarModal.empleado.rol_solicitado_nombre.charAt(0).toUpperCase() + aprobarModal.empleado.rol_solicitado_nombre.slice(1)}
                         </p>
                     )}
                 </div>
@@ -561,7 +561,7 @@ export default function EmpleadosPage() {
                         variant="secondary"
                         onClick={() => { setAprobarModal({ open: false, empleado: null }); setAprobarRolId('') }}
                     >
-                        Cancelar
+                        {t('common.cancel')}
                     </Button>
                     <Button
                         onClick={handleAprobar}
@@ -570,25 +570,25 @@ export default function EmpleadosPage() {
                         icon={<CheckCircle className="w-4 h-4" />}
                         className="bg-green-600 hover:bg-green-700"
                     >
-                        Aprobar
+                        {t('operations.approve')}
                     </Button>
                 </Modal.Footer>
             </Modal>
 
             {/* MODAL RECHAZAR */}
-            <Modal isOpen={rechazarModal.open} onClose={() => { setRechazarModal({ open: false, empleado: null }); setRechazarMotivo('') }} title="Rechazar solicitud" size="sm">
+            <Modal isOpen={rechazarModal.open} onClose={() => { setRechazarModal({ open: false, empleado: null }); setRechazarMotivo('') }} title={t('operations.rejectRequest')} size="sm">
                 <p className="text-sm text-slate-600 mb-4">
-                    Rechazar acceso para <span className="font-semibold">{rechazarModal.empleado?.nombre} {rechazarModal.empleado?.apellido}</span>
+                    {t('operations.rejectAccessFor')} <span className="font-semibold">{rechazarModal.empleado?.nombre} {rechazarModal.empleado?.apellido}</span>
                 </p>
 
                 <div className="mb-4">
                     <label className="block text-sm font-medium text-slate-700 mb-2">
-                        Motivo del rechazo (opcional)
+                        {t('operations.rejectionReason')}
                     </label>
                     <textarea
                         value={rechazarMotivo}
                         onChange={(e) => setRechazarMotivo(e.target.value)}
-                        placeholder="Ej: No es empleado de la empresa"
+                        placeholder={t('operations.rejectionReasonPlaceholder')}
                         rows={3}
                         className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
                     />
@@ -599,7 +599,7 @@ export default function EmpleadosPage() {
                         variant="secondary"
                         onClick={() => { setRechazarModal({ open: false, empleado: null }); setRechazarMotivo('') }}
                     >
-                        Cancelar
+                        {t('common.cancel')}
                     </Button>
                     <Button
                         variant="danger"
@@ -608,7 +608,7 @@ export default function EmpleadosPage() {
                         loading={isRejecting}
                         icon={<XCircle className="w-4 h-4" />}
                     >
-                        Rechazar
+                        {t('operations.reject')}
                     </Button>
                 </Modal.Footer>
             </Modal>
@@ -618,7 +618,7 @@ export default function EmpleadosPage() {
                 <div className="fixed bottom-4 right-4 bg-white rounded-lg shadow-lg p-4 flex items-center gap-3">
                     <Spinner size="sm" />
                     <span className="text-sm font-medium text-slate-700">
-                        {isDeleting ? 'Desactivando...' : 'Reactivando...'}
+                        {isDeleting ? t('operations.deactivating') : t('operations.reactivating')}
                     </span>
                 </div>
             )}
