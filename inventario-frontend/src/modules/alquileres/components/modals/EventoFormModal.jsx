@@ -143,20 +143,20 @@ const EventoFormModal = ({
         const newErrors = {}
 
         if (!formData.cliente_id) {
-            newErrors.cliente_id = 'El cliente es obligatorio'
+            newErrors.cliente_id = t('rentals.eventForm.clientRequired')
         }
         if (!formData.nombre.trim()) {
-            newErrors.nombre = 'El nombre es obligatorio'
+            newErrors.nombre = t('rentals.eventForm.nameRequired')
         }
         if (!formData.fecha_inicio) {
-            newErrors.fecha_inicio = 'La fecha de inicio es obligatoria'
+            newErrors.fecha_inicio = t('rentals.eventForm.startDateRequired')
         }
         if (!formData.fecha_fin) {
-            newErrors.fecha_fin = 'La fecha de fin es obligatoria'
+            newErrors.fecha_fin = t('rentals.eventForm.endDateRequired')
         }
         if (formData.fecha_inicio && formData.fecha_fin) {
             if (new Date(formData.fecha_fin) < new Date(formData.fecha_inicio)) {
-                newErrors.fecha_fin = 'La fecha de fin debe ser igual o posterior a la de inicio'
+                newErrors.fecha_fin = t('rentals.eventForm.endDateAfterStart')
             }
         }
 
@@ -192,14 +192,14 @@ const EventoFormModal = ({
         <Modal
             isOpen={isOpen}
             onClose={onClose}
-            title={isEditing ? 'Editar Evento' : eventoReferencia ? 'Repetir Evento' : 'Nuevo Evento'}
+            title={isEditing ? t('rentals.eventForm.editEvent') : eventoReferencia ? t('rentals.eventForm.repeatEvent') : t('rentals.eventForm.newEvent')}
             size="md"
         >
             <div className="space-y-4">
                 {/* Cliente */}
                 <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1">
-                        Cliente *
+                        {t('rentals.eventForm.client')} *
                     </label>
                     <select
                         name="cliente_id"
@@ -210,7 +210,7 @@ const EventoFormModal = ({
                             errors.cliente_id ? 'border-red-300' : 'border-slate-200'
                         } ${isEditing ? 'bg-slate-50' : ''}`}
                     >
-                        <option value="">Seleccionar cliente...</option>
+                        <option value="">{t('rentals.eventForm.selectClient')}</option>
                         {clientes.map(c => (
                             <option key={c.id} value={c.id}>{c.nombre}</option>
                         ))}
@@ -223,7 +223,7 @@ const EventoFormModal = ({
                 {/* Nombre del evento */}
                 <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1">
-                        Nombre del Evento *
+                        {t('rentals.eventForm.eventName')} *
                     </label>
                     <input
                         type="text"
@@ -244,7 +244,7 @@ const EventoFormModal = ({
                 <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1">
                         <FileText className="w-4 h-4 inline mr-1" />
-                        Descripción
+                        {t('rentals.eventForm.description')}
                     </label>
                     <textarea
                         name="descripcion"
@@ -261,14 +261,14 @@ const EventoFormModal = ({
                     {eventoReferencia && (
                         <p className="text-xs font-medium text-amber-700 mb-2 flex items-center gap-1">
                             <Calendar className="w-3.5 h-3.5" />
-                            Selecciona las nuevas fechas para este evento
+                            {t('rentals.eventForm.selectNewDates')}
                         </p>
                     )}
                     <div className="grid grid-cols-2 gap-4">
                     <div>
                         <label className={`block text-sm font-medium mb-1 ${eventoReferencia ? 'text-amber-800' : 'text-slate-700'}`}>
                             <Calendar className="w-4 h-4 inline mr-1" />
-                            Fecha Inicio *
+                            {t('rentals.eventForm.startDate')} *
                         </label>
                         <input
                             type="date"
@@ -289,7 +289,7 @@ const EventoFormModal = ({
                     <div>
                         <label className={`block text-sm font-medium mb-1 ${eventoReferencia ? 'text-amber-800' : 'text-slate-700'}`}>
                             <Calendar className="w-4 h-4 inline mr-1" />
-                            Fecha Fin *
+                            {t('rentals.eventForm.endDate')} *
                         </label>
                         <input
                             type="date"
@@ -314,7 +314,7 @@ const EventoFormModal = ({
                     <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1">
                             <MapPin className="w-4 h-4 inline mr-1" />
-                            Ciudad
+                            {t('rentals.eventForm.city')}
                         </label>
                         <select
                             name="ciudad_id"
@@ -323,14 +323,14 @@ const EventoFormModal = ({
                             disabled={loadingCiudades}
                             className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                         >
-                            <option value="">Seleccionar ciudad...</option>
+                            <option value="">{t('rentals.eventForm.selectCity')}</option>
                             {ciudades.map(c => (
                                 <option key={c.id} value={c.id}>{c.nombre}</option>
                             ))}
                         </select>
                         {ciudades.length === 0 && !loadingCiudades && (
                             <p className="text-xs text-amber-600 mt-1">
-                                No hay ciudades. Cree ciudades en Configuración.
+                                {t('rentals.eventForm.noCities')}
                             </p>
                         )}
                     </div>
@@ -338,21 +338,21 @@ const EventoFormModal = ({
                     {formData.ciudad_id && (
                         <div>
                             <label className="block text-sm font-medium text-slate-700 mb-1">
-                                Ubicación predefinida
+                                {t('rentals.eventForm.predefinedLocation')}
                             </label>
                             <select
                                 onChange={handleUbicacionChange}
                                 disabled={loadingUbicaciones}
                                 className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                             >
-                                <option value="">Seleccionar ubicación...</option>
+                                <option value="">{t('rentals.eventForm.selectLocation')}</option>
                                 {ubicacionesFiltradas.map(u => (
                                     <option key={u.id} value={u.id}>{u.nombre}</option>
                                 ))}
                             </select>
                             {ubicacionesFiltradas.length === 0 && !loadingUbicaciones && (
                                 <p className="text-xs text-slate-500 mt-1">
-                                    No hay ubicaciones para esta ciudad
+                                    {t('rentals.eventForm.noLocationsForCity')}
                                 </p>
                             )}
                         </div>
@@ -362,7 +362,7 @@ const EventoFormModal = ({
                 {/* Dirección */}
                 <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1">
-                        Dirección
+                        {t('rentals.eventForm.address')}
                     </label>
                     <input
                         type="text"
@@ -373,14 +373,14 @@ const EventoFormModal = ({
                         className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                     />
                     <p className="text-xs text-slate-500 mt-1">
-                        Seleccione una ubicación predefinida o ingrese la dirección manualmente
+                        {t('rentals.eventForm.addressHint')}
                     </p>
                 </div>
 
                 {/* Notas */}
                 <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1">
-                        Notas
+                        {t('rentals.eventForm.notes')}
                     </label>
                     <textarea
                         name="notas"
@@ -396,7 +396,7 @@ const EventoFormModal = ({
             {/* Footer */}
             <Modal.Footer>
                 <Button variant="secondary" onClick={onClose}>
-                    Cancelar
+                    {t('rentals.eventForm.cancel')}
                 </Button>
                 <Button
                     color="blue"
@@ -404,7 +404,7 @@ const EventoFormModal = ({
                     onClick={handleGuardar}
                     disabled={saving}
                 >
-                    {saving ? 'Guardando...' : isEditing ? 'Actualizar' : 'Crear Evento'}
+                    {saving ? t('rentals.eventForm.saving') : isEditing ? t('rentals.eventForm.update') : t('rentals.eventForm.createEvent')}
                 </Button>
             </Modal.Footer>
         </Modal>

@@ -89,11 +89,11 @@ const CotizacionFormModal = ({
   const [cotizacionCreada, setCotizacionCreada] = useState(null)
 
   const PASOS = [
-    { numero: 1, titulo: 'Evento', icono: Calendar },
-    { numero: 2, titulo: 'Productos', icono: Package },
-    { numero: 3, titulo: 'Transporte', icono: Truck },
-    { numero: 4, titulo: 'Descuentos', icono: Tag },
-    { numero: 5, titulo: 'Resumen', icono: ClipboardList }
+    { numero: 1, titulo: t('rentals.quoteForm.stepEvent'), icono: Calendar },
+    { numero: 2, titulo: t('rentals.quoteForm.stepProducts'), icono: Package },
+    { numero: 3, titulo: t('rentals.quoteForm.stepTransport'), icono: Truck },
+    { numero: 4, titulo: t('rentals.quoteForm.stepDiscounts'), icono: Tag },
+    { numero: 5, titulo: t('rentals.quoteForm.stepSummary'), icono: ClipboardList }
   ]
 
   // ============================================
@@ -891,12 +891,12 @@ const CotizacionFormModal = ({
           <div className="text-center space-y-2">
             <h3 className="text-xl font-bold text-slate-800">
               {cotizacionCreada.modo === 'crear'
-                ? (cotizacionCreada.esBorrador ? '¡Borrador creado!' : '¡Cotizacion creada exitosamente!')
-                : '¡Cotizacion actualizada exitosamente!'
+                ? (cotizacionCreada.esBorrador ? t('rentals.quoteForm.draftCreated') : t('rentals.quoteForm.quoteCreatedSuccess'))
+                : t('rentals.quoteForm.quoteUpdatedSuccess')
               }
             </h3>
             {cotizacionCreada.id && (
-              <p className="text-sm text-slate-500">Cotizacion #{cotizacionCreada.id}</p>
+              <p className="text-sm text-slate-500">{t('rentals.quoteForm.quoteNumber', { id: cotizacionCreada.id })}</p>
             )}
           </div>
 
@@ -907,33 +907,33 @@ const CotizacionFormModal = ({
             <div className="bg-slate-50 rounded-lg p-3">
               <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2 flex items-center gap-1.5">
                 <Calendar className="w-3.5 h-3.5" />
-                Evento
+                {t('rentals.quoteForm.event')}
               </h4>
               <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
                 {cotizacionCreada.cliente_nombre && (
                   <div className="col-span-2">
-                    <span className="text-slate-500">Cliente: </span>
+                    <span className="text-slate-500">{t('rentals.quoteForm.clientLabel')} </span>
                     <span className="font-medium text-slate-700">{cotizacionCreada.cliente_nombre}</span>
                   </div>
                 )}
                 {cotizacionCreada.evento_nombre && (
-                  <div><span className="text-slate-500">Nombre: </span><span className="font-medium">{cotizacionCreada.evento_nombre}</span></div>
+                  <div><span className="text-slate-500">{t('rentals.quoteForm.name')} </span><span className="font-medium">{cotizacionCreada.evento_nombre}</span></div>
                 )}
                 {cotizacionCreada.evento_ciudad && (
-                  <div><span className="text-slate-500">Ciudad: </span><span className="font-medium">{cotizacionCreada.evento_ciudad}</span></div>
+                  <div><span className="text-slate-500">{t('rentals.quoteForm.cityLabel')} </span><span className="font-medium">{cotizacionCreada.evento_ciudad}</span></div>
                 )}
                 {cotizacionCreada.esBorrador ? (
-                  <div className="col-span-2 text-amber-600 italic text-xs mt-1">Fechas por confirmar</div>
+                  <div className="col-span-2 text-amber-600 italic text-xs mt-1">{t('rentals.quoteForm.datesToConfirm')}</div>
                 ) : (
                   <>
                     {cotizacionCreada.fecha_evento && (
-                      <div><span className="text-slate-500">Evento: </span><span className="font-medium">{cotizacionCreada.fecha_evento}</span></div>
+                      <div><span className="text-slate-500">{t('rentals.quoteForm.event')}: </span><span className="font-medium">{cotizacionCreada.fecha_evento}</span></div>
                     )}
                     {cotizacionCreada.fecha_montaje && cotizacionCreada.fecha_montaje !== cotizacionCreada.fecha_evento && (
-                      <div><span className="text-slate-500">Montaje: </span><span className="font-medium">{cotizacionCreada.fecha_montaje}</span></div>
+                      <div><span className="text-slate-500">{t('rentals.quoteForm.assembly')} </span><span className="font-medium">{cotizacionCreada.fecha_montaje}</span></div>
                     )}
                     {cotizacionCreada.fecha_desmontaje && cotizacionCreada.fecha_desmontaje !== cotizacionCreada.fecha_evento && (
-                      <div><span className="text-slate-500">Desmontaje: </span><span className="font-medium">{cotizacionCreada.fecha_desmontaje}</span></div>
+                      <div><span className="text-slate-500">{t('rentals.quoteForm.disassembly')} </span><span className="font-medium">{cotizacionCreada.fecha_desmontaje}</span></div>
                     )}
                   </>
                 )}
@@ -944,7 +944,7 @@ const CotizacionFormModal = ({
             <div className="bg-slate-50 rounded-lg p-3">
               <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2 flex items-center gap-1.5">
                 <Package className="w-3.5 h-3.5" />
-                Productos ({cotizacionCreada.productosResumen.length})
+                {t('rentals.quoteForm.products')} ({cotizacionCreada.productosResumen.length})
               </h4>
               <div className="space-y-1">
                 {cotizacionCreada.productosResumen.map((prod, idx) => (
@@ -963,7 +963,7 @@ const CotizacionFormModal = ({
               <div className="bg-slate-50 rounded-lg p-3">
                 <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2 flex items-center gap-1.5">
                   <Truck className="w-3.5 h-3.5" />
-                  Transporte
+                  {t('rentals.quoteForm.transport')}
                 </h4>
                 <div className="space-y-1">
                   {cotizacionCreada.transporteResumen.map((trans, idx) => (
@@ -979,29 +979,29 @@ const CotizacionFormModal = ({
             {/* Desglose de totales */}
             <div className="bg-slate-100 rounded-lg p-3 space-y-1.5">
               <div className="flex justify-between text-sm">
-                <span className="text-slate-600">Subtotal productos:</span>
+                <span className="text-slate-600">{t('rentals.quoteForm.subtotalProducts')}:</span>
                 <span className="font-medium">{formatearMoneda(cotizacionCreada.totales.subtotalProductos)}</span>
               </div>
               {cotizacionCreada.totales.subtotalTransporte > 0 && (
                 <div className="flex justify-between text-sm">
-                  <span className="text-slate-600">Subtotal transporte:</span>
+                  <span className="text-slate-600">{t('rentals.quoteForm.subtotalTransport')}:</span>
                   <span className="font-medium">{formatearMoneda(cotizacionCreada.totales.subtotalTransporte)}</span>
                 </div>
               )}
               {cotizacionCreada.totales.cobroDiasExtra > 0 && (
                 <div className="flex justify-between text-sm text-amber-700">
-                  <span>Dias adicionales ({cotizacionCreada.totales.totalDiasExtra} dias):</span>
+                  <span>{t('rentals.quoteForm.additionalDays', { days: cotizacionCreada.totales.totalDiasExtra })}:</span>
                   <span className="font-medium">+{formatearMoneda(cotizacionCreada.totales.cobroDiasExtra)}</span>
                 </div>
               )}
               {cotizacionCreada.totales.descuento > 0 && (
                 <div className="flex justify-between text-sm text-red-600">
-                  <span>Descuentos:</span>
+                  <span>{t('rentals.quoteForm.discountsLabel')}:</span>
                   <span className="font-medium">-{formatearMoneda(cotizacionCreada.totales.descuento)}</span>
                 </div>
               )}
               <div className="flex justify-between text-sm pt-1.5 border-t border-slate-300">
-                <span className="text-slate-700 font-medium">Base gravable:</span>
+                <span className="text-slate-700 font-medium">{t('rentals.quoteForm.taxableBase')}:</span>
                 <span className="font-medium">{formatearMoneda(cotizacionCreada.totales.baseGravable)}</span>
               </div>
               <div className="flex justify-between text-sm">
@@ -1009,7 +1009,7 @@ const CotizacionFormModal = ({
                 <span className="font-medium">+{formatearMoneda(cotizacionCreada.totales.valorIVA)}</span>
               </div>
               <div className="flex justify-between items-center pt-2 border-t-2 border-slate-400">
-                <span className="text-base font-bold text-slate-900">TOTAL:</span>
+                <span className="text-base font-bold text-slate-900">{t('rentals.quoteForm.total')}</span>
                 <span className="text-base font-bold text-blue-600">{formatearMoneda(cotizacionCreada.totales.totalFinal)}</span>
               </div>
             </div>
@@ -1021,7 +1021,7 @@ const CotizacionFormModal = ({
             onClick={onClose}
             className="mt-2"
           >
-            Cerrar
+            {t('rentals.quoteForm.close')}
           </Button>
         </div>
       ) : (<>
@@ -1120,7 +1120,7 @@ const CotizacionFormModal = ({
             {/* CLIENTE */}
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
-                Cliente *
+                {t('rentals.quoteForm.client')} *
               </label>
               <select
                 name="cliente_id"
@@ -1138,7 +1138,7 @@ const CotizacionFormModal = ({
                   ${errors.cliente_id ? 'border-red-300' : 'border-slate-300'}
                 `}
               >
-                <option value="">Seleccionar...</option>
+                <option value="">{t('rentals.quoteForm.selectClient')}</option>
                 {clientes.map(c => (
                   <option key={c.id} value={c.id}>{c.nombre}</option>
                 ))}
@@ -1152,7 +1152,7 @@ const CotizacionFormModal = ({
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
                 <CalendarDays className="w-4 h-4 inline mr-1" />
-                Evento (opcional)
+                {t('rentals.quoteForm.eventOptional')}
               </label>
               <select
                 name="evento_id"
@@ -1161,16 +1161,16 @@ const CotizacionFormModal = ({
                 disabled={isLoading || loadingEventos || !formData.cliente_id}
                 className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-100"
               >
-                <option value="">Sin evento asociado</option>
+                <option value="">{t('rentals.quoteForm.noLinkedEvent')}</option>
                 {(eventosCliente || []).filter(e => e.estado === 'activo').map(e => (
                   <option key={e.id} value={e.id}>{e.nombre}</option>
                 ))}
               </select>
               {!formData.cliente_id && (
-                <p className="mt-1 text-xs text-slate-500">Seleccione un cliente primero</p>
+                <p className="mt-1 text-xs text-slate-500">{t('rentals.quoteForm.selectClientFirst')}</p>
               )}
               {formData.cliente_id && (eventosCliente || []).length === 0 && !loadingEventos && (
-                <p className="mt-1 text-xs text-slate-500">Este cliente no tiene eventos activos</p>
+                <p className="mt-1 text-xs text-slate-500">{t('rentals.quoteForm.noActiveEvents')}</p>
               )}
             </div>
           </div>
@@ -1182,10 +1182,9 @@ const CotizacionFormModal = ({
             <div className="flex items-start gap-3">
               <FileEdit className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
               <div>
-                <h4 className="font-medium text-amber-800">Cotizacion en borrador</h4>
+                <h4 className="font-medium text-amber-800">{t('rentals.quoteForm.draftQuote')}</h4>
                 <p className="text-sm text-amber-700 mt-1">
-                  Se guardara como borrador con precio estimado (sin dias extra).
-                  Cuando el cliente confirme las fechas, podra completar la cotizacion.
+                  {t('rentals.quoteForm.draftDescription')}
                 </p>
               </div>
             </div>
@@ -1198,7 +1197,7 @@ const CotizacionFormModal = ({
             {/* Fecha Montaje */}
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
-                Fecha Montaje
+                {t('rentals.quoteForm.assemblyDate')}
               </label>
               <input
                 type="date"
@@ -1208,13 +1207,13 @@ const CotizacionFormModal = ({
                 disabled={isLoading}
                 className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-100"
               />
-              <p className="mt-1 text-xs text-slate-500">Cuando se instala</p>
+              <p className="mt-1 text-xs text-slate-500">{t('rentals.quoteForm.whenInstalled')}</p>
             </div>
 
             {/* Fecha Evento */}
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
-                Fecha Evento *
+                {t('rentals.quoteForm.eventDate')} *
               </label>
               <input
                 type="date"
@@ -1237,7 +1236,7 @@ const CotizacionFormModal = ({
             {/* Fecha Desmontaje */}
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
-                Fecha Desmontaje
+                {t('rentals.quoteForm.disassemblyDate')}
               </label>
               <input
                 type="date"
@@ -1247,7 +1246,7 @@ const CotizacionFormModal = ({
                 disabled={isLoading}
                 className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-100"
               />
-              <p className="mt-1 text-xs text-slate-500">Cuando se recoge</p>
+              <p className="mt-1 text-xs text-slate-500">{t('rentals.quoteForm.whenPickedUp')}</p>
             </div>
           </div>
         )}
@@ -1261,7 +1260,7 @@ const CotizacionFormModal = ({
                 <div className="flex items-start gap-3">
                   <Clock className="w-5 h-5 text-amber-600 mt-0.5" />
                   <div className="flex-1">
-                    <h4 className="font-medium text-amber-800">Días adicionales detectados</h4>
+                    <h4 className="font-medium text-amber-800">{t('rentals.quoteForm.additionalDaysDetected')}</h4>
                     <div className="mt-2 text-sm text-amber-700 space-y-1">
                       {diasMontajeExtra > 0 && (
                         <p>• Montaje: {diasMontajeExtra} día{diasMontajeExtra > 1 ? 's' : ''} extra (gratis: {DIAS_GRATIS_MONTAJE} días antes)</p>
@@ -1289,11 +1288,11 @@ const CotizacionFormModal = ({
         {/* INFORMACION DEL EVENTO - Solo si NO viene de un evento preseleccionado */}
         {!eventoPreseleccionado && (
           <div className="space-y-4">
-            <h3 className="font-semibold text-slate-900">Informacion del Evento</h3>
+            <h3 className="font-semibold text-slate-900">{t('rentals.quoteForm.eventInfo')}</h3>
 
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
-                Nombre del Evento
+                {t('rentals.quoteForm.eventName')}
               </label>
               <input
                 type="text"
@@ -1321,10 +1320,10 @@ const CotizacionFormModal = ({
           <div className="flex items-center justify-between">
             <h3 className="font-semibold text-slate-900 flex items-center gap-2">
               <Package className="w-5 h-5" />
-              Productos *
+              {t('rentals.quoteForm.products')} *
               {productosSeleccionados.length > 0 && (
                 <span className="text-sm font-normal text-slate-500">
-                  ({productosSeleccionados.length} agregado{productosSeleccionados.length !== 1 ? 's' : ''})
+                  ({productosSeleccionados.length} {t('rentals.quoteForm.added')})
                 </span>
               )}
             </h3>
@@ -1337,7 +1336,7 @@ const CotizacionFormModal = ({
               icon={mostrarSelectorProductos ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
               onClick={() => setMostrarSelectorProductos(!mostrarSelectorProductos)}
             >
-              {mostrarSelectorProductos ? 'Ocultar selector' : 'Mostrar selector'}
+              {mostrarSelectorProductos ? t('rentals.quoteForm.hideSelector') : t('rentals.quoteForm.showSelector')}
             </Button>
           </div>
 
@@ -1365,8 +1364,8 @@ const CotizacionFormModal = ({
           {productosSeleccionados.length === 0 ? (
             <div className="py-8 text-center border-2 border-dashed border-slate-200 rounded-xl bg-slate-50/50">
               <Package className="w-10 h-10 mx-auto text-slate-300 mb-2" />
-              <p className="text-sm text-slate-500">No hay productos agregados</p>
-              <p className="text-xs text-slate-400 mt-1">Seleccione productos de las categorías a la izquierda</p>
+              <p className="text-sm text-slate-500">{t('rentals.quoteForm.noProductsAdded')}</p>
+              <p className="text-xs text-slate-400 mt-1">{t('rentals.quoteForm.selectFromCategories')}</p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -1424,7 +1423,7 @@ const CotizacionFormModal = ({
                   <div className="px-3 pb-3 flex flex-wrap items-end gap-2">
                     {/* Cantidad */}
                     <div className="flex-shrink-0">
-                      <label className="text-[11px] font-medium text-slate-500 mb-1 block">Cantidad</label>
+                      <label className="text-[11px] font-medium text-slate-500 mb-1 block">{t('rentals.quoteForm.quantity')}</label>
                       <div className="flex items-center gap-0.5 bg-slate-100 rounded-lg p-0.5">
                         <button
                           type="button"
@@ -1455,7 +1454,7 @@ const CotizacionFormModal = ({
 
                     {/* Precio unitario */}
                     <div className="w-28">
-                      <label className="text-[11px] font-medium text-slate-500 mb-1 block">Precio unit.</label>
+                      <label className="text-[11px] font-medium text-slate-500 mb-1 block">{t('rentals.quoteForm.unitPrice')}</label>
                       <input
                         type="number"
                         min="0"
@@ -1468,7 +1467,7 @@ const CotizacionFormModal = ({
 
                     {/* Descuento % */}
                     <div className="w-20">
-                      <label className="text-[11px] font-medium text-slate-500 mb-1 block">Desc. %</label>
+                      <label className="text-[11px] font-medium text-slate-500 mb-1 block">{t('rentals.quoteForm.discountPct')}</label>
                       <div className="relative">
                         <input
                           type="number"
@@ -1487,7 +1486,7 @@ const CotizacionFormModal = ({
 
                     {/* Subtotal */}
                     <div className="flex-1 text-right">
-                      <label className="text-[11px] font-medium text-slate-500 mb-1 block">Subtotal</label>
+                      <label className="text-[11px] font-medium text-slate-500 mb-1 block">{t('rentals.quoteForm.subtotal')}</label>
                       <p className="text-sm font-semibold text-slate-800 py-1.5">{formatearMoneda(subtotalProducto - calcularDescuentoProducto(prod))}</p>
                       {calcularDescuentoProducto(prod) > 0 && (
                         <p className="text-[10px] text-green-600 -mt-1">-{formatearMoneda(calcularDescuentoProducto(prod))}</p>
@@ -1519,7 +1518,7 @@ const CotizacionFormModal = ({
                           <div className="flex items-center justify-between mb-2">
                             <span className="text-xs font-medium text-slate-600 flex items-center gap-1">
                               <Clock className="w-3.5 h-3.5" />
-                              Recargos ({prod.recargos.length})
+                              {t('rentals.quoteForm.surcharges')} ({prod.recargos.length})
                             </span>
                             <button
                               type="button"
@@ -1528,7 +1527,7 @@ const CotizacionFormModal = ({
                               disabled={isLoading}
                             >
                               <Plus className="w-3 h-3" />
-                              Agregar
+                              {t('rentals.quoteForm.add')}
                             </button>
                           </div>
 
@@ -1549,7 +1548,7 @@ const CotizacionFormModal = ({
                                       ? 'bg-blue-100 text-blue-700'
                                       : 'bg-orange-100 text-orange-700'
                                   }`}>
-                                    {recargo.tipo === 'adelanto' ? 'Adelanto' : 'Extensión'}
+                                    {recargo.tipo === 'adelanto' ? t('rentals.quoteForm.advance') : t('rentals.quoteForm.extension')}
                                   </span>
                                   <span className="text-slate-600">
                                     {recargo.dias} día{recargo.dias > 1 ? 's' : ''} @ {recargo.porcentaje}%
@@ -1582,7 +1581,7 @@ const CotizacionFormModal = ({
                           ))}
                           {/* Total recargos del producto */}
                           <div className="text-right text-xs pt-1">
-                            <span className="text-slate-500">Total recargos: </span>
+                            <span className="text-slate-500">{t('rentals.quoteForm.totalSurcharges')}: </span>
                             <span className="font-medium text-slate-700">
                               +{formatearMoneda(calcularTotalRecargosProducto(prod))}
                             </span>
@@ -1599,7 +1598,7 @@ const CotizacionFormModal = ({
                             disabled={isLoading}
                           >
                             <Plus className="w-3 h-3" />
-                            Agregar recargo
+                            {t('rentals.quoteForm.addSurcharge')}
                           </button>
                         </div>
                       )}
@@ -1612,23 +1611,23 @@ const CotizacionFormModal = ({
 
           <div className="text-right text-sm space-y-1">
             <div>
-              <span className="text-slate-600">Subtotal productos: </span>
+              <span className="text-slate-600">{t('rentals.quoteForm.subtotalProducts')}: </span>
               <span className="font-medium">{formatearMoneda(calcularSubtotalProductosSinRecargos())}</span>
             </div>
             {calcularTotalDescuentosProductos() > 0 && (
               <div>
-                <span className="text-slate-600">Descuentos productos: </span>
+                <span className="text-slate-600">{t('rentals.quoteForm.productDiscounts')}: </span>
                 <span className="font-medium text-green-600">-{formatearMoneda(calcularTotalDescuentosProductos())}</span>
               </div>
             )}
             {calcularTotalRecargos() > 0 && (
               <div>
-                <span className="text-slate-600">Total recargos: </span>
+                <span className="text-slate-600">{t('rentals.quoteForm.totalSurcharges')}: </span>
                 <span className="font-medium text-orange-600">+{formatearMoneda(calcularTotalRecargos())}</span>
               </div>
             )}
             <div className="pt-1 border-t border-slate-200">
-              <span className="text-slate-700 font-medium">Total productos: </span>
+              <span className="text-slate-700 font-medium">{t('rentals.quoteForm.totalProducts')}: </span>
               <span className="font-semibold">{formatearMoneda(calcularSubtotalProductos())}</span>
             </div>
           </div>
@@ -1644,7 +1643,7 @@ const CotizacionFormModal = ({
                 icon={<CheckCircle className="w-4 h-4" />}
                 className="w-full"
               >
-                Verificar Disponibilidad
+                {t('rentals.quoteForm.checkAvailability')}
               </Button>
             </div>
           )}
@@ -1664,13 +1663,13 @@ const CotizacionFormModal = ({
           <div className="space-y-4">
             <h3 className="font-semibold text-slate-900 flex items-center gap-2">
               <MapPin className="w-5 h-5" />
-              Destino del Evento
+              {t('rentals.quoteForm.eventDestination')}
             </h3>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Ciudad *
+                  {t('rentals.quoteForm.cityRequired')}
                 </label>
                 <select
                   name="evento_ciudad_id"
@@ -1684,7 +1683,7 @@ const CotizacionFormModal = ({
                     ${errors.evento_ciudad ? 'border-red-300' : 'border-slate-300'}
                   `}
                 >
-                  <option value="">Seleccionar ciudad...</option>
+                  <option value="">{t('rentals.quoteForm.selectCityPlaceholder')}</option>
                   {ciudadesPorDepartamento.map(([departamento, ciudadesDepto]) => (
                     <optgroup key={departamento} label={departamento}>
                       {ciudadesDepto.map(ciudad => (
@@ -1698,7 +1697,7 @@ const CotizacionFormModal = ({
                 )}
                 {ciudades.length === 0 && !loadingCiudades && (
                   <p className="mt-1 text-xs text-amber-600">
-                    No hay ciudades. Cree ciudades en Configuracion primero.
+                    {t('rentals.quoteForm.noCitiesConfig')}
                   </p>
                 )}
               </div>
@@ -1706,7 +1705,7 @@ const CotizacionFormModal = ({
               {formData.evento_ciudad_id && (
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Direccion del Evento
+                    {t('rentals.quoteForm.eventAddress')}
                   </label>
                   <input
                     type="text"
@@ -1724,7 +1723,7 @@ const CotizacionFormModal = ({
             {/* Ubicaciones conocidas como sugerencias rapidas */}
             {formData.evento_ciudad_id && ubicacionesFiltradas.length > 0 && (
               <div>
-                <p className="text-xs font-medium text-slate-500 mb-1.5">Ubicaciones frecuentes en {formData.evento_ciudad}:</p>
+                <p className="text-xs font-medium text-slate-500 mb-1.5">{t('rentals.quoteForm.frequentLocations', { city: formData.evento_ciudad })}</p>
                 <div className="flex flex-wrap gap-1.5">
                   {ubicacionesFiltradas.map(u => (
                     <button
@@ -1753,7 +1752,7 @@ const CotizacionFormModal = ({
             {/* Direcciones anteriores del cliente */}
             {ubicacionesCliente.length > 0 && (
               <div>
-                <p className="text-xs font-medium text-slate-500 mb-1.5">Direcciones anteriores de este cliente:</p>
+                <p className="text-xs font-medium text-slate-500 mb-1.5">{t('rentals.quoteForm.previousAddresses')}</p>
                 <div className="flex flex-wrap gap-1.5">
                   {ubicacionesCliente.map((uc, idx) => {
                     const ciudadMatch = uc.evento_ciudad ? ciudades.find(c => c.nombre === uc.evento_ciudad) : null
@@ -1795,7 +1794,7 @@ const CotizacionFormModal = ({
           <div className="flex items-center justify-between">
             <h3 className="font-semibold text-slate-900 flex items-center gap-2">
               <Truck className="w-5 h-5" />
-              Transporte
+              {t('rentals.quoteForm.transport')}
               {formData.evento_ciudad && (
                 <span className="text-sm font-normal text-slate-500">
                   ({formData.evento_ciudad})
@@ -1810,26 +1809,26 @@ const CotizacionFormModal = ({
               onClick={agregarTransporte}
               disabled={isLoading || loadingTarifas || !formData.evento_ciudad_id}
             >
-              Agregar viaje
+              {t('rentals.quoteForm.addTrip')}
             </Button>
           </div>
 
           {!formData.evento_ciudad_id ? (
             <div className="py-6 text-center border-2 border-dashed border-amber-300 rounded-xl bg-amber-50/50">
               <MapPin className="w-8 h-8 mx-auto text-amber-400 mb-2" />
-              <p className="text-sm font-medium text-amber-700">Seleccione una ciudad primero</p>
-              <p className="text-xs text-amber-600 mt-1">Use el selector de ciudad de arriba para ver las tarifas disponibles</p>
+              <p className="text-sm font-medium text-amber-700">{t('rentals.quoteForm.selectCityFirst')}</p>
+              <p className="text-xs text-amber-600 mt-1">{t('rentals.quoteForm.useCitySelectorAbove')}</p>
             </div>
           ) : tarifasFiltradas.length === 0 ? (
             <div className="py-6 text-center border-2 border-dashed border-slate-200 rounded-xl bg-slate-50/50">
               <AlertCircle className="w-8 h-8 mx-auto text-slate-300 mb-2" />
-              <p className="text-sm font-medium text-slate-600">No hay tarifas para {formData.evento_ciudad}</p>
-              <p className="text-xs text-slate-500 mt-1">Configure tarifas de transporte en la seccion de Ciudades</p>
+              <p className="text-sm font-medium text-slate-600">{t('rentals.quoteForm.noRatesForCity', { city: formData.evento_ciudad })}</p>
+              <p className="text-xs text-slate-500 mt-1">{t('rentals.quoteForm.configureRates')}</p>
             </div>
           ) : transporteSeleccionado.length === 0 ? (
             <div className="py-6 text-center border-2 border-dashed border-slate-200 rounded-xl bg-slate-50/50">
               <Truck className="w-8 h-8 mx-auto text-slate-300 mb-2" />
-              <p className="text-sm text-slate-500">Sin transporte agregado</p>
+              <p className="text-sm text-slate-500">{t('rentals.quoteForm.noTransportAdded')}</p>
               <p className="text-xs text-slate-400 mt-1">{tarifasFiltradas.length} tarifa{tarifasFiltradas.length !== 1 ? 's' : ''} disponible{tarifasFiltradas.length !== 1 ? 's' : ''} para {formData.evento_ciudad}</p>
             </div>
           ) : (
@@ -1844,14 +1843,14 @@ const CotizacionFormModal = ({
                       {/* Fila principal: tarifa + cantidad + eliminar */}
                       <div className="flex gap-3 items-start">
                         <div className="flex-1">
-                          <label className="text-[11px] font-medium text-slate-500 mb-1 block">Tipo de camion</label>
+                          <label className="text-[11px] font-medium text-slate-500 mb-1 block">{t('rentals.quoteForm.truckType')}</label>
                           <select
                             value={trans.tarifa_id}
                             onChange={(e) => actualizarTransporte(index, 'tarifa_id', e.target.value)}
                             disabled={isLoading || !formData.evento_ciudad_id}
                             className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                           >
-                            <option value="">Seleccionar tarifa...</option>
+                            <option value="">{t('rentals.quoteForm.selectRate')}</option>
                             {tarifasFiltradas.map(t => (
                               <option key={t.id} value={t.id}>
                                 {t.tipo_camion} - {formatearMoneda(t.precio)}
@@ -1936,7 +1935,7 @@ const CotizacionFormModal = ({
         {/* NOTAS */}
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-2">
-            Notas
+            {t('rentals.quoteForm.notesLabel')}
           </label>
           <textarea
             name="notas"
@@ -1963,7 +1962,7 @@ const CotizacionFormModal = ({
             return (
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-slate-600">Subtotal antes de descuentos:</span>
+                  <span className="text-sm text-slate-600">{t('rentals.quoteForm.subtotalBeforeDiscounts')}</span>
                   <span className="text-lg font-semibold text-slate-800">{formatearMoneda(totales.subtotalBruto)}</span>
                 </div>
               </div>
@@ -1985,14 +1984,14 @@ const CotizacionFormModal = ({
             const totales = calcularTotalesConIVA()
             return (
               <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                <h4 className="text-sm font-medium text-green-800 mb-2">Impacto de los descuentos</h4>
+                <h4 className="text-sm font-medium text-green-800 mb-2">{t('rentals.quoteForm.discountImpact')}</h4>
                 <div className="space-y-1 text-sm">
                   <div className="flex justify-between">
                     <span className="text-slate-600">Subtotal:</span>
                     <span className="font-medium">{formatearMoneda(totales.subtotalBruto)}</span>
                   </div>
                   <div className="flex justify-between text-red-600">
-                    <span>Descuentos:</span>
+                    <span>{t('rentals.quoteForm.discountsLabel')}:</span>
                     <span className="font-medium">-{formatearMoneda(totales.descuento)}</span>
                   </div>
                   <div className="flex justify-between pt-1 border-t border-green-300">
@@ -2018,23 +2017,23 @@ const CotizacionFormModal = ({
           <div className="bg-slate-50 rounded-lg p-4">
             <h4 className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
               <Calendar className="w-4 h-4" />
-              Evento
+              {t('rentals.quoteForm.event')}
             </h4>
             <div className="grid grid-cols-2 gap-2 text-sm">
               {formData.evento_nombre && (
-                <div><span className="text-slate-500">Nombre:</span> <span className="font-medium">{formData.evento_nombre}</span></div>
+                <div><span className="text-slate-500">{t('rentals.quoteForm.name')}</span> <span className="font-medium">{formData.evento_nombre}</span></div>
               )}
-              <div><span className="text-slate-500">Ciudad:</span> <span className="font-medium">{formData.evento_ciudad || '-'}</span></div>
+              <div><span className="text-slate-500">{t('rentals.quoteForm.cityLabel')}</span> <span className="font-medium">{formData.evento_ciudad || '-'}</span></div>
               {fechasPorConfirmar ? (
-                <div className="col-span-2 text-amber-600 italic">Fechas por confirmar (borrador)</div>
+                <div className="col-span-2 text-amber-600 italic">{t('rentals.quoteForm.datesToConfirm')}</div>
               ) : (
                 <>
-                  <div><span className="text-slate-500">Evento:</span> <span className="font-medium">{formData.fecha_evento || '-'}</span></div>
+                  <div><span className="text-slate-500">{t('rentals.quoteForm.event')}:</span> <span className="font-medium">{formData.fecha_evento || '-'}</span></div>
                   {formData.fecha_montaje && formData.fecha_montaje !== formData.fecha_evento && (
-                    <div><span className="text-slate-500">Montaje:</span> <span className="font-medium">{formData.fecha_montaje}</span></div>
+                    <div><span className="text-slate-500">{t('rentals.quoteForm.assembly')}</span> <span className="font-medium">{formData.fecha_montaje}</span></div>
                   )}
                   {formData.fecha_desmontaje && formData.fecha_desmontaje !== formData.fecha_evento && (
-                    <div><span className="text-slate-500">Desmontaje:</span> <span className="font-medium">{formData.fecha_desmontaje}</span></div>
+                    <div><span className="text-slate-500">{t('rentals.quoteForm.disassembly')}</span> <span className="font-medium">{formData.fecha_desmontaje}</span></div>
                   )}
                 </>
               )}
@@ -2045,7 +2044,7 @@ const CotizacionFormModal = ({
           <div className="bg-slate-50 rounded-lg p-4">
             <h4 className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
               <Package className="w-4 h-4" />
-              Productos ({productosSeleccionados.length})
+              {t('rentals.quoteForm.products')} ({productosSeleccionados.length})
             </h4>
             <div className="space-y-1">
               {productosSeleccionados.map((prod, idx) => {
@@ -2070,7 +2069,7 @@ const CotizacionFormModal = ({
             <div className="bg-slate-50 rounded-lg p-4">
               <h4 className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
                 <Truck className="w-4 h-4" />
-                Transporte
+                {t('rentals.quoteForm.transport')}
               </h4>
               <div className="space-y-1">
                 {transporteSeleccionado.map((trans, idx) => {
@@ -2095,14 +2094,14 @@ const CotizacionFormModal = ({
             <div className="bg-slate-100 rounded-lg p-4 space-y-2">
               {/* Subtotal Productos */}
               <div className="flex justify-between items-center text-sm">
-                <span className="text-slate-600">Subtotal productos:</span>
+                <span className="text-slate-600">{t('rentals.quoteForm.subtotalProducts')}:</span>
                 <span className="font-medium">{formatearMoneda(totales.subtotalProductos)}</span>
               </div>
 
               {/* Subtotal Transporte */}
               {totales.subtotalTransporte > 0 && (
                 <div className="flex justify-between items-center text-sm">
-                  <span className="text-slate-600">Subtotal transporte:</span>
+                  <span className="text-slate-600">{t('rentals.quoteForm.subtotalTransport')}:</span>
                   <span className="font-medium">{formatearMoneda(totales.subtotalTransporte)}</span>
                 </div>
               )}
@@ -2110,7 +2109,7 @@ const CotizacionFormModal = ({
               {/* Días Adicionales */}
               {totales.cobroDiasExtra > 0 && (
                 <div className="flex justify-between items-center text-sm text-amber-700">
-                  <span>Días adicionales ({totales.totalDiasExtra} días):</span>
+                  <span>{t('rentals.quoteForm.additionalDays', { days: totales.totalDiasExtra })}:</span>
                   <span className="font-medium">+{formatearMoneda(totales.cobroDiasExtra)}</span>
                 </div>
               )}
@@ -2118,7 +2117,7 @@ const CotizacionFormModal = ({
               {/* Línea separadora */}
               <div className="border-t border-slate-300 pt-2">
                 <div className="flex justify-between items-center text-sm">
-                  <span className="text-slate-600">Subtotal:</span>
+                  <span className="text-slate-600">{t('rentals.quoteForm.subtotal')}:</span>
                   <span className="font-medium">{formatearMoneda(totales.subtotalBruto)}</span>
                 </div>
               </div>
@@ -2126,14 +2125,14 @@ const CotizacionFormModal = ({
               {/* Mostrar total descuento si hay */}
               {totales.descuento > 0 && (
                 <div className="flex justify-between items-center text-sm text-red-600">
-                  <span>Total descuentos:</span>
+                  <span>{t('rentals.quoteForm.totalDiscounts')}:</span>
                   <span className="font-medium">-{formatearMoneda(totales.descuento)}</span>
                 </div>
               )}
 
               {/* Base Gravable */}
               <div className="flex justify-between items-center text-sm border-t border-slate-300 pt-2">
-                <span className="text-slate-700 font-medium">Base gravable:</span>
+                <span className="text-slate-700 font-medium">{t('rentals.quoteForm.taxableBase')}:</span>
                 <span className="font-medium">{formatearMoneda(totales.baseGravable)}</span>
               </div>
 
@@ -2145,7 +2144,7 @@ const CotizacionFormModal = ({
 
               {/* TOTAL FINAL */}
               <div className="flex justify-between items-center pt-3 border-t-2 border-slate-400">
-                <span className="text-lg font-bold text-slate-900">TOTAL:</span>
+                <span className="text-lg font-bold text-slate-900">{t('rentals.quoteForm.total')}</span>
                 <span className="text-lg font-bold text-blue-600">{formatearMoneda(totales.totalFinal)}</span>
               </div>
             </div>
@@ -2167,7 +2166,7 @@ const CotizacionFormModal = ({
                 icon={<ChevronLeft className="w-4 h-4" />}
                 onClick={anterior}
               >
-                Anterior
+                {t('rentals.quoteForm.previous')}
               </Button>
             )}
           </div>
@@ -2180,7 +2179,7 @@ const CotizacionFormModal = ({
               onClick={handleClose}
               disabled={isLoading}
             >
-              Cancelar
+              {t('rentals.quoteForm.cancel')}
             </Button>
 
             {pasoActual < 5 ? (
@@ -2190,7 +2189,7 @@ const CotizacionFormModal = ({
                 size="sm"
                 onClick={siguiente}
               >
-                Siguiente
+                {t('rentals.quoteForm.next')}
                 <ChevronRight className="w-4 h-4 ml-1" />
               </Button>
             ) : (
@@ -2201,8 +2200,8 @@ const CotizacionFormModal = ({
                 disabled={isLoading}
               >
                 {mode === 'crear'
-                  ? (fechasPorConfirmar ? 'Crear Borrador' : 'Crear Cotizacion')
-                  : 'Guardar Cambios'
+                  ? (fechasPorConfirmar ? t('rentals.quoteForm.createDraft') : t('rentals.quoteForm.createQuote'))
+                  : t('rentals.quoteForm.saveChanges')
                 }
               </Button>
             )}
@@ -2265,8 +2264,8 @@ const CotizacionFormModal = ({
                 <MapPin className="w-5 h-5 text-blue-600" />
               </div>
               <div>
-                <h3 className="font-semibold text-slate-800">Guardar dirección</h3>
-                <p className="text-sm text-slate-500">¿Quieres guardar esta dirección para usarla después?</p>
+                <h3 className="font-semibold text-slate-800">{t('rentals.quoteForm.saveAddress')}</h3>
+                <p className="text-sm text-slate-500">{t('rentals.quoteForm.saveAddressQuestion')}</p>
               </div>
             </div>
 
@@ -2276,7 +2275,7 @@ const CotizacionFormModal = ({
 
             <div className="space-y-3 mb-5">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Nombre de la ubicación *</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">{t('rentals.quoteForm.locationName')}</label>
                 <input
                   type="text"
                   value={guardarUbicacion.nombre}
@@ -2287,22 +2286,22 @@ const CotizacionFormModal = ({
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Tipo de lugar</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">{t('rentals.quoteForm.locationType')}</label>
                 <select
                   value={guardarUbicacion.tipo}
                   onChange={(e) => setGuardarUbicacion(prev => ({ ...prev, tipo: e.target.value }))}
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
-                  <option value="finca">Finca</option>
-                  <option value="hacienda">Hacienda</option>
-                  <option value="club">Club</option>
-                  <option value="hotel">Hotel</option>
-                  <option value="jardin">Jardín</option>
-                  <option value="playa">Playa</option>
-                  <option value="parque">Parque</option>
-                  <option value="residencia">Residencia</option>
-                  <option value="evento">Lugar de evento</option>
-                  <option value="otro">Otro</option>
+                  <option value="finca">{t('rentals.quoteForm.locationTypes.finca')}</option>
+                  <option value="hacienda">{t('rentals.quoteForm.locationTypes.hacienda')}</option>
+                  <option value="club">{t('rentals.quoteForm.locationTypes.club')}</option>
+                  <option value="hotel">{t('rentals.quoteForm.locationTypes.hotel')}</option>
+                  <option value="jardin">{t('rentals.quoteForm.locationTypes.jardin')}</option>
+                  <option value="playa">{t('rentals.quoteForm.locationTypes.playa')}</option>
+                  <option value="parque">{t('rentals.quoteForm.locationTypes.parque')}</option>
+                  <option value="residencia">{t('rentals.quoteForm.locationTypes.residencia')}</option>
+                  <option value="evento">{t('rentals.quoteForm.locationTypes.evento')}</option>
+                  <option value="otro">{t('rentals.quoteForm.locationTypes.otro')}</option>
                 </select>
               </div>
             </div>
@@ -2313,7 +2312,7 @@ const CotizacionFormModal = ({
                 onClick={handleSkipGuardarUbicacion}
                 className="flex-1 px-4 py-2.5 text-sm font-medium text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors"
               >
-                No, gracias
+                {t('rentals.quoteForm.noThanks')}
               </button>
               <button
                 type="button"
@@ -2322,7 +2321,7 @@ const CotizacionFormModal = ({
                 className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 <Save className="w-4 h-4" />
-                {isCreatingUbicacion ? 'Guardando...' : 'Guardar'}
+                {isCreatingUbicacion ? t('rentals.quoteForm.savingLocation') : t('rentals.quoteForm.save')}
               </button>
             </div>
           </div>
