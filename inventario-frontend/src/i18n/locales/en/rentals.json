@@ -1,5 +1,20 @@
 {
   "rentals": {
+    "sidebar": {
+      "title": "Rentals",
+      "quotes": "Quotes",
+      "rentals": "Rentals",
+      "clients": "Clients",
+      "transport": "Transport",
+      "calendar": "Calendar",
+      "reports": "Reports",
+      "rentalHistory": "Rental History",
+      "eventHistory": "Event History",
+      "settings": "Settings",
+      "discounts": "Discounts",
+      "taxes": "Taxes (VAT)",
+      "extraDays": "Extra Days"
+    },
     "title": "Rentals",
     "description": "Quotes, contracts and rental management.",
     "tags": [

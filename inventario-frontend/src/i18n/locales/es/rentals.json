@@ -1,5 +1,20 @@
 {
   "rentals": {
+    "sidebar": {
+      "title": "Alquileres",
+      "quotes": "Cotizaciones",
+      "rentals": "Alquileres",
+      "clients": "Clientes",
+      "transport": "Transporte",
+      "calendar": "Calendario",
+      "reports": "Reportes",
+      "rentalHistory": "Historial Alquileres",
+      "eventHistory": "Historial Eventos",
+      "settings": "Configuración",
+      "discounts": "Descuentos",
+      "taxes": "Impuestos (IVA)",
+      "extraDays": "Días Extra"
+    },
     "title": "Alquileres",
     "description": "Cotizaciones, contratos y gestión de alquileres.",
     "tags": [
