@@ -746,6 +746,7 @@
     "deleteSurcharge": "Delete surcharge",
     "addressPlaceholder": "E.g.: 123 Main St, La Esperanza Farm...",
     "deleteTransport": "Delete transport",
-    "deliveryInstructionsPlaceholder": "Special delivery instructions, schedules, site access..."
+    "deliveryInstructionsPlaceholder": "Special delivery instructions, schedules, site access...",
+    "locationNamePlaceholder": "E.g.: \"Villa Maria Farm\", \"Lake Club\""
   }
 }

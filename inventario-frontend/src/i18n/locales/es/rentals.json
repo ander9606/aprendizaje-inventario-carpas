@@ -746,6 +746,7 @@
     "deleteSurcharge": "Eliminar recargo",
     "addressPlaceholder": "Ej: Calle 80 #45-20, Finca La Esperanza...",
     "deleteTransport": "Eliminar transporte",
-    "deliveryInstructionsPlaceholder": "Instrucciones especiales de entrega, horarios, acceso al lugar..."
+    "deliveryInstructionsPlaceholder": "Instrucciones especiales de entrega, horarios, acceso al lugar...",
+    "locationNamePlaceholder": "Ej: \"Finca Villa María\", \"Club El Lago\""
   }
 }
