@@ -17,8 +17,6 @@ const ESTADO_BADGE_STYLES = {
   danado: 'bg-red-100 text-red-800',
 }
 
-// ESTADO_LABEL is now handled via t() in EstadoBadgeInline
-
 function StatMini({ label, value, bgColor, borderColor, textColor }) {
   return (
     <div className={`flex-1 rounded-lg border ${bgColor} ${borderColor} py-2.5 px-3.5 text-center`}>
@@ -30,10 +28,9 @@ function StatMini({ label, value, bgColor, borderColor, textColor }) {
 
 function EstadoBadgeInline({ estado }) {
   const styles = ESTADO_BADGE_STYLES[estado] || 'bg-slate-100 text-slate-700'
-  const label = ESTADO_LABEL[estado] || estado
   return (
     <span className={`inline-block rounded-md px-2 py-0.5 text-[11px] font-semibold ${styles}`}>
-      {label}
+      {estado}
     </span>
   )
 }
@@ -99,13 +96,13 @@ const ModalVerEstados = ({ isOpen, onClose, elemento }) => {
                 <h2 className="text-lg font-bold text-slate-900">{elemento.nombre}</h2>
                 <div className="flex items-center gap-2 mt-0.5">
                   <span className="inline-block bg-blue-50 text-blue-600 rounded px-1.5 py-0.5 text-[11px] font-medium">
-                    {elemento.categoria_padre_nombre || 'Sin categoría'}
+                    {elemento.categoria_padre_nombre || t('inventory.noCategory')}
                   </span>
                   <span className="text-xs text-slate-500">
-                    · {elemento.categoria_nombre || 'Sin subcategoría'}
+                    · {elemento.categoria_nombre || t('inventory.noSubcategory')}
                   </span>
                   <span className="text-xs text-slate-500">
-                    · {total} {total === 1 ? 'unidad' : 'unidades'}
+                    · {total} {total === 1 ? t('inventory.unitSingular') : t('inventory.unitPlural')}
                   </span>
                 </div>
               </div>
@@ -120,10 +117,10 @@ const ModalVerEstados = ({ isOpen, onClose, elemento }) => {
 
           {/* Summary stats */}
           <div className="flex gap-2">
-            <StatMini label="Bueno" value={stats.bueno} bgColor="bg-green-50" borderColor="border-green-200" textColor="text-green-800" />
-            <StatMini label="Alquilado" value={stats.alquilado} bgColor="bg-amber-50" borderColor="border-amber-200" textColor="text-amber-800" />
-            <StatMini label="Manten." value={stats.mantenimiento} bgColor="bg-orange-50" borderColor="border-orange-200" textColor="text-orange-800" />
-            <StatMini label="Dañado" value={stats.danado} bgColor="bg-red-50" borderColor="border-red-200" textColor="text-red-800" />
+            <StatMini label={t('states.good')} value={stats.bueno} bgColor="bg-green-50" borderColor="border-green-200" textColor="text-green-800" />
+            <StatMini label={t('states.rented')} value={stats.alquilado} bgColor="bg-amber-50" borderColor="border-amber-200" textColor="text-amber-800" />
+            <StatMini label={t('states.maintenanceShort')} value={stats.mantenimiento} bgColor="bg-orange-50" borderColor="border-orange-200" textColor="text-orange-800" />
+            <StatMini label={t('states.damaged')} value={stats.danado} bgColor="bg-red-50" borderColor="border-red-200" textColor="text-red-800" />
           </div>
         </div>
 
@@ -138,14 +135,14 @@ const ModalVerEstados = ({ isOpen, onClose, elemento }) => {
             <>
               {/* Table header */}
               <div className="flex items-center gap-2 py-3 border-b border-slate-200 text-xs font-semibold text-slate-500">
-                <span className="w-[120px]">Nº Serie</span>
-                <span className="flex-1">Ubicación</span>
-                <span className="w-[110px]">Estado</span>
-                <span className="w-[110px]">Últ. actualización</span>
+                <span className="w-[120px]">{t('inventory.serialNumber')}</span>
+                <span className="flex-1">{t('common.location')}</span>
+                <span className="w-[110px]">{t('common.status')}</span>
+                <span className="w-[110px]">{t('inventory.lastUpdateShort')}</span>
               </div>
               {/* Series rows */}
               {series.length === 0 ? (
-                <p className="text-center text-slate-500 py-8 text-sm">Sin series registradas</p>
+                <p className="text-center text-slate-500 py-8 text-sm">{t('inventory.noSeriesRegistered')}</p>
               ) : (
                 series.map((serie) => {
                   const rowBg = serie.estado === 'mantenimiento' ? 'bg-amber-50/50' :
@@ -159,7 +156,7 @@ const ModalVerEstados = ({ isOpen, onClose, elemento }) => {
                         {serie.numero_serie}
                       </span>
                       <span className="flex-1 text-[13px] text-slate-600 truncate">
-                        {serie.ubicacion || 'Sin ubicación'}
+                        {serie.ubicacion || t('inventory.noLocation')}
                       </span>
                       <span className="w-[110px] flex justify-center">
                         <EstadoBadgeInline estado={serie.estado} />
@@ -177,14 +174,14 @@ const ModalVerEstados = ({ isOpen, onClose, elemento }) => {
             <>
               {/* Table header */}
               <div className="flex items-center gap-2 py-3 border-b border-slate-200 text-xs font-semibold text-slate-500">
-                <span className="flex-1">Ubicación</span>
-                <span className="w-[110px]">Estado</span>
-                <span className="w-[80px] text-center">Cantidad</span>
-                <span className="w-[110px]">Últ. actualización</span>
+                <span className="flex-1">{t('common.location')}</span>
+                <span className="w-[110px]">{t('common.status')}</span>
+                <span className="w-[80px] text-center">{t('common.quantity')}</span>
+                <span className="w-[110px]">{t('inventory.lastUpdateShort')}</span>
               </div>
               {/* Lote rows */}
               {lotes.length === 0 ? (
-                <p className="text-center text-slate-500 py-8 text-sm">Sin lotes registrados</p>
+                <p className="text-center text-slate-500 py-8 text-sm">{t('inventory.noBatchesRegistered')}</p>
               ) : (
                 lotes.map((lote) => {
                   const rowBg = lote.estado === 'mantenimiento' ? 'bg-amber-50/50' :
@@ -195,7 +192,7 @@ const ModalVerEstados = ({ isOpen, onClose, elemento }) => {
                       className={`flex items-center gap-2 py-2.5 border-b border-slate-100 ${rowBg}`}
                     >
                       <span className="flex-1 text-[13px] text-slate-600 truncate">
-                        {lote.ubicacion || 'Sin ubicación'}
+                        {lote.ubicacion || t('inventory.noLocation')}
                       </span>
                       <span className="w-[110px] flex justify-center">
                         <EstadoBadgeInline estado={lote.estado} />

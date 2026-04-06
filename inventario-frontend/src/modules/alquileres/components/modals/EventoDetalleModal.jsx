@@ -79,20 +79,20 @@ const EventoDetalleModal = ({ isOpen, onClose, eventoId, onCrearCotizacion, onEd
 
     const getEstadoConfig = (estado) => {
         const config = {
-            borrador: { color: 'bg-amber-100 text-amber-700 border-amber-200', icon: FileEdit, label: 'Borrador' },
-            pendiente: { color: 'bg-yellow-100 text-yellow-700 border-yellow-200', icon: Clock, label: 'Pendiente' },
-            aprobada: { color: 'bg-green-100 text-green-700 border-green-200', icon: CheckCircle, label: 'Aprobada' },
-            rechazada: { color: 'bg-red-100 text-red-700 border-red-200', icon: XCircle, label: 'Rechazada' },
-            vencida: { color: 'bg-slate-100 text-slate-600 border-slate-200', icon: AlertCircle, label: 'Vencida' }
+            borrador: { color: 'bg-amber-100 text-amber-700 border-amber-200', icon: FileEdit, label: t('rentals.eventDetail.draft') },
+            pendiente: { color: 'bg-yellow-100 text-yellow-700 border-yellow-200', icon: Clock, label: t('rentals.pending') },
+            aprobada: { color: 'bg-green-100 text-green-700 border-green-200', icon: CheckCircle, label: t('rentals.approved') },
+            rechazada: { color: 'bg-red-100 text-red-700 border-red-200', icon: XCircle, label: t('rentals.rejected') },
+            vencida: { color: 'bg-slate-100 text-slate-600 border-slate-200', icon: AlertCircle, label: t('rentals.expired') }
         }
         return config[estado] || config.pendiente
     }
 
     const getEstadoEventoConfig = (estado) => {
         const config = {
-            activo: { color: 'bg-green-100 text-green-700', icon: Clock, label: 'Activo' },
-            completado: { color: 'bg-blue-100 text-blue-700', icon: CheckCircle, label: 'Completado' },
-            cancelado: { color: 'bg-red-100 text-red-700', icon: XCircle, label: 'Cancelado' }
+            activo: { color: 'bg-green-100 text-green-700', icon: Clock, label: t('rentals.active') },
+            completado: { color: 'bg-blue-100 text-blue-700', icon: CheckCircle, label: t('rentals.completed') },
+            cancelado: { color: 'bg-red-100 text-red-700', icon: XCircle, label: t('rentals.cancelled') }
         }
         return config[estado] || config.activo
     }
@@ -109,7 +109,7 @@ const EventoDetalleModal = ({ isOpen, onClose, eventoId, onCrearCotizacion, onEd
     }
 
     const handleEliminarCotizacion = async (cotizacionId) => {
-        if (!confirm('¿Está seguro de eliminar esta cotización? Esta acción no se puede deshacer.')) {
+        if (!confirm(t('rentals.eventDetail.confirmDeleteQuote'))) {
             return
         }
         try {
@@ -117,7 +117,7 @@ const EventoDetalleModal = ({ isOpen, onClose, eventoId, onCrearCotizacion, onEd
             // Invalidar cache del evento para refrescar la lista
             queryClient.invalidateQueries({ queryKey: ['evento', eventoId] })
         } catch (error) {
-            alert('Error al eliminar la cotización: ' + error.message)
+            alert(t('rentals.eventDetail.errorDeletingQuote') + ': ' + error.message)
         }
     }
 
@@ -129,7 +129,7 @@ const EventoDetalleModal = ({ isOpen, onClose, eventoId, onCrearCotizacion, onEd
             // Invalidar cache del evento
             queryClient.invalidateQueries({ queryKey: ['evento', eventoId] })
         } catch (error) {
-            alert('Error al aprobar la cotización: ' + error.message)
+            alert(t('rentals.eventDetail.errorApprovingQuote') + ': ' + error.message)
         }
     }
 
@@ -139,7 +139,7 @@ const EventoDetalleModal = ({ isOpen, onClose, eventoId, onCrearCotizacion, onEd
             setCotizacionDetalleId(null)
             queryClient.invalidateQueries({ queryKey: ['evento', eventoId] })
         } catch (error) {
-            alert('Error al rechazar la cotización: ' + error.message)
+            alert(t('rentals.eventDetail.errorRejectingQuote') + ': ' + error.message)
         }
     }
 
@@ -156,7 +156,7 @@ const EventoDetalleModal = ({ isOpen, onClose, eventoId, onCrearCotizacion, onEd
 
     return (
         <>
-            <Modal isOpen={isOpen} onClose={onClose} title="Detalle del Evento" size="xl">
+            <Modal isOpen={isOpen} onClose={onClose} title={t('rentals.eventDetail')} size="xl">
                 {isLoading ? (
                     <div className="flex justify-center py-12">
                         <Spinner size="lg" />
@@ -164,7 +164,7 @@ const EventoDetalleModal = ({ isOpen, onClose, eventoId, onCrearCotizacion, onEd
                 ) : error ? (
                     <div className="text-center py-12">
                         <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
-                        <p className="text-slate-600">Error al cargar el evento</p>
+                        <p className="text-slate-600">{t('rentals.eventDetail.errorLoading')}</p>
                     </div>
                 ) : evento ? (
                     <div className="space-y-6">
@@ -195,7 +195,7 @@ const EventoDetalleModal = ({ isOpen, onClose, eventoId, onCrearCotizacion, onEd
                                 <div className="bg-white rounded-lg p-4 border border-slate-200">
                                     <div className="flex items-center gap-2 text-slate-500 text-xs mb-2">
                                         <User className="w-4 h-4" />
-                                        Cliente
+                                        {t('rentals.client')}
                                     </div>
                                     <p className="font-semibold text-slate-900">
                                         {evento.cliente_nombre}
@@ -218,13 +218,13 @@ const EventoDetalleModal = ({ isOpen, onClose, eventoId, onCrearCotizacion, onEd
                                 <div className="bg-white rounded-lg p-4 border border-slate-200">
                                     <div className="flex items-center gap-2 text-slate-500 text-xs mb-2">
                                         <Calendar className="w-4 h-4" />
-                                        Fechas del Evento
+                                        {t('rentals.eventDetail.eventDates')}
                                     </div>
                                     <p className="font-medium text-slate-900">
                                         {formatFecha(evento.fecha_inicio)}
                                     </p>
                                     <p className="text-sm text-slate-600">
-                                        hasta {formatFecha(evento.fecha_fin)}
+                                        {t('rentals.eventDetail.until')} {formatFecha(evento.fecha_fin)}
                                     </p>
                                 </div>
 
@@ -233,7 +233,7 @@ const EventoDetalleModal = ({ isOpen, onClose, eventoId, onCrearCotizacion, onEd
                                     <div className="bg-white rounded-lg p-4 border border-slate-200">
                                         <div className="flex items-center gap-2 text-slate-500 text-xs mb-2">
                                             <MapPin className="w-4 h-4" />
-                                            Ubicación
+                                            {t('common.location')}
                                         </div>
                                         {evento.ciudad_nombre && (
                                             <p className="font-medium text-slate-900">
@@ -252,25 +252,25 @@ const EventoDetalleModal = ({ isOpen, onClose, eventoId, onCrearCotizacion, onEd
                                 <div className="bg-white rounded-lg p-4 border border-slate-200">
                                     <div className="flex items-center gap-2 text-slate-500 text-xs mb-2">
                                         <DollarSign className="w-4 h-4" />
-                                        Resumen
+                                        {t('rentals.eventDetail.summary')}
                                     </div>
                                     <div className="flex items-center justify-between">
                                         <div>
                                             <p className="text-2xl font-bold text-slate-900">
                                                 {evento.resumen?.total_cotizaciones || 0}
                                             </p>
-                                            <p className="text-xs text-slate-500">Cotizaciones</p>
+                                            <p className="text-xs text-slate-500">{t('rentals.quotes')}</p>
                                         </div>
                                         <div className="text-right">
                                             <p className="text-lg font-bold text-emerald-600">
                                                 {formatMoneda(evento.resumen?.total_valor)}
                                             </p>
-                                            <p className="text-xs text-slate-500">Valor total</p>
+                                            <p className="text-xs text-slate-500">{t('rentals.totalValue')}</p>
                                         </div>
                                     </div>
                                     {evento.resumen?.cotizaciones_pendientes > 0 && (
                                         <p className="text-xs text-yellow-600 mt-2">
-                                            {evento.resumen.cotizaciones_pendientes} pendiente(s) de aprobación
+                                            {t('rentals.eventDetail.pendingApproval', { count: evento.resumen.cotizaciones_pendientes })}
                                         </p>
                                     )}
                                 </div>
@@ -279,7 +279,7 @@ const EventoDetalleModal = ({ isOpen, onClose, eventoId, onCrearCotizacion, onEd
                             {/* Notas */}
                             {evento.notas && (
                                 <div className="mt-4 p-3 bg-white rounded-lg border border-slate-200">
-                                    <p className="text-xs text-slate-500 mb-1">Notas</p>
+                                    <p className="text-xs text-slate-500 mb-1">{t('common.notes')}</p>
                                     <p className="text-sm text-slate-700">{evento.notas}</p>
                                 </div>
                             )}
@@ -293,7 +293,7 @@ const EventoDetalleModal = ({ isOpen, onClose, eventoId, onCrearCotizacion, onEd
                                     <Lock className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
                                     <div>
                                         <p className="text-sm font-medium text-amber-800">
-                                            No se pueden agregar cotizaciones
+                                            {t('rentals.eventDetail.cannotAddQuotes')}
                                         </p>
                                         <p className="text-xs text-amber-700 mt-0.5">
                                             {motivoNoPuede}
@@ -305,7 +305,7 @@ const EventoDetalleModal = ({ isOpen, onClose, eventoId, onCrearCotizacion, onEd
                             <div className="flex items-center justify-between mb-4">
                                 <h4 className="font-semibold text-slate-900 flex items-center gap-2">
                                     <FileText className="w-5 h-5 text-slate-500" />
-                                    Cotizaciones del Evento
+                                    {t('rentals.eventDetail.eventQuotes')}
                                 </h4>
                                 {puedeAgregarCotizacion ? (
                                     <div className="flex items-center gap-2">
@@ -315,7 +315,7 @@ const EventoDetalleModal = ({ isOpen, onClose, eventoId, onCrearCotizacion, onEd
                                             icon={Plus}
                                             onClick={() => handleCrearCotizacion(false)}
                                         >
-                                            Nueva Cotización
+                                            {t('rentals.newQuote')}
                                         </Button>
                                         <Button
                                             size="sm"
@@ -324,13 +324,13 @@ const EventoDetalleModal = ({ isOpen, onClose, eventoId, onCrearCotizacion, onEd
                                             onClick={() => handleCrearCotizacion(true)}
                                             className="!text-amber-700 !bg-amber-50 !border-amber-200 hover:!bg-amber-100"
                                         >
-                                            Sin fechas
+                                            {t('rentals.eventDetail.noDates')}
                                         </Button>
                                     </div>
                                 ) : (
                                     <span className="text-xs text-slate-400 flex items-center gap-1">
                                         <Lock className="w-3 h-3" />
-                                        Evento cerrado
+                                        {t('rentals.eventDetail.eventClosed')}
                                     </span>
                                 )}
                             </div>
@@ -360,13 +360,13 @@ const EventoDetalleModal = ({ isOpen, onClose, eventoId, onCrearCotizacion, onEd
                                                             </span>
                                                             {cot.tiene_alquiler > 0 && (
                                                                 <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
-                                                                    Con alquiler
+                                                                    {t('rentals.eventDetail.withRental')}
                                                                 </span>
                                                             )}
                                                         </div>
 
                                                         <p className="font-medium text-slate-900 mb-1">
-                                                            {cot.evento_nombre || 'Cotización'}
+                                                            {cot.evento_nombre || t('rentals.quote')}
                                                         </p>
 
                                                         <div className="flex items-center gap-4 text-sm text-slate-600">
@@ -374,12 +374,12 @@ const EventoDetalleModal = ({ isOpen, onClose, eventoId, onCrearCotizacion, onEd
                                                                 <Calendar className="w-3.5 h-3.5 text-slate-400" />
                                                                 {cot.fecha_evento
                                                                     ? formatFecha(cot.fecha_evento)
-                                                                    : <span className="text-amber-600 italic">Fecha por confirmar</span>
+                                                                    : <span className="text-amber-600 italic">{t('rentals.quoteCard.dateToConfirm')}</span>
                                                                 }
                                                             </span>
                                                             <span className="flex items-center gap-1">
                                                                 <FileText className="w-3.5 h-3.5 text-slate-400" />
-                                                                {cot.total_productos} producto{cot.total_productos !== 1 ? 's' : ''}
+                                                                {t('rentals.quoteCard.productCount', { count: cot.total_productos })}
                                                             </span>
                                                         </div>
                                                     </div>
@@ -390,7 +390,7 @@ const EventoDetalleModal = ({ isOpen, onClose, eventoId, onCrearCotizacion, onEd
                                                         </p>
                                                         {cot.estado === 'borrador' && (
                                                             <p className="text-xs text-amber-600 font-medium">
-                                                                Precio estimado
+                                                                {t('rentals.quoteCard.estimated')}
                                                             </p>
                                                         )}
                                                         {cot.descuento > 0 && (

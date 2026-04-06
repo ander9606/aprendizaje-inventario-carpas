@@ -236,7 +236,7 @@ export default function ModalInventarioCliente({ ordenId, onClose }) {
                         <div className="header text-center mb-6 pb-4 border-b-2 border-orange-400">
                             <h1 className="text-xl font-bold text-slate-900">{t('operations.clientInventoryModal.assemblyInventory')}</h1>
                             <p className="text-sm text-slate-500 mt-1">
-                                Orden #{inventario.orden_id} - {formatFecha(inventario.fecha_montaje_completado)}
+                                {t('operations.clientInventoryModal.orderDate', { id: inventario.orden_id, date: formatFecha(inventario.fecha_montaje_completado) })}
                             </p>
                         </div>
 

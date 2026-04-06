@@ -167,15 +167,15 @@ export default function FotosOrden({ ordenId, tipoOrden = 'montaje', readOnly = 
                         />
                         <div className="flex-1 space-y-3">
                             <div>
-                                <span className="text-sm font-medium text-slate-700">Etapa: </span>
+                                <span className="text-sm font-medium text-slate-700">{t('operations.photosOrder.stage')}</span>
                                 <span className="text-sm text-slate-600">
-                                    {etapas.find(e => e.key === etapaSeleccionada)?.label}
+                                    {t(etapas.find(e => e.key === etapaSeleccionada)?.labelKey)}
                                 </span>
                             </div>
                             <textarea
                                 value={notasFoto}
                                 onChange={(e) => setNotasFoto(e.target.value)}
-                                placeholder="Notas (opcional)"
+                                placeholder={t('operations.photosOrder.notesOptional')}
                                 className="w-full text-sm border border-slate-300 rounded-lg p-2 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 rows={2}
                             />
@@ -190,14 +190,14 @@ export default function FotosOrden({ ordenId, tipoOrden = 'montaje', readOnly = 
                                     ) : (
                                         <Upload className="w-4 h-4" />
                                     )}
-                                    Subir
+                                    {t('operations.photosOrder.upload')}
                                 </button>
                                 <button
                                     onClick={cancelarPreview}
                                     className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-200 text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-300"
                                 >
                                     <X className="w-4 h-4" />
-                                    Cancelar
+                                    {t('common.cancel')}
                                 </button>
                             </div>
                         </div>
@@ -207,7 +207,8 @@ export default function FotosOrden({ ordenId, tipoOrden = 'montaje', readOnly = 
 
             {/* Etapas con fotos */}
             <div className="space-y-3">
-                {etapas.map(({ key, label, color }) => {
+                {etapas.map(({ key, labelKey, color }) => {
+                    const label = t(labelKey)
                     const fotosEtapa = porEtapa[key] || []
                     const isExpanded = expandedEtapa === key
                     const colores = COLORES[color]
@@ -223,7 +224,7 @@ export default function FotosOrden({ ordenId, tipoOrden = 'montaje', readOnly = 
                                     <span className={`text-sm font-medium ${colores.text}`}>{label}</span>
                                     {fotosEtapa.length > 0 && (
                                         <span className={`text-xs font-medium px-1.5 py-0.5 ${colores.badge} ${colores.text} rounded-full`}>
-                                            {fotosEtapa.length} foto{fotosEtapa.length !== 1 ? 's' : ''}
+                                            {t('operations.photosOrder.photoCount', { count: fotosEtapa.length })}
                                         </span>
                                     )}
                                 </div>
@@ -234,7 +235,7 @@ export default function FotosOrden({ ordenId, tipoOrden = 'montaje', readOnly = 
                                             className={`flex items-center gap-1 text-xs font-medium px-2 py-1 rounded ${colores.text} hover:${colores.badge} transition-colors`}
                                         >
                                             <Camera className="w-3.5 h-3.5" />
-                                            <span className="hidden sm:inline">Agregar</span>
+                                            <span className="hidden sm:inline">{t('operations.photosOrder.add')}</span>
                                         </button>
                                     )}
                                     {fotosEtapa.length > 0 && (
@@ -277,7 +278,7 @@ export default function FotosOrden({ ordenId, tipoOrden = 'montaje', readOnly = 
                             {isExpanded && fotosEtapa.length === 0 && (
                                 <div className="p-4 bg-white text-center">
                                     <Image className="w-8 h-8 text-slate-300 mx-auto mb-1" />
-                                    <p className="text-sm text-slate-400">Sin fotos en esta etapa</p>
+                                    <p className="text-sm text-slate-400">{t('operations.photosOrder.noPhotosStage')}</p>
                                 </div>
                             )}
                         </div>
@@ -289,9 +290,9 @@ export default function FotosOrden({ ordenId, tipoOrden = 'montaje', readOnly = 
             {fotos.length === 0 && !fotoPreview && (
                 <div className="text-center py-6 mt-2">
                     <Image className="w-10 h-10 text-slate-300 mx-auto mb-2" />
-                    <p className="text-sm text-slate-500">No hay fotos registradas</p>
+                    <p className="text-sm text-slate-500">{t('operations.photosOrder.noPhotosRegistered')}</p>
                     {!readOnly && (
-                        <p className="text-xs text-slate-400 mt-1">Toca en una etapa para agregar fotos</p>
+                        <p className="text-xs text-slate-400 mt-1">{t('operations.photosOrder.tapToAddPhotos')}</p>
                     )}
                 </div>
             )}
@@ -308,7 +309,7 @@ export default function FotosOrden({ ordenId, tipoOrden = 'montaje', readOnly = 
                     >
                         <img
                             src={`${API_URL}${visorAbierto.imagen_url}`}
-                            alt="Foto ampliada"
+                            alt={t('operations.clientInventoryModal.enlargedPhoto')}
                             className="w-full max-h-[80vh] object-contain rounded-lg"
                         />
                         <div className="mt-2 flex items-center justify-between">
@@ -316,7 +317,7 @@ export default function FotosOrden({ ordenId, tipoOrden = 'montaje', readOnly = 
                                 {visorAbierto.notas && <p>{visorAbierto.notas}</p>}
                                 {visorAbierto.subido_por_nombre && (
                                     <p className="text-slate-400 text-xs mt-1">
-                                        Subida por {visorAbierto.subido_por_nombre}
+                                        {t('operations.photosOrder.uploadedBy', { name: visorAbierto.subido_por_nombre })}
                                     </p>
                                 )}
                             </div>
@@ -328,7 +329,7 @@ export default function FotosOrden({ ordenId, tipoOrden = 'montaje', readOnly = 
                                         className="flex items-center gap-1 px-3 py-1.5 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 disabled:opacity-50"
                                     >
                                         <Trash2 className="w-4 h-4" />
-                                        Eliminar
+                                        {t('common.delete')}
                                     </button>
                                 )}
                                 <button
@@ -336,7 +337,7 @@ export default function FotosOrden({ ordenId, tipoOrden = 'montaje', readOnly = 
                                     className="flex items-center gap-1 px-3 py-1.5 bg-white/20 text-white text-sm rounded-lg hover:bg-white/30"
                                 >
                                     <X className="w-4 h-4" />
-                                    Cerrar
+                                    {t('common.close')}
                                 </button>
                             </div>
                         </div>

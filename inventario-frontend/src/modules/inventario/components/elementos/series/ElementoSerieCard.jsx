@@ -28,6 +28,7 @@ export const ElementoSerieCard = ({
   className = '',
   ...props
 }) => {
+  const { t } = useTranslation()
   const [showAllSeries, setShowAllSeries] = useState(false)
 
   const {
@@ -77,12 +78,12 @@ export const ElementoSerieCard = ({
   // ============================================
   const menuOptions = [
     {
-      label: 'Editar elemento',
+      label: t('inventory.editElement'),
       onClick: () => onEdit && onEdit(elemento),
       disabled: disabled
     },
     {
-      label: 'Eliminar elemento',
+      label: t('inventory.deleteElement'),
       onClick: () => onDelete && onDelete(elemento),
       danger: true,
       disabled: disabled
@@ -175,7 +176,7 @@ export const ElementoSerieCard = ({
             <div className="flex items-center gap-2 p-2.5 bg-amber-50 border border-amber-200 rounded-lg">
               <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0" />
               <span className="text-sm text-amber-700">
-                <strong>Stock bajo:</strong> {disponibles} disponible{disponibles !== 1 ? 's' : ''} de {stock_minimo} mínimo
+                <strong>{t('inventory.lowStock')}</strong> {disponibles} {disponibles !== 1 ? t('inventory.availablesOf') : t('inventory.availableOf')} {stock_minimo} {t('inventory.minimum')}
               </span>
             </div>
           )}
@@ -193,7 +194,7 @@ export const ElementoSerieCard = ({
           ============================================ */}
       {errorSeries && (
         <div className="mx-6 mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-          Error al cargar series: {errorSeries.message}
+          {t('inventory.errorLoadingSeries')} {errorSeries.message}
         </div>
       )}
 
@@ -204,22 +205,22 @@ export const ElementoSerieCard = ({
         {/* Stats en grid */}
         <div className="grid grid-cols-4 gap-3 mb-3">
           <StatMini
-            label="Total"
+            label={t('common.total')}
             value={isLoadingSeries ? '-' : total}
             color="slate"
           />
           <StatMini
-            label="Disponible"
+            label={t('states.available')}
             value={isLoadingSeries ? '-' : disponibles}
             color="green"
           />
           <StatMini
-            label="Alquilado"
+            label={t('states.rented')}
             value={isLoadingSeries ? '-' : alquilados}
             color="blue"
           />
           <StatMini
-            label="Mant./Dañado"
+            label={t('states.maintenanceDamaged')}
             value={isLoadingSeries ? '-' : (enMantenimiento + dañados)}
             color="amber"
           />
