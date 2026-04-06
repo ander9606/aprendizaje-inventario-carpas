@@ -50,6 +50,7 @@ function MoverSerieModal({
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const queryClient = useQueryClient()
+  const { t } = useTranslation()
 
   // Cargar ubicaciones activas desde la base de datos
   const { ubicaciones, isLoading: isLoadingUbicaciones } = useGetUbicacionesActivas()

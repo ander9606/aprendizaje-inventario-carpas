@@ -78,7 +78,7 @@ const CalendarLegend = ({
                   {getTipoIcon(tipo)}
                 </div>
                 <span className="text-xs text-slate-600">
-                  {getTipoLabel(tipo)}
+                  {getTipoLabel(tipo, t)}
                 </span>
               </div>
             ))}
