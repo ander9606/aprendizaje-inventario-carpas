@@ -1,4 +1,4 @@
-const { transporter } = require('../../../config/email');
+const { resend } = require('../../../config/email');
 const logger = require('../../../utils/logger');
 
 class EmailService {
@@ -9,9 +9,9 @@ class EmailService {
      * @param {string} nombre - Nombre del usuario
      */
     static async enviarCodigoVerificacion(email, codigo, nombre) {
-        const from = process.env.SMTP_FROM || process.env.SMTP_USER;
+        const from = process.env.EMAIL_FROM || 'Sistema Carpas <onboarding@resend.dev>';
 
-        const mailOptions = {
+        await EmailService._enviar({
             from,
             to: email,
             subject: 'Código de verificación - Sistema de Inventario Carpas',
@@ -39,9 +39,7 @@ class EmailService {
                     </p>
                 </div>
             `
-        };
-
-        await EmailService._enviar(mailOptions);
+        });
     }
 
     /**
@@ -50,10 +48,10 @@ class EmailService {
      * @param {string} nombre
      */
     static async enviarAprobacion(email, nombre) {
-        const from = process.env.SMTP_FROM || process.env.SMTP_USER;
+        const from = process.env.EMAIL_FROM || 'Sistema Carpas <onboarding@resend.dev>';
         const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
 
-        const mailOptions = {
+        await EmailService._enviar({
             from,
             to: email,
             subject: 'Cuenta aprobada - Sistema de Inventario Carpas',
@@ -78,9 +76,7 @@ class EmailService {
                     </p>
                 </div>
             `
-        };
-
-        await EmailService._enviar(mailOptions);
+        });
     }
 
     /**
@@ -90,9 +86,9 @@ class EmailService {
      * @param {string} motivo
      */
     static async enviarRechazo(email, nombre, motivo) {
-        const from = process.env.SMTP_FROM || process.env.SMTP_USER;
+        const from = process.env.EMAIL_FROM || 'Sistema Carpas <onboarding@resend.dev>';
 
-        const mailOptions = {
+        await EmailService._enviar({
             from,
             to: email,
             subject: 'Solicitud de acceso - Sistema de Inventario Carpas',
@@ -120,24 +116,27 @@ class EmailService {
                     </p>
                 </div>
             `
-        };
-
-        await EmailService._enviar(mailOptions);
+        });
     }
 
     /**
      * Método interno para enviar emails con manejo de errores
-     * @param {Object} mailOptions
+     * @param {Object} mailOptions - { from, to, subject, html }
      */
     static async _enviar(mailOptions) {
-        if (!transporter) {
-            logger.warn('email', `Email no enviado (SMTP no configurado): ${mailOptions.subject} → ${mailOptions.to}`);
+        if (!resend) {
+            logger.warn('email', `Email no enviado (Resend no configurado): ${mailOptions.subject} → ${mailOptions.to}`);
             return;
         }
 
         try {
-            await transporter.sendMail(mailOptions);
-            logger.info('email', `Email enviado: ${mailOptions.subject} → ${mailOptions.to}`);
+            const { data, error } = await resend.emails.send(mailOptions);
+
+            if (error) {
+                throw new Error(error.message);
+            }
+
+            logger.info('email', `Email enviado: ${mailOptions.subject} → ${mailOptions.to} (id: ${data.id})`);
         } catch (error) {
             logger.error('email', `Error enviando email a ${mailOptions.to}: ${error.message}`);
             throw error;
