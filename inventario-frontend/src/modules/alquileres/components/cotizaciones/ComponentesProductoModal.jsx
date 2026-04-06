@@ -9,6 +9,7 @@ import { useQuery } from '@tanstack/react-query'
 import Modal from '@shared/components/Modal'
 import apiProductosAlquiler from '@productos/api/apiProductosAlquiler'
 import apiDisponibilidad from '../../api/apiDisponibilidad'
+import { useTranslation } from 'react-i18next'
 
 const ComponentesProductoModal = ({
   isOpen,
@@ -18,6 +19,7 @@ const ComponentesProductoModal = ({
   fechaDesmontaje,
   cantidadSolicitada = 1
 }) => {
+  const { t } = useTranslation()
   // ============================================
   // QUERIES
   // ============================================

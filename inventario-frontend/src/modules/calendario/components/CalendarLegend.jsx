@@ -5,6 +5,7 @@
 
 import { EVENT_TYPES, EVENT_COLORS, ESTADO_COLORS } from '@calendario/constants/calendarConfig'
 import { Wrench, PartyPopper, PackageOpen } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 /**
  * Icono por tipo
@@ -26,11 +27,11 @@ const getTipoIcon = (tipo) => {
 /**
  * Label por tipo
  */
-const getTipoLabel = (tipo) => {
+const getTipoLabel = (tipo, t) => {
   const labels = {
-    [EVENT_TYPES.MONTAJE]: 'Montaje',
-    [EVENT_TYPES.EVENTO]: 'Evento',
-    [EVENT_TYPES.DESMONTAJE]: 'Desmontaje'
+    [EVENT_TYPES.MONTAJE]: t('calendar.assembly'),
+    [EVENT_TYPES.EVENTO]: t('calendar.event'),
+    [EVENT_TYPES.DESMONTAJE]: t('calendar.disassembly')
   }
   return labels[tipo] || tipo
 }

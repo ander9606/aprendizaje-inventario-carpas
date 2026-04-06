@@ -20,6 +20,7 @@ import {
 } from 'lucide-react'
 import { useGetAlquileres } from '../hooks/useAlquileres'
 import Spinner from '@shared/components/Spinner'
+import { useTranslation } from 'react-i18next'
 
 // ============================================
 // HELPERS
@@ -45,6 +46,7 @@ const formatMoneda = (valor) => {
 // COMPONENTE PRINCIPAL
 // ============================================
 export default function HistorialAlquileresPage() {
+    const { t } = useTranslation()
     const navigate = useNavigate()
     const [busqueda, setBusqueda] = useState('')
     const [filtroEstado, setFiltroEstado] = useState('')
@@ -76,7 +78,7 @@ export default function HistorialAlquileresPage() {
     if (isLoading) {
         return (
             <div className="flex justify-center py-12">
-                <Spinner size="lg" text="Cargando historial..." />
+                <Spinner size="lg" text={t('rentals.loadingHistory')} />
             </div>
         )
     }
@@ -89,10 +91,10 @@ export default function HistorialAlquileresPage() {
                     <div className="p-2 bg-slate-100 rounded-lg">
                         <Archive className="w-6 h-6 text-slate-600" />
                     </div>
-                    Historial de Alquileres
+                    {t('rentals.rentalHistory')}
                 </h1>
                 <p className="text-slate-500 mt-1">
-                    {historial.length} alquiler{historial.length !== 1 ? 'es' : ''} finalizado{historial.length !== 1 ? 's' : ''}
+                    {t('rentals.rentalCount', { count: historial.length })}
                 </p>
             </div>
 
@@ -103,7 +105,7 @@ export default function HistorialAlquileresPage() {
                         <Search className="w-5 h-5 text-slate-400 shrink-0" />
                         <input
                             type="text"
-                            placeholder="Buscar por evento, cliente, producto o ID..."
+                            placeholder={t('rentals.searchByEventClientProductId')}
                             value={busqueda}
                             onChange={(e) => setBusqueda(e.target.value)}
                             className="flex-1 border-0 focus:ring-0 text-sm placeholder:text-slate-400 outline-none"
@@ -128,7 +130,7 @@ export default function HistorialAlquileresPage() {
                                         : 'border-slate-200 hover:bg-slate-50 text-slate-600'
                                 }`}
                             >
-                                {estado === '' ? 'Todos' : estado === 'finalizado' ? 'Finalizados' : 'Cancelados'}
+                                {estado === '' ? t('rentals.allFilter') : estado === 'finalizado' ? t('rentals.finalizedFilter') : t('rentals.cancelledFilter')}
                             </button>
                         ))}
                     </div>
@@ -138,8 +140,8 @@ export default function HistorialAlquileresPage() {
             {/* Contador */}
             <div className="mb-4 text-sm text-slate-500">
                 {busqueda || filtroEstado
-                    ? `${filtrado.length} resultado${filtrado.length !== 1 ? 's' : ''}`
-                    : `${historial.length} registro${historial.length !== 1 ? 's' : ''}`
+                    ? t('rentals.resultCount', { count: filtrado.length })
+                    : t('rentals.recordCount', { count: historial.length })
                 }
             </div>
 
@@ -148,12 +150,12 @@ export default function HistorialAlquileresPage() {
                 <div className="bg-white rounded-xl border border-slate-200 p-12 text-center">
                     <Archive className="w-12 h-12 text-slate-300 mx-auto mb-4" />
                     <h3 className="text-lg font-medium text-slate-900 mb-2">
-                        {historial.length === 0 ? 'Sin historial' : 'Sin resultados'}
+                        {historial.length === 0 ? t('rentals.noHistory') : t('rentals.noResultsSearch')}
                     </h3>
                     <p className="text-slate-500">
                         {historial.length === 0
-                            ? 'Los alquileres finalizados o cancelados aparecerán aquí'
-                            : `No se encontraron alquileres con "${busqueda}"`
+                            ? t('rentals.finishedOrCancelledAppearHere')
+                            : t('rentals.noRentalsMatchSearch', { search: busqueda })
                         }
                     </p>
                     {(busqueda || filtroEstado) && (
@@ -161,7 +163,7 @@ export default function HistorialAlquileresPage() {
                             onClick={() => { setBusqueda(''); setFiltroEstado('') }}
                             className="mt-4 text-blue-600 hover:text-blue-700 font-medium text-sm"
                         >
-                            Limpiar filtros
+                            {t('rentals.clearFilters')}
                         </button>
                     )}
                 </div>
@@ -188,7 +190,7 @@ export default function HistorialAlquileresPage() {
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2">
                                         <p className="text-sm font-medium text-slate-700 truncate">
-                                            {alquiler.evento_nombre || 'Sin nombre'}
+                                            {alquiler.evento_nombre || t('rentals.noName')}
                                         </p>
                                         <span className="text-[10px] text-slate-400 font-mono shrink-0">
                                             #{alquiler.id}
@@ -212,7 +214,7 @@ export default function HistorialAlquileresPage() {
                                 <span className={`px-2 py-0.5 rounded text-[10px] font-medium shrink-0 ${
                                     esCancelado ? 'bg-red-50 text-red-500' : 'bg-green-50 text-green-600'
                                 }`}>
-                                    {esCancelado ? 'Cancelado' : 'Finalizado'}
+                                    {esCancelado ? t('rentals.statusCancelled') : t('rentals.statusFinalized')}
                                 </span>
 
                                 {/* Fechas */}

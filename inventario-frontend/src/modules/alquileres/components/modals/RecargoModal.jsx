@@ -7,6 +7,7 @@ import { useState, useMemo, useEffect } from 'react'
 import { Calendar, Percent, Clock, ArrowLeft, ArrowRight, DollarSign } from 'lucide-react'
 import Modal from '@shared/components/Modal'
 import Button from '@shared/components/Button'
+import { useTranslation } from 'react-i18next'
 
 /**
  * Modal para agregar recargos de adelanto o extensión
@@ -27,6 +28,7 @@ const RecargoModal = ({
     fechasCotizacion,
     recargoEditar = null
 }) => {
+  const { t } = useTranslation()
     const [formData, setFormData] = useState({
         tipo: 'adelanto',
         dias: 1,

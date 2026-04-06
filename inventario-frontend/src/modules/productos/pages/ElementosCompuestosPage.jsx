@@ -5,6 +5,7 @@
 
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import {
   Tent,
@@ -47,6 +48,7 @@ import ProductSubcategoriaCard from '../components/cards/ProductSubcategoriaCard
  */
 function ElementosCompuestosPage() {
   const navigate = useNavigate()
+  const { t } = useTranslation()
 
   // ============================================
   // ESTADOS DE NAVEGACIÓN
@@ -462,7 +464,7 @@ function ElementosCompuestosPage() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input
                   type="text"
-                  placeholder="Buscar por nombre o código..."
+                  placeholder={t('common.searchByNameOrCode')}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
@@ -508,7 +510,7 @@ function ElementosCompuestosPage() {
         <Modal
           isOpen={!!elementoToDelete}
           onClose={() => setElementoToDelete(null)}
-          title="Eliminar Elemento Compuesto"
+          title={t('products.deleteCompositeElement')}
           size="sm"
         >
           <div className="p-4">

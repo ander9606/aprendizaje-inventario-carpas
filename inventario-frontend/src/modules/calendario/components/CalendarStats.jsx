@@ -4,6 +4,7 @@
 // ============================================
 
 import { Calendar, Wrench, PartyPopper, PackageOpen, TrendingUp } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 /**
  * StatCard
@@ -11,6 +12,7 @@ import { Calendar, Wrench, PartyPopper, PackageOpen, TrendingUp } from 'lucide-r
  * Tarjeta individual de estadística
  */
 const StatCard = (props) => {
+  const { t } = useTranslation()
   const { icon, label, value, color = 'slate' } = props
   const IconComponent = icon
 

@@ -24,6 +24,7 @@ import Spinner from '@shared/components/Spinner'
 import ModalOrdenCargue from '@operaciones/components/ModalOrdenCargue'
 import ModalOrdenDetalle from '@operaciones/components/ModalOrdenDetalle'
 import ModalDiaOrdenes from '@operaciones/components/ModalDiaOrdenes'
+import { useTranslation } from 'react-i18next'
 
 // ============================================
 // CONSTANTES: Colores para tipos de orden
@@ -92,6 +93,7 @@ const StatCard = ({ icon: Icon, label, value, color = 'slate' }) => {
 // COMPONENTE: Filtros de Operaciones
 // ============================================
 const OperacionesFilters = ({ filters, onFilterChange }) => {
+    const { t } = useTranslation()
     const { showMontaje, showDesmontaje, filtroEstado } = filters
 
     const handleToggle = (key) => {
@@ -115,7 +117,7 @@ const OperacionesFilters = ({ filters, onFilterChange }) => {
             <div className="flex flex-wrap items-center gap-4">
                 <div className="flex items-center gap-2 text-slate-600">
                     <Filter className="w-4 h-4" />
-                    <span className="text-sm font-medium">Filtros:</span>
+                    <span className="text-sm font-medium">{t('common.filters')}:</span>
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -124,31 +126,31 @@ const OperacionesFilters = ({ filters, onFilterChange }) => {
                         className={getButtonClasses(showMontaje, 'emerald')}
                     >
                         {showMontaje ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
-                        Montaje
+                        {t('calendar.assembly')}
                     </button>
                     <button
                         onClick={() => handleToggle('showDesmontaje')}
                         className={getButtonClasses(showDesmontaje, 'amber')}
                     >
                         {showDesmontaje ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
-                        Desmontaje
+                        {t('calendar.disassembly')}
                     </button>
                 </div>
 
                 <div className="h-6 w-px bg-slate-200" />
 
                 <div className="flex items-center gap-2">
-                    <label className="text-sm text-slate-600">Estado:</label>
+                    <label className="text-sm text-slate-600">{t('common.status')}:</label>
                     <select
                         value={filtroEstado}
                         onChange={(e) => onFilterChange({ ...filters, filtroEstado: e.target.value })}
                         className="px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
-                        <option value="todos">Todos</option>
-                        <option value="pendiente">Pendiente</option>
-                        <option value="en_proceso">En proceso</option>
-                        <option value="completado">Completado</option>
-                        <option value="cancelado">Cancelado</option>
+                        <option value="todos">{t('common.all')}</option>
+                        <option value="pendiente">{t('calendar.pendingStatus')}</option>
+                        <option value="en_proceso">{t('calendar.inProgressStatus')}</option>
+                        <option value="completado">{t('calendar.completedStatus')}</option>
+                        <option value="cancelado">{t('calendar.cancelledStatus')}</option>
                     </select>
                 </div>
             </div>
@@ -160,27 +162,28 @@ const OperacionesFilters = ({ filters, onFilterChange }) => {
 // COMPONENTE: Leyenda de Operaciones
 // ============================================
 const OperacionesLegend = () => {
+    const { t } = useTranslation()
     return (
         <div className="bg-white rounded-lg border border-slate-200 p-3">
             <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
-                Leyenda
+                {t('calendar.legend')}
             </p>
             <div className="flex flex-col gap-2">
                 <div className="flex items-center gap-2">
                     <div className="w-4 h-4 rounded" style={{ backgroundColor: ORDEN_COLORS.montaje.backgroundColor }} />
-                    <span className="text-xs text-slate-600">Montaje</span>
+                    <span className="text-xs text-slate-600">{t('calendar.assembly')}</span>
                 </div>
                 <div className="flex items-center gap-2">
                     <div className="w-4 h-4 rounded" style={{ backgroundColor: ORDEN_COLORS.desmontaje.backgroundColor }} />
-                    <span className="text-xs text-slate-600">Desmontaje</span>
+                    <span className="text-xs text-slate-600">{t('calendar.disassembly')}</span>
                 </div>
                 <div className="flex items-center gap-2">
                     <CheckCircle className="w-4 h-4 text-green-500" />
-                    <span className="text-xs text-slate-600">Completado</span>
+                    <span className="text-xs text-slate-600">{t('calendar.completedStatus')}</span>
                 </div>
                 <div className="flex items-center gap-2">
                     <AlertCircle className="w-4 h-4 text-amber-500" />
-                    <span className="text-xs text-slate-600">Sin responsable</span>
+                    <span className="text-xs text-slate-600">{t('calendar.noResponsible')}</span>
                 </div>
             </div>
         </div>
@@ -191,6 +194,7 @@ const OperacionesLegend = () => {
 // COMPONENTE PRINCIPAL
 // ============================================
 export default function CalendarioOperaciones() {
+    const { t } = useTranslation()
     const navigate = useNavigate()
     useAuth()
 
@@ -366,10 +370,10 @@ export default function CalendarioOperaciones() {
                         <div className="p-2 bg-blue-100 rounded-lg">
                             <Calendar className="w-6 h-6 text-blue-600" />
                         </div>
-                        Calendario de Operaciones
+                        {t('calendar.operationsCalendar')}
                     </h1>
                     <p className="text-slate-500 mt-1">
-                        Programación de montajes y desmontajes
+                        {t('calendar.assemblyAndDisassemblySchedule')}
                     </p>
                 </div>
                 <button
@@ -377,18 +381,18 @@ export default function CalendarioOperaciones() {
                     className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
                 >
                     <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-                    Actualizar
+                    {t('config.refresh')}
                 </button>
             </div>
 
             {/* ESTADÍSTICAS */}
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                <StatCard icon={Calendar} label="Total Ordenes" value={stats.total} color="slate" />
-                <StatCard icon={Wrench} label="Montajes" value={stats.montajes} color="emerald" />
-                <StatCard icon={PackageOpen} label="Desmontajes" value={stats.desmontajes} color="amber" />
-                <StatCard icon={CheckCircle} label="Completados" value={stats.completados} color="green" />
+                <StatCard icon={Calendar} label={t('calendar.totalOrders')} value={stats.total} color="slate" />
+                <StatCard icon={Wrench} label={t('calendar.assemblies')} value={stats.montajes} color="emerald" />
+                <StatCard icon={PackageOpen} label={t('calendar.disassemblies')} value={stats.desmontajes} color="amber" />
+                <StatCard icon={CheckCircle} label={t('calendar.completed')} value={stats.completados} color="green" />
                 {stats.sinResponsable > 0 && (
-                    <StatCard icon={AlertCircle} label="Sin responsable" value={stats.sinResponsable} color="red" />
+                    <StatCard icon={AlertCircle} label={t('calendar.noResponsible')} value={stats.sinResponsable} color="red" />
                 )}
             </div>
 
@@ -401,17 +405,17 @@ export default function CalendarioOperaciones() {
             {/* CONTENIDO: CALENDARIO + SIDEBAR */}
             {isLoading ? (
                 <div className="flex justify-center py-12">
-                    <Spinner size="lg" text="Cargando calendario..." />
+                    <Spinner size="lg" text={t('calendar.loadingCalendar')} />
                 </div>
             ) : error ? (
                 <div className="bg-white rounded-lg border border-slate-200 p-12 text-center">
                     <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
-                    <p className="text-slate-600 font-medium">Error al cargar el calendario</p>
+                    <p className="text-slate-600 font-medium">{t('calendar.errorLoadingCalendar')}</p>
                     <button
                         onClick={() => refetch()}
                         className="mt-4 px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                     >
-                        Reintentar
+                        {t('common.retry')}
                     </button>
                 </div>
             ) : (
@@ -440,20 +444,20 @@ export default function CalendarioOperaciones() {
                         {/* Acciones rápidas */}
                         <div className="bg-white rounded-lg border border-slate-200 p-4">
                             <h3 className="text-sm font-semibold text-slate-700 mb-3">
-                                Acciones Rapidas
+                                {t('calendar.quickActions')}
                             </h3>
                             <div className="space-y-2">
                                 <button
                                     onClick={goToToday}
                                     className="w-full px-4 py-2 text-left text-sm text-slate-600 hover:bg-slate-50 rounded-lg transition-colors"
                                 >
-                                    Ir a Hoy
+                                    {t('calendar.goToToday')}
                                 </button>
                                 <button
                                     onClick={handleIrOrdenes}
                                     className="w-full px-4 py-2 text-left text-sm text-slate-600 hover:bg-slate-50 rounded-lg transition-colors"
                                 >
-                                    Ver Todas las Ordenes
+                                    {t('calendar.viewAllOrders')}
                                 </button>
                             </div>
                         </div>
@@ -461,20 +465,20 @@ export default function CalendarioOperaciones() {
                         {/* Resumen */}
                         <div className="bg-white rounded-lg border border-slate-200 p-4">
                             <h3 className="text-sm font-semibold text-slate-700 mb-3">
-                                Resumen
+                                {t('calendar.summary')}
                             </h3>
                             <div className="space-y-2 text-sm">
                                 <div className="flex justify-between">
-                                    <span className="text-slate-500">Ordenes:</span>
+                                    <span className="text-slate-500">{t('calendar.orders')}:</span>
                                     <span className="font-medium">{stats.total}</span>
                                 </div>
                                 <div className="flex justify-between">
-                                    <span className="text-slate-500">Visibles:</span>
+                                    <span className="text-slate-500">{t('calendar.visible')}:</span>
                                     <span className="font-medium">{events.length}</span>
                                 </div>
                                 {stats.sinResponsable > 0 && (
                                     <div className="flex justify-between text-amber-600">
-                                        <span>Sin responsable:</span>
+                                        <span>{t('calendar.noResponsible')}:</span>
                                         <span className="font-medium">{stats.sinResponsable}</span>
                                     </div>
                                 )}

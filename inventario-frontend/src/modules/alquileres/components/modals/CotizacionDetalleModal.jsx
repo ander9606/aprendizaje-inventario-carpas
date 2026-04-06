@@ -13,6 +13,7 @@ import Spinner from '@shared/components/Spinner'
 import { useGetCotizacionCompleta, useConfirmarFechasCotizacion, useRegistrarSeguimiento } from '../../hooks/cotizaciones'
 import { useCancelarAlquiler } from '../../hooks/useAlquileres'
 import { apiCotizaciones } from '../../api/apiCotizaciones'
+import { useTranslation } from 'react-i18next'
 
 const CotizacionDetalleModal = ({
   isOpen,
@@ -24,6 +25,7 @@ const CotizacionDetalleModal = ({
   onCancelarAlquiler,
   isAprobando = false
 }) => {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const [showCancelarModal, setShowCancelarModal] = useState(false)
   const [notasCancelacion, setNotasCancelacion] = useState('')

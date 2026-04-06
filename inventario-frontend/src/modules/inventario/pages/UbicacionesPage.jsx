@@ -18,11 +18,13 @@ import DireccionesCiudadModal from '@clientes/components/modals/DireccionesCiuda
 import Button from '@shared/components/Button'
 import Spinner from '@shared/components/Spinner'
 import EmptyState from '@shared/components/EmptyState'
+import { useTranslation } from 'react-i18next'
 
 // Tipos que son de almacenamiento
 const TIPOS_ALMACENAMIENTO = ['bodega', 'taller', 'transito']
 
 export default function UbicacionesPage() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
 
   // ============================================
@@ -150,7 +152,7 @@ export default function UbicacionesPage() {
   // ============================================
 
   if (isLoading) {
-    return <Spinner fullScreen size="xl" text="Cargando ubicaciones..." />
+    return <Spinner fullScreen size="xl" text={t('inventory.loadingLocations')} />
   }
 
   if (error) {
@@ -302,7 +304,7 @@ export default function UbicacionesPage() {
                 <Search className="w-4 h-4 text-slate-400" />
                 <input
                   type="text"
-                  placeholder="Buscar destino, direccion o ciudad..."
+                  placeholder={t('inventory.searchDestination')}
                   value={busquedaDestinos}
                   onChange={(e) => setBusquedaDestinos(e.target.value)}
                   className="flex-1 border-0 focus:ring-0 text-sm placeholder:text-slate-400"

@@ -14,6 +14,7 @@ import UbicacionSelector from '@shared/components/UbicacionSelector'
 import { ESTADOS, SUCCESS_MESSAGES } from '@shared/utils/constants';
 import { useMoverCantidad } from '../../hooks/useLotes'
 import lotesAPI from '../../api/apiLotes'
+import { useTranslation } from 'react-i18next'
 
 /**
  * ============================================
@@ -59,6 +60,7 @@ function LoteFormModal({
   ubicacionOrigen,
   elemento
 }) {
+  const { t } = useTranslation()
   // ============================================
   // 1. ESTADOS DEL FORMULARIO
   // ============================================
@@ -160,14 +162,14 @@ function LoteFormModal({
 
     // Validar cantidad
     if (!formData.cantidad) {
-      newErrors.cantidad = 'Ingresa la cantidad a mover'
+      newErrors.cantidad = t('inventory.enterQuantityToMove')
     } else {
       const cantidad = Number(formData.cantidad)
 
       if (isNaN(cantidad) || cantidad <= 0) {
-        newErrors.cantidad = 'La cantidad debe ser mayor a 0'
+        newErrors.cantidad = t('inventory.quantityMustBePositive')
       } else if (cantidad > lote.cantidad) {
-        newErrors.cantidad = `No puedes mover más de ${lote.cantidad} unidades`
+        newErrors.cantidad = t('inventory.cannotMoveMoreThan', { max: lote.cantidad })
       }
     }
 
@@ -175,7 +177,7 @@ function LoteFormModal({
     // REGLA: Si NO es alquilado, DEBE tener ubicación
     if (formData.estado_destino !== ESTADOS.ALQUILADO) {
       if (!formData.ubicacion_destino.trim()) {
-        newErrors.ubicacion_destino = 'Selecciona la ubicación destino'
+        newErrors.ubicacion_destino = t('inventory.selectDestinationLocation')
       }
     }
 
@@ -184,13 +186,13 @@ function LoteFormModal({
       formData.ubicacion_destino === ubicacionOrigen &&
       formData.estado_destino === lote.estado
     ) {
-      newErrors.ubicacion_destino = 'El destino no puede ser igual al origen'
-      newErrors.estado_destino = 'El destino no puede ser igual al origen'
+      newErrors.ubicacion_destino = t('inventory.destinationCannotBeOrigin')
+      newErrors.estado_destino = t('inventory.destinationCannotBeOrigin')
     }
 
     // Validar estado
     if (!formData.estado_destino) {
-      newErrors.estado_destino = 'Selecciona el estado destino'
+      newErrors.estado_destino = t('inventory.selectState')
     }
 
     setErrors(newErrors)
@@ -222,7 +224,7 @@ function LoteFormModal({
 
     // Validar máximo
     if (numero > lote.cantidad) {
-      toast.warning(`Máximo disponible: ${lote.cantidad}`)
+      toast.warning(t('inventory.cannotExceedMax', { max: lote.cantidad }))
       value = String(lote.cantidad)
     }
 
@@ -293,7 +295,7 @@ function LoteFormModal({
 
     // Validar
     if (!validateForm()) {
-      toast.error('Por favor corrige los errores')
+      toast.error(t('inventory.fixErrors'))
       return
     }
 
@@ -338,7 +340,7 @@ function LoteFormModal({
         onClose()
       },
       onError: (error) => {
-        toast.error(error.message || 'Error al mover cantidad')
+        toast.error(error.message || t('inventory.errorMovingQuantity'))
       }
     })
   }
@@ -353,7 +355,7 @@ function LoteFormModal({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={`Mover Cantidad - ${elemento?.nombre || ''}`}
+      title={t('inventory.moveQuantityTitle', { name: elemento?.nombre || '' })}
       size="lg"
     >
       <form onSubmit={handleSubmit}>
@@ -363,7 +365,7 @@ function LoteFormModal({
             ============================================ */}
         <div className="mb-6 p-4 bg-slate-50 border border-slate-200 rounded-lg">
           <p className="text-sm font-medium text-slate-700 mb-2">
-            Origen:
+            {t('inventory.origin')}
           </p>
           <div className="flex items-center gap-3 flex-wrap">
             <UbicacionBadge ubicacion={ubicacionOrigen} />
@@ -372,7 +374,7 @@ function LoteFormModal({
               •
             </span>
             <span className="font-bold text-slate-900">
-              {lote.cantidad} unidades disponibles
+              {t('inventory.unitsAvailable', { qty: lote.cantidad })}
             </span>
           </div>
         </div>
@@ -382,7 +384,7 @@ function LoteFormModal({
             ============================================ */}
         <div className="mb-4">
           <label className="block text-sm font-medium text-slate-700 mb-2">
-            Cantidad a mover *
+            {t('inventory.quantityToMove')}
           </label>
 
           <div className="flex gap-2">
@@ -409,7 +411,7 @@ function LoteFormModal({
               variant="outline"
               onClick={handleUsarTodo}
             >
-              Usar todo ({lote.cantidad})
+              {t('inventory.useAll', { qty: lote.cantidad })}
             </Button>
           </div>
 
@@ -422,10 +424,10 @@ function LoteFormModal({
           {/* Preview: Cantidad que quedará */}
           {formData.cantidad && (
             <p className="mt-2 text-sm text-slate-600">
-              {lote.cantidad - Number(formData.cantidad)} unidades quedarán en el origen
+              {t('inventory.unitsWillRemain', { qty: lote.cantidad - Number(formData.cantidad) })}
               {lote.cantidad - Number(formData.cantidad) === 0 && (
                 <span className="text-amber-600 font-medium">
-                  {' '}(El lote origen se eliminará)
+                  {' '}{t('inventory.sourceBatchWillBeDeleted')}
                 </span>
               )}
             </p>
@@ -446,7 +448,7 @@ function LoteFormModal({
             ============================================ */}
         <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg mb-4">
           <p className="text-sm font-medium text-blue-900 mb-3">
-            Destino:
+            {t('inventory.destination')}
           </p>
 
           {/* ============================================
@@ -454,7 +456,7 @@ function LoteFormModal({
               ============================================ */}
           <div className="mb-4">
             <label className="block text-sm font-medium text-slate-700 mb-2">
-              Estado destino *
+              {t('inventory.destinationState')}
             </label>
 
             <div className="grid grid-cols-2 gap-2">
@@ -489,13 +491,13 @@ function LoteFormModal({
           {formData.estado_destino !== ESTADOS.ALQUILADO && (
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
-                Ubicación destino *
+                {t('inventory.destinationLocation')}
               </label>
 
               <UbicacionSelector
                 value={formData.ubicacion_destino}
                 onChange={handleUbicacionChange}
-                placeholder="Selecciona ubicación destino"
+                placeholder={t('inventory.selectDestinationLocation')}
               />
 
               {errors.ubicacion_destino && (
@@ -510,7 +512,7 @@ function LoteFormModal({
           {formData.estado_destino === ESTADOS.ALQUILADO && (
             <div className="p-3 bg-blue-100 border border-blue-300 rounded-lg">
               <p className="text-sm text-blue-700">
-                ℹ️ Los lotes alquilados no tienen ubicación física
+                {t('inventory.rentedNoBatchLocation')}
               </p>
             </div>
           )}
@@ -522,10 +524,10 @@ function LoteFormModal({
         {previewConsolidacion && (
           <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
             <p className="text-sm text-green-700 font-medium">
-              ✅ Se sumará a un lote existente (consolidación)
+              {t('inventory.willConsolidate')}
             </p>
             <p className="text-xs text-green-600 mt-1">
-              Ya existe un lote con esta ubicación y estado
+              {t('inventory.existingBatchMatch')}
             </p>
           </div>
         )}
@@ -533,10 +535,10 @@ function LoteFormModal({
         {!previewConsolidacion && formData.ubicacion_destino && (
           <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
             <p className="text-sm text-blue-700 font-medium">
-              ✨ Se creará un nuevo lote
+              {t('inventory.willCreateNewBatch')}
             </p>
             <p className="text-xs text-blue-600 mt-1">
-              No existe un lote con esta combinación de ubicación y estado
+              {t('inventory.noMatchingBatch')}
             </p>
           </div>
         )}
@@ -548,17 +550,17 @@ function LoteFormModal({
           <p className="text-xs text-slate-600 flex items-start gap-2">
             <span className="text-sm">💡</span>
             <span>
-              <strong>El motivo se registra automáticamente:</strong>
-              {formData.estado_destino === ESTADOS.ALQUILADO && ' Alquiler'}
-              {formData.estado_destino === ESTADOS.MANTENIMIENTO && ' Reparación'}
-              {formData.estado_destino === ESTADOS.DANADO && ' Marcado como dañado'}
-              {formData.estado_destino === ESTADOS.BUENO && lote?.estado === ESTADOS.ALQUILADO && ' Devolución de alquiler'}
-              {formData.estado_destino === lote?.estado && ' Traslado entre ubicaciones'}
+              <strong>{t('inventory.autoMotiveInfo')}</strong>
+              {formData.estado_destino === ESTADOS.ALQUILADO && ` ${t('inventory.motiveRental')}`}
+              {formData.estado_destino === ESTADOS.MANTENIMIENTO && ` ${t('inventory.motiveRepair')}`}
+              {formData.estado_destino === ESTADOS.DANADO && ` ${t('inventory.motiveDamaged')}`}
+              {formData.estado_destino === ESTADOS.BUENO && lote?.estado === ESTADOS.ALQUILADO && ` ${t('inventory.motiveReturn')}`}
+              {formData.estado_destino === lote?.estado && ` ${t('inventory.motiveTransfer')}`}
               {!(formData.estado_destino === ESTADOS.ALQUILADO ||
                  formData.estado_destino === ESTADOS.MANTENIMIENTO ||
                  formData.estado_destino === ESTADOS.DANADO ||
                  (formData.estado_destino === ESTADOS.BUENO && lote?.estado === ESTADOS.ALQUILADO) ||
-                 formData.estado_destino === lote?.estado) && ' Ajuste de inventario'}
+                 formData.estado_destino === lote?.estado) && ` ${t('inventory.motiveAdjustment')}`}
             </span>
           </p>
         </div>
@@ -568,12 +570,12 @@ function LoteFormModal({
             ============================================ */}
         <div className="mb-6">
           <label className="block text-sm font-medium text-slate-700 mb-2">
-            Descripción (opcional)
+            {t('inventory.descriptionOptionalLabel')}
           </label>
           <textarea
             value={formData.descripcion}
             onChange={(e) => setFormData(prev => ({ ...prev, descripcion: e.target.value }))}
-            placeholder="Detalles adicionales del movimiento..."
+            placeholder={t('inventory.movementDetailsPlaceholder')}
             rows={2}
             className="
               w-full px-4 py-2 border border-slate-300 rounded-lg
@@ -592,14 +594,14 @@ function LoteFormModal({
             onClick={onClose}
             disabled={moverCantidad.isPending}
           >
-            Cancelar
+            {t('common.cancel')}
           </Button>
           <Button
             type="submit"
             variant="primary"
             disabled={moverCantidad.isPending}
           >
-            {moverCantidad.isPending ? 'Moviendo...' : 'Mover Cantidad'}
+            {moverCantidad.isPending ? t('inventory.moving') : t('inventory.moveQuantity')}
           </Button>
         </Modal.Footer>
       </form>

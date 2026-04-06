@@ -14,8 +14,10 @@ import {
 import { useAuth } from '@auth/hooks/useAuth'
 import PageHeader from '@shared/components/PageHeader'
 import InfoBox from '@shared/components/InfoBox'
+import { useTranslation } from 'react-i18next'
 
 export default function ConfiguracionPage() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const { hasRole } = useAuth()
 
@@ -92,10 +94,10 @@ export default function ConfiguracionPage() {
       <PageHeader
         icon={Settings}
         iconColor="bg-slate-500"
-        title="Configuración"
-        subtitle="Gestiona los datos maestros del sistema"
+        title={t('config.title')}
+        subtitle={t('config.subtitle')}
         backTo="/"
-        backLabel="Volver a Módulos"
+        backLabel={t('config.backToModules')}
       />
 
       {/* Contenido */}

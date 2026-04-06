@@ -3,6 +3,7 @@
 // Tarjeta moderna de alquiler con click directo
 // ============================================
 
+import { useTranslation } from 'react-i18next'
 import {
   Calendar,
   User,
@@ -18,28 +19,28 @@ import {
 
 const estadoConfig = {
   programado: {
-    label: 'Programado',
+    labelKey: 'rentals.card.programado',
     icon: Clock,
     dot: 'bg-amber-400',
     badge: 'bg-amber-50 text-amber-700 border-amber-200',
     accent: 'border-l-amber-400'
   },
   activo: {
-    label: 'Activo',
+    labelKey: 'rentals.card.activo',
     icon: Truck,
     dot: 'bg-emerald-400',
     badge: 'bg-emerald-50 text-emerald-700 border-emerald-200',
     accent: 'border-l-emerald-400'
   },
   finalizado: {
-    label: 'Finalizado',
+    labelKey: 'rentals.card.finalizado',
     icon: CheckCircle,
     dot: 'bg-slate-400',
     badge: 'bg-slate-100 text-slate-600 border-slate-200',
     accent: 'border-l-slate-300'
   },
   cancelado: {
-    label: 'Cancelado',
+    labelKey: 'rentals.card.cancelado',
     icon: XCircle,
     dot: 'bg-red-400',
     badge: 'bg-red-50 text-red-600 border-red-200',
@@ -48,6 +49,7 @@ const estadoConfig = {
 }
 
 const AlquilerCard = ({ alquiler, onVerDetalle }) => {
+  const { t } = useTranslation()
 
   const formatFecha = (fecha) => {
     if (!fecha) return '-'
@@ -90,12 +92,12 @@ const AlquilerCard = ({ alquiler, onVerDetalle }) => {
         <div className="flex items-center gap-2">
           <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 text-[11px] font-semibold rounded-full border ${config.badge}`}>
             <Icon className="w-3 h-3" />
-            {config.label}
+            {t(config.labelKey)}
           </span>
           {vencido && (
             <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-semibold rounded-full bg-red-100 text-red-700 border border-red-200 animate-pulse">
               <AlertTriangle className="w-3 h-3" />
-              Vencido
+              {t('rentals.card.overdue')}
             </span>
           )}
         </div>
@@ -106,7 +108,7 @@ const AlquilerCard = ({ alquiler, onVerDetalle }) => {
       <div className="px-4 pb-3">
         {/* Evento name */}
         <h3 className="font-semibold text-slate-900 text-[15px] leading-tight truncate mb-1 group-hover:text-orange-600 transition-colors">
-          {alquiler.evento_nombre || 'Sin nombre'}
+          {alquiler.evento_nombre || t('rentals.card.noName')}
         </h3>
 
         {/* Cliente */}
@@ -145,7 +147,7 @@ const AlquilerCard = ({ alquiler, onVerDetalle }) => {
           {formatMoneda(alquiler.total)}
         </span>
         <span className="text-xs text-slate-400 flex items-center gap-1 group-hover:text-orange-500 transition-colors">
-          Ver detalle
+          {t('rentals.card.viewDetail')}
           <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
         </span>
       </div>

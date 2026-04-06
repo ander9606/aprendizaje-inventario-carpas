@@ -7,6 +7,7 @@
 
 import { X } from 'lucide-react'
 import { useEffect, useState, useRef, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 
 /**
  * Componente Modal - Ventana emergente tablet-first
@@ -29,6 +30,7 @@ export const Modal = ({
   children,
   className = ''
 }) => {
+  const { t } = useTranslation()
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024)
   const contentRef = useRef(null)
 
@@ -114,7 +116,7 @@ export const Modal = ({
               className="w-10 h-10 flex items-center justify-center rounded-xl
                          text-slate-500 hover:text-slate-700 active:bg-slate-100
                          transition-colors flex-shrink-0"
-              aria-label="Cerrar modal"
+              aria-label={t('common.closeModal')}
             >
               <X className="w-5 h-5" />
             </button>
@@ -163,7 +165,7 @@ export const Modal = ({
               className="text-slate-400 hover:text-slate-600
                        transition-colors p-2 rounded-xl
                        hover:bg-slate-100 active:bg-slate-200"
-              aria-label="Cerrar modal"
+              aria-label={t('common.closeModal')}
             >
               <X className="w-5 h-5" />
             </button>

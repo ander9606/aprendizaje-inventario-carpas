@@ -1,0 +1,22 @@
+{
+  "calendar": {
+    "title": "Calendar",
+    "loadingCalendar": "Loading calendar...",
+    "errorLoadingCalendar": "Error loading calendar:",
+    "filters": "Filters:",
+    "assembly": "Assembly",
+    "event": "Event",
+    "disassembly": "Disassembly",
+    "status": "Status:",
+    "allStatuses": "All",
+    "pendingStatus": "Pending",
+    "approvedStatus": "Approved",
+    "rejectedStatus": "Rejected",
+    "expiredStatus": "Expired",
+    "completedStatus": "Completed",
+    "legend": "Legend",
+    "dayQuotes": "Day quotes",
+    "stats": "Statistics",
+    "operationsCalendar": "Operations Calendar"
+  }
+}

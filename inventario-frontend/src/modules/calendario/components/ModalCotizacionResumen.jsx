@@ -19,6 +19,7 @@ import { Modal } from '@shared/components/Modal'
 import Spinner from '@shared/components/Spinner'
 import { EVENT_TYPES } from '@calendario/constants/calendarConfig'
 import { useGetCotizacionCompleta } from '@alquileres/hooks/cotizaciones'
+import { useTranslation } from 'react-i18next'
 
 // ============================================
 // HELPERS

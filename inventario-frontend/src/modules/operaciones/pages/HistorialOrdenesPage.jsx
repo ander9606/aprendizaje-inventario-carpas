@@ -28,26 +28,27 @@ import {
 import { useGetOrdenes } from '../hooks/useOrdenesTrabajo'
 import Spinner from '@shared/components/Spinner'
 import Modal from '@shared/components/Modal'
+import { useTranslation } from 'react-i18next'
 
 // ============================================
 // HELPERS
 // ============================================
-const getTipoConfig = (tipo) => {
+const getTipoConfig = (tipo, t) => {
     const config = {
-        montaje: { icon: Package, label: 'Montaje' },
-        desmontaje: { icon: Truck, label: 'Desmontaje' },
-        mantenimiento: { icon: Wrench, label: 'Mantenimiento' },
-        traslado: { icon: ArrowRightLeft, label: 'Traslado' },
-        revision: { icon: ClipboardCheck, label: 'Revisión' },
-        inventario: { icon: Boxes, label: 'Inventario' },
-        otro: { icon: Package, label: 'Otro' }
+        montaje: { icon: Package, label: t('operations.assembly') },
+        desmontaje: { icon: Truck, label: t('operations.disassembly') },
+        mantenimiento: { icon: Wrench, label: t('operations.maintenance') },
+        traslado: { icon: ArrowRightLeft, label: t('operations.transfer') },
+        revision: { icon: ClipboardCheck, label: t('operations.inspection') },
+        inventario: { icon: Boxes, label: t('operations.inventoryCheck') },
+        otro: { icon: Package, label: t('operations.other') }
     }
     return config[tipo] || config.otro
 }
 
 const formatFecha = (fecha) => {
-    if (!fecha) return 'Sin fecha'
-    return new Date(fecha).toLocaleDateString('es-CO', {
+    if (!fecha) return '—'
+    return new Date(fecha).toLocaleDateString(undefined, {
         weekday: 'short',
         day: 'numeric',
         month: 'short'
@@ -55,8 +56,8 @@ const formatFecha = (fecha) => {
 }
 
 const formatFechaHora = (fecha) => {
-    if (!fecha) return 'Sin fecha'
-    return new Date(fecha).toLocaleDateString('es-CO', {
+    if (!fecha) return '—'
+    return new Date(fecha).toLocaleDateString(undefined, {
         weekday: 'short',
         day: 'numeric',
         month: 'short',
@@ -112,6 +113,7 @@ const esEventoFinalizado = (evento) => {
 // COMPONENTE: MODAL DETALLE HISTORIAL
 // ============================================
 function ModalDetalleHistorial({ isOpen, onClose, evento }) {
+    const { t } = useTranslation()
     if (!evento) return null
 
     const montaje = evento.montaje
@@ -126,7 +128,7 @@ function ModalDetalleHistorial({ isOpen, onClose, evento }) {
         <Modal
             isOpen={isOpen}
             onClose={onClose}
-            title={evento.evento_nombre || evento.cliente_nombre || 'Detalle del Evento'}
+            title={evento.evento_nombre || evento.cliente_nombre || t('operations.eventDetail')}
             size="md"
         >
             <div className="space-y-4">
@@ -138,8 +140,8 @@ function ModalDetalleHistorial({ isOpen, onClose, evento }) {
                             <User className="w-4 h-4 text-emerald-500" />
                         </div>
                         <div>
-                            <p className="text-xs text-slate-400 font-medium">Encargado Montaje</p>
-                            <p className="text-sm text-slate-700 mt-0.5">{responsableMontaje || 'Sin asignar'}</p>
+                            <p className="text-xs text-slate-400 font-medium">{t("operations.assemblyManager")}</p>
+                            <p className="text-sm text-slate-700 mt-0.5">{responsableMontaje || t('operations.unassigned')}</p>
                         </div>
                     </div>
 
@@ -149,8 +151,8 @@ function ModalDetalleHistorial({ isOpen, onClose, evento }) {
                             <User className="w-4 h-4 text-orange-500" />
                         </div>
                         <div>
-                            <p className="text-xs text-slate-400 font-medium">Encargado Desmontaje</p>
-                            <p className="text-sm text-slate-700 mt-0.5">{responsableDesmontaje || 'Sin asignar'}</p>
+                            <p className="text-xs text-slate-400 font-medium">{t("operations.disassemblyManager")}</p>
+                            <p className="text-sm text-slate-700 mt-0.5">{responsableDesmontaje || t('operations.unassigned')}</p>
                         </div>
                     </div>
 
@@ -160,8 +162,8 @@ function ModalDetalleHistorial({ isOpen, onClose, evento }) {
                             <User className="w-4 h-4 text-blue-500" />
                         </div>
                         <div>
-                            <p className="text-xs text-slate-400 font-medium">Cliente</p>
-                            <p className="text-sm text-slate-700 mt-0.5">{evento.cliente_nombre || 'Sin cliente'}</p>
+                            <p className="text-xs text-slate-400 font-medium">{t("operations.client")}</p>
+                            <p className="text-sm text-slate-700 mt-0.5">{evento.cliente_nombre || t('operations.noClient')}</p>
                         </div>
                     </div>
 
@@ -171,8 +173,8 @@ function ModalDetalleHistorial({ isOpen, onClose, evento }) {
                             <Package className="w-4 h-4 text-orange-500" />
                         </div>
                         <div>
-                            <p className="text-xs text-slate-400 font-medium">Producto</p>
-                            <p className="text-sm text-slate-700 mt-0.5">{evento.nombres_productos || 'Sin productos'}</p>
+                            <p className="text-xs text-slate-400 font-medium">{t("operations.product")}</p>
+                            <p className="text-sm text-slate-700 mt-0.5">{evento.nombres_productos || t('operations.noProducts')}</p>
                         </div>
                     </div>
 
@@ -182,15 +184,15 @@ function ModalDetalleHistorial({ isOpen, onClose, evento }) {
                             <Clock className="w-4 h-4 text-green-500" />
                         </div>
                         <div className="flex-1">
-                            <p className="text-xs text-slate-400 font-medium mb-1">Montaje</p>
+                            <p className="text-xs text-slate-400 font-medium mb-1">{t('operations.assembly')}</p>
                             <div className="flex flex-col sm:flex-row sm:gap-6 gap-0.5">
                                 <p className="text-sm text-slate-700">
-                                    <span className="text-slate-400">Inicio: </span>
+                                    <span className="text-slate-400">{t('operations.start')}: </span>
                                     {formatFechaHora(montaje?.fecha_programada || evento.fecha_montaje)}
                                 </p>
                                 <p className="text-sm text-slate-700">
-                                    <span className="text-slate-400">Fin: </span>
-                                    {montaje?.updated_at ? formatFechaHora(montaje.updated_at) : 'Sin datos'}
+                                    <span className="text-slate-400">{t('operations.end')}: </span>
+                                    {montaje?.updated_at ? formatFechaHora(montaje.updated_at) : t('operations.noData')}
                                 </p>
                             </div>
                         </div>
@@ -202,15 +204,15 @@ function ModalDetalleHistorial({ isOpen, onClose, evento }) {
                             <Clock className="w-4 h-4 text-purple-500" />
                         </div>
                         <div className="flex-1">
-                            <p className="text-xs text-slate-400 font-medium mb-1">Desmontaje</p>
+                            <p className="text-xs text-slate-400 font-medium mb-1">{t('operations.disassembly')}</p>
                             <div className="flex flex-col sm:flex-row sm:gap-6 gap-0.5">
                                 <p className="text-sm text-slate-700">
-                                    <span className="text-slate-400">Inicio: </span>
+                                    <span className="text-slate-400">{t('operations.start')}: </span>
                                     {formatFechaHora(desmontaje?.fecha_programada || evento.fecha_desmontaje)}
                                 </p>
                                 <p className="text-sm text-slate-700">
-                                    <span className="text-slate-400">Fin: </span>
-                                    {desmontaje?.updated_at ? formatFechaHora(desmontaje.updated_at) : 'Sin datos'}
+                                    <span className="text-slate-400">{t('operations.end')}: </span>
+                                    {desmontaje?.updated_at ? formatFechaHora(desmontaje.updated_at) : t('operations.noData')}
                                 </p>
                             </div>
                         </div>
@@ -222,9 +224,9 @@ function ModalDetalleHistorial({ isOpen, onClose, evento }) {
                             <MapPin className="w-4 h-4 text-red-500" />
                         </div>
                         <div>
-                            <p className="text-xs text-slate-400 font-medium">Lugar</p>
+                            <p className="text-xs text-slate-400 font-medium">{t("operations.location")}</p>
                             <p className="text-sm text-slate-700 mt-0.5">
-                                {evento.direccion_evento || evento.ciudad_evento || 'Sin lugar'}
+                                {evento.direccion_evento || evento.ciudad_evento || t('operations.noLocation')}
                             </p>
                         </div>
                     </div>
@@ -237,20 +239,20 @@ function ModalDetalleHistorial({ isOpen, onClose, evento }) {
                             <FileText className="w-4 h-4 text-amber-500" />
                         </div>
                         <div className="flex-1">
-                            <p className="text-xs text-slate-400 font-medium mb-2">Novedades</p>
+                            <p className="text-xs text-slate-400 font-medium mb-2">{t('operations.incidents')}</p>
                             <div className="space-y-1.5">
                                 <p className="text-sm">
-                                    <span className="text-slate-500">Montaje: </span>
+                                    <span className="text-slate-500">{t("operations.assembly")}: </span>
                                     {novedadesMontaje
                                         ? <span className="text-slate-700">{novedadesMontaje}</span>
-                                        : <span className="text-slate-400 italic">sin novedad</span>
+                                        : <span className="text-slate-400 italic">{t('operations.noIncident')}</span>
                                     }
                                 </p>
                                 <p className="text-sm">
-                                    <span className="text-slate-500">Desmontaje: </span>
+                                    <span className="text-slate-500">{t("operations.disassembly")}: </span>
                                     {novedadesDesmontaje
                                         ? <span className="text-slate-700">{novedadesDesmontaje}</span>
-                                        : <span className="text-slate-400 italic">sin novedad</span>
+                                        : <span className="text-slate-400 italic">{t('operations.noIncident')}</span>
                                     }
                                 </p>
                             </div>
@@ -267,9 +269,10 @@ function ModalDetalleHistorial({ isOpen, onClose, evento }) {
 // COMPONENTE: MODAL DETALLE ORDEN MANUAL
 // ============================================
 function ModalDetalleManual({ isOpen, onClose, orden }) {
+    const { t } = useTranslation()
     if (!orden) return null
 
-    const tipoConfig = getTipoConfig(orden.tipo)
+    const tipoConfig = getTipoConfig(orden.tipo, t)
 
     return (
         <Modal
@@ -286,7 +289,7 @@ function ModalDetalleManual({ isOpen, onClose, orden }) {
                                 <User className="w-4 h-4 text-slate-500" />
                             </div>
                             <div>
-                                <p className="text-xs text-slate-400 font-medium">Encargado</p>
+                                <p className="text-xs text-slate-400 font-medium">{t('operations.responsible')}</p>
                                 <p className="text-sm text-slate-700 mt-0.5">{orden.nombre_responsable}</p>
                             </div>
                         </div>
@@ -297,7 +300,7 @@ function ModalDetalleManual({ isOpen, onClose, orden }) {
                                 <MapPin className="w-4 h-4 text-red-500" />
                             </div>
                             <div>
-                                <p className="text-xs text-slate-400 font-medium">Lugar</p>
+                                <p className="text-xs text-slate-400 font-medium">{t("operations.location")}</p>
                                 <p className="text-sm text-slate-700 mt-0.5">{orden.direccion_evento || orden.ciudad_evento}</p>
                             </div>
                         </div>
@@ -307,7 +310,7 @@ function ModalDetalleManual({ isOpen, onClose, orden }) {
                             <Calendar className="w-4 h-4 text-green-500" />
                         </div>
                         <div>
-                            <p className="text-xs text-slate-400 font-medium">Fecha programada</p>
+                            <p className="text-xs text-slate-400 font-medium">{t('operations.scheduledDate')}</p>
                             <p className="text-sm text-slate-700 mt-0.5">{formatFechaHora(orden.fecha_programada)}</p>
                         </div>
                     </div>
@@ -319,11 +322,11 @@ function ModalDetalleManual({ isOpen, onClose, orden }) {
                             <FileText className="w-4 h-4 text-amber-500" />
                         </div>
                         <div>
-                            <p className="text-xs text-slate-400 font-medium">Novedad</p>
+                            <p className="text-xs text-slate-400 font-medium">{t('operations.incident')}</p>
                             {orden.notas ? (
                                 <p className="text-sm text-slate-600 mt-0.5">{orden.notas}</p>
                             ) : (
-                                <p className="text-sm text-slate-400 italic mt-0.5">Sin novedades</p>
+                                <p className="text-sm text-slate-400 italic mt-0.5">{t('operations.noIncidents')}</p>
                             )}
                         </div>
                     </div>
@@ -337,6 +340,7 @@ function ModalDetalleManual({ isOpen, onClose, orden }) {
 // COMPONENTE PRINCIPAL
 // ============================================
 export default function HistorialOrdenesPage() {
+    const { t } = useTranslation()
     const [busqueda, setBusqueda] = useState('')
     const [filtroTipo, setFiltroTipo] = useState('')
     const [showFiltros, setShowFiltros] = useState(false)
@@ -404,7 +408,7 @@ export default function HistorialOrdenesPage() {
     if (isLoading) {
         return (
             <div className="flex justify-center py-12">
-                <Spinner size="lg" text="Cargando historial..." />
+                <Spinner size="lg" text={t("operations.loadingHistory")} />
             </div>
         )
     }
@@ -420,7 +424,7 @@ export default function HistorialOrdenesPage() {
                     Historial de Órdenes
                 </h1>
                 <p className="text-slate-500 mt-1">
-                    {totalHistorial} orden{totalHistorial !== 1 ? 'es' : ''} finalizada{totalHistorial !== 1 ? 's' : ''}
+                    {t('operations.finishedOrdersCount', { count: totalHistorial })}
                 </p>
             </div>
 
@@ -431,7 +435,7 @@ export default function HistorialOrdenesPage() {
                         <Search className="w-5 h-5 text-slate-400 shrink-0" />
                         <input
                             type="text"
-                            placeholder="Buscar por cliente, evento, ciudad, producto, encargado o ID..."
+                            placeholder={t("operations.searchPlaceholder")}
                             value={busqueda}
                             onChange={(e) => setBusqueda(e.target.value)}
                             className="flex-1 border-0 focus:ring-0 text-sm placeholder:text-slate-400 outline-none"
@@ -454,7 +458,7 @@ export default function HistorialOrdenesPage() {
                         }`}
                     >
                         <Filter className="w-4 h-4" />
-                        <span className="text-sm">Filtros</span>
+                        <span className="text-sm">{t("common.filters")}</span>
                         {filtroTipo && (
                             <span className="px-1.5 py-0.5 bg-orange-500 text-white text-[10px] rounded-full">1</span>
                         )}
@@ -474,7 +478,7 @@ export default function HistorialOrdenesPage() {
                                         : 'border-slate-200 hover:bg-slate-50 text-slate-600'
                                 }`}
                             >
-                                {tipo ? tipo.charAt(0).toUpperCase() + tipo.slice(1) : 'Todos'}
+                                {tipo ? t(`operations.type_${tipo}`) : t('common.all')}
                             </button>
                         ))}
                     </div>
@@ -484,8 +488,8 @@ export default function HistorialOrdenesPage() {
             {/* Contador */}
             <div className="mb-4 text-sm text-slate-500">
                 {busqueda || filtroTipo
-                    ? `${totalResultados} resultado${totalResultados !== 1 ? 's' : ''}`
-                    : `${totalHistorial} registro${totalHistorial !== 1 ? 's' : ''}`
+                    ? t('operations.resultsCount', { count: totalResultados })
+                    : t('operations.recordsCount', { count: totalHistorial })
                 }
             </div>
 
@@ -494,12 +498,12 @@ export default function HistorialOrdenesPage() {
                 <div className="bg-white rounded-xl border border-slate-200 p-12 text-center">
                     <Archive className="w-12 h-12 text-slate-300 mx-auto mb-4" />
                     <h3 className="text-lg font-medium text-slate-900 mb-2">
-                        {totalHistorial === 0 ? 'Sin historial' : 'Sin resultados'}
+                        {totalHistorial === 0 ? t('operations.noHistory') : t('common.noResults')}
                     </h3>
                     <p className="text-slate-500">
                         {totalHistorial === 0
-                            ? 'Las órdenes completadas aparecerán aquí una vez finalizado el desmontaje'
-                            : `No se encontraron órdenes con "${busqueda}"`
+                            ? t('operations.ordersWillAppearHere')
+                            : t('operations.noOrdersFound', { query: busqueda })
                         }
                     </p>
                     {(busqueda || filtroTipo) && (
@@ -536,7 +540,7 @@ export default function HistorialOrdenesPage() {
                                 {/* Info */}
                                 <div className="flex-1 min-w-0">
                                     <p className="text-sm font-medium text-slate-700 truncate">
-                                        {evento.evento_nombre || evento.cliente_nombre || 'Evento'}
+                                        {evento.evento_nombre || evento.cliente_nombre || t('operations.event')}
                                     </p>
                                     <div className="flex items-center gap-2 mt-0.5">
                                         {evento.cliente_nombre && evento.evento_nombre && (
@@ -583,7 +587,7 @@ export default function HistorialOrdenesPage() {
 
                     {/* Manuales finalizadas */}
                     {filtrado.manuales.map((orden) => {
-                        const tipoConfig = getTipoConfig(orden.tipo)
+                        const tipoConfig = getTipoConfig(orden.tipo, t)
                         const TipoIcon = tipoConfig.icon
                         return (
                             <div

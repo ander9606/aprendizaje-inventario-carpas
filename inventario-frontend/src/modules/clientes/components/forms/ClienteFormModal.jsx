@@ -4,6 +4,7 @@
 // ============================================
 
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import Modal from '@shared/components/Modal'
 import Button from '@shared/components/Button'
 import { useCreateCliente, useUpdateCliente } from '../../hooks/useClientes'
@@ -22,6 +23,8 @@ const ClienteFormModal = ({
   mode = 'crear',
   cliente = null
 }) => {
+
+  const { t } = useTranslation()
 
   // ============================================
   // ESTADO LOCAL DEL FORMULARIO
@@ -105,19 +108,19 @@ const ClienteFormModal = ({
     const newErrors = {}
 
     if (!formData.numero_documento.trim()) {
-      newErrors.numero_documento = 'El número de documento es obligatorio'
+      newErrors.numero_documento = t('validation.documentRequired')
     }
 
     if (!formData.nombre.trim()) {
-      newErrors.nombre = 'El nombre es obligatorio'
+      newErrors.nombre = t('validation.nameRequired')
     } else if (formData.nombre.trim().length < 3) {
-      newErrors.nombre = 'El nombre debe tener al menos 3 caracteres'
+      newErrors.nombre = t('validation.nameMinLength3')
     }
 
     if (formData.email && formData.email.trim()) {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
       if (!emailRegex.test(formData.email)) {
-        newErrors.email = 'Email no válido'
+        newErrors.email = t('validation.emailInvalid')
       }
     }
 
@@ -154,10 +157,10 @@ const ClienteFormModal = ({
       onClose()
 
     } catch (error) {
-      console.error('Error al guardar cliente:', error)
+      console.error('Error saving client:', error)
 
       const mensajeError = error.response?.data?.message ||
-        (mode === 'crear' ? 'Error al crear el cliente' : 'Error al actualizar el cliente')
+        (mode === 'crear' ? t('clients.errorCreating') : t('clients.errorUpdating'))
 
       setErrors({ submit: mensajeError })
     }
@@ -177,7 +180,7 @@ const ClienteFormModal = ({
     <Modal
       isOpen={isOpen}
       onClose={handleClose}
-      title={mode === 'crear' ? 'Nuevo Cliente' : 'Editar Cliente'}
+      title={mode === 'crear' ? t('clients.newClient') : t('clients.editClient')}
       size="lg"
     >
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -191,13 +194,13 @@ const ClienteFormModal = ({
 
         {/* DOCUMENTO */}
         <div className="space-y-4">
-          <h3 className="font-semibold text-slate-900">Documento</h3>
+          <h3 className="font-semibold text-slate-900">{t('clients.document')}</h3>
 
           <div className="grid grid-cols-3 gap-4">
             {/* Tipo documento */}
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
-                Tipo *
+                {t('clients.documentType')} *
               </label>
               <select
                 name="tipo_documento"
@@ -219,7 +222,7 @@ const ClienteFormModal = ({
             {/* Número documento */}
             <div className="col-span-2">
               <label className="block text-sm font-medium text-slate-700 mb-2">
-                Número *
+                {t('clients.documentNumber')} *
               </label>
               <input
                 type="text"
@@ -244,19 +247,19 @@ const ClienteFormModal = ({
 
         {/* INFORMACIÓN PERSONAL */}
         <div className="space-y-4">
-          <h3 className="font-semibold text-slate-900">Información Personal</h3>
+          <h3 className="font-semibold text-slate-900">{t('clients.personalInfo')}</h3>
 
           {/* Nombre */}
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
-              Nombre Completo *
+              {t('clients.fullName')} *
             </label>
             <input
               type="text"
               name="nombre"
               value={formData.nombre}
               onChange={handleChange}
-              placeholder="Nombre del cliente o empresa"
+              placeholder={t('clients.clientOrCompanyName')}
               disabled={isLoading}
               className={`
                 w-full px-4 py-2.5 border rounded-lg
@@ -274,14 +277,14 @@ const ClienteFormModal = ({
             {/* Teléfono */}
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
-                Teléfono
+                {t('common.phone')}
               </label>
               <input
                 type="tel"
                 name="telefono"
                 value={formData.telefono}
                 onChange={handleChange}
-                placeholder="300 123 4567"
+                placeholder={t('clients.phonePlaceholder')}
                 disabled={isLoading}
                 className="
                   w-full px-4 py-2.5 border border-slate-300 rounded-lg
@@ -294,14 +297,14 @@ const ClienteFormModal = ({
             {/* Email */}
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
-                Email
+                {t('common.email')}
               </label>
               <input
                 type="email"
                 name="email"
                 value={formData.email}
                 onChange={handleChange}
-                placeholder="correo@ejemplo.com"
+                placeholder={t('clients.emailPlaceholder')}
                 disabled={isLoading}
                 className={`
                   w-full px-4 py-2.5 border rounded-lg
@@ -319,19 +322,19 @@ const ClienteFormModal = ({
 
         {/* UBICACIÓN */}
         <div className="space-y-4">
-          <h3 className="font-semibold text-slate-900">Ubicación</h3>
+          <h3 className="font-semibold text-slate-900">{t('clients.location')}</h3>
 
           {/* Dirección */}
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
-              Dirección
+              {t('common.address')}
             </label>
             <input
               type="text"
               name="direccion"
               value={formData.direccion}
               onChange={handleChange}
-              placeholder="Calle, número, barrio..."
+              placeholder={t('clients.streetPlaceholder')}
               disabled={isLoading}
               className="
                 w-full px-4 py-2.5 border border-slate-300 rounded-lg
@@ -344,14 +347,14 @@ const ClienteFormModal = ({
           {/* Ciudad */}
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
-              Ciudad
+              {t('clients.city')}
             </label>
             <input
               type="text"
               name="ciudad"
               value={formData.ciudad}
               onChange={handleChange}
-              placeholder="Ciudad o municipio"
+              placeholder={t('clients.cityOrTown')}
               disabled={isLoading}
               className="
                 w-full px-4 py-2.5 border border-slate-300 rounded-lg
@@ -364,17 +367,17 @@ const ClienteFormModal = ({
 
         {/* NOTAS */}
         <div className="space-y-4">
-          <h3 className="font-semibold text-slate-900">Información Adicional</h3>
+          <h3 className="font-semibold text-slate-900">{t('clients.additionalInfo')}</h3>
 
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
-              Notas
+              {t('common.notes')}
             </label>
             <textarea
               name="notas"
               value={formData.notas}
               onChange={handleChange}
-              placeholder="Notas adicionales sobre el cliente..."
+              placeholder={t('clients.additionalNotes')}
               rows={3}
               disabled={isLoading}
               className="
@@ -402,7 +405,7 @@ const ClienteFormModal = ({
               "
             />
             <label htmlFor="activo" className="text-sm font-medium text-slate-700">
-              Cliente activo
+              {t('clients.activeClient')}
             </label>
           </div>
         </div>
@@ -416,7 +419,7 @@ const ClienteFormModal = ({
             disabled={isLoading}
             fullWidth
           >
-            Cancelar
+            {t('common.cancel')}
           </Button>
 
           <Button
@@ -426,7 +429,7 @@ const ClienteFormModal = ({
             disabled={isLoading}
             fullWidth
           >
-            {mode === 'crear' ? 'Crear Cliente' : 'Guardar Cambios'}
+            {mode === 'crear' ? t('clients.createClient') : t('clients.saveChanges')}
           </Button>
         </div>
       </form>

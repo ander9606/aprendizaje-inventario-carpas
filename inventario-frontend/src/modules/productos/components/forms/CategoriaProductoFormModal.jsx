@@ -4,6 +4,7 @@
 // ============================================
 
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import Modal from '@shared/components/Modal'
 import Button from '@shared/components/Button'
 import SymbolPicker from '@shared/components/picker/SymbolPicker'

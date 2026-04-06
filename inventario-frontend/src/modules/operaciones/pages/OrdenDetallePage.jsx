@@ -70,11 +70,13 @@ import ModalNovedad from '../components/ModalNovedad'
 import ListaNovedades from '../components/ListaNovedades'
 import ConfirmModal from '@shared/components/ConfirmModal'
 import { toast } from 'sonner'
+import { useTranslation } from 'react-i18next'
 
 // ============================================
 // COMPONENTE PRINCIPAL: OrdenDetallePage
 // ============================================
 export default function OrdenDetallePage() {
+  const { t } = useTranslation()
     const { id } = useParams()
     const navigate = useNavigate()
     const { hasRole, usuario } = useAuth()
@@ -413,7 +415,7 @@ export default function OrdenDetallePage() {
     if (isLoading) {
         return (
             <div className="flex justify-center py-12">
-                <Spinner size="lg" text="Cargando orden..." />
+                <Spinner size="lg" text={t('operations.loadingOrder')} />
             </div>
         )
     }
@@ -1725,9 +1727,9 @@ export default function OrdenDetallePage() {
                 onConfirm={handleEjecutarSalida}
                 variant="info"
                 icon={LogOut}
-                title="Confirmar ejecución de salida"
-                message='Esta acción cambiará el estado del alquiler a "activo" y marcará los elementos como despachados. Los inventarios quedarán registrados como en uso.'
-                confirmText="Ejecutar Salida"
+                title={t('operations.confirmDeparture')}
+                message={t('operations.confirmDepartureMessage')}
+                confirmText={t('operations.executeDeparture')}
                 loading={ejecutandoSalida}
             />
             <ConfirmModal
@@ -1735,9 +1737,9 @@ export default function OrdenDetallePage() {
                 onClose={closeConfirm}
                 onConfirm={() => { closeConfirm(); handleCambiarEstado('confirmado') }}
                 variant="warning"
-                title="Sin responsable asignado"
-                message="No hay un responsable asignado a esta orden. Puedes asignar uno después, pero se recomienda hacerlo antes de confirmar."
-                confirmText="Confirmar de todas formas"
+                title={t('operations.noResponsibleAssigned')}
+                message={t('operations.noResponsibleMessage')}
+                confirmText={t('operations.confirmAnyway')}
             />
             <ConfirmModal
                 isOpen={confirmModal.isOpen && confirmModal.key === 'completar_montaje'}
@@ -1746,10 +1748,10 @@ export default function OrdenDetallePage() {
                 variant="success"
                 title={`Completar ${orden.tipo === 'montaje' ? 'montaje' : 'orden'}`}
                 message={tiempoTranscurrido != null
-                    ? `El ${orden.tipo} lleva ${formatTimer(tiempoTranscurrido)} en ejecución. ¿Marcar como completado?`
-                    : '¿Marcar esta orden como completada?'
+                    ? t('operations.completeWithTime', { type: orden.tipo, time: formatTimer(tiempoTranscurrido) })
+                    : t('operations.markAsCompleted')
                 }
-                confirmText="Completar"
+                confirmText={t('operations.complete')}
                 loading={cambiarEstado.isPending}
             />
             <ConfirmModal
@@ -1757,9 +1759,9 @@ export default function OrdenDetallePage() {
                 onClose={closeConfirm}
                 onConfirm={() => { closeConfirm(); handleCambiarEstado('cancelado') }}
                 variant="danger"
-                title="Cancelar orden de trabajo"
-                message="¿Estás seguro de cancelar esta orden? Esta acción no se puede deshacer y los recursos asignados serán liberados."
-                confirmText="Sí, cancelar orden"
+                title={t('operations.cancelWorkOrder')}
+                message={t('operations.cancelWorkOrderMessage')}
+                confirmText={t('operations.yesCancelOrder')}
                 loading={cambiarEstado.isPending}
             />
         </div>

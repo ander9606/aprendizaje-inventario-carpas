@@ -5,6 +5,7 @@
 
 import { Calendar, User, MapPin, Clock, Package } from 'lucide-react'
 import { formatearFechaCorta } from '@shared/utils/helpers'
+import { useTranslation } from 'react-i18next'
 
 /**
  * Componente EventosDesglose - Muestra cantidades en eventos
@@ -95,6 +96,7 @@ export const EventosDesglose = ({
 // SUB-COMPONENTE: EVENTO ITEM
 // ============================================
 const EventoItem = ({ evento }) => {
+  const { t } = useTranslation()
   const {
     evento_nombre,
     cliente,

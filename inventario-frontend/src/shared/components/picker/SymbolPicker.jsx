@@ -3,6 +3,7 @@ import Modal from "../Modal"
 import EmojiPicker from "./Emojipicker"
 import IconPicker from "./IconPicker"
 import { Smile, Shapes } from "lucide-react"
+import { useTranslation } from 'react-i18next'
 
 export default function SymbolPicker({
   open,
@@ -10,6 +11,7 @@ export default function SymbolPicker({
   onSelect,
   onClose
 }) {
+  const { t } = useTranslation()
   const [tab, setTab] = useState("emoji")
 
   // Reset al abrir
@@ -21,7 +23,7 @@ export default function SymbolPicker({
     <Modal
       isOpen={open}
       onClose={onClose}
-      title="Seleccionar icono"
+      title={t('common.selectIcon')}
       size="lg"
     >
       {/* Tabs */}
@@ -38,7 +40,7 @@ export default function SymbolPicker({
               : "text-slate-500 hover:text-slate-700"}
           `}
         >
-          <Smile size={18} className="pointer-events-none" /> Emojis
+          <Smile size={18} className="pointer-events-none" /> {t('common.emojis')}
         </button>
 
         <button
@@ -53,7 +55,7 @@ export default function SymbolPicker({
               : "text-slate-500 hover:text-slate-700"}
           `}
         >
-          <Shapes size={18} className="pointer-events-none" /> Iconos
+          <Shapes size={18} className="pointer-events-none" /> {t('common.icons')}
         </button>
       </div>
 

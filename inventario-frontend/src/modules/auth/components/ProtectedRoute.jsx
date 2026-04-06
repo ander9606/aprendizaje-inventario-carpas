@@ -6,6 +6,7 @@
 import { useEffect } from 'react'
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import useAuthStore from '@shared/stores/authStore'
 
 /**
@@ -26,6 +27,7 @@ import useAuthStore from '@shared/stores/authStore'
  * </Route>
  */
 const ProtectedRoute = ({ roles = null, redirectTo = '/login' }) => {
+    const { t } = useTranslation()
     const location = useLocation()
     const { isAuthenticated, isLoading, usuario, hasRole, checkAuth } = useAuthStore()
 
@@ -44,7 +46,7 @@ const ProtectedRoute = ({ roles = null, redirectTo = '/login' }) => {
             <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
                 <div className="text-center">
                     <Loader2 className="w-10 h-10 animate-spin text-blue-600 mx-auto mb-4" />
-                    <p className="text-slate-600">Verificando sesión...</p>
+                    <p className="text-slate-600">{t('auth.protectedRoute.verifying')}</p>
                 </div>
             </div>
         )
@@ -71,13 +73,13 @@ const ProtectedRoute = ({ roles = null, redirectTo = '/login' }) => {
                     <div className="text-center max-w-md">
                         <div className="text-6xl mb-4">🚫</div>
                         <h1 className="text-2xl font-bold text-slate-900 mb-2">
-                            Acceso Denegado
+                            {t('auth.protectedRoute.accessDenied')}
                         </h1>
                         <p className="text-slate-600 mb-6">
-                            No tienes permisos para acceder a esta sección.
+                            {t('auth.protectedRoute.noPermission')}
                             {usuario && (
                                 <span className="block mt-2 text-sm">
-                                    Tu rol actual es: <strong>{usuario.rol}</strong>
+                                    {t('auth.protectedRoute.currentRole')} <strong>{usuario.rol}</strong>
                                 </span>
                             )}
                         </p>
@@ -85,7 +87,7 @@ const ProtectedRoute = ({ roles = null, redirectTo = '/login' }) => {
                             href="/"
                             className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                         >
-                            Volver al inicio
+                            {t('auth.protectedRoute.backToHome')}
                         </a>
                     </div>
                 </div>

@@ -6,6 +6,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { User, LogOut, Settings, ChevronDown, Shield } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import useAuthStore from '@shared/stores/authStore'
 
 /**
@@ -17,6 +18,7 @@ import useAuthStore from '@shared/stores/authStore'
  * - Opciones: Configuración, Cerrar sesión
  */
 const UserMenu = () => {
+    const { t } = useTranslation()
     const navigate = useNavigate()
     const [isOpen, setIsOpen] = useState(false)
     const menuRef = useRef(null)
@@ -135,7 +137,7 @@ const UserMenu = () => {
                             className="w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors"
                         >
                             <User className="w-4 h-4 text-slate-400" />
-                            Mi perfil
+                            {t('auth.userMenu.myProfile')}
                         </button>
 
                         <button
@@ -146,7 +148,7 @@ const UserMenu = () => {
                             className="w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors"
                         >
                             <Settings className="w-4 h-4 text-slate-400" />
-                            Configuración
+                            {t('auth.userMenu.settings')}
                         </button>
                     </div>
 
@@ -160,7 +162,7 @@ const UserMenu = () => {
                             className="w-full px-4 py-2.5 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-3 transition-colors"
                         >
                             <LogOut className="w-4 h-4" />
-                            Cerrar sesión
+                            {t('auth.userMenu.logout')}
                         </button>
                     </div>
                 </div>

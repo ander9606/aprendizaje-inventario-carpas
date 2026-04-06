@@ -10,6 +10,7 @@ import Button from '@shared/components/Button'
 import Spinner from '@shared/components/Spinner'
 import { useVerificarDisponibilidadCotizacion } from '@inventario/hooks/useDisponibilidad'
 import { useGetCotizacionCompleta } from '../../hooks/cotizaciones'
+import { useTranslation } from 'react-i18next'
 
 /**
  * AprobarCotizacionModal
@@ -24,6 +25,7 @@ const AprobarCotizacionModal = ({
   onAprobar,
   isAprobando = false
 }) => {
+  const { t } = useTranslation()
   const [cobrarDeposito, setCobrarDeposito] = useState(true)
   const [depositoCobrado, setDepositoCobrado] = useState('')
   const [notasSalida, setNotasSalida] = useState('')

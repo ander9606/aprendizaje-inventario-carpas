@@ -20,23 +20,24 @@ import {
     Star
 } from 'lucide-react'
 import { Modal } from '@shared/components/Modal'
+import { useTranslation } from 'react-i18next'
 
 const ESTADOS_CONFIG = {
-    pendiente: { label: 'Pendiente', bg: 'bg-slate-100', text: 'text-slate-700', dot: 'bg-slate-400' },
-    confirmado: { label: 'Confirmado', bg: 'bg-blue-100', text: 'text-blue-700', dot: 'bg-blue-400' },
-    en_preparacion: { label: 'Preparación', bg: 'bg-amber-100', text: 'text-amber-700', dot: 'bg-amber-400' },
-    en_ruta: { label: 'En ruta', bg: 'bg-purple-100', text: 'text-purple-700', dot: 'bg-purple-400' },
-    en_sitio: { label: 'En sitio', bg: 'bg-indigo-100', text: 'text-indigo-700', dot: 'bg-indigo-400' },
-    en_proceso: { label: 'En proceso', bg: 'bg-cyan-100', text: 'text-cyan-700', dot: 'bg-cyan-400' },
-    completado: { label: 'Completado', bg: 'bg-green-100', text: 'text-green-700', dot: 'bg-green-400' },
-    cancelado: { label: 'Cancelado', bg: 'bg-red-100', text: 'text-red-700', dot: 'bg-red-400' }
+    pendiente: { key: 'pendiente', bg: 'bg-slate-100', text: 'text-slate-700', dot: 'bg-slate-400' },
+    confirmado: { key: 'confirmado', bg: 'bg-blue-100', text: 'text-blue-700', dot: 'bg-blue-400' },
+    en_preparacion: { key: 'en_preparacion', bg: 'bg-amber-100', text: 'text-amber-700', dot: 'bg-amber-400' },
+    en_ruta: { key: 'en_ruta', bg: 'bg-purple-100', text: 'text-purple-700', dot: 'bg-purple-400' },
+    en_sitio: { key: 'en_sitio', bg: 'bg-indigo-100', text: 'text-indigo-700', dot: 'bg-indigo-400' },
+    en_proceso: { key: 'en_proceso', bg: 'bg-cyan-100', text: 'text-cyan-700', dot: 'bg-cyan-400' },
+    completado: { key: 'completado', bg: 'bg-green-100', text: 'text-green-700', dot: 'bg-green-400' },
+    cancelado: { key: 'cancelado', bg: 'bg-red-100', text: 'text-red-700', dot: 'bg-red-400' }
 }
 
 const PRIORIDAD_CONFIG = {
-    baja: { label: 'Baja', color: 'text-slate-500' },
-    normal: { label: 'Normal', color: 'text-blue-600' },
-    alta: { label: 'Alta', color: 'text-orange-600' },
-    urgente: { label: 'Urgente', color: 'text-red-600' }
+    baja: { key: 'baja', color: 'text-slate-500' },
+    normal: { key: 'normal', color: 'text-blue-600' },
+    alta: { key: 'alta', color: 'text-orange-600' },
+    urgente: { key: 'urgente', color: 'text-red-600' }
 }
 
 const formatFecha = (fecha) => {
@@ -75,6 +76,7 @@ const formatMoneda = (valor) => {
  * @param {function} onOrdenCargue - Abrir modal de orden de cargue
  */
 export default function ModalOrdenDetalle({ isOpen, onClose, orden, onVerDetalle, onOrdenCargue }) {
+    const { t } = useTranslation()
     if (!orden) return null
 
     const esMontaje = orden.tipo === 'montaje'
@@ -95,7 +97,7 @@ export default function ModalOrdenDetalle({ isOpen, onClose, orden, onVerDetalle
                         }
                     </div>
                     <span>
-                        {esMontaje ? 'Montaje' : 'Desmontaje'} #{orden.id}
+                        {esMontaje ? t('operations.assembly') : t('operations.disassembly')} #{orden.id}
                     </span>
                 </div>
             }
@@ -106,27 +108,27 @@ export default function ModalOrdenDetalle({ isOpen, onClose, orden, onVerDetalle
                 <div className="flex items-center gap-3 flex-wrap">
                     <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium ${estadoConfig.bg} ${estadoConfig.text}`}>
                         <span className={`w-2 h-2 rounded-full ${estadoConfig.dot}`} />
-                        {estadoConfig.label}
+                        {t(`operations.statuses.${estadoConfig.key}`)}
                     </span>
                     {orden.prioridad && orden.prioridad !== 'normal' && (
                         <span className={`inline-flex items-center gap-1 text-sm font-medium ${prioridadConfig.color}`}>
                             <Star className="w-4 h-4" />
-                            {prioridadConfig.label}
+                            {t(`operations.priorities.${prioridadConfig.key}`)}
                         </span>
                     )}
                     {esCompletado && (
                         <span className="inline-flex items-center gap-1 text-sm text-green-600">
                             <CheckCircle className="w-4 h-4" />
-                            Completada
+                            {t('operations.completed')}
                         </span>
                     )}
                 </div>
 
                 {/* Cliente */}
                 <div className="bg-slate-50 rounded-lg p-4 space-y-2">
-                    <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Cliente</h4>
+                    <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wide">{t('operations.orderDetailModal.client')}</h4>
                     <p className="text-lg font-semibold text-slate-900">
-                        {orden.cliente_nombre || 'Sin cliente'}
+                        {orden.cliente_nombre || t('operations.orderDetailModal.noClient')}
                     </p>
                     {orden.cliente_telefono && (
                         <p className="flex items-center gap-2 text-sm text-slate-600">
@@ -139,12 +141,12 @@ export default function ModalOrdenDetalle({ isOpen, onClose, orden, onVerDetalle
                 {/* Evento */}
                 {orden.evento_nombre && (
                     <div className="bg-blue-50 rounded-lg p-4 space-y-2">
-                        <h4 className="text-xs font-semibold text-blue-500 uppercase tracking-wide">Evento</h4>
+                        <h4 className="text-xs font-semibold text-blue-500 uppercase tracking-wide">{t('operations.orderDetailModal.event')}</h4>
                         <p className="text-base font-medium text-slate-900">{orden.evento_nombre}</p>
                         {orden.fecha_evento && (
                             <p className="flex items-center gap-2 text-sm text-slate-600">
                                 <Calendar className="w-4 h-4 text-blue-400" />
-                                Evento: {formatFecha(orden.fecha_evento)}
+                                {t('operations.orderDetailModal.event')}: {formatFecha(orden.fecha_evento)}
                             </p>
                         )}
                     </div>
@@ -157,7 +159,7 @@ export default function ModalOrdenDetalle({ isOpen, onClose, orden, onVerDetalle
                             <Calendar className="w-4 h-4 text-blue-600" />
                         </div>
                         <div>
-                            <p className="text-xs text-slate-500 font-medium">Fecha programada</p>
+                            <p className="text-xs text-slate-500 font-medium">{t('operations.orderDetailModal.scheduledDate')}</p>
                             <p className="text-sm font-semibold text-slate-900">
                                 {formatFecha(orden.fecha_programada)}
                             </p>
@@ -168,7 +170,7 @@ export default function ModalOrdenDetalle({ isOpen, onClose, orden, onVerDetalle
                             <Clock className="w-4 h-4 text-purple-600" />
                         </div>
                         <div>
-                            <p className="text-xs text-slate-500 font-medium">Hora</p>
+                            <p className="text-xs text-slate-500 font-medium">{t('operations.orderDetailModal.time')}</p>
                             <p className="text-sm font-semibold text-slate-900">
                                 {formatHora(orden.fecha_programada)}
                             </p>
@@ -183,7 +185,7 @@ export default function ModalOrdenDetalle({ isOpen, onClose, orden, onVerDetalle
                             <MapPin className="w-4 h-4 text-red-500" />
                         </div>
                         <div>
-                            <p className="text-xs text-slate-500 font-medium">Ubicación</p>
+                            <p className="text-xs text-slate-500 font-medium">{t('operations.orderDetailModal.location')}</p>
                             <p className="text-sm font-semibold text-slate-900">
                                 {orden.ciudad_evento || ''}
                             </p>
@@ -200,11 +202,11 @@ export default function ModalOrdenDetalle({ isOpen, onClose, orden, onVerDetalle
                         <Users className="w-4 h-4 text-indigo-600" />
                     </div>
                     <div className="flex-1">
-                        <p className="text-xs text-slate-500 font-medium">Equipo de trabajo</p>
+                        <p className="text-xs text-slate-500 font-medium">{t('operations.orderDetailModal.workTeam')}</p>
                         {orden.total_equipo > 0 ? (
                             <>
                                 <p className="text-sm font-semibold text-slate-900">
-                                    {orden.total_equipo} {orden.total_equipo === 1 ? 'persona' : 'personas'}
+                                    {t('operations.orderDetailModal.person', { count: orden.total_equipo })}
                                 </p>
                                 {orden.equipo_nombres && (
                                     <p className="text-sm text-slate-600 mt-0.5">{orden.equipo_nombres}</p>
@@ -213,7 +215,7 @@ export default function ModalOrdenDetalle({ isOpen, onClose, orden, onVerDetalle
                         ) : (
                             <p className="flex items-center gap-1 text-sm text-amber-600">
                                 <AlertCircle className="w-3.5 h-3.5" />
-                                Sin equipo asignado
+                                {t('operations.orderDetailModal.noTeamAssigned')}
                             </p>
                         )}
                     </div>
@@ -226,7 +228,7 @@ export default function ModalOrdenDetalle({ isOpen, onClose, orden, onVerDetalle
                             <Car className="w-4 h-4 text-teal-600" />
                         </div>
                         <div>
-                            <p className="text-xs text-slate-500 font-medium">Vehículo</p>
+                            <p className="text-xs text-slate-500 font-medium">{t('operations.orderDetailModal.vehicle')}</p>
                             <p className="text-sm font-semibold text-slate-900">
                                 {orden.vehiculo_marca || ''} {orden.vehiculo_placa ? `(${orden.vehiculo_placa})` : ''}
                             </p>
@@ -237,7 +239,7 @@ export default function ModalOrdenDetalle({ isOpen, onClose, orden, onVerDetalle
                 {/* Valor cotización */}
                 {orden.cotizacion_total && (
                     <div className="bg-green-50 rounded-lg p-3 flex items-center justify-between">
-                        <span className="text-sm text-slate-600">Valor cotización:</span>
+                        <span className="text-sm text-slate-600">{t('operations.orderDetailModal.quotationValue')}</span>
                         <span className="text-lg font-bold text-green-700">{formatMoneda(orden.cotizacion_total)}</span>
                     </div>
                 )}
@@ -249,7 +251,7 @@ export default function ModalOrdenDetalle({ isOpen, onClose, orden, onVerDetalle
                     onClick={onClose}
                     className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
                 >
-                    Cerrar
+                    {t('common.close')}
                 </button>
                 {onOrdenCargue && (
                     <button
@@ -260,7 +262,7 @@ export default function ModalOrdenDetalle({ isOpen, onClose, orden, onVerDetalle
                         className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
                     >
                         <FileText className="w-4 h-4" />
-                        Orden de Cargue
+                        {t('operations.orderLoading')}
                     </button>
                 )}
                 {onVerDetalle && (
@@ -272,7 +274,7 @@ export default function ModalOrdenDetalle({ isOpen, onClose, orden, onVerDetalle
                         className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
                     >
                         <ExternalLink className="w-4 h-4" />
-                        Ver Detalle Completo
+                        {t('operations.orderDetailModal.viewFullDetail')}
                     </button>
                 )}
             </Modal.Footer>

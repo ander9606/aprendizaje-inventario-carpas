@@ -9,6 +9,7 @@ import UbicacionBadge from '@shared/components/UbicacionBadge'
 import DropdownMenu from '@shared/components/DropdownMenu'
 import { Edit2, Trash2, MapPin, Package, RotateCcw, Calendar, User, Clock, ArrowRight } from 'lucide-react'
 import { formatearFechaCorta } from '@shared/utils/helpers'
+import { useTranslation } from 'react-i18next'
 
 /**
  * Componente SerieItem - Representa un elemento individual con numero de serie

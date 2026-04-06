@@ -4,6 +4,7 @@
 // ============================================
 
 import { Info, Calendar, Percent, Tag, Shield, ShieldOff } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 const ResumenCotizacion = ({
   resumen,
@@ -11,6 +12,7 @@ const ResumenCotizacion = ({
   className = '',
   onToggleDeposito
 }) => {
+  const { t } = useTranslation()
   if (!resumen) return null
 
   const formatearMoneda = (valor) => {

@@ -9,6 +9,7 @@ import Button from '@shared/components/Button'
 import { useCreateTarifa, useUpdateTarifa } from '../../hooks/useTarifasTransporte'
 import { useGetCiudadesActivas } from '@clientes/hooks/useCiudades'
 import { CATEGORIAS_CAMION } from '../../api/apiTarifasTransporte'
+import { useTranslation } from 'react-i18next'
 
 /**
  * COMPONENTE: TarifaFormModal
@@ -19,6 +20,7 @@ const TarifaFormModal = ({
   mode = 'crear',
   tarifa = null
 }) => {
+  const { t } = useTranslation()
 
   // ============================================
   // ESTADO LOCAL DEL FORMULARIO
@@ -85,15 +87,15 @@ const TarifaFormModal = ({
     const newErrors = {}
 
     if (!formData.tipo_camion) {
-      newErrors.tipo_camion = 'Seleccione un tipo de camión'
+      newErrors.tipo_camion = t('rentals.rateForm.selectTruckType')
     }
 
     if (!formData.ciudad_id) {
-      newErrors.ciudad_id = 'Seleccione una ciudad'
+      newErrors.ciudad_id = t('rentals.rateForm.selectCityError')
     }
 
     if (!formData.precio || parseFloat(formData.precio) <= 0) {
-      newErrors.precio = 'El precio debe ser mayor a 0'
+      newErrors.precio = t('rentals.rateForm.pricePositive')
     }
 
     setErrors(newErrors)
@@ -121,7 +123,7 @@ const TarifaFormModal = ({
       onClose()
     } catch (error) {
       console.error('Error al guardar tarifa:', error)
-      const mensajeError = error.response?.data?.message || 'Error al guardar la tarifa'
+      const mensajeError = error.response?.data?.message || t('rentals.rateForm.errorSavingRate')
       setErrors({ submit: mensajeError })
     }
   }
@@ -151,7 +153,7 @@ const TarifaFormModal = ({
     <Modal
       isOpen={isOpen}
       onClose={handleClose}
-      title={mode === 'crear' ? 'Nueva Tarifa de Transporte' : 'Editar Tarifa'}
+      title={mode === 'crear' ? t('rentals.rateForm.newRate') : t('rentals.rateForm.editRate')}
       size="md"
     >
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -166,7 +168,7 @@ const TarifaFormModal = ({
         {/* TIPO DE CAMIÓN */}
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-2">
-            Tipo de Camión *
+            {t('rentals.rateForm.truckType')} *
           </label>
           <select
             name="tipo_camion"
@@ -180,7 +182,7 @@ const TarifaFormModal = ({
               ${errors.tipo_camion ? 'border-red-300 bg-red-50' : 'border-slate-300'}
             `}
           >
-            <option value="">Seleccionar tipo...</option>
+            <option value="">{t('rentals.rateForm.selectType')}</option>
             {CATEGORIAS_CAMION.map(cat => (
               <option key={cat.id} value={cat.nombre}>
                 {cat.nombre} - {cat.descripcion}
@@ -195,7 +197,7 @@ const TarifaFormModal = ({
         {/* CIUDAD */}
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-2">
-            Ciudad *
+            {t('rentals.rateForm.city')} *
           </label>
           <select
             name="ciudad_id"
@@ -210,7 +212,7 @@ const TarifaFormModal = ({
             `}
           >
             <option value="">
-              {loadingCiudades ? 'Cargando ciudades...' : 'Seleccionar ciudad...'}
+              {loadingCiudades ? t('rentals.rateForm.loadingCities') : t('rentals.rateForm.selectCity')}
             </option>
             {ciudades.map(ciudad => (
               <option key={ciudad.id} value={ciudad.id}>
@@ -223,7 +225,7 @@ const TarifaFormModal = ({
           )}
           {ciudades.length === 0 && !loadingCiudades && (
             <p className="mt-1 text-sm text-amber-600">
-              No hay ciudades registradas. Crea una en Configuración {'>'} Ciudades.
+              {t('rentals.rateForm.noCities')}
             </p>
           )}
         </div>
@@ -231,7 +233,7 @@ const TarifaFormModal = ({
         {/* PRECIO */}
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-2">
-            Precio *
+            {t('rentals.rateForm.price')} *
           </label>
           <div className="relative">
             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">
@@ -268,7 +270,7 @@ const TarifaFormModal = ({
             className="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-2 focus:ring-blue-500"
           />
           <label htmlFor="activo" className="text-sm font-medium text-slate-700">
-            Tarifa activa
+            {t('rentals.rateForm.rateActive')}
           </label>
         </div>
 
@@ -281,7 +283,7 @@ const TarifaFormModal = ({
             disabled={isLoading}
             fullWidth
           >
-            Cancelar
+            {t('common.cancel')}
           </Button>
 
           <Button
@@ -291,7 +293,7 @@ const TarifaFormModal = ({
             disabled={isLoading}
             fullWidth
           >
-            {mode === 'crear' ? 'Crear Tarifa' : 'Guardar Cambios'}
+            {mode === 'crear' ? t('rentals.rateForm.createRate') : t('common.save')}
           </Button>
         </div>
       </form>

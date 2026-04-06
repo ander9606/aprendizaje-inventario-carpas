@@ -5,6 +5,7 @@
 
 import { MoreVertical } from 'lucide-react'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 /**
  * Componente DropdownMenu - Menu contextual reutilizable
@@ -28,6 +29,7 @@ const DropdownMenu = ({
   menuClassName = 'w-48',
   iconSize = 'w-4 h-4'
 }) => {
+  const { t } = useTranslation()
   const [menuOpen, setMenuOpen] = useState(false)
 
   const visibleOptions = options.filter(opt => opt.show !== false)
@@ -43,7 +45,7 @@ const DropdownMenu = ({
         }}
         className={`p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center
                    hover:bg-slate-100 active:bg-slate-200 rounded-xl transition-colors ${triggerClassName}`}
-        aria-label="Opciones"
+        aria-label={t('common.options')}
       >
         <MoreVertical className={`${iconSize} text-slate-600`} />
       </button>

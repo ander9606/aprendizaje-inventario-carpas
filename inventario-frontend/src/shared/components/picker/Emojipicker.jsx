@@ -1,6 +1,7 @@
 import { Search, X } from "lucide-react"
 import { useEmojiPicker } from "@shared/hooks/useEmojiPicker"
 import { EMOJI_CATEGORIES } from "@shared/constants/emojiCategories"
+import { useTranslation } from 'react-i18next'
 
 // Re-exportar para compatibilidad
 export { IconoCategoria } from "../IconoCategoria"
@@ -22,6 +23,8 @@ export default function EmojiPicker({
     onSelect
   })
 
+  const { t } = useTranslation()
+
   return (
     <div className="flex flex-col gap-4">
 
@@ -33,7 +36,7 @@ export default function EmojiPicker({
             <input
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Buscar emoji..."
+              placeholder={t('common.searchEmoji')}
               className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg
                        focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
@@ -83,7 +86,7 @@ export default function EmojiPicker({
         {Object.keys(filteredCategories).length === 0 && (
           <div className="text-center py-10 text-slate-500">
             <p className="text-lg mb-1">😕</p>
-            <p className="text-sm">No se encontraron emojis</p>
+            <p className="text-sm">{t('common.noEmojisFound')}</p>
           </div>
         )}
       </div>

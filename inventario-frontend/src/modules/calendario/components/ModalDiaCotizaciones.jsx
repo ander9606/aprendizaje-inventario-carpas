@@ -16,6 +16,7 @@ import {
 } from 'lucide-react'
 import { Modal } from '@shared/components/Modal'
 import { EVENT_TYPES } from '@calendario/constants/calendarConfig'
+import { useTranslation } from 'react-i18next'
 
 // ============================================
 // HELPERS

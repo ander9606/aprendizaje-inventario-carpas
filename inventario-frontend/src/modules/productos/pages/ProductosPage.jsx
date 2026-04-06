@@ -4,6 +4,7 @@
 // ============================================
 
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { Package, Tent, ArrowRight, Box, Layers, MapPin, Wrench } from 'lucide-react'
 
 /**
@@ -15,6 +16,7 @@ import { Package, Tent, ArrowRight, Box, Layers, MapPin, Wrench } from 'lucide-r
  */
 function ProductosPage() {
   const navigate = useNavigate()
+  const { t } = useTranslation()
 
   return (
     <div className="min-h-screen bg-slate-50 p-4 md:p-6">
@@ -22,10 +24,10 @@ function ProductosPage() {
       <div className="max-w-6xl mx-auto">
         <div className="mb-6 lg:mb-8">
           <h1 className="text-2xl lg:text-3xl font-bold text-slate-900 mb-2">
-            Gestión de Productos
+            {t('products.pageTitle')}
           </h1>
           <p className="text-slate-600">
-            Administra tu inventario físico y configura los productos para alquiler
+            {t('products.pageSubtitle')}
           </p>
         </div>
 
@@ -46,29 +48,29 @@ function ProductosPage() {
               </div>
               <div className="flex-1">
                 <h2 className="text-xl font-semibold text-slate-900 mb-2 flex items-center gap-2">
-                  Inventario Individual
+                  {t('products.individualInventory')}
                   <ArrowRight className="w-5 h-5 opacity-0 group-hover:opacity-100 transition-opacity text-blue-600" />
                 </h2>
                 <p className="text-slate-600 mb-4">
-                  Gestión de elementos físicos del inventario: control de stock, series y lotes.
+                  {t('products.individualDesc')}
                 </p>
 
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-sm text-slate-500">
                     <Layers className="w-4 h-4" />
-                    <span>Categorías y Subcategorías</span>
+                    <span>{t('products.categoriesAndSub')}</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm text-slate-500">
                     <Box className="w-4 h-4" />
-                    <span>Elementos (Series y Lotes)</span>
+                    <span>{t('products.elementsSeriesBatches')}</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm text-slate-500">
                     <MapPin className="w-4 h-4" />
-                    <span>Ubicaciones</span>
+                    <span>{t('products.locations')}</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm text-slate-500">
                     <Wrench className="w-4 h-4" />
-                    <span>Materiales y Unidades</span>
+                    <span>{t('products.materialsAndUnits')}</span>
                   </div>
                 </div>
               </div>
@@ -76,7 +78,7 @@ function ProductosPage() {
 
             <div className="mt-4 pt-4 border-t border-slate-100">
               <span className="text-sm text-blue-600 font-medium group-hover:underline">
-                Ir al Inventario →
+                {t('products.goToInventory')} →
               </span>
             </div>
           </div>
@@ -95,25 +97,25 @@ function ProductosPage() {
               </div>
               <div className="flex-1">
                 <h2 className="text-xl font-semibold text-slate-900 mb-2 flex items-center gap-2">
-                  Productos de Alquiler
+                  {t('products.rentalProducts')}
                   <ArrowRight className="w-5 h-5 opacity-0 group-hover:opacity-100 transition-opacity text-emerald-600" />
                 </h2>
                 <p className="text-slate-600 mb-4">
-                  Plantillas de productos para cotizar y alquilar. Combina elementos del inventario.
+                  {t('products.rentalProductsDesc')}
                 </p>
 
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-sm text-slate-500">
                     <Layers className="w-4 h-4" />
-                    <span>Categorías de Productos</span>
+                    <span>{t('products.productCategories')}</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm text-slate-500">
                     <Tent className="w-4 h-4" />
-                    <span>Elementos Compuestos (Plantillas)</span>
+                    <span>{t('products.compositeElements')}</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm text-slate-500">
                     <Box className="w-4 h-4" />
-                    <span>Componentes: Fijos, Alternativas, Adicionales</span>
+                    <span>{t('products.componentsTypes')}</span>
                   </div>
                 </div>
               </div>
@@ -121,7 +123,7 @@ function ProductosPage() {
 
             <div className="mt-4 pt-4 border-t border-slate-100">
               <span className="text-sm text-emerald-600 font-medium group-hover:underline">
-                Ir a Productos de Alquiler →
+                {t('products.goToRentalProducts')} →
               </span>
             </div>
           </div>
@@ -133,11 +135,10 @@ function ProductosPage() {
           <div className="flex items-start gap-3">
             <span className="text-2xl">💡</span>
             <div>
-              <h3 className="font-medium text-amber-900 mb-1">¿Cómo funciona?</h3>
+              <h3 className="font-medium text-amber-900 mb-1">{t('products.howItWorks')}</h3>
               <p className="text-sm text-amber-800">
-                Primero registra los elementos individuales en el <strong>Inventario</strong> (carpas, postes, estacas, etc.).
-                Luego, en <strong>Productos de Alquiler</strong>, crea plantillas que combinan esos elementos
-                para formar productos completos como "Carpa P10 Completa" con todos sus accesorios.
+                {t('products.howItWorksStep1')} <strong>{t('products.howItWorksInventory')}</strong> {t('products.howItWorksStep2')}
+                {' '}<strong>{t('products.howItWorksProducts')}</strong>{t('products.howItWorksStep3')}
               </p>
             </div>
           </div>

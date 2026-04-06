@@ -8,8 +8,10 @@ import { useState } from 'react'
 import { Bell, Check, X, AlertTriangle, MapPin, Calendar, ChevronDown, ChevronUp } from 'lucide-react'
 import { useGetMisAlertas, useResponderAsignacion } from '../hooks/useOrdenesTrabajo'
 import { toast } from 'sonner'
+import { useTranslation } from 'react-i18next'
 
 export default function AlertasAsignacion() {
+  const { t } = useTranslation()
     const { alertas, isLoading } = useGetMisAlertas()
     const responder = useResponderAsignacion()
     const [expandida, setExpandida] = useState(null)
@@ -26,15 +28,15 @@ export default function AlertasAsignacion() {
                 ordenId: alerta.orden_id,
                 datos: { respuesta: 'aceptada' }
             })
-            toast.success(`Asignacion aceptada - ${alerta.evento_nombre || 'Orden #' + alerta.orden_id}`)
+            toast.success(t('operations.alertsAssignment.assignmentAccepted', { name: alerta.evento_nombre || 'Orden #' + alerta.orden_id }))
         } catch (error) {
-            toast.error(error.response?.data?.message || 'Error al aceptar')
+            toast.error(error.response?.data?.message || t('operations.alertsAssignment.acceptError'))
         }
     }
 
     const handleRechazar = async (alerta) => {
         if (!motivoRechazo.trim()) {
-            toast.error('Debes indicar el motivo del rechazo')
+            toast.error(t('operations.alertsAssignment.rejectReasonRequired'))
             return
         }
         try {
@@ -42,11 +44,11 @@ export default function AlertasAsignacion() {
                 ordenId: alerta.orden_id,
                 datos: { respuesta: 'rechazada', motivo: motivoRechazo.trim() }
             })
-            toast.success('Asignacion rechazada. Se notifico al administrador.')
+            toast.success(t('operations.alertsAssignment.assignmentRejected'))
             setRechazandoId(null)
             setMotivoRechazo('')
         } catch (error) {
-            toast.error(error.response?.data?.message || 'Error al rechazar')
+            toast.error(error.response?.data?.message || t('operations.alertsAssignment.rejectError'))
         }
     }
 
@@ -55,7 +57,7 @@ export default function AlertasAsignacion() {
             <div className="px-4 py-3 bg-amber-100 flex items-center gap-2">
                 <Bell className="w-5 h-5 text-amber-600" />
                 <span className="font-semibold text-amber-800">
-                    {asignaciones.length} asignacion{asignaciones.length > 1 ? 'es' : ''} pendiente{asignaciones.length > 1 ? 's' : ''}
+                    {t('operations.alertsAssignment.pendingAssignments', { count: asignaciones.length })}
                 </span>
             </div>
 
@@ -95,9 +97,9 @@ export default function AlertasAsignacion() {
                                     className="mt-1 text-xs text-amber-600 hover:text-amber-800 flex items-center gap-0.5"
                                 >
                                     {expandida === alerta.id ? (
-                                        <><ChevronUp className="w-3 h-3" /> Menos</>
+                                        <><ChevronUp className="w-3 h-3" /> {t('operations.alertsAssignment.less')}</>
                                     ) : (
-                                        <><ChevronDown className="w-3 h-3" /> Detalles</>
+                                        <><ChevronDown className="w-3 h-3" /> {t('operations.alertsAssignment.details')}</>
                                     )}
                                 </button>
                             </div>
@@ -111,7 +113,7 @@ export default function AlertasAsignacion() {
                                         className="flex items-center gap-1.5 px-3 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
                                     >
                                         <Check className="w-4 h-4" />
-                                        Aceptar
+                                        {t('operations.alertsAssignment.accept')}
                                     </button>
                                     <button
                                         onClick={() => { setRechazandoId(alerta.id); setMotivoRechazo('') }}
@@ -119,7 +121,7 @@ export default function AlertasAsignacion() {
                                         className="flex items-center gap-1.5 px-3 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors"
                                     >
                                         <X className="w-4 h-4" />
-                                        Rechazar
+                                        {t('operations.alertsAssignment.reject')}
                                     </button>
                                 </div>
                             )}
@@ -130,12 +132,12 @@ export default function AlertasAsignacion() {
                             <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
                                 <div className="flex items-center gap-2 mb-2">
                                     <AlertTriangle className="w-4 h-4 text-red-500" />
-                                    <span className="text-sm font-medium text-red-700">Motivo del rechazo (obligatorio)</span>
+                                    <span className="text-sm font-medium text-red-700">{t('operations.alertsAssignment.rejectReason')}</span>
                                 </div>
                                 <textarea
                                     value={motivoRechazo}
                                     onChange={(e) => setMotivoRechazo(e.target.value)}
-                                    placeholder="Explica por que no puedes aceptar esta asignacion..."
+                                    placeholder={t('operations.alertsAssignment.rejectPlaceholder')}
                                     rows={2}
                                     className="w-full px-3 py-2 text-sm border border-red-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-300 resize-none"
                                     autoFocus
@@ -145,14 +147,14 @@ export default function AlertasAsignacion() {
                                         onClick={() => { setRechazandoId(null); setMotivoRechazo('') }}
                                         className="px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
                                     >
-                                        Cancelar
+                                        {t('common.cancel')}
                                     </button>
                                     <button
                                         onClick={() => handleRechazar(alerta)}
                                         disabled={!motivoRechazo.trim() || responder.isPending}
                                         className="px-3 py-1.5 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors"
                                     >
-                                        {responder.isPending ? 'Enviando...' : 'Confirmar rechazo'}
+                                        {responder.isPending ? t('operations.assignInventoryModal.sending') : t('operations.alertsAssignment.confirmReject')}
                                     </button>
                                 </div>
                             </div>

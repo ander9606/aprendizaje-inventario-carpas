@@ -6,6 +6,7 @@
 
 import { AlertTriangle, Trash2, LogOut, CheckCircle, Info, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 /**
  * Modal de confirmación estilizado - tablet-first
@@ -25,14 +26,18 @@ export default function ConfirmModal({
   isOpen,
   onClose,
   onConfirm,
-  title = '¿Confirmar acción?',
+  title,
   message = '',
   variant = 'warning',
-  confirmText = 'Confirmar',
-  cancelText = 'Cancelar',
+  confirmText,
+  cancelText,
   loading = false,
   icon: CustomIcon
 }) {
+  const { t } = useTranslation()
+  const resolvedTitle = title || t('common.confirmAction')
+  const resolvedConfirmText = confirmText || t('common.confirm')
+  const resolvedCancelText = cancelText || t('common.cancel')
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024)
 
   useEffect(() => {
@@ -129,7 +134,7 @@ export default function ConfirmModal({
             </div>
             <div className="flex-1 min-w-0">
               <h3 className="text-lg font-semibold text-slate-900">
-                {title}
+                {resolvedTitle}
               </h3>
               {message && (
                 <p className="mt-2 text-sm text-slate-600 leading-relaxed">
@@ -165,7 +170,7 @@ export default function ConfirmModal({
               ${isDesktop ? '' : 'w-full'}
             `}
           >
-            {cancelText}
+            {resolvedCancelText}
           </button>
           <button
             onClick={onConfirm}
@@ -185,7 +190,7 @@ export default function ConfirmModal({
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
               </svg>
             )}
-            {confirmText}
+            {resolvedConfirmText}
           </button>
         </div>
       </div>

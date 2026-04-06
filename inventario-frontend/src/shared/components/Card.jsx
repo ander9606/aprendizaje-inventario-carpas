@@ -123,7 +123,7 @@ export const Card = ({
                   setMenuOpen(!menuOpen)
                 }}
                 className="p-2.5 hover:bg-slate-100 active:bg-slate-200 rounded-xl transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
-                aria-label="Opciones"
+                aria-label={t('common.actions')}
               >
                 <MoreVertical className="w-5 h-5 text-slate-600" />
               </button>

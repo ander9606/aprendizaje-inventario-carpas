@@ -28,6 +28,7 @@ import { useGetOrdenes, useGetEstadisticasOperaciones } from '../hooks/useOrdene
 import { useGetAlertasPendientes, useGetResumenAlertas } from '@configuracion/hooks/useAlertas'
 import AlertasAsignacion from '../components/AlertasAsignacion'
 import Spinner from '@shared/components/Spinner'
+import { useTranslation } from 'react-i18next'
 
 // ============================================
 // HELPERS: Fechas (usando hora local, no UTC)
@@ -55,16 +56,16 @@ const getFechaLocal = (fecha) => {
 // ============================================
 // HELPERS: Colores y formato
 // ============================================
-const getEstadoConfig = (estado) => {
+const getEstadoConfig = (estado, t) => {
     const config = {
-        pendiente: { color: 'bg-yellow-100 text-yellow-700 border-yellow-200', label: 'Pendiente' },
-        confirmado: { color: 'bg-indigo-100 text-indigo-700 border-indigo-200', label: 'Confirmado' },
-        en_preparacion: { color: 'bg-purple-100 text-purple-700 border-purple-200', label: 'Preparación' },
-        en_ruta: { color: 'bg-cyan-100 text-cyan-700 border-cyan-200', label: 'En ruta' },
-        en_sitio: { color: 'bg-amber-100 text-amber-700 border-amber-200', label: 'En sitio' },
-        en_proceso: { color: 'bg-blue-100 text-blue-700 border-blue-200', label: 'En proceso' },
-        completado: { color: 'bg-green-100 text-green-700 border-green-200', label: 'Completado' },
-        cancelado: { color: 'bg-red-100 text-red-700 border-red-200', label: 'Cancelado' }
+        pendiente: { color: 'bg-yellow-100 text-yellow-700 border-yellow-200', label: t('operations.statePendiente') },
+        confirmado: { color: 'bg-indigo-100 text-indigo-700 border-indigo-200', label: t('operations.stateConfirmado') },
+        en_preparacion: { color: 'bg-purple-100 text-purple-700 border-purple-200', label: t('operations.statePreparacion') },
+        en_ruta: { color: 'bg-cyan-100 text-cyan-700 border-cyan-200', label: t('operations.stateEnRuta') },
+        en_sitio: { color: 'bg-amber-100 text-amber-700 border-amber-200', label: t('operations.stateEnSitio') },
+        en_proceso: { color: 'bg-blue-100 text-blue-700 border-blue-200', label: t('operations.stateEnProceso') },
+        completado: { color: 'bg-green-100 text-green-700 border-green-200', label: t('operations.stateCompletado') },
+        cancelado: { color: 'bg-red-100 text-red-700 border-red-200', label: t('operations.stateCancelado') }
     }
     return config[estado] || config.pendiente
 }
@@ -88,7 +89,7 @@ const formatHora = (fecha) => {
 }
 
 const formatFechaCorta = (fecha) => {
-    if (!fecha) return 'Sin fecha'
+    if (!fecha) return null
     return new Date(fecha).toLocaleDateString('es-CO', {
         weekday: 'short',
         day: 'numeric',
@@ -208,7 +209,7 @@ const getColorProgreso = (estado) => {
 // ============================================
 // COMPONENTE: Fila clickable de orden dentro de tarjeta
 // ============================================
-const OrdenRow = ({ orden, tipo, navigate }) => {
+const OrdenRow = ({ orden, tipo, navigate, t }) => {
     if (!orden) {
         return (
             <div className="flex items-center gap-3 px-4 py-3 text-slate-400">
@@ -218,12 +219,12 @@ const OrdenRow = ({ orden, tipo, navigate }) => {
                         : <Truck className="w-4 h-4" />
                     }
                 </div>
-                <span className="text-xs italic">Sin {tipo} programado</span>
+                <span className="text-xs italic">{t('operations.noScheduled', { type: tipo })}</span>
             </div>
         )
     }
 
-    const config = getEstadoConfig(orden.estado)
+    const config = getEstadoConfig(orden.estado, t)
     const progreso = getProgresoOrden(orden.estado, tipo)
     const colorProgreso = getColorProgreso(orden.estado)
     const tieneResponsable = (orden.total_equipo || 0) > 0
@@ -252,7 +253,7 @@ const OrdenRow = ({ orden, tipo, navigate }) => {
                     </span>
                     {!tieneResponsable && orden.estado !== 'completado' && orden.estado !== 'cancelado' && (
                         <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-50 text-amber-600 border border-amber-200">
-                            Sin resp.
+                            {t('operations.noResp')}
                         </span>
                     )}
                 </div>
@@ -281,7 +282,7 @@ const OrdenRow = ({ orden, tipo, navigate }) => {
 // ============================================
 // COMPONENTE: Tarjeta de Evento (agrupa montaje + desmontaje)
 // ============================================
-const EventoCard = ({ evento, navigate }) => {
+const EventoCard = ({ evento, navigate, t }) => {
     const montaje = evento.montaje
     const desmontaje = evento.desmontaje
 
@@ -316,11 +317,11 @@ const EventoCard = ({ evento, navigate }) => {
                     <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                             <p className="font-semibold text-slate-900 truncate">
-                                {evento.evento_nombre || evento.cliente_nombre || 'Evento'}
+                                {evento.evento_nombre || evento.cliente_nombre || t('operations.event')}
                             </p>
                             {vencida && !todasCompletadas && (
                                 <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-red-100 text-red-700 border border-red-200 shrink-0">
-                                    Vencida
+                                    {t('operations.expiredBadge')}
                                 </span>
                             )}
                             {hayOrdenActiva && (
@@ -342,7 +343,7 @@ const EventoCard = ({ evento, navigate }) => {
                     </div>
                     {montaje && (
                         <div className="text-right shrink-0 ml-3">
-                            <p className="text-[11px] text-slate-400">Productos</p>
+                            <p className="text-[11px] text-slate-400">{t('operations.products')}</p>
                             <p className="text-sm font-semibold text-slate-700">{montaje.total_productos || 0}</p>
                         </div>
                     )}
@@ -360,8 +361,8 @@ const EventoCard = ({ evento, navigate }) => {
 
             {/* Órdenes clickables */}
             <div className="divide-y divide-slate-100">
-                <OrdenRow orden={montaje} tipo="montaje" navigate={navigate} />
-                <OrdenRow orden={desmontaje} tipo="desmontaje" navigate={navigate} />
+                <OrdenRow orden={montaje} tipo="montaje" navigate={navigate} t={t} />
+                <OrdenRow orden={desmontaje} tipo="desmontaje" navigate={navigate} t={t} />
             </div>
         </div>
     )
@@ -370,7 +371,7 @@ const EventoCard = ({ evento, navigate }) => {
 // ============================================
 // COMPONENTE: Sección de eventos
 // ============================================
-const SeccionEventos = ({ titulo, subtitulo, eventos, navigate, emptyMessage, icono: Icono }) => (
+const SeccionEventos = ({ titulo, subtitulo, eventos, navigate, emptyMessage, icono: Icono, t }) => (
     <div>
         <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
@@ -390,6 +391,7 @@ const SeccionEventos = ({ titulo, subtitulo, eventos, navigate, emptyMessage, ic
                         key={evento.alquiler_id || idx}
                         evento={evento}
                         navigate={navigate}
+                        t={t}
                     />
                 ))}
             </div>
@@ -406,6 +408,7 @@ const SeccionEventos = ({ titulo, subtitulo, eventos, navigate, emptyMessage, ic
 // COMPONENTE PRINCIPAL
 // ============================================
 export default function OperacionesDashboard() {
+    const { t } = useTranslation()
     const navigate = useNavigate()
     const [mostrarHistorial, setMostrarHistorial] = useState(false)
 
@@ -494,7 +497,7 @@ export default function OperacionesDashboard() {
     if (loadingActivas && loadingStats) {
         return (
             <div className="flex justify-center py-12">
-                <Spinner size="lg" text="Cargando operaciones..." />
+                <Spinner size="lg" text={t('operations.loadingOperations')} />
             </div>
         )
     }
@@ -512,7 +515,7 @@ export default function OperacionesDashboard() {
                             <div className="p-2 bg-amber-100 rounded-lg">
                                 <LayoutDashboard className="w-6 h-6 text-amber-600" />
                             </div>
-                            Dashboard de Operaciones
+                            {t('operations.dashboard')}
                         </h1>
                         <p className="text-slate-500 mt-1">
                             {new Date().toLocaleDateString('es-CO', {
@@ -541,7 +544,7 @@ export default function OperacionesDashboard() {
                             <p className="text-2xl font-bold text-slate-900">
                                 {totalActivos}
                             </p>
-                            <p className="text-sm text-slate-500">Eventos activos</p>
+                            <p className="text-sm text-slate-500">{t('operations.activeEvents')}</p>
                         </div>
                     </div>
                 </div>
@@ -557,7 +560,7 @@ export default function OperacionesDashboard() {
                                 <p className="text-2xl font-bold text-red-600">
                                     {eventosVencidos.length}
                                 </p>
-                                <p className="text-sm text-red-500">Vencidos</p>
+                                <p className="text-sm text-red-500">{t('operations.overdue')}</p>
                             </div>
                         </div>
                     </div>
@@ -573,7 +576,7 @@ export default function OperacionesDashboard() {
                             <p className="text-2xl font-bold text-slate-900">
                                 {estadisticas?.pendientes || 0}
                             </p>
-                            <p className="text-sm text-slate-500">Pendientes</p>
+                            <p className="text-sm text-slate-500">{t('operations.pendingPlural')}</p>
                         </div>
                     </div>
                 </div>
@@ -588,7 +591,7 @@ export default function OperacionesDashboard() {
                             <p className="text-2xl font-bold text-slate-900">
                                 {estadisticas?.en_progreso || 0}
                             </p>
-                            <p className="text-sm text-slate-500">En proceso</p>
+                            <p className="text-sm text-slate-500">{t('operations.inProcess')}</p>
                         </div>
                     </div>
                 </div>
@@ -607,7 +610,7 @@ export default function OperacionesDashboard() {
                             <p className="text-2xl font-bold text-slate-900">
                                 {sinResponsable}
                             </p>
-                            <p className="text-sm text-slate-500">Sin responsable</p>
+                            <p className="text-sm text-slate-500">{t('operations.noResponsible')}</p>
                         </div>
                     </div>
                 </div>
@@ -622,43 +625,47 @@ export default function OperacionesDashboard() {
                     {/* VENCIDOS (si hay) */}
                     {eventosVencidos.length > 0 && (
                         <SeccionEventos
-                            titulo="Atrasados"
-                            subtitulo={`${eventosVencidos.length} evento(s) con fecha vencida`}
+                            titulo={t('operations.overdueSection')}
+                            subtitulo={t('operations.overdueSubtitle', { count: eventosVencidos.length })}
                             eventos={eventosVencidos}
                             navigate={navigate}
                             emptyMessage=""
                             icono={AlertCircle}
+                            t={t}
                         />
                     )}
 
                     {/* HOY */}
                     <SeccionEventos
-                        titulo="Hoy"
-                        subtitulo={`${eventosHoy.length} evento(s) para hoy`}
+                        titulo={t('operations.today')}
+                        subtitulo={t('operations.todaySubtitle', { count: eventosHoy.length })}
                         eventos={eventosHoy}
                         navigate={navigate}
-                        emptyMessage="No hay eventos programados para hoy"
+                        emptyMessage={t('operations.noEventsToday')}
                         icono={Calendar}
+                        t={t}
                     />
 
                     {/* PRÓXIMOS 7 DÍAS */}
                     <SeccionEventos
-                        titulo="Próximos 7 días"
-                        subtitulo={`${eventosProximos.length} evento(s) programado(s)`}
+                        titulo={t('operations.next7Days')}
+                        subtitulo={t('operations.next7DaysSubtitle', { count: eventosProximos.length })}
                         eventos={eventosProximos}
                         navigate={navigate}
-                        emptyMessage="No hay eventos programados para los próximos días"
+                        emptyMessage={t('operations.noEventsNext')}
                         icono={Clock}
+                        t={t}
                     />
 
                     {/* MÁS ADELANTE (si hay) */}
                     {eventosFuturos.length > 0 && (
                         <SeccionEventos
-                            titulo="Más adelante"
-                            subtitulo={`${eventosFuturos.length} evento(s) programado(s)`}
+                            titulo={t('operations.later')}
+                            subtitulo={t('operations.laterSubtitle', { count: eventosFuturos.length })}
                             eventos={eventosFuturos}
                             navigate={navigate}
                             emptyMessage=""
+                            t={t}
                         />
                     )}
 
@@ -676,7 +683,7 @@ export default function OperacionesDashboard() {
                                 )}
                                 <History className="w-4 h-4" />
                                 <span className="text-sm font-medium">
-                                    Completados hoy
+                                    {t('operations.completedToday')}
                                 </span>
                                 <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded-full">
                                     {eventosCompletadosHoy.length}
@@ -691,6 +698,7 @@ export default function OperacionesDashboard() {
                                                 key={evento.alquiler_id || `completado-${idx}`}
                                                 evento={evento}
                                                 navigate={navigate}
+                                                t={t}
                                             />
                                         ))}
                                     </div>
@@ -705,7 +713,7 @@ export default function OperacionesDashboard() {
                             onClick={() => navigate('/operaciones/ordenes')}
                             className="text-sm text-orange-600 hover:text-orange-700 font-medium flex items-center gap-1"
                         >
-                            Ver todas las órdenes
+                            {t('operations.viewAllOrders')}
                             <ArrowRight className="w-4 h-4" />
                         </button>
                     </div>
@@ -720,7 +728,7 @@ export default function OperacionesDashboard() {
                             <div className="flex items-center gap-2">
                                 <Bell className="w-5 h-5 text-slate-600" />
                                 <h2 className="font-semibold text-slate-900">
-                                    Alertas
+                                    {t('operations.alerts')}
                                 </h2>
                             </div>
                             {(resumenAlertas?.total || 0) > 0 && (
@@ -779,7 +787,7 @@ export default function OperacionesDashboard() {
                         ) : (
                             <div className="px-5 py-8 text-center">
                                 <CheckCircle className="w-8 h-8 text-green-500 mx-auto mb-2" />
-                                <p className="text-sm text-slate-500">Sin alertas pendientes</p>
+                                <p className="text-sm text-slate-500">{t('operations.noAlertsPending')}</p>
                             </div>
                         )}
 
@@ -789,7 +797,7 @@ export default function OperacionesDashboard() {
                                     onClick={() => navigate('/operaciones/alertas')}
                                     className="text-sm text-orange-600 hover:text-orange-700 font-medium flex items-center gap-1"
                                 >
-                                    Ver todas las alertas
+                                    {t('operations.viewAllAlerts')}
                                     <ArrowRight className="w-4 h-4" />
                                 </button>
                             </div>
@@ -799,7 +807,7 @@ export default function OperacionesDashboard() {
                     {/* ACCESOS RÁPIDOS */}
                     <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
                         <div className="px-5 py-4 border-b border-slate-200">
-                            <h2 className="font-semibold text-slate-900">Accesos rápidos</h2>
+                            <h2 className="font-semibold text-slate-900">{t('operations.quickAccess')}</h2>
                         </div>
                         <div className="p-3 space-y-1">
                             <button
@@ -807,21 +815,21 @@ export default function OperacionesDashboard() {
                                 className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-50 transition-colors text-left"
                             >
                                 <ClipboardList className="w-4 h-4 text-slate-500" />
-                                <span className="text-sm text-slate-700">Todas las órdenes</span>
+                                <span className="text-sm text-slate-700">{t('operations.allOrders')}</span>
                             </button>
                             <button
                                 onClick={() => navigate('/operaciones/calendario')}
                                 className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-50 transition-colors text-left"
                             >
                                 <Calendar className="w-4 h-4 text-slate-500" />
-                                <span className="text-sm text-slate-700">Calendario</span>
+                                <span className="text-sm text-slate-700">{t('operations.calendarLabel')}</span>
                             </button>
                             <button
                                 onClick={() => navigate('/operaciones/alertas')}
                                 className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-50 transition-colors text-left"
                             >
                                 <AlertTriangle className="w-4 h-4 text-slate-500" />
-                                <span className="text-sm text-slate-700">Gestionar alertas</span>
+                                <span className="text-sm text-slate-700">{t('operations.manageAlerts')}</span>
                             </button>
                         </div>
                     </div>

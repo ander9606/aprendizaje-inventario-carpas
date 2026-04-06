@@ -21,10 +21,12 @@ import {
   Archive
 } from 'lucide-react'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 const ACTIVE_CLASS = 'bg-purple-50 text-purple-700 font-medium'
 
 const AlquileresSidebar = () => {
+  const { t } = useTranslation()
   const location = useLocation()
   const navigate = useNavigate()
   const [configOpen, setConfigOpen] = useState(

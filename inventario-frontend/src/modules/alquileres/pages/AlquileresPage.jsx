@@ -22,6 +22,7 @@ import AlquilerCard from '../components/cards/AlquilerCard'
 import AlertasPanel from '@configuracion/components/alertas/AlertasPanel'
 import Button from '@shared/components/Button'
 import Spinner from '@shared/components/Spinner'
+import { useTranslation } from 'react-i18next'
 
 // ============================================
 // COMPONENTE: StatPill - stat compacta clickable
@@ -65,6 +66,7 @@ const StatPill = ({ label, valor, icono: Icon, activo, onClick, color }) => {
 // COMPONENTE PRINCIPAL: AlquileresPage
 // ============================================
 export default function AlquileresPage() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
 
   const [busqueda, setBusqueda] = useState('')
@@ -146,10 +148,10 @@ export default function AlquileresPage() {
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-slate-900">
-          Gestión de Alquileres
+          {t('rentals.rentalsPage')}
         </h1>
         <p className="text-slate-500 text-sm mt-0.5">
-          {loadingStats ? '' : `${estadisticas?.activos || 0} activos, ${estadisticas?.programados || 0} programados`}
+          {loadingStats ? '' : `${estadisticas?.activos || 0} ${t('rentals.inProgress').toLowerCase()}, ${estadisticas?.programados || 0} ${t('rentals.pending').toLowerCase()}`}
         </p>
       </div>
 
@@ -174,7 +176,7 @@ export default function AlquileresPage() {
             type="text"
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
-            placeholder="Buscar por evento, cliente o ID..."
+            placeholder={t('rentals.searchByEventClientId')}
             className="w-full pl-10 pr-10 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-400 transition-colors"
           />
           {busqueda && (
@@ -191,7 +193,7 @@ export default function AlquileresPage() {
         <div className="flex items-center gap-2 overflow-x-auto pb-1">
           {cantidadVencidos > 0 && (
             <StatPill
-              label="Vencidos"
+              label={t('rentals.expired')}
               valor={cantidadVencidos}
               icono={AlertTriangle}
               color="orange"
@@ -200,7 +202,7 @@ export default function AlquileresPage() {
             />
           )}
           <StatPill
-            label="Programados"
+            label={t('rentals.pending')}
             valor={loadingStats ? '-' : (estadisticas?.programados || 0)}
             icono={Clock}
             color="amber"
@@ -208,7 +210,7 @@ export default function AlquileresPage() {
             onClick={() => handleFiltro('programado')}
           />
           <StatPill
-            label="Activos"
+            label={t('rentals.approved')}
             valor={loadingStats ? '-' : (estadisticas?.activos || 0)}
             icono={Truck}
             color="emerald"
@@ -221,7 +223,7 @@ export default function AlquileresPage() {
       {/* Active filter indicator */}
       {filtroEstado && (
         <div className="mb-4 flex items-center gap-2">
-          <span className="text-xs text-slate-500">Filtro:</span>
+          <span className="text-xs text-slate-500">{t('common.filter')}:</span>
           <button
             onClick={() => setFiltroEstado('')}
             className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium bg-orange-50 text-orange-700 border border-orange-200 rounded-full hover:bg-orange-100 transition-colors"
@@ -246,26 +248,26 @@ export default function AlquileresPage() {
                 <Package className="w-8 h-8 text-slate-400" />
               </div>
               <h3 className="text-lg font-semibold text-slate-900 mb-1">
-                No hay alquileres activos
+                {t('rentals.noRentals')}
               </h3>
               <p className="text-sm text-slate-500 mb-6 max-w-sm mx-auto">
                 {busqueda || filtroEstado
-                  ? 'No se encontraron resultados con los filtros actuales'
-                  : 'Aparecerán aquí cuando se aprueben cotizaciones'}
+                  ? t('empty.noResults')
+                  : t('rentals.willAppearWhenApproved')}
               </p>
               {(busqueda || filtroEstado) && (
                 <Button
                   variant="secondary"
                   onClick={() => { setFiltroEstado(''); setBusqueda('') }}
                 >
-                  Limpiar filtros
+                  {t('common.clearFilters')}
                 </Button>
               )}
             </div>
           ) : trabajoActivo.length > 0 && (
             <>
               <div className="mb-3 text-xs text-slate-400 font-medium uppercase tracking-wide">
-                {trabajoActivo.length} alquiler{trabajoActivo.length !== 1 ? 'es' : ''} en curso
+                {trabajoActivo.length} {t('rentals.rental').toLowerCase()}{trabajoActivo.length !== 1 ? 's' : ''} {t('rentals.inProgress').toLowerCase()}
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                 {trabajoActivo.map(alquiler => (

@@ -1,0 +1,93 @@
+{
+  "config": {
+    "title": "Settings",
+    "description": "Master data: locations, rates, company and employees.",
+    "tags": [
+      "Locations",
+      "Company"
+    ],
+    "pageTitle": "Settings",
+    "pageSubtitle": "Manage system master data",
+    "masterData": "Master Data",
+    "masterDataDesc": "This data feeds the other system modules",
+    "cities": "Cities",
+    "citiesDesc": "Master city catalog with transport rates by truck type.",
+    "citiesTags": [
+      "Rates",
+      "Transport"
+    ],
+    "locationsAndDestinations": "Locations & Destinations",
+    "locationsDesc": "Storage warehouses and workshops, plus event destinations grouped by city.",
+    "locationsTags": [
+      "Storage",
+      "Destinations",
+      "Cities"
+    ],
+    "companyData": "Company Data",
+    "companyDataDesc": "Logo, name, tax ID, address and contact info shown in documents.",
+    "companyTags": [
+      "Logo",
+      "Contact"
+    ],
+    "employees": "Employees",
+    "employeesDesc": "Manage system users, assign roles and control access permissions.",
+    "employeesTags": [
+      "Roles",
+      "Permissions"
+    ],
+    "recommendedFlow": "Recommended flow:",
+    "recommendedFlowDesc": "First create cities with their transport rates, then add event destinations from Locations & Destinations or directly from the Cities catalog.",
+    "alerts": "Alerts",
+    "pendingAlerts": "pending alerts",
+    "refresh": "Refresh",
+    "critical": "Critical",
+    "high": "High",
+    "medium": "Medium",
+    "low": "Low",
+    "severity": "Severity",
+    "alertType": "Type",
+    "showingAlerts": "Showing",
+    "alert": "alert",
+    "ignoreOneDay": "Ignore for 1 day",
+    "ignoreSevenDays": "Ignore for 7 days",
+    "noPendingAlerts": "No pending alerts",
+    "noFilteredAlerts": "No alerts found with applied filters",
+    "allAlertsHandled": "All alerts have been addressed",
+    "loadingAlerts": "Loading alerts...",
+    "warnings": "Warnings",
+    "tracking": "Tracking",
+    "noPendingAlertsShort": "No pending alerts",
+    "alertTypes": {
+      "overdueReturn": "Overdue return",
+      "overdueAssembly": "Overdue assembly",
+      "overdueDisassembly": "Overdue disassembly",
+      "notStarted": "Not started",
+      "returnSoon": "Return soon",
+      "departureSoon": "Departure soon",
+      "disassemblySoon": "Disassembly soon",
+      "inventoryInsufficiency": "Inventory insufficiency",
+      "dateConflict": "Date conflict",
+      "teamConflict": "Team conflict",
+      "dateChange": "Date change",
+      "incident": "Incident",
+      "availableStock": "Available stock"
+    },
+    "alertCount_one": "{{count}} alert",
+    "alertCount_other": "{{count}} alerts",
+    "criticalCount_one": "{{count}} critical",
+    "criticalCount_other": "{{count}} critical",
+    "warningCount_one": "{{count}} warning",
+    "warningCount_other": "{{count}} warnings",
+    "clearFilters": "Clear filters",
+    "allSeverities": "All",
+    "allTypes": "All",
+    "notification": "Notification",
+    "orderClickDetail": "Order #{{id}} - Click to view detail",
+    "clientLabel": "Client:",
+    "viewAll": "View all",
+    "info": "Info",
+    "total": "Total",
+    "subtitle": "Manage system master data",
+    "backToModules": "Back to Modules"
+  }
+}

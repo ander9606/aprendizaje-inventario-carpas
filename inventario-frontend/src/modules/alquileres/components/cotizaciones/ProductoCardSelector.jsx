@@ -8,6 +8,7 @@ import { useState, useEffect } from 'react'
 import { Plus, Minus, Package, DollarSign, Eye, CheckCircle, AlertTriangle, XCircle, Loader2 } from 'lucide-react'
 import Button from '@shared/components/Button'
 import ComponentesProductoModal from './ComponentesProductoModal'
+import { useTranslation } from 'react-i18next'
 
 const ProductoCardSelector = ({
   producto,
@@ -19,6 +20,7 @@ const ProductoCardSelector = ({
   disponibilidadInfo = null, // { disponibles, estado: 'ok' | 'insuficiente' | 'sin_verificar' }
   loadingDisponibilidad = false
 }) => {
+  const { t } = useTranslation()
   const [cantidad, setCantidad] = useState(1)
   const [showComponentesModal, setShowComponentesModal] = useState(false)
 

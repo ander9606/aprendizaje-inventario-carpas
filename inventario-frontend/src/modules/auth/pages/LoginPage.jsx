@@ -7,10 +7,13 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { Eye, EyeOff, LogIn, AlertCircle, Loader2, Tent, Star, Users, Calendar, Package } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
+import LanguageSwitcher from '@shared/components/LanguageSwitcher'
 
 const LoginPage = () => {
+    const { t } = useTranslation()
     const navigate = useNavigate()
     const { login, isAuthenticated, isLoading, error, clearError, checkAuth } = useAuth()
 
@@ -79,6 +82,9 @@ const LoginPage = () => {
 
     return (
         <div className="min-h-screen flex">
+            {/* Language Switcher */}
+            <div className="absolute top-4 right-4 z-20"><LanguageSwitcher compact /></div>
+
             {/* ============================================
                 PANEL IZQUIERDO - Branding del negocio
                 ============================================ */}
@@ -110,7 +116,7 @@ const LoginPage = () => {
                                 <Tent className="w-5 h-5 text-amber-400" />
                             </div>
                             <span className="text-amber-400/80 font-medium text-sm tracking-widest uppercase">
-                                Sistema de Gestión
+                                {t('auth.systemManagement')}
                             </span>
                         </div>
                     </div>
@@ -119,22 +125,22 @@ const LoginPage = () => {
                     <div className="space-y-8">
                         <div>
                             <h2 className="text-4xl font-bold text-white leading-tight mb-4">
-                                Alquiler de carpas
+                                {t('auth.tentRental')}
                                 <br />
-                                <span className="text-amber-400">y eventos</span>
+                                <span className="text-amber-400">{t('auth.andEvents')}</span>
                             </h2>
                             <p className="text-slate-400 text-lg leading-relaxed max-w-md">
-                                Gestiona tu inventario, cotizaciones y operaciones desde un solo lugar.
+                                {t('auth.manageDescription')}
                             </p>
                         </div>
 
                         {/* Feature highlights */}
                         <div className="grid grid-cols-2 gap-4 max-w-md">
                             {[
-                                { icon: Package, label: 'Inventario', desc: 'Control total' },
-                                { icon: Calendar, label: 'Alquileres', desc: 'Reservas y contratos' },
-                                { icon: Users, label: 'Clientes', desc: 'Base centralizada' },
-                                { icon: Star, label: 'Cotizaciones', desc: 'Rápidas y precisas' },
+                                { icon: Package, label: t('auth.features.inventory'), desc: t('auth.features.inventoryDesc') },
+                                { icon: Calendar, label: t('auth.features.rentals'), desc: t('auth.features.rentalsDesc') },
+                                { icon: Users, label: t('auth.features.clients'), desc: t('auth.features.clientsDesc') },
+                                { icon: Star, label: t('auth.features.quotes'), desc: t('auth.features.quotesDesc') },
                             ].map(({ icon: Icon, label, desc }) => (
                                 <div key={label} className="flex items-start gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
                                     <Icon className="w-4 h-4 text-amber-400/70 mt-0.5 flex-shrink-0" />
@@ -149,7 +155,7 @@ const LoginPage = () => {
 
                     {/* Footer del panel */}
                     <p className="text-slate-600 text-xs">
-                        Gestión integral de alquiler de carpas y eventos
+                        {t('auth.comprehensiveManagement')}
                     </p>
                 </div>
             </div>
@@ -165,17 +171,17 @@ const LoginPage = () => {
                             <Tent className="w-7 h-7 text-amber-400" />
                         </div>
                         <h1 className="text-xl font-bold text-slate-900">
-                            Gestión de Carpas y Eventos
+                            {t('auth.tentAndEventManagement')}
                         </h1>
                     </div>
 
                     {/* Título del formulario */}
                     <div className="mb-8">
                         <h2 className="text-2xl font-bold text-slate-900">
-                            Iniciar sesión
+                            {t('auth.login')}
                         </h2>
                         <p className="text-slate-500 mt-1">
-                            Ingresa tus credenciales para continuar
+                            {t('auth.enterCredentials')}
                         </p>
                     </div>
 
@@ -187,7 +193,7 @@ const LoginPage = () => {
                                 <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
                                 <div>
                                     <p className="text-sm font-medium text-red-800">
-                                        Error al iniciar sesión
+                                        {t('auth.loginError')}
                                     </p>
                                     <p className="text-sm text-red-600 mt-0.5">
                                         {error}
@@ -202,7 +208,7 @@ const LoginPage = () => {
                                 htmlFor="email"
                                 className="block text-sm font-medium text-slate-700 mb-1.5"
                             >
-                                Correo electrónico
+                                {t('auth.emailLabel')}
                             </label>
                             <input
                                 id="email"
@@ -216,12 +222,12 @@ const LoginPage = () => {
                                         : 'border-slate-200 focus:border-slate-900'
                                     }
                                 `}
-                                placeholder="tu@email.com"
+                                placeholder={t('auth.emailPlaceholder')}
                                 {...register('email', {
-                                    required: 'El correo es requerido',
+                                    required: t('validation.emailRequired'),
                                     pattern: {
                                         value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                                        message: 'Correo electrónico inválido'
+                                        message: t('validation.emailInvalidFormat')
                                     }
                                 })}
                             />
@@ -238,7 +244,7 @@ const LoginPage = () => {
                                 htmlFor="password"
                                 className="block text-sm font-medium text-slate-700 mb-1.5"
                             >
-                                Contraseña
+                                {t('auth.passwordLabel')}
                             </label>
                             <div className="relative">
                                 <input
@@ -253,12 +259,12 @@ const LoginPage = () => {
                                             : 'border-slate-200 focus:border-slate-900'
                                         }
                                     `}
-                                    placeholder="Tu contraseña"
+                                    placeholder={t('auth.passwordPlaceholder')}
                                     {...register('password', {
-                                        required: 'La contraseña es requerida',
+                                        required: t('validation.passwordRequired'),
                                         minLength: {
                                             value: 6,
-                                            message: 'Mínimo 6 caracteres'
+                                            message: t('validation.passwordMinLength', { min: 6 })
                                         }
                                     })}
                                 />
@@ -298,12 +304,12 @@ const LoginPage = () => {
                             {isSubmitting ? (
                                 <>
                                     <Loader2 className="w-5 h-5 animate-spin" />
-                                    Iniciando sesión...
+                                    {t('auth.loggingIn')}
                                 </>
                             ) : (
                                 <>
                                     <LogIn className="w-5 h-5" />
-                                    Iniciar sesión
+                                    {t('auth.login')}
                                 </>
                             )}
                         </button>
@@ -311,15 +317,15 @@ const LoginPage = () => {
 
                     {/* Link a registro */}
                     <p className="text-center text-sm text-slate-500 mt-6">
-                        No tienes cuenta?{' '}
+                        {t('auth.noAccount')}{' '}
                         <Link to="/registro" className="font-semibold text-slate-900 hover:text-slate-700 transition-colors">
-                            Solicitar acceso
+                            {t('auth.requestAccess')}
                         </Link>
                     </p>
 
                     {/* Footer */}
                     <p className="text-center text-xs text-slate-400 mt-4">
-                        Sistema de gestion integral de alquiler
+                        {t('auth.systemManagement')}
                     </p>
                 </div>
             </div>

@@ -7,6 +7,7 @@ import { useState, useRef, useEffect } from 'react'
 import { Calendar, User, MapPin, Package, Eye, CheckCircle, MoreVertical, Edit, XCircle, Trash2 } from 'lucide-react'
 import Card from '@shared/components/Card'
 import Button from '@shared/components/Button'
+import { useTranslation } from 'react-i18next'
 
 /**
  * CotizacionCard
@@ -27,6 +28,7 @@ const CotizacionCard = ({
   onEliminar,
   isAprobando = false
 }) => {
+  const { t } = useTranslation()
 
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef(null)
@@ -76,11 +78,11 @@ const CotizacionCard = ({
 
   const getEstadoNombre = (estado) => {
     const nombres = {
-      borrador: 'Borrador',
-      pendiente: 'Pendiente',
-      aprobada: 'Aprobada',
-      rechazada: 'Rechazada',
-      vencida: 'Vencida'
+      borrador: t('rentals.quoteCard.draft'),
+      pendiente: t('rentals.pending'),
+      aprobada: t('rentals.approved'),
+      rechazada: t('rentals.rejected'),
+      vencida: t('rentals.expired')
     }
     return nombres[estado] || estado
   }
@@ -108,7 +110,7 @@ const CotizacionCard = ({
   const handleRechazar = (e) => {
     e.stopPropagation()
     setMenuOpen(false)
-    if (confirm('¿Rechazar esta cotización?')) {
+    if (confirm(t('rentals.quoteCard.confirmReject'))) {
       if (onRechazar) onRechazar(cotizacion)
     }
   }
@@ -116,7 +118,7 @@ const CotizacionCard = ({
   const handleEliminar = (e) => {
     e.stopPropagation()
     setMenuOpen(false)
-    if (confirm('¿Eliminar esta cotización? Esta acción no se puede deshacer.')) {
+    if (confirm(t('rentals.quoteCard.confirmDelete'))) {
       if (onEliminar) onEliminar(cotizacion)
     }
   }
@@ -158,7 +160,7 @@ const CotizacionCard = ({
 
             {/* Evento */}
             <Card.Title className="truncate">
-              {cotizacion.evento_nombre || 'Sin nombre'}
+              {cotizacion.evento_nombre || t('rentals.card.noName')}
             </Card.Title>
           </div>
 
@@ -166,7 +168,7 @@ const CotizacionCard = ({
           <div className="flex items-start gap-2">
             <div className="text-right">
               <p className="text-xs text-slate-500">
-                {cotizacion.estado === 'borrador' ? 'Estimado' : 'Total'}
+                {cotizacion.estado === 'borrador' ? t('rentals.quoteCard.estimated') : t('common.total')}
               </p>
               <p className="text-lg font-bold text-slate-900">
                 {formatearMoneda(cotizacion.total)}
@@ -192,7 +194,7 @@ const CotizacionCard = ({
                           className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
                         >
                           <Edit className="w-4 h-4" />
-                          Editar
+                          {t('common.edit')}
                         </button>
                         {cotizacion.estado === 'pendiente' && (
                           <button
@@ -200,7 +202,7 @@ const CotizacionCard = ({
                             className="w-full px-4 py-2 text-left text-sm text-orange-600 hover:bg-orange-50 flex items-center gap-2"
                           >
                             <XCircle className="w-4 h-4" />
-                            Rechazar
+                            {t('rentals.quoteCard.reject')}
                           </button>
                         )}
                         <div className="border-t border-slate-100 my-1" />
@@ -211,7 +213,7 @@ const CotizacionCard = ({
                       className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
                     >
                       <Trash2 className="w-4 h-4" />
-                      Eliminar
+                      {t('common.delete')}
                     </button>
                   </div>
                 )}
@@ -227,7 +229,7 @@ const CotizacionCard = ({
           {/* Cliente */}
           <div className="flex items-center gap-2">
             <User className="w-4 h-4 flex-shrink-0" />
-            <span className="truncate">{cotizacion.cliente_nombre || 'Sin cliente'}</span>
+            <span className="truncate">{cotizacion.cliente_nombre || t('rentals.quoteCard.noClient')}</span>
           </div>
 
           {/* Fechas */}
@@ -236,15 +238,15 @@ const CotizacionCard = ({
             {cotizacion.fecha_evento ? (
               <div className="text-xs space-y-0.5">
                 {cotizacion.fecha_montaje && (
-                  <p><span className="text-slate-500">Montaje:</span> {formatearFecha(cotizacion.fecha_montaje)}</p>
+                  <p><span className="text-slate-500">{t('rentals.assemblyDate')}:</span> {formatearFecha(cotizacion.fecha_montaje)}</p>
                 )}
-                <p><span className="text-slate-500">Evento:</span> {formatearFecha(cotizacion.fecha_evento)}</p>
+                <p><span className="text-slate-500">{t('rentals.eventDate')}:</span> {formatearFecha(cotizacion.fecha_evento)}</p>
                 {cotizacion.fecha_desmontaje && (
-                  <p><span className="text-slate-500">Desmontaje:</span> {formatearFecha(cotizacion.fecha_desmontaje)}</p>
+                  <p><span className="text-slate-500">{t('rentals.disassemblyDate')}:</span> {formatearFecha(cotizacion.fecha_desmontaje)}</p>
                 )}
               </div>
             ) : (
-              <span className="text-xs text-amber-600 italic">Fecha por confirmar</span>
+              <span className="text-xs text-amber-600 italic">{t('rentals.quoteCard.dateToConfirm')}</span>
             )}
           </div>
 
@@ -260,7 +262,7 @@ const CotizacionCard = ({
           {cotizacion.total_productos > 0 && (
             <div className="flex items-center gap-2">
               <Package className="w-4 h-4 flex-shrink-0" />
-              <span>{cotizacion.total_productos} producto{cotizacion.total_productos !== 1 ? 's' : ''}</span>
+              <span>{t('rentals.quoteCard.productCount', { count: cotizacion.total_productos })}</span>
             </div>
           )}
         </div>
@@ -276,7 +278,7 @@ const CotizacionCard = ({
             icon={<Eye className="w-4 h-4" />}
             onClick={handleVerDetalle}
           >
-            Ver
+            {t('rentals.quoteCard.view')}
           </Button>
           {cotizacion.estado === 'pendiente' && (
             <Button
@@ -288,7 +290,7 @@ const CotizacionCard = ({
               loading={isAprobando}
               disabled={isAprobando}
             >
-              Aprobar
+              {t('rentals.quoteCard.approve')}
             </Button>
           )}
         </div>

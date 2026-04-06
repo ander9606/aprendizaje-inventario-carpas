@@ -21,6 +21,7 @@ import {
 import Modal from '@shared/components/Modal'
 import Button from '@shared/components/Button'
 import Spinner from '@shared/components/Spinner'
+import { useTranslation } from 'react-i18next'
 
 /**
  * RetornoElementosModal
@@ -39,6 +40,7 @@ const RetornoElementosModal = ({
   alquiler,
   onSuccess
 }) => {
+  const { t } = useTranslation()
   // ============================================
   // ESTADO
   // ============================================

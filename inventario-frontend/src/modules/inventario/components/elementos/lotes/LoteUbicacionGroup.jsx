@@ -8,6 +8,7 @@ import { EstadoBadge } from '@shared/components/Badge'
 import DropdownMenu from '@shared/components/DropdownMenu'
 import { Trash2, ArrowRight, Package, RotateCcw } from 'lucide-react'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 /**
  * Componente LoteUbicacionGroup - Grupo de lotes por ubicacion
@@ -162,6 +163,7 @@ const LoteItem = ({
   onMove,
   onDelete
 }) => {
+  const { t } = useTranslation()
   // Solo mostrar "Devolver a Bodega Principal" si NO esta en Bodega Principal
   const esBodegaPrincipal = ubicacion === 'Bodega Principal' || ubicacion === 'Bodega A'
 

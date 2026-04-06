@@ -1,6 +1,8 @@
+import { useTranslation } from 'react-i18next'
 import { Layers, Hash, Pencil, Trash2 } from 'lucide-react'
 
 const ElementosListView = ({ elementos = [], onEdit, onDelete, disabled = false }) => {
+  const { t } = useTranslation()
   if (elementos.length === 0) return null
 
   return (
@@ -8,11 +10,11 @@ const ElementosListView = ({ elementos = [], onEdit, onDelete, disabled = false 
       <table className="w-full">
         <thead>
           <tr className="bg-slate-50 border-b border-slate-200">
-            <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Nombre</th>
-            <th className="text-center px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Tipo</th>
-            <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide hidden sm:table-cell">Material</th>
-            <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide hidden sm:table-cell">Unidad</th>
-            <th className="text-right px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Acciones</th>
+            <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">{t('common.name')}</th>
+            <th className="text-center px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">{t('common.type')}</th>
+            <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide hidden sm:table-cell">{t('common.material')}</th>
+            <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide hidden sm:table-cell">{t('common.unit')}</th>
+            <th className="text-right px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">{t('common.actions')}</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100">
@@ -33,7 +35,7 @@ const ElementosListView = ({ elementos = [], onEdit, onDelete, disabled = false 
                     : 'bg-emerald-50 text-emerald-600'
                 }`}>
                   {el.requiere_series ? <Hash className="w-3 h-3" /> : <Layers className="w-3 h-3" />}
-                  {el.requiere_series ? 'Series' : 'Lotes'}
+                  {el.requiere_series ? t('inventory.serialNumbers') : t('inventory.batch')}
                 </span>
               </td>
               <td className="px-5 py-3 text-sm text-slate-600 hidden sm:table-cell">
@@ -48,7 +50,7 @@ const ElementosListView = ({ elementos = [], onEdit, onDelete, disabled = false 
                     onClick={() => onEdit(el)}
                     disabled={disabled}
                     className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-50"
-                    title="Editar"
+                    title={t('common.edit')}
                   >
                     <Pencil className="w-4 h-4" />
                   </button>
@@ -56,7 +58,7 @@ const ElementosListView = ({ elementos = [], onEdit, onDelete, disabled = false 
                     onClick={() => onDelete(el)}
                     disabled={disabled}
                     className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
-                    title="Eliminar"
+                    title={t('common.delete')}
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>

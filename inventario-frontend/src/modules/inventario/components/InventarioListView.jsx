@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import Spinner from '@shared/components/Spinner'
 import EmptyState from '@shared/components/EmptyState'
 import { IconoCategoria } from '@shared/components/IconoCategoria'
@@ -6,6 +7,7 @@ import { Package, Eye, Edit, Trash2 } from 'lucide-react'
 import ModalVerEstados from './ModalVerEstados'
 
 const InventarioListView = ({ elementos = [], isLoading, onGoToElemento }) => {
+  const { t } = useTranslation()
   const [elementoModal, setElementoModal] = useState(null)
 
   if (isLoading) {
@@ -20,8 +22,8 @@ const InventarioListView = ({ elementos = [], isLoading, onGoToElemento }) => {
     return (
       <EmptyState
         type="no-data"
-        title="No hay elementos registrados"
-        description="Crea categorías y elementos para verlos aquí"
+        title={t('inventory.inventoryListNoElements')}
+        description={t('inventory.inventoryListCreate')}
         icon={Package}
       />
     )
@@ -33,12 +35,12 @@ const InventarioListView = ({ elementos = [], isLoading, onGoToElemento }) => {
         <table className="w-full">
           <thead>
             <tr className="bg-slate-50 border-b border-slate-200">
-              <th className="text-left px-4 py-3 text-[13px] font-semibold text-slate-500">Elemento</th>
-              <th className="text-left px-3 py-3 text-[13px] font-semibold text-slate-500" style={{ width: 180 }}>Categoría</th>
-              <th className="text-left px-3 py-3 text-[13px] font-semibold text-slate-500" style={{ width: 160 }}>Subcategoría</th>
-              <th className="text-left px-3 py-3 text-[13px] font-semibold text-slate-500" style={{ width: 100 }}>Cantidad</th>
-              <th className="text-left px-3 py-3 text-[13px] font-semibold text-slate-500" style={{ width: 150 }}>Estado</th>
-              <th className="text-center px-3 py-3 text-[13px] font-semibold text-slate-500" style={{ width: 100 }}>Acciones</th>
+              <th className="text-left px-4 py-3 text-[13px] font-semibold text-slate-500">{t('common.elements')}</th>
+              <th className="text-left px-3 py-3 text-[13px] font-semibold text-slate-500" style={{ width: 180 }}>{t('inventory.category')}</th>
+              <th className="text-left px-3 py-3 text-[13px] font-semibold text-slate-500" style={{ width: 160 }}>{t('inventory.subcategory')}</th>
+              <th className="text-left px-3 py-3 text-[13px] font-semibold text-slate-500" style={{ width: 100 }}>{t('inventory.quantity')}</th>
+              <th className="text-left px-3 py-3 text-[13px] font-semibold text-slate-500" style={{ width: 150 }}>{t('inventory.state')}</th>
+              <th className="text-center px-3 py-3 text-[13px] font-semibold text-slate-500" style={{ width: 100 }}>{t('common.actions')}</th>
             </tr>
           </thead>
           <tbody>
@@ -93,7 +95,7 @@ const InventarioListView = ({ elementos = [], isLoading, onGoToElemento }) => {
                       className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-slate-200 text-blue-600 text-xs font-medium hover:bg-blue-50 hover:border-blue-200 transition-colors"
                     >
                       <Eye className="w-3.5 h-3.5" />
-                      Ver estados
+                      {t('inventory.viewStates')}
                     </button>
                   </td>
 
@@ -106,7 +108,7 @@ const InventarioListView = ({ elementos = [], isLoading, onGoToElemento }) => {
                           onGoToElemento(el)
                         }}
                         className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
-                        title="Editar"
+                        title={t('common.edit')}
                       >
                         <Edit className="w-[18px] h-[18px]" />
                       </button>

@@ -16,6 +16,7 @@ import {
   ChevronUp
 } from 'lucide-react'
 import Button from '@shared/components/Button'
+import { useTranslation } from 'react-i18next'
 
 /**
  * Componente que muestra una alerta individual
@@ -25,6 +26,7 @@ import Button from '@shared/components/Button'
  * @param {boolean} isIgnorando - Si se está procesando el ignorar
  */
 const AlertaItem = ({ alerta, onIgnorar, isIgnorando }) => {
+  const { t } = useTranslation()
   const [expandido, setExpandido] = useState(false)
   const [diasIgnorar, setDiasIgnorar] = useState(1)
 

@@ -9,8 +9,10 @@ import { useGetEmpleadosCampo } from '../hooks/useEmpleados'
 import Modal from '@shared/components/Modal'
 import Button from '@shared/components/Button'
 import Spinner from '@shared/components/Spinner'
+import { useTranslation } from 'react-i18next'
 
 export default function ModalAsignarResponsable({ orden, onClose, onSave }) {
+  const { t } = useTranslation()
     // Inicializar con responsables actuales
     const actuales = (orden.equipo || []).map(e => (e.empleado_id || e.id).toString())
     const [seleccionados, setSeleccionados] = useState(new Set(actuales))
@@ -52,19 +54,19 @@ export default function ModalAsignarResponsable({ orden, onClose, onSave }) {
     }
 
     return (
-        <Modal isOpen={true} onClose={onClose} title="Asignar Responsables" size="sm">
+        <Modal isOpen={true} onClose={onClose} title={t('operations.assignResponsibleModal.assignResponsiblesTitle')} size="sm">
             <p className="text-sm text-slate-500 mb-4">
-                Selecciona los encargados de esta orden
+                {t('operations.assignResponsibleModal.selectResponsibles')}
                 {seleccionados.size > 0 && (
                     <span className="ml-1 font-medium text-orange-600">
-                        ({seleccionados.size} seleccionados)
+                        ({t('operations.assignResponsibleModal.selected', { count: seleccionados.size })})
                     </span>
                 )}
             </p>
 
             {loadingEmpleados ? (
                 <div className="py-8 text-center">
-                    <Spinner size="sm" text="Cargando empleados..." />
+                    <Spinner size="sm" text={t('operations.assignResponsibleModal.loadingEmployees')} />
                 </div>
             ) : empleadosDisponibles?.length > 0 ? (
                 <div className="space-y-2">
@@ -100,7 +102,7 @@ export default function ModalAsignarResponsable({ orden, onClose, onSave }) {
                                         {emp.nombre} {emp.apellido || ''}
                                     </p>
                                     <p className="text-sm text-slate-500">
-                                        {emp.rol_nombre || emp.cargo || 'Empleado'}
+                                        {emp.rol_nombre || emp.cargo || t('operations.employeeLabel')}
                                         {emp.telefono ? ` - ${emp.telefono}` : ''}
                                     </p>
                                 </div>
@@ -111,13 +113,13 @@ export default function ModalAsignarResponsable({ orden, onClose, onSave }) {
             ) : (
                 <div className="py-8 text-center text-slate-500">
                     <Users className="w-10 h-10 mx-auto mb-2 text-slate-300" />
-                    <p>No hay empleados disponibles</p>
+                    <p>{t('operations.assignResponsibleModal.noEmployeesAvailable')}</p>
                 </div>
             )}
 
             <Modal.Footer>
                 <Button variant="secondary" onClick={onClose}>
-                    Cancelar
+                    {t('common.cancel')}
                 </Button>
                 <Button
                     color="orange"
@@ -125,7 +127,7 @@ export default function ModalAsignarResponsable({ orden, onClose, onSave }) {
                     onClick={handleGuardar}
                     disabled={saving || seleccionados.size === 0}
                 >
-                    {saving ? 'Guardando...' : `Guardar (${seleccionados.size})`}
+                    {saving ? t('common.loading') : t('operations.assignResponsibleModal.saveCount', { count: seleccionados.size })}
                 </Button>
             </Modal.Footer>
         </Modal>

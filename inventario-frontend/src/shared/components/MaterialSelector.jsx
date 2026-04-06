@@ -1,20 +1,23 @@
 import React from "react";
 import { useGetMateriales } from "../hooks/useMateriales";
+import { useTranslation } from 'react-i18next';
 
-const MaterialSelector = ({ value, onChange, label = "Material" }) => {
+const MaterialSelector = ({ value, onChange, label }) => {
     const { materiales, loading } = useGetMateriales();
+    const { t } = useTranslation();
+    const resolvedLabel = label || t('materialSelector.label');
 
     return (
         <div className="campo-formulario">
-            <label>{label}</label>
+            <label>{resolvedLabel}</label>
 
             <select value={value} onChange={onChange}>
-                <option value="">Seleccione un material</option>
+                <option value="">{t('materialSelector.placeholder')}</option>
 
-                {loading && <option>Cargando...</option>}
+                {loading && <option>{t('materialSelector.loading')}</option>}
 
                 {!loading && materiales.length === 0 && (
-                    <option>No hay materiales</option>
+                    <option>{t('materialSelector.noMaterials')}</option>
                 )}
 
                 {!loading &&

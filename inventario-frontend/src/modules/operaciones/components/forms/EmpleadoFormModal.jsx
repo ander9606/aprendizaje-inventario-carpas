@@ -8,6 +8,7 @@ import { Eye, EyeOff, Shield } from 'lucide-react'
 import Modal from '@shared/components/Modal'
 import Button from '@shared/components/Button'
 import { useCreateEmpleado, useUpdateEmpleado } from '../../hooks/useEmpleados'
+import { useTranslation } from 'react-i18next'
 
 /**
  * COMPONENTE: EmpleadoFormModal
@@ -25,6 +26,7 @@ const EmpleadoFormModal = ({
     empleado = null,
     roles = []
 }) => {
+  const { t } = useTranslation()
     // ============================================
     // ESTADO LOCAL DEL FORMULARIO
     // ============================================
@@ -101,44 +103,44 @@ const EmpleadoFormModal = ({
         const newErrors = {}
 
         if (!formData.nombre.trim()) {
-            newErrors.nombre = 'El nombre es obligatorio'
+            newErrors.nombre = t('operations.employee.firstNameRequired')
         }
 
         if (!formData.apellido.trim()) {
-            newErrors.apellido = 'El apellido es obligatorio'
+            newErrors.apellido = t('operations.employee.lastNameRequired')
         }
 
         if (!formData.email.trim()) {
-            newErrors.email = 'El email es obligatorio'
+            newErrors.email = t('operations.employee.emailRequired')
         } else {
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
             if (!emailRegex.test(formData.email)) {
-                newErrors.email = 'Email no válido'
+                newErrors.email = t('operations.employee.invalidEmail')
             }
         }
 
         if (!formData.rol_id) {
-            newErrors.rol_id = 'Debe seleccionar un rol'
+            newErrors.rol_id = t('operations.employee.roleRequired')
         }
 
         // Validar contraseña solo en modo crear o si se quiere cambiar
         if (mode === 'crear') {
             if (!formData.password) {
-                newErrors.password = 'La contraseña es obligatoria'
+                newErrors.password = t('operations.employee.passwordRequired')
             } else if (formData.password.length < 8) {
-                newErrors.password = 'Mínimo 8 caracteres'
+                newErrors.password = t('operations.employee.minPassword')
             }
 
             if (formData.password !== formData.confirmarPassword) {
-                newErrors.confirmarPassword = 'Las contraseñas no coinciden'
+                newErrors.confirmarPassword = t('operations.employee.passwordsMismatch')
             }
         } else if (formData.password) {
             // En modo editar, validar solo si se ingresó contraseña
             if (formData.password.length < 8) {
-                newErrors.password = 'Mínimo 8 caracteres'
+                newErrors.password = t('operations.employee.minPassword')
             }
             if (formData.password !== formData.confirmarPassword) {
-                newErrors.confirmarPassword = 'Las contraseñas no coinciden'
+                newErrors.confirmarPassword = t('operations.employee.passwordsMismatch')
             }
         }
 
@@ -177,7 +179,7 @@ const EmpleadoFormModal = ({
         } catch (error) {
             console.error('Error al guardar empleado:', error)
             const mensajeError = error.response?.data?.message ||
-                (mode === 'crear' ? 'Error al crear el empleado' : 'Error al actualizar el empleado')
+                (mode === 'crear' ? t('operations.employee.createError') : t('operations.employee.updateError'))
             setErrors({ submit: mensajeError })
         }
     }
@@ -201,7 +203,7 @@ const EmpleadoFormModal = ({
         <Modal
             isOpen={isOpen}
             onClose={handleClose}
-            title={mode === 'crear' ? 'Nuevo Empleado' : 'Editar Empleado'}
+            title={mode === 'crear' ? t('operations.newEmployee') : t('operations.editEmployee')}
             size="lg"
         >
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -215,20 +217,20 @@ const EmpleadoFormModal = ({
 
                 {/* INFORMACIÓN PERSONAL */}
                 <div className="space-y-4">
-                    <h3 className="font-semibold text-slate-900">Información Personal</h3>
+                    <h3 className="font-semibold text-slate-900">{t('operations.employee.personalInfo')}</h3>
 
                     <div className="grid grid-cols-2 gap-4">
                         {/* Nombre */}
                         <div>
                             <label className="block text-sm font-medium text-slate-700 mb-2">
-                                Nombre *
+                                {t('operations.employee.firstName')} *
                             </label>
                             <input
                                 type="text"
                                 name="nombre"
                                 value={formData.nombre}
                                 onChange={handleChange}
-                                placeholder="Nombre"
+                                placeholder={t('operations.employee.firstName')}
                                 disabled={isLoading}
                                 className={`
                                     w-full px-4 py-2.5 border rounded-lg
@@ -245,14 +247,14 @@ const EmpleadoFormModal = ({
                         {/* Apellido */}
                         <div>
                             <label className="block text-sm font-medium text-slate-700 mb-2">
-                                Apellido *
+                                {t('operations.employee.lastName')} *
                             </label>
                             <input
                                 type="text"
                                 name="apellido"
                                 value={formData.apellido}
                                 onChange={handleChange}
-                                placeholder="Apellido"
+                                placeholder={t('operations.employee.lastName')}
                                 disabled={isLoading}
                                 className={`
                                     w-full px-4 py-2.5 border rounded-lg
@@ -295,7 +297,7 @@ const EmpleadoFormModal = ({
                         {/* Teléfono */}
                         <div>
                             <label className="block text-sm font-medium text-slate-700 mb-2">
-                                Teléfono
+                                {t('common.phone')}
                             </label>
                             <input
                                 type="tel"
@@ -318,12 +320,12 @@ const EmpleadoFormModal = ({
                 <div className="space-y-4">
                     <h3 className="font-semibold text-slate-900 flex items-center gap-2">
                         <Shield className="w-5 h-5 text-purple-600" />
-                        Rol y Permisos
+                        {t('operations.employee.roleAndPermissions')}
                     </h3>
 
                     <div>
                         <label className="block text-sm font-medium text-slate-700 mb-2">
-                            Rol del empleado *
+                            {t('operations.employee.employeeRole')} *
                         </label>
                         <select
                             name="rol_id"
@@ -337,7 +339,7 @@ const EmpleadoFormModal = ({
                                 ${errors.rol_id ? 'border-red-300 bg-red-50' : 'border-slate-300'}
                             `}
                         >
-                            <option value="">Selecciona un rol</option>
+                            <option value="">{t('operations.employee.selectRole')}</option>
                             {roles.map((rol) => (
                                 <option key={rol.id} value={rol.id}>
                                     {rol.nombre.charAt(0).toUpperCase() + rol.nombre.slice(1)}
@@ -358,10 +360,10 @@ const EmpleadoFormModal = ({
                 {/* CONTRASEÑA */}
                 <div className="space-y-4">
                     <h3 className="font-semibold text-slate-900">
-                        {mode === 'crear' ? 'Contraseña' : 'Cambiar Contraseña'}
+                        {mode === 'crear' ? t('operations.employee.password') : t('operations.employee.changePassword')}
                         {mode === 'editar' && (
                             <span className="text-sm font-normal text-slate-500 ml-2">
-                                (dejar vacío para mantener la actual)
+                                {t('operations.employee.keepCurrentPassword')}
                             </span>
                         )}
                     </h3>
@@ -370,7 +372,7 @@ const EmpleadoFormModal = ({
                         {/* Contraseña */}
                         <div>
                             <label className="block text-sm font-medium text-slate-700 mb-2">
-                                Contraseña {mode === 'crear' && '*'}
+                                {t('operations.employee.password')} {mode === 'crear' && '*'}
                             </label>
                             <div className="relative">
                                 <input
@@ -378,7 +380,7 @@ const EmpleadoFormModal = ({
                                     name="password"
                                     value={formData.password}
                                     onChange={handleChange}
-                                    placeholder={mode === 'crear' ? 'Mínimo 8 caracteres' : 'Nueva contraseña'}
+                                    placeholder={mode === 'crear' ? t('operations.employee.minChars') : t('operations.employee.newPassword')}
                                     autoComplete="new-password"
                                     disabled={isLoading}
                                     className={`
@@ -404,7 +406,7 @@ const EmpleadoFormModal = ({
                         {/* Confirmar contraseña */}
                         <div>
                             <label className="block text-sm font-medium text-slate-700 mb-2">
-                                Confirmar {mode === 'crear' && '*'}
+                                {t('operations.employee.confirmPassword')} {mode === 'crear' && '*'}
                             </label>
                             <div className="relative">
                                 <input
@@ -412,7 +414,7 @@ const EmpleadoFormModal = ({
                                     name="confirmarPassword"
                                     value={formData.confirmarPassword}
                                     onChange={handleChange}
-                                    placeholder="Confirmar contraseña"
+                                    placeholder={t('operations.employee.confirmPasswordPlaceholder')}
                                     autoComplete="new-password"
                                     disabled={isLoading}
                                     className={`
@@ -441,7 +443,7 @@ const EmpleadoFormModal = ({
                 {mode === 'editar' && (
                     <div>
                         <label className="block text-sm font-medium text-slate-700 mb-2">
-                            Estado del empleado
+                            {t('operations.employee.employeeStatus')}
                         </label>
                         <select
                             name="estado"
@@ -450,8 +452,8 @@ const EmpleadoFormModal = ({
                             disabled={isLoading}
                             className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-slate-100 disabled:cursor-not-allowed"
                         >
-                            <option value="activo">Activo</option>
-                            <option value="inactivo">Inactivo</option>
+                            <option value="activo">{t('common.active')}</option>
+                            <option value="inactivo">{t('common.inactive')}</option>
                         </select>
                     </div>
                 )}
@@ -465,7 +467,7 @@ const EmpleadoFormModal = ({
                         disabled={isLoading}
                         fullWidth
                     >
-                        Cancelar
+                        {t('common.cancel')}
                     </Button>
 
                     <Button
@@ -475,7 +477,7 @@ const EmpleadoFormModal = ({
                         disabled={isLoading}
                         fullWidth
                     >
-                        {mode === 'crear' ? 'Crear Empleado' : 'Guardar Cambios'}
+                        {mode === 'crear' ? t('operations.employee.createEmployee') : t('operations.employee.saveChanges')}
                     </Button>
                 </div>
             </form>

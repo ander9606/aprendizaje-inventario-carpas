@@ -8,6 +8,7 @@ import { Tag, Plus, Edit, Trash2, Percent, DollarSign, Check, X } from 'lucide-r
 import Button from '@shared/components/Button'
 import Spinner from '@shared/components/Spinner'
 import Modal from '@shared/components/Modal'
+import { useTranslation } from 'react-i18next'
 import {
   useGetDescuentos,
   useCreateDescuento,
@@ -16,6 +17,7 @@ import {
 } from '../hooks/descuentos'
 
 const DescuentosPage = () => {
+  const { t } = useTranslation()
   const [modalOpen, setModalOpen] = useState(false)
   const [editando, setEditando] = useState(null)
   const [formData, setFormData] = useState({
@@ -58,7 +60,7 @@ const DescuentosPage = () => {
   }
 
   const handleEliminar = async (id) => {
-    if (confirm('¿Desactivar este descuento? Podrá reactivarlo más tarde.')) {
+    if (confirm(t('rentals.deactivateDiscountConfirm'))) {
       await deleteMutation.mutateAsync(id)
     }
   }
@@ -101,10 +103,10 @@ const DescuentosPage = () => {
               <div className="p-2 bg-blue-100 rounded-lg">
                 <Tag className="w-6 h-6 text-blue-600" />
               </div>
-              Descuentos
+              {t('rentals.discounts')}
             </h1>
             <p className="text-slate-500 mt-1">
-              Administra los descuentos predefinidos para cotizaciones
+              {t('rentals.discountsDescription')}
             </p>
           </div>
           <Button
@@ -112,7 +114,7 @@ const DescuentosPage = () => {
             icon={<Plus className="w-5 h-5" />}
             onClick={handleNuevo}
           >
-            Nuevo Descuento
+            {t('rentals.newDiscount')}
           </Button>
         </div>
       </div>
@@ -120,23 +122,23 @@ const DescuentosPage = () => {
       {/* Lista de descuentos */}
       {isLoading ? (
         <div className="py-12">
-          <Spinner size="lg" text="Cargando descuentos..." />
+          <Spinner size="lg" text={t('rentals.loadingDiscounts')} />
         </div>
       ) : descuentos?.length === 0 ? (
         <div className="bg-white rounded-xl border border-slate-200 p-12 text-center">
           <Tag className="w-12 h-12 text-slate-300 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-slate-700 mb-2">
-            No hay descuentos configurados
+            {t('rentals.noDiscountsConfigured')}
           </h3>
           <p className="text-slate-500 mb-4">
-            Crea descuentos predefinidos para aplicarlos fácilmente a las cotizaciones
+            {t('rentals.createDiscountsHint')}
           </p>
           <Button
             variant="primary"
             icon={<Plus className="w-5 h-5" />}
             onClick={handleNuevo}
           >
-            Crear primer descuento
+            {t('rentals.createFirstDiscount')}
           </Button>
         </div>
       ) : (
@@ -145,22 +147,22 @@ const DescuentosPage = () => {
             <thead className="bg-slate-50 border-b border-slate-200">
               <tr>
                 <th className="text-left px-6 py-4 text-sm font-semibold text-slate-700">
-                  Nombre
+                  {t('common.name')}
                 </th>
                 <th className="text-left px-6 py-4 text-sm font-semibold text-slate-700">
-                  Descripción
+                  {t('common.description')}
                 </th>
                 <th className="text-center px-6 py-4 text-sm font-semibold text-slate-700">
-                  Tipo
+                  {t('common.type')}
                 </th>
                 <th className="text-right px-6 py-4 text-sm font-semibold text-slate-700">
-                  Valor
+                  {t('common.total')}
                 </th>
                 <th className="text-center px-6 py-4 text-sm font-semibold text-slate-700">
-                  Estado
+                  {t('common.status')}
                 </th>
                 <th className="text-right px-6 py-4 text-sm font-semibold text-slate-700">
-                  Acciones
+                  {t('common.actions')}
                 </th>
               </tr>
             </thead>
@@ -192,9 +194,9 @@ const DescuentosPage = () => {
                       }
                     `}>
                       {descuento.tipo === 'porcentaje' ? (
-                        <><Percent className="w-3 h-3" /> Porcentaje</>
+                        <><Percent className="w-3 h-3" /> {t('rentals.percentage')}</>
                       ) : (
-                        <><DollarSign className="w-3 h-3" /> Fijo</>
+                        <><DollarSign className="w-3 h-3" /> {t('rentals.fixed')}</>
                       )}
                     </span>
                   </td>
@@ -216,9 +218,9 @@ const DescuentosPage = () => {
                       `}
                     >
                       {descuento.activo ? (
-                        <><Check className="w-3 h-3" /> Activo</>
+                        <><Check className="w-3 h-3" /> {t('common.active')}</>
                       ) : (
-                        <><X className="w-3 h-3" /> Inactivo</>
+                        <><X className="w-3 h-3" /> {t('common.inactive')}</>
                       )}
                     </button>
                   </td>
@@ -227,14 +229,14 @@ const DescuentosPage = () => {
                       <button
                         onClick={() => handleEditar(descuento)}
                         className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                        title="Editar"
+                        title={t('common.edit')}
                       >
                         <Edit className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => handleEliminar(descuento.id)}
                         className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                        title="Eliminar"
+                        title={t('common.delete')}
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -251,21 +253,21 @@ const DescuentosPage = () => {
       <Modal
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
-        title={editando ? 'Editar Descuento' : 'Nuevo Descuento'}
+        title={editando ? t('rentals.editDiscount') : t('rentals.newDiscount')}
         size="md"
       >
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Nombre */}
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">
-              Nombre *
+              {t('common.name')} *
             </label>
             <input
               type="text"
               value={formData.nombre}
               onChange={(e) => setFormData(prev => ({ ...prev, nombre: e.target.value }))}
               className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="Ej: Descuento cliente frecuente"
+              placeholder={t('rentals.discountNamePlaceholder')}
               required
             />
           </div>
@@ -273,14 +275,14 @@ const DescuentosPage = () => {
           {/* Descripción */}
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">
-              Descripción
+              {t('common.description')}
             </label>
             <input
               type="text"
               value={formData.descripcion}
               onChange={(e) => setFormData(prev => ({ ...prev, descripcion: e.target.value }))}
               className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="Descripción opcional"
+              placeholder={t('rentals.optionalDescription')}
             />
           </div>
 
@@ -288,20 +290,20 @@ const DescuentosPage = () => {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">
-                Tipo *
+                {t('common.type')} *
               </label>
               <select
                 value={formData.tipo}
                 onChange={(e) => setFormData(prev => ({ ...prev, tipo: e.target.value }))}
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
-                <option value="porcentaje">Porcentaje (%)</option>
-                <option value="fijo">Monto Fijo ($)</option>
+                <option value="porcentaje">{t('rentals.percentageOption')}</option>
+                <option value="fijo">{t('rentals.fixedAmountOption')}</option>
               </select>
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">
-                Valor *
+                {t('rentals.value')} *
               </label>
               <div className="relative">
                 <input
@@ -328,14 +330,14 @@ const DescuentosPage = () => {
               variant="secondary"
               onClick={() => setModalOpen(false)}
             >
-              Cancelar
+              {t('common.cancel')}
             </Button>
             <Button
               type="submit"
               variant="primary"
               loading={createMutation.isPending || updateMutation.isPending}
             >
-              {editando ? 'Guardar cambios' : 'Crear descuento'}
+              {editando ? t('rentals.saveChanges') : t('rentals.createDiscount')}
             </Button>
           </div>
         </form>

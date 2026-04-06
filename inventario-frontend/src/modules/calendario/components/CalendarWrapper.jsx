@@ -10,6 +10,7 @@ import timeGridPlugin from '@fullcalendar/timegrid'
 import interactionPlugin from '@fullcalendar/interaction'
 import listPlugin from '@fullcalendar/list'
 import { CALENDAR_STYLES } from '@calendario/constants/calendarConfig'
+import { useTranslation } from 'react-i18next'
 
 /**
  * CalendarWrapper
@@ -28,6 +29,7 @@ const CalendarWrapper = ({
   className = '',
   calendarRef: externalRef
 }) => {
+  const { t } = useTranslation()
   const internalRef = useRef(null)
   const calendarRef = externalRef || internalRef
 

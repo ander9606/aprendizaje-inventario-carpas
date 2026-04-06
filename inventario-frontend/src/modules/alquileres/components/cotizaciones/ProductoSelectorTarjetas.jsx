@@ -15,6 +15,7 @@ import CategoriaCardSelector from './CategoriaCardSelector'
 import ProductoCardSelector from './ProductoCardSelector'
 import Button from '@shared/components/Button'
 import Spinner from '@shared/components/Spinner'
+import { useTranslation } from 'react-i18next'
 
 const ProductoSelectorTarjetas = ({
   onProductoAgregado,
@@ -22,6 +23,7 @@ const ProductoSelectorTarjetas = ({
   fechaMontaje = null,
   fechaDesmontaje = null
 }) => {
+  const { t } = useTranslation()
   // ============================================
   // ESTADO
   // ============================================

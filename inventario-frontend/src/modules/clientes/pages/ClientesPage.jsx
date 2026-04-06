@@ -4,6 +4,7 @@
 // ============================================
 
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Plus, Users } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -39,6 +40,7 @@ export default function ClientesPage() {
   // HOOKS: Obtener datos
   // ============================================
 
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const { clientes, isLoading, error, refetch } = useGetClientes()
   const { mutateAsync: deleteCliente, isLoading: isDeleting } = useDeleteCliente()
@@ -84,7 +86,7 @@ export default function ClientesPage() {
     } catch (error) {
       console.error('Error al eliminar:', error)
       const mensaje = error.response?.data?.message ||
-        'No se pudo eliminar el cliente. Puede tener cotizaciones asociadas.'
+        t('clients.cannotDeleteClient')
       alert(mensaje)
     }
   }
@@ -113,7 +115,7 @@ export default function ClientesPage() {
       setEventoRepetir(null)
       navigate('/alquileres/cotizaciones')
     } catch (error) {
-      toast.error(error?.response?.data?.message || 'Error al repetir evento')
+      toast.error(error?.response?.data?.message || t('clients.errorRepeatingEvent'))
       throw error
     }
   }
@@ -126,7 +128,7 @@ export default function ClientesPage() {
   if (isLoading) {
     return (
       <div className="flex justify-center py-12">
-        <Spinner size="lg" text="Cargando clientes..." />
+        <Spinner size="lg" text={t('clients.loadingClients')} />
       </div>
     )
   }
@@ -135,9 +137,9 @@ export default function ClientesPage() {
     return (
       <div className="p-6">
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
-          Error al cargar clientes: {error.message || 'Ocurrió un error inesperado'}
+          {t('clients.errorLoadingClients')}: {error.message || t('messages.error.generic')}
           <Button variant="ghost" onClick={() => refetch()} className="ml-4">
-            Reintentar
+            {t('clients.retry')}
           </Button>
         </div>
       </div>
@@ -158,10 +160,10 @@ export default function ClientesPage() {
               <div className="p-2 bg-blue-100 rounded-lg">
                 <Users className="w-6 h-6 text-blue-600" />
               </div>
-              Clientes
+              {t('clients.title')}
             </h1>
             <p className="text-slate-500 mt-1">
-              Gestiona tus clientes para cotizaciones
+              {t('clients.manageClientsDescription')}
             </p>
           </div>
 
@@ -170,14 +172,14 @@ export default function ClientesPage() {
             icon={<Plus />}
             onClick={handleOpenCrear}
           >
-            Nuevo Cliente
+            {t('clients.newClient')}
           </Button>
         </div>
       </div>
 
       {/* INFO */}
       <div className="mb-4 text-sm text-slate-500">
-        Mostrando {clientes.length} cliente{clientes.length !== 1 ? 's' : ''}
+        {t('clients.showingClients', { count: clientes.length })}
       </div>
 
       {/* GRID DE CLIENTES */}
@@ -196,11 +198,11 @@ export default function ClientesPage() {
       ) : (
         <EmptyState
           type="no-data"
-          title="No hay clientes creados"
-          description="Crea tu primer cliente para comenzar a generar cotizaciones"
+          title={t('clients.noClientsCreated')}
+          description={t('clients.createFirstClientDescription')}
           icon={Users}
           action={{
-            label: "Crear primer cliente",
+            label: t('clients.createFirstClient'),
             icon: <Plus />,
             onClick: handleOpenCrear
           }}
@@ -243,7 +245,7 @@ export default function ClientesPage() {
         <div className="fixed bottom-4 right-4 bg-white rounded-lg shadow-lg p-4 flex items-center gap-3">
           <Spinner size="sm" />
           <span className="text-sm font-medium text-slate-700">
-            Eliminando cliente...
+            {t('clients.deletingClient')}
           </span>
         </div>
       )}

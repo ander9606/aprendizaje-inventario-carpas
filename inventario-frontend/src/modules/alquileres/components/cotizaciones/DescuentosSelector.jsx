@@ -7,6 +7,7 @@ import { useState } from 'react'
 import { Tag, Plus, Trash2, Percent, DollarSign } from 'lucide-react'
 import Button from '@shared/components/Button'
 import { useGetDescuentos, useAplicarDescuento, useEliminarDescuentoCotizacion } from '../../hooks/descuentos'
+import { useTranslation } from 'react-i18next'
 
 const DescuentosSelector = ({
   cotizacionId,
@@ -16,6 +17,7 @@ const DescuentosSelector = ({
   onDescuentoEliminado,
   disabled = false
 }) => {
+  const { t } = useTranslation()
   const [mostrarManual, setMostrarManual] = useState(false)
   const [descuentoManual, setDescuentoManual] = useState({ monto: '', esPorcentaje: false, notas: '' })
 

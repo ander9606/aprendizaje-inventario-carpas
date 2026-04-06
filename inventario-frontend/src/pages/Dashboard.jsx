@@ -4,6 +4,7 @@
 // ============================================
 
 import { useState, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Plus, Package, Search, X, Layers, ChevronRight, BarChart3, FileSpreadsheet } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useNavigation } from '@shared/hooks/useNavigation'  
@@ -50,6 +51,7 @@ import { toast } from 'sonner'
  */
 export default function Dashboard() {
 
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const { volverAModulos } = useNavigation()
 
@@ -149,9 +151,9 @@ export default function Dashboard() {
     try {
       setIsExporting(true)
       await exportarInventarioExcel()
-      toast.success('Inventario exportado a Excel exitosamente')
+      toast.success(t('inventory.exportSuccess'))
     } catch (error) {
-      toast.error('Error al exportar: ' + (error.message || 'Intenta de nuevo'))
+      toast.error(t('inventory.exportError') + ': ' + (error.message || t('common.tryAgain')))
     } finally {
       setIsExporting(false)
     }
@@ -198,7 +200,7 @@ export default function Dashboard() {
       // gracias a queryClient.invalidateQueries en el hook
     } catch (error) {
       console.error('Error al eliminar:', error)
-      toast.error('No se pudo eliminar la categoría. Verifica que no tenga subcategorías.')
+      toast.error(t('inventory.deleteCategoryError'))
     }
   }
   
@@ -221,7 +223,7 @@ export default function Dashboard() {
       <Spinner 
         fullScreen 
         size="xl" 
-        text="Cargando categorías..."
+        text={t('inventory.loadingCategories')}
       />
     )
   }
@@ -233,13 +235,13 @@ export default function Dashboard() {
         <div className="text-center">
           <div className="text-6xl mb-4">⚠️</div>
           <h2 className="text-2xl font-bold text-slate-900 mb-2">
-            Error al cargar categorías
+            {t('inventory.errorLoadingCategories')}
           </h2>
           <p className="text-slate-600 mb-6">
-            {error.message || 'Ocurrió un error inesperado'}
+            {error.message || t('common.unexpectedError')}
           </p>
           <Button onClick={() => refetch()}>
-            Reintentar
+            {t('common.retry')}
           </Button>
         </div>
       </div>
@@ -263,7 +265,7 @@ export default function Dashboard() {
             className="flex items-center gap-1.5 text-blue-600 hover:text-blue-700 active:text-blue-800
                        font-medium text-sm mb-3 transition-colors py-1.5 -ml-1 px-1 rounded-lg min-h-[36px]"
           >
-            &larr; Volver a Módulos
+            &larr; {t('common.backToModules')}
           </button>
 
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -272,17 +274,17 @@ export default function Dashboard() {
               <Package className="w-6 h-6 text-blue-600" />
               <div>
                 <h1 className="text-[22px] font-bold text-slate-900">
-                  Inventario Individual
+                  {t('inventory.individual')}
                 </h1>
                 <p className="text-sm text-slate-500">
-                  Gestiona tus categorías y elementos
+                  {t('inventory.manageCategories')}
                 </p>
               </div>
               <div className="ml-4 hidden sm:block">
                 <ViewTabs
                   tabs={[
-                    { label: 'Categorías', value: 'categorias' },
-                    { label: 'Listado', value: 'listado' }
+                    { label: t('inventory.categories'), value: 'categorias' },
+                    { label: t('common.list'), value: 'listado' }
                   ]}
                   activeTab={viewMode}
                   onChange={setViewMode}
@@ -299,7 +301,7 @@ export default function Dashboard() {
                 onClick={handleExportExcel}
                 disabled={isExporting}
               >
-                <span className="hidden sm:inline">{isExporting ? 'Exportando...' : 'Excel'}</span>
+                <span className="hidden sm:inline">{isExporting ? t('common.exporting') : t('common.excel')}</span>
               </Button>
 
               <Button
@@ -308,7 +310,7 @@ export default function Dashboard() {
                 icon={<BarChart3 />}
                 onClick={() => navigate('/inventario/dashboard')}
               >
-                <span className="hidden sm:inline">Dashboard</span>
+                <span className="hidden sm:inline">{t('common.dashboard')}</span>
               </Button>
 
               <Button
@@ -317,7 +319,7 @@ export default function Dashboard() {
                 icon={<Plus />}
                 onClick={handleOpenCrear}
               >
-                Nueva Categoría
+                {t('inventory.newCategory')}
               </Button>
             </div>
           </div>
@@ -326,8 +328,8 @@ export default function Dashboard() {
           <div className="mt-3 sm:hidden">
             <ViewTabs
               tabs={[
-                { label: 'Categorías', value: 'categorias' },
-                { label: 'Listado', value: 'listado' }
+                { label: t('inventory.categories'), value: 'categorias' },
+                { label: t('common.list'), value: 'listado' }
               ]}
               activeTab={viewMode}
               onChange={setViewMode}
@@ -349,7 +351,7 @@ export default function Dashboard() {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
             <input
               type="text"
-              placeholder="Buscar categorías o elementos..."
+              placeholder={t('inventory.searchCategoriesOrElements')}
               value={searchTerm}
               onChange={(e) => {
                 setSearchTerm(e.target.value)
@@ -375,7 +377,7 @@ export default function Dashboard() {
                 {loadingElementos ? (
                   <div className="flex items-center justify-center py-4">
                     <Spinner size="sm" />
-                    <span className="ml-2 text-slate-600">Buscando...</span>
+                    <span className="ml-2 text-slate-600">{t('common.searching')}</span>
                   </div>
                 ) : hasSearchResults ? (
                   <div className="space-y-4">
@@ -383,7 +385,7 @@ export default function Dashboard() {
                     {searchResults.categorias.length > 0 && (
                       <div>
                         <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
-                          Categorías ({searchResults.categorias.length})
+                          {t('inventory.categories')} ({searchResults.categorias.length})
                         </h4>
                         <div className="space-y-1">
                           {searchResults.categorias.map(cat => (
@@ -396,7 +398,7 @@ export default function Dashboard() {
                               <div className="flex-1 min-w-0">
                                 <p className="font-medium text-slate-900 truncate">{cat.nombre}</p>
                                 <p className="text-sm text-slate-500">
-                                  {cat.subcategorias?.length || 0} subcategorías
+                                  {cat.subcategorias?.length || 0} {t('inventory.subcategories')}
                                 </p>
                               </div>
                               <ChevronRight className="w-4 h-4 text-slate-400" />
@@ -410,7 +412,7 @@ export default function Dashboard() {
                     {searchResults.elementos.length > 0 && (
                       <div>
                         <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
-                          Elementos ({searchResults.elementos.length})
+                          {t('common.elements')} ({searchResults.elementos.length})
                         </h4>
                         <div className="space-y-1">
                           {searchResults.elementos.map(el => (
@@ -425,7 +427,7 @@ export default function Dashboard() {
                               <div className="flex-1 min-w-0">
                                 <p className="font-medium text-slate-900 truncate">{el.nombre}</p>
                                 <p className="text-sm text-slate-500 truncate">
-                                  {el.categoria_padre_nombre || 'Sin categoría'} → {el.categoria_nombre || 'Sin subcategoría'}
+                                  {el.categoria_padre_nombre || t('inventory.noCategory')} → {el.categoria_nombre || t('inventory.noSubcategory')}
                                 </p>
                               </div>
                               <div className="text-right">
@@ -434,7 +436,7 @@ export default function Dashboard() {
                                     ? 'bg-purple-100 text-purple-700'
                                     : 'bg-green-100 text-green-700'
                                 }`}>
-                                  {el.requiere_series ? 'Series' : 'Cantidad'}
+                                  {el.requiere_series ? t('inventory.series') : t('common.quantity')}
                                 </span>
                               </div>
                             </button>
@@ -446,7 +448,7 @@ export default function Dashboard() {
                 ) : (
                   <div className="text-center py-4 text-slate-500">
                     <Search className="w-8 h-8 mx-auto mb-2 text-slate-300" />
-                    <p>No se encontraron resultados para "{searchTerm}"</p>
+                    <p>{t('common.noResultsFor', { term: searchTerm })}</p>
                   </div>
                 )}
             </div>
@@ -461,7 +463,7 @@ export default function Dashboard() {
             {/* Título de sección */}
             <div className="mb-6">
               <p className="text-slate-600">
-                {categoriasPadre.length} categoría{categoriasPadre.length !== 1 ? 's' : ''} registrada{categoriasPadre.length !== 1 ? 's' : ''}
+                {categoriasPadre.length} {t('common.category')}{categoriasPadre.length !== 1 ? 's' : ''} {t('common.registered')}{categoriasPadre.length !== 1 ? 's' : ''}
               </p>
             </div>
 
@@ -481,11 +483,11 @@ export default function Dashboard() {
             ) : (
               <EmptyState
                 type="no-data"
-                title="No hay categorías creadas"
-                description="Crea tu primera categoría para comenzar a organizar tu inventario"
+                title={t('inventory.noCategoriesCreated')}
+                description={t('inventory.createFirstCategory')}
                 icon={Package}
                 action={{
-                  label: "Crear primera categoría",
+                  label: t('inventory.createFirstCategoryBtn'),
                   icon: <Plus />,
                   onClick: handleOpenCrear
                 }}
@@ -535,7 +537,7 @@ export default function Dashboard() {
         <div className="fixed bottom-4 right-4 bg-white rounded-lg shadow-lg p-4 flex items-center gap-3">
           <Spinner size="sm" />
           <span className="text-sm font-medium text-slate-700">
-            Eliminando categoría...
+            {t('inventory.deletingCategory')}
           </span>
         </div>
       )}

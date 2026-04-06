@@ -15,6 +15,7 @@ import UbicacionSelector from '@shared/components/UbicacionSelector'
 import seriesAPI from '../../api/apiSeries'
 import { ESTADOS } from '@shared/utils/constants'
 import { useGetUbicacionesActivas } from '../../hooks/useUbicaciones'
+import { useTranslation } from 'react-i18next'
 
 /**
  * ============================================

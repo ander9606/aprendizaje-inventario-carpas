@@ -28,8 +28,10 @@ import { useNavigate } from 'react-router-dom'
 import { useGetHistorialEventos } from '../../hooks/useClientes'
 import Spinner from '@shared/components/Spinner'
 import Button from '@shared/components/Button'
+import { useTranslation } from 'react-i18next'
 
 const ClienteHistorialModal = ({ isOpen, onClose, clienteId, onRepetirEvento }) => {
+  const { t } = useTranslation()
     const navigate = useNavigate()
     const { historial, isLoading, error } = useGetHistorialEventos(isOpen ? clienteId : null)
     const [expandedEvento, setExpandedEvento] = useState(null)
@@ -58,9 +60,9 @@ const ClienteHistorialModal = ({ isOpen, onClose, clienteId, onRepetirEvento }) 
 
     const getEstadoConfig = (estado) => {
         const config = {
-            activo: { color: 'bg-green-100 text-green-700', icon: Clock, label: 'Activo' },
-            completado: { color: 'bg-blue-100 text-blue-700', icon: CheckCircle, label: 'Completado' },
-            cancelado: { color: 'bg-red-100 text-red-700', icon: XCircle, label: 'Cancelado' }
+            activo: { color: 'bg-green-100 text-green-700', icon: Clock, label: t('clients.statusActive') },
+            completado: { color: 'bg-blue-100 text-blue-700', icon: CheckCircle, label: t('clients.statusCompleted') },
+            cancelado: { color: 'bg-red-100 text-red-700', icon: XCircle, label: t('clients.statusCancelled') }
         }
         return config[estado] || config.activo
     }
@@ -84,10 +86,10 @@ const ClienteHistorialModal = ({ isOpen, onClose, clienteId, onRepetirEvento }) 
                         </div>
                         <div>
                             <h2 className="text-xl font-bold text-slate-900">
-                                Historial de Eventos
+                                {t('clients.eventHistory')}
                             </h2>
                             <p className="text-sm text-slate-500">
-                                {cliente?.nombre || 'Cliente'}
+                                {cliente?.nombre || t('clients.client')}
                             </p>
                         </div>
                     </div>
@@ -108,7 +110,7 @@ const ClienteHistorialModal = ({ isOpen, onClose, clienteId, onRepetirEvento }) 
                     ) : error ? (
                         <div className="text-center py-12">
                             <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
-                            <p className="text-slate-600">Error al cargar el historial</p>
+                            <p className="text-slate-600">{t('clients.errorLoadingHistory')}</p>
                         </div>
                     ) : (
                         <div className="space-y-6">
@@ -156,25 +158,25 @@ const ClienteHistorialModal = ({ isOpen, onClose, clienteId, onRepetirEvento }) 
                                         <p className="text-2xl font-bold text-slate-900">
                                             {resumen.total_eventos || 0}
                                         </p>
-                                        <p className="text-xs text-slate-500">Eventos totales</p>
+                                        <p className="text-xs text-slate-500">{t('clients.totalEvents')}</p>
                                     </div>
                                     <div className="bg-white border border-slate-200 rounded-lg p-3 text-center">
                                         <p className="text-2xl font-bold text-green-600">
                                             {resumen.eventos_completados || 0}
                                         </p>
-                                        <p className="text-xs text-slate-500">Completados</p>
+                                        <p className="text-xs text-slate-500">{t('clients.completedEvents')}</p>
                                     </div>
                                     <div className="bg-white border border-slate-200 rounded-lg p-3 text-center">
                                         <p className="text-2xl font-bold text-blue-600">
                                             {resumen.eventos_activos || 0}
                                         </p>
-                                        <p className="text-xs text-slate-500">Activos</p>
+                                        <p className="text-xs text-slate-500">{t('clients.activeEvents')}</p>
                                     </div>
                                     <div className="bg-white border border-slate-200 rounded-lg p-3 text-center">
                                         <p className="text-lg font-bold text-emerald-600">
                                             {formatMoneda(resumen.total_facturado)}
                                         </p>
-                                        <p className="text-xs text-slate-500">Total facturado</p>
+                                        <p className="text-xs text-slate-500">{t('clients.totalBilled')}</p>
                                     </div>
                                 </div>
                             )}
@@ -183,7 +185,7 @@ const ClienteHistorialModal = ({ isOpen, onClose, clienteId, onRepetirEvento }) 
                             <div>
                                 <h4 className="font-semibold text-slate-900 flex items-center gap-2 mb-4">
                                     <Calendar className="w-5 h-5 text-slate-500" />
-                                    Eventos ({eventos.length})
+                                    {t('clients.events')} ({eventos.length})
                                 </h4>
 
                                 {eventos.length > 0 ? (
@@ -236,7 +238,7 @@ const ClienteHistorialModal = ({ isOpen, onClose, clienteId, onRepetirEvento }) 
                                                                 )}
                                                                 <span className="flex items-center gap-1">
                                                                     <FileText className="w-3.5 h-3.5" />
-                                                                    {evento.total_cotizaciones} cotizaci{evento.total_cotizaciones !== 1 ? 'ones' : 'on'}
+                                                                    {evento.total_cotizaciones} {t('clients.quotationsCount', { count: evento.total_cotizaciones })}
                                                                 </span>
                                                             </div>
                                                         </div>
@@ -260,7 +262,7 @@ const ClienteHistorialModal = ({ isOpen, onClose, clienteId, onRepetirEvento }) 
                                                                 <div>
                                                                     <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1">
                                                                         <Package className="w-3.5 h-3.5" />
-                                                                        Productos alquilados
+                                                                        {t('clients.rentedProducts')}
                                                                     </p>
                                                                     <div className="bg-white rounded-lg border border-slate-200 divide-y divide-slate-100">
                                                                         {evento.productos.map((prod, idx) => (
@@ -282,7 +284,7 @@ const ClienteHistorialModal = ({ isOpen, onClose, clienteId, onRepetirEvento }) 
                                                                 </div>
                                                             ) : (
                                                                 <p className="text-sm text-slate-500 italic">
-                                                                    Sin productos aprobados registrados
+                                                                    {t('clients.noApprovedProducts')}
                                                                 </p>
                                                             )}
 
@@ -303,7 +305,7 @@ const ClienteHistorialModal = ({ isOpen, onClose, clienteId, onRepetirEvento }) 
                                                                         icon={<RefreshCw className="w-4 h-4" />}
                                                                         onClick={() => onRepetirEvento(evento, cliente)}
                                                                     >
-                                                                        Repetir este evento
+                                                                        {t('clients.repeatEvent')}
                                                                     </Button>
                                                                 </div>
                                                             )}
@@ -317,7 +319,7 @@ const ClienteHistorialModal = ({ isOpen, onClose, clienteId, onRepetirEvento }) 
                                     <div className="text-center py-8 bg-slate-50 rounded-xl border border-dashed border-slate-300">
                                         <Calendar className="w-10 h-10 text-slate-300 mx-auto mb-3" />
                                         <p className="text-slate-500">
-                                            Este cliente no tiene eventos registrados
+                                            {t('clients.noEventsRegistered')}
                                         </p>
                                     </div>
                                 )}
@@ -337,10 +339,10 @@ const ClienteHistorialModal = ({ isOpen, onClose, clienteId, onRepetirEvento }) 
                         }}
                         className="text-purple-600 hover:bg-purple-50"
                     >
-                        Ver historial completo
+                        {t('clients.viewFullHistory')}
                     </Button>
                     <Button variant="secondary" onClick={onClose}>
-                        Cerrar
+                        {t('common.close')}
                     </Button>
                 </div>
             </div>

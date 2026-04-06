@@ -15,6 +15,7 @@ import { useMoverCantidad } from '../../hooks/useLotes'
 import { useGetUbicacionPrincipal } from '../../hooks/useUbicaciones'
 import { ESTADOS } from '@shared/utils/constants'
 import Spinner from '@shared/components/Spinner'
+import { useTranslation } from 'react-i18next'
 
 /**
  * ============================================
@@ -41,6 +42,7 @@ function DevolverBodegaModal({
   ubicacionOrigen,
   elemento
 }) {
+  const { t } = useTranslation()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const { moverCantidad } = useMoverCantidad()
   const queryClient = useQueryClient()
@@ -56,12 +58,12 @@ function DevolverBodegaModal({
 
   const handleDevolver = async (estadoDestino) => {
     if (!lote || !elemento) {
-      toast.error('Datos incompletos')
+      toast.error(t('inventory.incompleteData'))
       return
     }
 
     if (!ubicacionPrincipal) {
-      toast.error('No hay ubicación principal configurada')
+      toast.error(t('inventory.noMainLocationError'))
       return
     }
 
@@ -90,14 +92,19 @@ function DevolverBodegaModal({
       })
 
       toast.success(
-        `${lote.cantidad} ${lote.cantidad === 1 ? 'unidad devuelta' : 'unidades devueltas'} a ${ubicacionPrincipal.nombre} como "${estadoDestino}"`
+        t('inventory.unitsReturned', {
+          qty: lote.cantidad,
+          unitText: lote.cantidad === 1 ? t('inventory.unitReturned') : t('inventory.unitsReturnedPlural'),
+          name: ubicacionPrincipal.nombre,
+          state: estadoDestino
+        })
       )
 
       onSuccess?.()
       onClose()
     } catch (error) {
       console.error('Error al devolver a bodega:', error)
-      const mensaje = error.response?.data?.mensaje || error.message || 'Error al devolver'
+      const mensaje = error.response?.data?.mensaje || error.message || t('inventory.errorReturning')
       toast.error(mensaje)
     } finally {
       setIsSubmitting(false)
@@ -113,9 +120,9 @@ function DevolverBodegaModal({
   // Mostrar spinner mientras carga la ubicación principal
   if (isLoadingUbicacion) {
     return (
-      <Modal isOpen={isOpen} onClose={onClose} title="Cargando..." size="md">
+      <Modal isOpen={isOpen} onClose={onClose} title={t('common.loading')} size="md">
         <div className="flex justify-center items-center py-8">
-          <Spinner size="lg" text="Cargando ubicación principal..." />
+          <Spinner size="lg" text={t('inventory.loadingMainLocation')} />
         </div>
       </Modal>
     )
@@ -124,17 +131,17 @@ function DevolverBodegaModal({
   // Advertencia si no hay ubicación principal
   if (!ubicacionPrincipal) {
     return (
-      <Modal isOpen={isOpen} onClose={onClose} title="Advertencia" size="md">
+      <Modal isOpen={isOpen} onClose={onClose} title={t('inventory.warning')} size="md">
         <div className="p-6 text-center">
           <AlertTriangle className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-slate-900 mb-2">
-            No hay ubicación principal configurada
+            {t('inventory.noMainLocationConfigured')}
           </h3>
           <p className="text-sm text-slate-600 mb-6">
-            Configura una ubicación como principal desde el menú de Ubicaciones para poder usar esta función.
+            {t('inventory.configureMainLocation')}
           </p>
           <Button onClick={onClose} variant="primary">
-            Entendido
+            {t('inventory.understood')}
           </Button>
         </div>
       </Modal>
@@ -147,7 +154,7 @@ function DevolverBodegaModal({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={`Devolver a ${nombreUbicacionPrincipal}`}
+      title={t('inventory.returnToWarehouseTitle', { name: nombreUbicacionPrincipal })}
       size="md"
     >
       <div>
@@ -156,32 +163,32 @@ function DevolverBodegaModal({
             ============================================ */}
         <div className="mb-6 p-4 bg-slate-50 border border-slate-200 rounded-lg">
           <p className="text-sm font-medium text-slate-700 mb-3">
-            Se devolverán todas las unidades:
+            {t('inventory.allUnitsWillBeReturned')}
           </p>
 
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-600 w-20">Elemento:</span>
+              <span className="text-xs text-slate-600 w-20">{t('inventory.elementLabel')}</span>
               <span className="font-semibold text-slate-900">{elemento?.nombre || 'Sin nombre'}</span>
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-600 w-20">Ubicación:</span>
-              <UbicacionBadge ubicacion={ubicacionOrigen || 'Sin ubicación'} size="sm" />
+              <span className="text-xs text-slate-600 w-20">{t('common.location')}:</span>
+              <UbicacionBadge ubicacion={ubicacionOrigen || t('inventory.noLocation')} size="sm" />
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-600 w-20">Estado:</span>
+              <span className="text-xs text-slate-600 w-20">{t('common.status')}:</span>
               <EstadoBadge estado={lote.estado} size="sm" />
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-600 w-20">Cantidad:</span>
+              <span className="text-xs text-slate-600 w-20">{t('common.quantity')}:</span>
               <span className="text-2xl font-bold text-slate-900">
                 {lote.cantidad}
               </span>
               <span className="text-sm text-slate-600">
-                {lote.cantidad === 1 ? 'unidad' : 'unidades'}
+                {lote.cantidad === 1 ? t('common.unit') : t('common.units')}
               </span>
             </div>
           </div>
@@ -192,7 +199,7 @@ function DevolverBodegaModal({
             ============================================ */}
         <div className="mb-6">
           <p className="text-sm font-medium text-slate-700 mb-3 text-center">
-            ¿En qué estado quieres devolver a {nombreUbicacionPrincipal}?
+            {t('inventory.whatStateToReturn', { name: nombreUbicacionPrincipal })}
           </p>
 
           <div className="grid grid-cols-2 gap-3">
@@ -210,8 +217,8 @@ function DevolverBodegaModal({
             >
               <div className="flex flex-col items-center gap-2">
                 <CheckCircle className="w-8 h-8 text-green-600" />
-                <span className="font-semibold text-green-700">Bueno</span>
-                <span className="text-xs text-slate-600">Funcionando correctamente</span>
+                <span className="font-semibold text-green-700">{t('states.good')}</span>
+                <span className="text-xs text-slate-600">{t('inventory.workingCorrectly')}</span>
               </div>
             </button>
 
@@ -229,8 +236,8 @@ function DevolverBodegaModal({
             >
               <div className="flex flex-col items-center gap-2">
                 <XCircle className="w-8 h-8 text-red-600" />
-                <span className="font-semibold text-red-700">Dañado</span>
-                <span className="text-xs text-slate-600">Requiere reparación</span>
+                <span className="font-semibold text-red-700">{t('states.damaged')}</span>
+                <span className="text-xs text-slate-600">{t('inventory.requiresRepair')}</span>
               </div>
             </button>
           </div>
@@ -243,8 +250,7 @@ function DevolverBodegaModal({
           <p className="text-xs text-blue-700 flex items-start gap-2">
             <span className="text-sm">💡</span>
             <span>
-              Al devolver, se moverán las <strong>{lote.cantidad} unidades</strong> a {nombreUbicacionPrincipal},
-              y el lote actual quedará en 0 (se eliminará automáticamente).
+              <span dangerouslySetInnerHTML={{ __html: t('inventory.returnBatchInfo', { qty: lote.cantidad, name: nombreUbicacionPrincipal }) }} />
             </span>
           </p>
         </div>
@@ -253,7 +259,7 @@ function DevolverBodegaModal({
         {!!ubicacionPrincipal.es_principal && (
           <div className="mb-4 flex items-center justify-center gap-2 text-xs text-slate-600">
             <span>⭐</span>
-            <span>Ubicación principal del sistema</span>
+            <span>{t('inventory.systemMainLocation')}</span>
           </div>
         )}
 
@@ -268,7 +274,7 @@ function DevolverBodegaModal({
             disabled={isSubmitting}
             className="w-full"
           >
-            Cancelar
+            {t('common.cancel')}
           </Button>
         </Modal.Footer>
       </div>

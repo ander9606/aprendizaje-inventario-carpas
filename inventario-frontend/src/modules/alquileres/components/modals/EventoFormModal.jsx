@@ -10,6 +10,7 @@ import Button from '@shared/components/Button'
 import { useGetClientes } from '@clientes/hooks/useClientes'
 import { useGetCiudadesActivas } from '@clientes/hooks/useCiudades'
 import { useGetUbicacionesActivas } from '@inventario/hooks/useUbicaciones'
+import { useTranslation } from 'react-i18next'
 
 /**
  * Modal para crear o editar un evento
@@ -30,6 +31,7 @@ const EventoFormModal = ({
     clientePreseleccionado = null,
     eventoReferencia = null
 }) => {
+  const { t } = useTranslation()
     const [formData, setFormData] = useState({
         cliente_id: '',
         nombre: '',

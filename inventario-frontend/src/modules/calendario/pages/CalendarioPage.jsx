@@ -19,8 +19,10 @@ import ModalDiaCotizaciones from '../components/ModalDiaCotizaciones'
 import CotizacionDetalleModal from '@alquileres/components/modals/CotizacionDetalleModal'
 import Button from '@shared/components/Button'
 import Spinner from '@shared/components/Spinner'
+import { useTranslation } from 'react-i18next'
 
 export default function CalendarioPage() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const calendarRef = useRef(null)
 
@@ -122,7 +124,7 @@ export default function CalendarioPage() {
   if (isLoading) {
     return (
       <div className="flex justify-center py-12">
-        <Spinner size="lg" text="Cargando calendario..." />
+        <Spinner size="lg" text={t('calendar.loadingCalendar')} />
       </div>
     )
   }
@@ -131,9 +133,9 @@ export default function CalendarioPage() {
     return (
       <div className="p-6">
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
-          Error al cargar el calendario: {error.message || 'Ocurrió un error inesperado'}
+          {t('calendar.errorLoadingCalendar')}: {error.message || t('common.unexpectedError')}
           <Button variant="ghost" onClick={handleRefresh} className="ml-4">
-            Reintentar
+            {t('common.retry')}
           </Button>
         </div>
       </div>
@@ -149,10 +151,10 @@ export default function CalendarioPage() {
             <div className="p-2 bg-blue-100 rounded-lg">
               <Calendar className="w-6 h-6 text-blue-600" />
             </div>
-            Calendario
+            {t('calendar.title')}
           </h1>
           <p className="text-slate-500 mt-1">
-            Vista de eventos y cotizaciones
+            {t('calendar.eventsAndQuotationsView')}
           </p>
         </div>
 
@@ -162,7 +164,7 @@ export default function CalendarioPage() {
             icon={<RefreshCw className="w-4 h-4" />}
             onClick={handleRefresh}
           >
-            Actualizar
+            {t('config.refresh')}
           </Button>
         </div>
       </div>
@@ -205,20 +207,20 @@ export default function CalendarioPage() {
           {/* Acciones rapidas */}
           <div className="bg-white rounded-lg border border-slate-200 p-4">
             <h3 className="text-sm font-semibold text-slate-700 mb-3">
-              Acciones Rapidas
+              {t('calendar.quickActions')}
             </h3>
             <div className="space-y-2">
               <button
                 onClick={goToToday}
                 className="w-full px-4 py-2 text-left text-sm text-slate-600 hover:bg-slate-50 rounded-lg transition-colors"
               >
-                Ir a Hoy
+                {t('calendar.goToToday')}
               </button>
               <button
                 onClick={handleIrCotizaciones}
                 className="w-full px-4 py-2 text-left text-sm text-slate-600 hover:bg-slate-50 rounded-lg transition-colors"
               >
-                Nueva Cotizacion
+                {t('calendar.newQuotation')}
               </button>
             </div>
           </div>
@@ -226,15 +228,15 @@ export default function CalendarioPage() {
           {/* Resumen del mes */}
           <div className="bg-white rounded-lg border border-slate-200 p-4">
             <h3 className="text-sm font-semibold text-slate-700 mb-3">
-              Resumen
+              {t('calendar.summary')}
             </h3>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-slate-500">Cotizaciones:</span>
+                <span className="text-slate-500">{t('calendar.quotations')}:</span>
                 <span className="font-medium">{cotizaciones?.length || 0}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">Eventos visibles:</span>
+                <span className="text-slate-500">{t('calendar.visibleEvents')}:</span>
                 <span className="font-medium">{events.length}</span>
               </div>
             </div>

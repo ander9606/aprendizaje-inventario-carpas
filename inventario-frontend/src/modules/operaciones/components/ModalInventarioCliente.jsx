@@ -8,13 +8,14 @@ import { useGetInventarioCliente, useGetFotosOrden, useGetFirmaCliente, useGuard
 import FirmaDigital from '@shared/components/FirmaDigital'
 import Spinner from '@shared/components/Spinner'
 import Modal from '@shared/components/Modal'
+import { useTranslation } from 'react-i18next'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'
 
-const ESTADO_LABELS = {
-    nuevo: 'Nuevo',
-    bueno: 'Buen estado',
-    mantenimiento: 'Aceptable'
+const ESTADO_LABELS_KEYS = {
+    nuevo: 'stateNew',
+    bueno: 'stateGood',
+    mantenimiento: 'stateMaintenance'
 }
 
 const ESTADO_COLORS = {
@@ -34,6 +35,7 @@ function formatFecha(fecha) {
 }
 
 export default function ModalInventarioCliente({ ordenId, onClose }) {
+  const { t } = useTranslation()
     const { inventario, isLoading, error } = useGetInventarioCliente(ordenId, { enabled: !!ordenId })
     const { porEtapa } = useGetFotosOrden(ordenId)
     const { firma } = useGetFirmaCliente(ordenId)
@@ -49,7 +51,7 @@ export default function ModalInventarioCliente({ ordenId, onClose }) {
 
     const handleConfirmarFirma = async (firmaBase64) => {
         if (!nombreFirmante.trim()) {
-            toast.error('Ingrese el nombre del receptor')
+            toast.error(t('operations.clientInventoryModal.enterReceiverName'))
             return
         }
 
@@ -58,10 +60,10 @@ export default function ModalInventarioCliente({ ordenId, onClose }) {
                 ordenId,
                 datos: { firma: firmaBase64, nombre: nombreFirmante.trim() }
             })
-            toast.success('Firma guardada correctamente')
+            toast.success(t('operations.clientInventoryModal.signatureSaved'))
             setMostrarFirma(false)
         } catch {
-            toast.error('Error al guardar la firma')
+            toast.error(t('operations.clientInventoryModal.signatureSaveError'))
         }
     }
 
@@ -169,7 +171,7 @@ export default function ModalInventarioCliente({ ordenId, onClose }) {
             }
         } else {
             await navigator.clipboard.writeText(texto)
-            toast.success('Inventario copiado al portapapeles')
+            toast.success(t('operations.clientInventoryModal.copiedToClipboard'))
         }
     }
 
@@ -184,7 +186,7 @@ export default function ModalInventarioCliente({ ordenId, onClose }) {
 
     return (
         <>
-            <Modal isOpen={true} onClose={onClose} title="Inventario del Cliente" size="xl">
+            <Modal isOpen={true} onClose={onClose} title={t('operations.clientInventoryModal.clientInventoryTitle')} size="xl">
                 {/* Action buttons toolbar */}
                 <div className="flex items-center gap-2 mb-4">
                     <button
@@ -202,7 +204,7 @@ export default function ModalInventarioCliente({ ordenId, onClose }) {
                         className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-orange-700 bg-orange-50 hover:bg-orange-100 rounded-lg transition-colors disabled:opacity-50"
                     >
                         <Share2 className="w-4 h-4" />
-                        <span className="hidden sm:inline">Compartir</span>
+                        <span className="hidden sm:inline">{t('operations.clientInventoryModal.share')}</span>
                     </button>
                     <button
                         onClick={handleImprimir}
@@ -210,7 +212,7 @@ export default function ModalInventarioCliente({ ordenId, onClose }) {
                         className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors disabled:opacity-50"
                     >
                         <Printer className="w-4 h-4" />
-                        <span className="hidden sm:inline">Imprimir</span>
+                        <span className="hidden sm:inline">{t('common.print')}</span>
                     </button>
                 </div>
 
@@ -223,7 +225,7 @@ export default function ModalInventarioCliente({ ordenId, onClose }) {
 
                 {error && (
                     <div className="text-center py-12 text-red-600">
-                        <p>Error al cargar el inventario</p>
+                        <p>{t('operations.clientInventoryModal.loadError')}</p>
                         <p className="text-sm mt-1">{error.message}</p>
                     </div>
                 )}
@@ -232,9 +234,9 @@ export default function ModalInventarioCliente({ ordenId, onClose }) {
                     <div ref={printRef}>
                         {/* Encabezado documento */}
                         <div className="header text-center mb-6 pb-4 border-b-2 border-orange-400">
-                            <h1 className="text-xl font-bold text-slate-900">Inventario de Montaje</h1>
+                            <h1 className="text-xl font-bold text-slate-900">{t('operations.clientInventoryModal.assemblyInventory')}</h1>
                             <p className="text-sm text-slate-500 mt-1">
-                                Orden #{inventario.orden_id} - {formatFecha(inventario.fecha_montaje_completado)}
+                                {t('operations.clientInventoryModal.orderDate', { id: inventario.orden_id, date: formatFecha(inventario.fecha_montaje_completado) })}
                             </p>
                         </div>
 
@@ -242,7 +244,7 @@ export default function ModalInventarioCliente({ ordenId, onClose }) {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                             <div className="section bg-slate-50 rounded-lg p-4">
                                 <h4 className="section-title text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
-                                    <User className="w-4 h-4" /> Cliente
+                                    <User className="w-4 h-4" /> {t('operations.orderDetailModal.client')}
                                 </h4>
                                 <div className="space-y-1 text-sm">
                                     <p className="font-medium text-slate-900">{inventario.cliente?.nombre || '-'}</p>
@@ -259,7 +261,7 @@ export default function ModalInventarioCliente({ ordenId, onClose }) {
 
                             <div className="section bg-slate-50 rounded-lg p-4">
                                 <h4 className="section-title text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
-                                    <MapPin className="w-4 h-4" /> Evento
+                                    <MapPin className="w-4 h-4" /> {t('operations.orderDetailModal.event')}
                                 </h4>
                                 <div className="space-y-1 text-sm">
                                     <p className="font-medium text-slate-900">{inventario.evento?.nombre || '-'}</p>
@@ -278,7 +280,7 @@ export default function ModalInventarioCliente({ ordenId, onClose }) {
                             <div className="desmontaje-box bg-orange-50 border border-orange-200 rounded-lg p-4 mb-6 text-center">
                                 <div className="flex items-center justify-center gap-2 text-orange-700">
                                     <Calendar className="w-5 h-5" />
-                                    <span className="font-semibold">Desmontaje programado</span>
+                                    <span className="font-semibold">{t('operations.clientInventoryModal.scheduledDisassembly')}</span>
                                 </div>
                                 <p className="text-lg font-bold text-orange-800 mt-1">
                                     {formatFecha(inventario.evento.fecha_desmontaje)}
@@ -291,7 +293,7 @@ export default function ModalInventarioCliente({ ordenId, onClose }) {
                             <div className="section mb-6">
                                 <h4 className="section-title text-sm font-semibold text-slate-700 mb-3 pb-2 border-b border-slate-200 flex items-center gap-2">
                                     <Camera className="w-4 h-4" />
-                                    Fotos del Montaje ({fotosMontaje.length})
+                                    {t('operations.clientInventoryModal.assemblyPhotos', { count: fotosMontaje.length })}
                                 </h4>
                                 <div className="fotos-grid grid grid-cols-2 sm:grid-cols-3 gap-2">
                                     {fotosMontaje.map((foto) => (
@@ -316,7 +318,7 @@ export default function ModalInventarioCliente({ ordenId, onClose }) {
                         <div className="section mb-4">
                             <h4 className="section-title text-sm font-semibold text-slate-700 mb-4 pb-2 border-b border-slate-200 flex items-center gap-2">
                                 <Package className="w-4 h-4" />
-                                Productos Instalados ({inventario.resumen?.total_productos || 0})
+                                {t('operations.clientInventoryModal.installedProducts', { count: inventario.resumen?.total_productos || 0 })}
                             </h4>
 
                             <div className="space-y-4">
@@ -355,7 +357,7 @@ export default function ModalInventarioCliente({ ordenId, onClose }) {
                                                                 </td>
                                                                 <td className="px-4 py-2.5 text-center">
                                                                     <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${ESTADO_COLORS[estadoPrincipal] || 'bg-slate-100 text-slate-600'}`}>
-                                                                        {ESTADO_LABELS[estadoPrincipal] || estadoPrincipal}
+                                                                        {ESTADO_LABELS_KEYS[estadoPrincipal] ? t(`operations.clientInventoryModal.${ESTADO_LABELS_KEYS[estadoPrincipal]}`) : estadoPrincipal}
                                                                     </span>
                                                                 </td>
                                                             </tr>
@@ -374,8 +376,7 @@ export default function ModalInventarioCliente({ ordenId, onClose }) {
                             <div className="flex items-center gap-2 text-slate-600">
                                 <CheckCircle className="w-4 h-4 text-green-500" />
                                 <span>
-                                    {inventario.resumen?.total_productos || 0} producto(s),{' '}
-                                    {inventario.total_elementos || 0} elemento(s) entregados
+                                    {t('operations.clientInventoryModal.productsElementsDelivered', { products: inventario.resumen?.total_productos || 0, elements: inventario.total_elementos || 0 })}
                                 </span>
                             </div>
                         </div>
@@ -386,11 +387,11 @@ export default function ModalInventarioCliente({ ordenId, onClose }) {
                                 <div className="text-center">
                                     <h4 className="text-sm font-semibold text-slate-700 mb-3 flex items-center justify-center gap-2">
                                         <Pen className="w-4 h-4" />
-                                        Firma del Receptor
+                                        {t('operations.clientInventoryModal.receiverSignature')}
                                     </h4>
                                     <img
                                         src={`${API_URL}${firma.firma_cliente_url}`}
-                                        alt="Firma del cliente"
+                                        alt={t('operations.clientInventoryModal.clientSignature')}
                                         className="max-w-[250px] mx-auto border border-slate-200 rounded-lg"
                                     />
                                     <p className="text-sm font-medium text-slate-700 mt-2">
@@ -408,19 +409,19 @@ export default function ModalInventarioCliente({ ordenId, onClose }) {
                                             className="w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-slate-300 rounded-lg text-sm font-medium text-slate-600 hover:border-orange-400 hover:text-orange-600 transition-colors"
                                         >
                                             <Pen className="w-4 h-4" />
-                                            Solicitar firma del cliente
+                                            {t('operations.clientInventoryModal.requestSignature')}
                                         </button>
                                     ) : (
                                         <div className="space-y-3">
                                             <h4 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
                                                 <Pen className="w-4 h-4" />
-                                                Firma del Receptor
+                                                {t('operations.clientInventoryModal.receiverSignature')}
                                             </h4>
                                             <input
                                                 type="text"
                                                 value={nombreFirmante}
                                                 onChange={(e) => setNombreFirmante(e.target.value)}
-                                                placeholder="Nombre completo del receptor"
+                                                placeholder={t('operations.clientInventoryModal.receiverFullName')}
                                                 className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
                                             />
                                             <FirmaDigital
@@ -432,7 +433,7 @@ export default function ModalInventarioCliente({ ordenId, onClose }) {
                                             {guardarFirma.isPending && (
                                                 <div className="flex items-center justify-center gap-2 text-sm text-slate-500">
                                                     <Loader2 className="w-4 h-4 animate-spin" />
-                                                    Guardando firma...
+                                                    {t('operations.clientInventoryModal.savingSignature')}
                                                 </div>
                                             )}
                                         </div>
@@ -444,7 +445,7 @@ export default function ModalInventarioCliente({ ordenId, onClose }) {
                         {/* Footer */}
                         <div className="footer text-center text-xs text-slate-400 mt-6 pt-4 border-t border-slate-200">
                             <p>Documento generado el {new Date().toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
-                            <p className="mt-1">Este documento certifica la entrega del inventario en el sitio del evento.</p>
+                            <p className="mt-1">{t('operations.clientInventoryModal.documentCertification')}</p>
                         </div>
                     </div>
                 )}

@@ -18,15 +18,17 @@ import {
 } from 'lucide-react'
 import Modal from '@shared/components/Modal'
 import Button from '@shared/components/Button'
+import { useTranslation } from 'react-i18next'
 
 // ============================================
 // COMPONENTE: Elemento de Retorno Individual (Series - cantidad 1)
 // ============================================
 const ElementoRetornoItem = ({ elemento, retorno, onChange }) => {
+  const { t } = useTranslation()
     const estados = [
-        { value: 'bueno', label: 'Bueno', icon: CheckCircle, bgSelected: 'bg-green-100 border-green-500 text-green-700', iconColor: 'text-green-600' },
-        { value: 'dañado', label: 'Dañado', icon: AlertTriangle, bgSelected: 'bg-amber-100 border-amber-500 text-amber-700', iconColor: 'text-amber-600' },
-        { value: 'perdido', label: 'Perdido', icon: XCircle, bgSelected: 'bg-red-100 border-red-500 text-red-700', iconColor: 'text-red-600' }
+        { value: 'bueno', label: t('operations.returnModal.good'), icon: CheckCircle, bgSelected: 'bg-green-100 border-green-500 text-green-700', iconColor: 'text-green-600' },
+        { value: 'dañado', label: t('operations.returnModal.damaged'), icon: AlertTriangle, bgSelected: 'bg-amber-100 border-amber-500 text-amber-700', iconColor: 'text-amber-600' },
+        { value: 'perdido', label: t('operations.returnModal.lost'), icon: XCircle, bgSelected: 'bg-red-100 border-red-500 text-red-700', iconColor: 'text-red-600' }
     ]
 
     const handleEstadoChange = (estado) => {
@@ -65,7 +67,7 @@ const ElementoRetornoItem = ({ elemento, retorno, onChange }) => {
                                 {elemento.lote_codigo} (x{elemento.cantidad_lote || elemento.cantidad || 1})
                             </span>
                         ) : (
-                            <span>Cantidad: {elemento.cantidad || 1}</span>
+                            <span>{t('operations.returnModal.quantity', { count: elemento.cantidad || 1 })}</span>
                         )}
                     </div>
                 </div>
@@ -95,7 +97,7 @@ const ElementoRetornoItem = ({ elemento, retorno, onChange }) => {
                 <div className="space-y-2 pt-2 border-t border-slate-200">
                     <div>
                         <label className="block text-xs font-medium text-slate-600 mb-1">
-                            Costo del daño
+                            {t('operations.returnModal.damageCost')}
                         </label>
                         <div className="relative">
                             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">$</span>
@@ -112,14 +114,14 @@ const ElementoRetornoItem = ({ elemento, retorno, onChange }) => {
                     </div>
                     <div>
                         <label className="block text-xs font-medium text-slate-600 mb-1">
-                            Descripción del daño
+                            {t('operations.returnModal.damageDescription')}
                         </label>
                         <input
                             type="text"
                             value={retorno.notas || ''}
                             onChange={(e) => onChange({ ...retorno, notas: e.target.value })}
                             className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
-                            placeholder="Describir el daño o pérdida..."
+                            placeholder={t('operations.returnModal.describeDamage')}
                         />
                     </div>
                 </div>
@@ -133,6 +135,7 @@ const ElementoRetornoItem = ({ elemento, retorno, onChange }) => {
 // Permite dividir la cantidad entre bueno/dañado/perdido
 // ============================================
 const ElementoLoteRetornoItem = ({ elemento, retorno, onChange }) => {
+    const { t } = useTranslation()
     // Soportar diferentes nombres de campos según el origen de datos
     const cantidadTotal = elemento.cantidad_lote || elemento.cantidad || 1
     const loteCodigo = elemento.lote_codigo || elemento.lote_numero || `Lote #${elemento.lote_id}`
@@ -227,7 +230,7 @@ const ElementoLoteRetornoItem = ({ elemento, retorno, onChange }) => {
                             {loteCodigo}
                         </span>
                         <span className="px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded font-medium">
-                            {cantidadTotal} unidades
+                            {t('operations.returnModal.units', { count: cantidadTotal })}
                         </span>
                     </div>
                 </div>
@@ -239,7 +242,7 @@ const ElementoLoteRetornoItem = ({ elemento, retorno, onChange }) => {
                         className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-green-600 hover:bg-green-100 rounded transition-colors"
                     >
                         <CheckCheck className="w-3 h-3" />
-                        Todos OK
+                        {t('operations.returnModal.allOk')}
                     </button>
                 )}
             </div>
@@ -250,7 +253,7 @@ const ElementoLoteRetornoItem = ({ elemento, retorno, onChange }) => {
                 <div className="flex sm:flex-col items-center sm:items-stretch gap-2 sm:gap-0">
                     <label className="flex items-center gap-1 text-xs font-medium text-green-700 sm:mb-1 min-w-[70px] sm:min-w-0">
                         <CheckCircle className="w-3 h-3" />
-                        Buenos
+                        {t('operations.returnModal.goodPlural')}
                     </label>
                     <input
                         type="number"
@@ -266,7 +269,7 @@ const ElementoLoteRetornoItem = ({ elemento, retorno, onChange }) => {
                 <div className="flex sm:flex-col items-center sm:items-stretch gap-2 sm:gap-0">
                     <label className="flex items-center gap-1 text-xs font-medium text-amber-700 sm:mb-1 min-w-[70px] sm:min-w-0">
                         <AlertTriangle className="w-3 h-3" />
-                        Dañados
+                        {t('operations.returnModal.damagedPlural')}
                     </label>
                     <input
                         type="number"
@@ -282,7 +285,7 @@ const ElementoLoteRetornoItem = ({ elemento, retorno, onChange }) => {
                 <div className="flex sm:flex-col items-center sm:items-stretch gap-2 sm:gap-0">
                     <label className="flex items-center gap-1 text-xs font-medium text-red-700 sm:mb-1 min-w-[70px] sm:min-w-0">
                         <XCircle className="w-3 h-3" />
-                        Perdidos
+                        {t('operations.returnModal.lostPlural')}
                     </label>
                     <input
                         type="number"
@@ -299,7 +302,7 @@ const ElementoLoteRetornoItem = ({ elemento, retorno, onChange }) => {
             {!esValido && (
                 <div className="flex items-center gap-2 px-2 py-1.5 bg-red-100 text-red-700 rounded text-xs mb-2">
                     <AlertTriangle className="w-3 h-3 shrink-0" />
-                    La suma ({sumaActual}) no coincide con el total ({cantidadTotal})
+                    {t('operations.returnModal.sumMismatch', { sum: sumaActual, total: cantidadTotal })}
                 </div>
             )}
 
@@ -308,7 +311,7 @@ const ElementoLoteRetornoItem = ({ elemento, retorno, onChange }) => {
                 <div className="space-y-2 pt-2 border-t border-slate-200">
                     <div>
                         <label className="block text-xs font-medium text-slate-600 mb-1">
-                            Costo total de daños/pérdidas
+                            {t('operations.returnModal.totalDamageCost')}
                         </label>
                         <div className="relative">
                             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">$</span>
@@ -325,14 +328,14 @@ const ElementoLoteRetornoItem = ({ elemento, retorno, onChange }) => {
                     </div>
                     <div>
                         <label className="block text-xs font-medium text-slate-600 mb-1">
-                            Descripción del daño
+                            {t('operations.returnModal.damageDescription')}
                         </label>
                         <input
                             type="text"
                             value={retorno.notas || ''}
                             onChange={(e) => onChange({ ...retorno, notas: e.target.value })}
                             className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
-                            placeholder="Describir el daño o pérdida..."
+                            placeholder={t('operations.returnModal.describeDamage')}
                         />
                     </div>
                 </div>
@@ -345,6 +348,7 @@ const ElementoLoteRetornoItem = ({ elemento, retorno, onChange }) => {
 // COMPONENTE: Grupo de Producto
 // ============================================
 const ProductoGroup = ({ producto, elementos, retornos, onRetornoChange, onMarcarTodosBuenos }) => {
+    const { t } = useTranslation()
     const [expanded, setExpanded] = useState(true)
 
     // Calcular resumen del grupo
@@ -418,7 +422,7 @@ const ProductoGroup = ({ producto, elementos, retornos, onRetornoChange, onMarca
                             className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-green-600 hover:bg-green-50 rounded-md transition-colors"
                         >
                             <CheckCheck className="w-3 h-3" />
-                            Todos OK
+                            {t('operations.returnModal.allOk')}
                         </button>
                     )}
                 </div>
@@ -471,6 +475,7 @@ const ModalRetornoElementos = ({
     deposito = 0,
     onSave
 }) => {
+    const { t } = useTranslation()
     const [retornos, setRetornos] = useState([])
     const [saving, setSaving] = useState(false)
     const [confirmacion, setConfirmacion] = useState({ visible: false, sinMarcar: 0 })
@@ -666,9 +671,9 @@ const ModalRetornoElementos = ({
                         <ArrowLeft className="w-5 h-5 text-orange-600" />
                     </div>
                     <div>
-                        <h3 className="font-semibold text-slate-900">Registrar Retorno</h3>
+                        <h3 className="font-semibold text-slate-900">{t('operations.returnModal.registerReturn')}</h3>
                         <p className="text-sm text-slate-500">
-                            Orden #{orden?.id} - {orden?.cliente_nombre}
+                            {t('operations.returnModal.orderClient', { id: orden?.id, client: orden?.cliente_nombre })}
                         </p>
                     </div>
                 </div>
@@ -680,7 +685,7 @@ const ModalRetornoElementos = ({
                 <div className="bg-slate-100 rounded-lg p-3">
                     <div className="flex items-center justify-between text-sm mb-2">
                         <span className="font-medium text-slate-700">
-                            {estadisticas.marcados} de {estadisticas.total} elementos marcados
+                            {t('operations.returnModal.elementsMarked', { marked: estadisticas.marcados, total: estadisticas.total })}
                         </span>
                         <span className={`font-bold ${
                             estadisticas.porcentaje === 100 ? 'text-green-600' : 'text-slate-500'
@@ -706,21 +711,21 @@ const ModalRetornoElementos = ({
                                 <CheckCircle className="w-5 h-5 text-green-600" />
                                 <div>
                                     <p className="text-sm font-medium text-slate-900">{estadisticas.buenos}</p>
-                                    <p className="text-xs text-slate-500">Buenos</p>
+                                    <p className="text-xs text-slate-500">{t('operations.returnModal.goodPlural')}</p>
                                 </div>
                             </div>
                             <div className="flex items-center gap-2">
                                 <AlertTriangle className="w-5 h-5 text-amber-600" />
                                 <div>
                                     <p className="text-sm font-medium text-slate-900">{estadisticas.danados}</p>
-                                    <p className="text-xs text-slate-500">Dañados</p>
+                                    <p className="text-xs text-slate-500">{t('operations.returnModal.damagedPlural')}</p>
                                 </div>
                             </div>
                             <div className="flex items-center gap-2">
                                 <XCircle className="w-5 h-5 text-red-600" />
                                 <div>
                                     <p className="text-sm font-medium text-slate-900">{estadisticas.perdidos}</p>
-                                    <p className="text-xs text-slate-500">Perdidos</p>
+                                    <p className="text-xs text-slate-500">{t('operations.returnModal.lostPlural')}</p>
                                 </div>
                             </div>
                         </div>
@@ -732,7 +737,7 @@ const ModalRetornoElementos = ({
                                 className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-green-600 bg-green-50 hover:bg-green-100 rounded-lg transition-colors"
                             >
                                 <CheckCheck className="w-4 h-4" />
-                                Marcar todos como buenos
+                                {t('operations.returnModal.markAllGood')}
                             </button>
                         )}
                     </div>
@@ -755,7 +760,7 @@ const ModalRetornoElementos = ({
                     {elementosSinProducto.length > 0 && (
                         <div className="border border-slate-200 rounded-xl overflow-hidden">
                             <div className="px-4 py-3 bg-slate-50">
-                                <p className="font-medium text-slate-900">Otros elementos</p>
+                                <p className="font-medium text-slate-900">{t('operations.returnModal.otherElements')}</p>
                             </div>
                             <div className="p-3 space-y-2 bg-white">
                                 {elementosSinProducto.map(elemento => {
@@ -803,24 +808,24 @@ const ModalRetornoElementos = ({
                                 ? estadisticas.saldo >= 0 ? 'text-amber-600' : 'text-red-600'
                                 : 'text-green-600'
                         }`} />
-                        <span className="font-medium text-slate-900">Resumen Financiero</span>
+                        <span className="font-medium text-slate-900">{t('operations.returnModal.financialSummary')}</span>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 text-sm">
                         <div>
-                            <p className="text-slate-500">Depósito</p>
+                            <p className="text-slate-500">{t('operations.returnModal.deposit')}</p>
                             <p className="font-semibold text-slate-900">
                                 ${deposito.toLocaleString('es-CO')}
                             </p>
                         </div>
                         <div>
-                            <p className="text-slate-500">Total daños</p>
+                            <p className="text-slate-500">{t('operations.returnModal.totalDamages')}</p>
                             <p className={`font-semibold ${estadisticas.totalDanos > 0 ? 'text-red-600' : 'text-slate-900'}`}>
                                 ${estadisticas.totalDanos.toLocaleString('es-CO')}
                             </p>
                         </div>
                         <div>
                             <p className="text-slate-500">
-                                {estadisticas.saldo >= 0 ? 'A devolver' : 'Pendiente cobro'}
+                                {estadisticas.saldo >= 0 ? t('operations.returnModal.toRefund') : t('operations.returnModal.pendingCharge')}
                             </p>
                             <p className={`font-semibold ${
                                 estadisticas.saldo >= 0 ? 'text-green-600' : 'text-red-600'
@@ -834,7 +839,7 @@ const ModalRetornoElementos = ({
                 {/* Botones de acción */}
                 <div className="flex items-center justify-end gap-3 pt-2 border-t border-slate-200">
                     <Button variant="secondary" onClick={onClose}>
-                        Cancelar
+                        {t('common.cancel')}
                     </Button>
                     <Button
                         color="orange"
@@ -842,7 +847,7 @@ const ModalRetornoElementos = ({
                         onClick={handleGuardar}
                         disabled={saving || retornos.length === 0}
                     >
-                        {saving ? 'Guardando...' : 'Confirmar Retorno'}
+                        {saving ? t('common.loading') : t('operations.returnModal.confirmReturn')}
                     </Button>
                 </div>
             </div>
@@ -855,27 +860,27 @@ const ModalRetornoElementos = ({
                             <div className="p-2 bg-amber-100 rounded-full">
                                 <AlertTriangle className="w-5 h-5 text-amber-600" />
                             </div>
-                            <h4 className="font-semibold text-slate-900">Elementos sin marcar</h4>
+                            <h4 className="font-semibold text-slate-900">{t('operations.returnModal.unmarkedElements')}</h4>
                         </div>
                         <p className="text-sm text-slate-600 mb-1">
-                            Hay <span className="font-semibold text-amber-700">{confirmacion.sinMarcar} elemento(s)</span> sin estado marcado.
+                            {t('operations.returnModal.unmarkedElementsCount', { count: confirmacion.sinMarcar })}
                         </p>
                         <p className="text-sm text-slate-500 mb-6">
-                            Se guardarán como &quot;Bueno&quot; por defecto. ¿Deseas continuar?
+                            {t('operations.returnModal.unmarkedDefault')}
                         </p>
                         <div className="flex items-center justify-end gap-3">
                             <Button
                                 variant="secondary"
                                 onClick={() => setConfirmacion({ visible: false, sinMarcar: 0 })}
                             >
-                                Cancelar
+                                {t('common.cancel')}
                             </Button>
                             <Button
                                 color="orange"
                                 icon={Save}
                                 onClick={ejecutarGuardado}
                             >
-                                Sí, continuar
+                                {t('operations.returnModal.yesContinue')}
                             </Button>
                         </div>
                     </div>

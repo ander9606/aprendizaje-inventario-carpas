@@ -5,6 +5,7 @@
 
 import { Filter, Eye, EyeOff, History } from 'lucide-react'
 import { EVENT_TYPES } from '@calendario/constants/calendarConfig'
+import { useTranslation } from 'react-i18next'
 
 /**
  * CalendarFilters
@@ -18,6 +19,7 @@ const CalendarFilters = ({
   filters = {},
   onFilterChange
 }) => {
+  const { t } = useTranslation()
   const {
     showMontaje = true,
     showEvento = true,
@@ -41,9 +43,9 @@ const CalendarFilters = ({
   }
 
   const toggleButtons = [
-    { key: 'showMontaje', label: 'Montaje', active: showMontaje, color: 'blue' },
-    { key: 'showEvento', label: 'Evento', active: showEvento, color: 'green' },
-    { key: 'showDesmontaje', label: 'Desmontaje', active: showDesmontaje, color: 'amber' }
+    { key: 'showMontaje', label: t('calendar.assembly'), active: showMontaje, color: 'blue' },
+    { key: 'showEvento', label: t('calendar.event'), active: showEvento, color: 'green' },
+    { key: 'showDesmontaje', label: t('calendar.disassembly'), active: showDesmontaje, color: 'amber' }
   ]
 
   const getButtonClasses = (active, color) => {
@@ -67,7 +69,7 @@ const CalendarFilters = ({
         {/* Label */}
         <div className="flex items-center gap-2 text-slate-600">
           <Filter className="w-4 h-4" />
-          <span className="text-sm font-medium">Filtros:</span>
+          <span className="text-sm font-medium">{t('common.filters')}:</span>
         </div>
 
         {/* Toggle Buttons */}
@@ -93,17 +95,17 @@ const CalendarFilters = ({
 
         {/* Filtro por estado */}
         <div className="flex items-center gap-2">
-          <label className="text-sm text-slate-600">Estado:</label>
+          <label className="text-sm text-slate-600">{t('common.status')}:</label>
           <select
             value={filtroEstado}
             onChange={handleEstadoChange}
             className="px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
-            <option value="todos">Todos</option>
-            <option value="pendiente">Pendientes</option>
-            <option value="aprobada">Aprobadas</option>
-            <option value="rechazada">Rechazadas</option>
-            <option value="vencida">Vencidas</option>
+            <option value="todos">{t('calendar.allStatuses')}</option>
+            <option value="pendiente">{t('calendar.pendingStatus')}</option>
+            <option value="aprobada">{t('calendar.approvedStatus')}</option>
+            <option value="rechazada">{t('calendar.rejectedStatus')}</option>
+            <option value="vencida">{t('calendar.expiredStatus')}</option>
           </select>
         </div>
 
@@ -120,7 +122,7 @@ const CalendarFilters = ({
           }`}
         >
           <History className="w-3.5 h-3.5" />
-          Finalizados
+          {t('calendar.finished')}
         </button>
       </div>
     </div>

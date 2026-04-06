@@ -11,13 +11,14 @@ import { useGetCiudades } from '@clientes/hooks/useCiudades'
 import { useGetDepartamentosActivos } from '@clientes/hooks/useDepartamentos'
 import Button from '@shared/components/Button'
 import Spinner from '@shared/components/Spinner'
+import { useTranslation } from 'react-i18next'
 
 // Tipos de camión disponibles
 const TIPOS_CAMION = [
-  { id: 'Pequeño', nombre: 'Pequeño', descripcion: 'Hasta 3 ton' },
-  { id: 'Mediano', nombre: 'Mediano', descripcion: '3-8 ton' },
-  { id: 'Grande', nombre: 'Grande', descripcion: '8-15 ton' },
-  { id: 'Extragrande', nombre: 'Extragrande', descripcion: '+15 ton' }
+  { id: 'Pequeño', nombreKey: 'rentals.truckSmall', descripcionKey: 'rentals.truckSmallDesc' },
+  { id: 'Mediano', nombreKey: 'rentals.truckMedium', descripcionKey: 'rentals.truckMediumDesc' },
+  { id: 'Grande', nombreKey: 'rentals.truckLarge', descripcionKey: 'rentals.truckLargeDesc' },
+  { id: 'Extragrande', nombreKey: 'rentals.truckExtraLarge', descripcionKey: 'rentals.truckExtraLargeDesc' }
 ]
 
 const formatearMoneda = (valor) => {
@@ -30,6 +31,7 @@ const formatearMoneda = (valor) => {
 }
 
 export default function TransportePage() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const { ciudades, isLoading, error, refetch } = useGetCiudades()
   const { departamentos } = useGetDepartamentosActivos()
@@ -103,7 +105,7 @@ export default function TransportePage() {
   if (isLoading) {
     return (
       <div className="flex justify-center py-12">
-        <Spinner size="lg" text="Cargando tarifas de transporte..." />
+        <Spinner size="lg" text={t('rentals.loadingTransportRates')} />
       </div>
     )
   }
@@ -112,9 +114,9 @@ export default function TransportePage() {
     return (
       <div className="p-6">
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
-          Error al cargar tarifas: {error.message || 'Ocurrió un error inesperado'}
+          {t('rentals.errorLoadingRates')}: {error.message || t('messages.error.unexpected')}
           <Button variant="ghost" onClick={() => refetch()} className="ml-4">
-            Reintentar
+            {t('common.retry')}
           </Button>
         </div>
       </div>
@@ -131,10 +133,10 @@ export default function TransportePage() {
               <div className="p-2 bg-orange-100 rounded-lg">
                 <Truck className="w-6 h-6 text-orange-600" />
               </div>
-              Transporte
+              {t('rentals.transport')}
             </h1>
             <p className="text-slate-500 mt-1">
-              Consulta las tarifas de transporte por ciudad y tipo de camión
+              {t('rentals.transportDescription')}
             </p>
           </div>
 
@@ -143,7 +145,7 @@ export default function TransportePage() {
             icon={<ExternalLink className="w-4 h-4" />}
             onClick={() => navigate('/configuracion/ciudades')}
           >
-            Administrar Ciudades
+            {t('rentals.manageCities')}
           </Button>
         </div>
       </div>
@@ -157,7 +159,7 @@ export default function TransportePage() {
             </div>
             <div>
               <p className="text-2xl font-bold text-slate-900">{totalCiudades}</p>
-              <p className="text-sm text-slate-500">Ciudades</p>
+              <p className="text-sm text-slate-500">{t('rentals.cities')}</p>
             </div>
           </div>
         </div>
@@ -168,7 +170,7 @@ export default function TransportePage() {
             </div>
             <div>
               <p className="text-2xl font-bold text-slate-900">{ciudadesConTarifas}</p>
-              <p className="text-sm text-slate-500">Con tarifas</p>
+              <p className="text-sm text-slate-500">{t('rentals.withRates')}</p>
             </div>
           </div>
         </div>
@@ -184,7 +186,7 @@ export default function TransportePage() {
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-slate-900">{ciudadesConEste}</p>
-                  <p className="text-sm text-slate-500">{tipo.nombre}</p>
+                  <p className="text-sm text-slate-500">{t(tipo.nombreKey)}</p>
                 </div>
               </div>
             </div>
@@ -199,7 +201,7 @@ export default function TransportePage() {
           <Search className="w-5 h-5 text-slate-400" />
           <input
             type="text"
-            placeholder="Buscar ciudad o departamento..."
+            placeholder={t('rentals.searchCityOrDepartment')}
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
             className="flex-1 border-0 focus:ring-0 text-sm placeholder:text-slate-400 outline-none"
@@ -209,7 +211,7 @@ export default function TransportePage() {
               onClick={limpiarFiltros}
               className="text-sm text-blue-600 hover:underline whitespace-nowrap"
             >
-              Limpiar filtros
+              {t('common.clearFilters')}
             </button>
           )}
         </div>
@@ -218,7 +220,7 @@ export default function TransportePage() {
         <div className="flex flex-wrap gap-3 pt-3 border-t border-slate-100">
           <div className="flex items-center gap-2 text-sm text-slate-500">
             <Filter className="w-4 h-4" />
-            Filtrar por:
+            {t('common.filterBy')}:
           </div>
 
           {/* Filtro por departamento */}
@@ -231,7 +233,7 @@ export default function TransportePage() {
               }}
               className="appearance-none bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 pr-8 text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 cursor-pointer"
             >
-              <option value="">Todos los departamentos</option>
+              <option value="">{t('rentals.allDepartments')}</option>
               {departamentosUnicos.map(dep => (
                 <option key={dep} value={dep}>{dep}</option>
               ))}
@@ -246,7 +248,7 @@ export default function TransportePage() {
               onChange={(e) => setFiltroCiudad(e.target.value)}
               className="appearance-none bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 pr-8 text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 cursor-pointer"
             >
-              <option value="">Todas las ciudades</option>
+              <option value="">{t('rentals.allCities')}</option>
               {(filtroDepartamento
                 ? ciudadesActivas.filter(c => c.departamento === filtroDepartamento)
                 : ciudadesActivas
@@ -264,10 +266,10 @@ export default function TransportePage() {
               onChange={(e) => setFiltroTipoCamion(e.target.value)}
               className="appearance-none bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 pr-8 text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 cursor-pointer"
             >
-              <option value="">Todos los camiones</option>
+              <option value="">{t('rentals.allTrucks')}</option>
               {TIPOS_CAMION.map(tipo => (
                 <option key={tipo.id} value={tipo.id}>
-                  {tipo.nombre} ({tipo.descripcion})
+                  {t(tipo.nombreKey)} ({t(tipo.descripcionKey)})
                 </option>
               ))}
             </select>
@@ -278,8 +280,8 @@ export default function TransportePage() {
 
       {/* Info de resultados */}
       <div className="mb-4 text-sm text-slate-500">
-        Mostrando {ciudadesFiltradas.length} ciudad{ciudadesFiltradas.length !== 1 ? 'es' : ''}
-        {hayFiltrosActivos && ' (filtrado)'}
+        {t('common.showing')} {ciudadesFiltradas.length} {ciudadesFiltradas.length !== 1 ? t('rentals.citiesPlural') : t('rentals.citySingular')}
+        {hayFiltrosActivos && ` (${t('common.filtered')})`}
       </div>
 
       {/* Tabla de tarifas */}
@@ -290,15 +292,15 @@ export default function TransportePage() {
               <thead className="bg-slate-50 border-b border-slate-200">
                 <tr>
                   <th className="text-left px-6 py-3 text-sm font-semibold text-slate-700">
-                    Ciudad
+                    {t('rentals.city')}
                   </th>
                   {tiposCamionVisibles.map(tipo => (
                     <th key={tipo.id} className="text-right px-4 py-3 text-sm font-semibold text-slate-700">
                       <div className="flex items-center justify-end gap-1">
                         <Truck className="w-4 h-4" />
-                        {tipo.nombre}
+                        {t(tipo.nombreKey)}
                       </div>
-                      <span className="text-xs font-normal text-slate-500">{tipo.descripcion}</span>
+                      <span className="text-xs font-normal text-slate-500">{t(tipo.descripcionKey)}</span>
                     </th>
                   ))}
                 </tr>
@@ -340,16 +342,16 @@ export default function TransportePage() {
         <div className="bg-white rounded-xl border border-slate-200 p-12 text-center">
           <Truck className="w-12 h-12 text-slate-300 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-slate-900 mb-2">
-            {hayFiltrosActivos ? 'No se encontraron resultados' : 'No hay ciudades con tarifas'}
+            {hayFiltrosActivos ? t('common.noResultsFound') : t('rentals.noCitiesWithRates')}
           </h3>
           <p className="text-slate-500 mb-6">
             {hayFiltrosActivos
-              ? 'Intenta con otros filtros o términos de búsqueda'
-              : 'Configura ciudades y tarifas desde el módulo de configuración'}
+              ? t('common.tryOtherFilters')
+              : t('rentals.configureCitiesAndRates')}
           </p>
           {hayFiltrosActivos ? (
             <Button variant="secondary" onClick={limpiarFiltros}>
-              Limpiar filtros
+              {t('common.clearFilters')}
             </Button>
           ) : (
             <Button
@@ -357,7 +359,7 @@ export default function TransportePage() {
               icon={<ExternalLink className="w-4 h-4" />}
               onClick={() => navigate('/configuracion/ciudades')}
             >
-              Ir a Configuración de Ciudades
+              {t('rentals.goToCityConfig')}
             </Button>
           )}
         </div>
@@ -367,17 +369,16 @@ export default function TransportePage() {
       <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-3">
         <Info className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
         <div className="text-sm text-blue-800">
-          <p className="font-medium mb-1">Gestión de tarifas</p>
+          <p className="font-medium mb-1">{t('rentals.rateManagement')}</p>
           <p>
-            Para agregar o modificar ciudades y tarifas de transporte, ve a{' '}
+            {t('rentals.rateManagementDescription')}{' '}
             <button
               onClick={() => navigate('/configuracion/ciudades')}
               className="text-blue-600 underline hover:text-blue-800 font-medium"
             >
-              Configuración &gt; Ciudades
+              {t('rentals.configCities')}
             </button>.
-            Las tarifas configuradas allí se utilizan automáticamente al crear cotizaciones.
-            Esta vista solo muestra tarifas de transporte, sin incluir direcciones o ubicaciones asociadas.
+            {' '}{t('rentals.rateManagementNote')}
           </p>
         </div>
       </div>

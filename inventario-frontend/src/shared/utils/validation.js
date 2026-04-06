@@ -77,6 +77,30 @@ export const categoriaValidation = {
  * 
  * const rules = validations.categoria.nombre
  */
+// ============================================
+// FUNCIONES i18n PARA VALIDACIONES
+// Usar con: const rules = getCategoriaValidation(t)
+// ============================================
+export const getCategoriaValidation = (t) => ({
+  nombre: {
+    required: { value: true, message: t('validation.nameRequired') },
+    minLength: { value: 3, message: t('validation.nameMinLength') },
+    maxLength: { value: 50, message: t('validation.nameMaxLength') },
+    pattern: {
+      value: /^[a-zA-ZáéíóúÁÉÍÓÚñÑ0-9\s]+$/,
+      message: t('validation.namePattern')
+    }
+  },
+  icono: {
+    required: false,
+    maxLength: { value: 10, message: t('validation.iconMaxLength') }
+  },
+  descripcion: {
+    required: false,
+    maxLength: { value: 200, message: t('validation.descriptionMaxLength') }
+  }
+})
+
 export default {
   categoria: categoriaValidation
 }

@@ -3,6 +3,7 @@
 // Muestra una tarjeta de cliente
 // ============================================
 
+import { useTranslation } from 'react-i18next'
 import { User, Phone, Mail, MapPin, Edit, Trash2, FileText, History } from 'lucide-react'
 import Card from '@shared/components/Card'
 import Button from '@shared/components/Button'
@@ -27,6 +28,7 @@ const ClienteCard = ({
   onDelete,
   onVerHistorial
 }) => {
+  const { t } = useTranslation()
 
   // ============================================
   // HELPERS
@@ -37,9 +39,9 @@ const ClienteCard = ({
    */
   const getNombreTipoDocumento = (tipo) => {
     const nombres = {
-      CC: 'Cédula',
+      CC: t('clients.idCard'),
       NIT: 'NIT',
-      CE: 'Cédula Ext.'
+      CE: t('clients.foreignId')
     }
     return nombres[tipo] || tipo
   }
@@ -71,8 +73,7 @@ const ClienteCard = ({
     e.stopPropagation()
 
     const confirmacion = confirm(
-      `¿Estás seguro de eliminar el cliente "${cliente.nombre}"?\n\n` +
-      `Esta acción no se puede deshacer.`
+      t('clients.confirmDeleteClient', { name: cliente.nombre })
     )
 
     if (confirmacion && onDelete) {
@@ -120,7 +121,7 @@ const ClienteCard = ({
               {/* Badge: Inactivo */}
               {!cliente.activo && (
                 <span className="inline-block px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-700">
-                  Inactivo
+                  {t('common.inactive')}
                 </span>
               )}
             </div>
@@ -179,7 +180,7 @@ const ClienteCard = ({
               onClick={handleVerHistorial}
               className="w-full text-blue-600 hover:bg-blue-50"
             >
-              Ver historial de eventos
+              {t('clients.viewEventHistory')}
             </Button>
           )}
           <div className="flex gap-2 justify-between">
@@ -190,7 +191,7 @@ const ClienteCard = ({
               onClick={handleEdit}
               className="flex-1"
             >
-              Editar
+              {t('common.edit')}
             </Button>
 
             <Button
@@ -200,7 +201,7 @@ const ClienteCard = ({
               onClick={handleDelete}
               className="flex-1"
             >
-              Eliminar
+              {t('common.delete')}
             </Button>
           </div>
         </div>

@@ -13,6 +13,7 @@ import { useGetMateriales } from "../../hooks/useMateriales";
 import { useGetUnidades } from "../../hooks/useUnidades";
 import { ESTADOS } from '@shared/utils/constants';
 import { Edit3, Package } from "lucide-react";
+import { useTranslation } from 'react-i18next'
 
 /**
  * ============================================
@@ -36,6 +37,7 @@ function ElementoFormModal({
   // ============================================
   // 1. DETERMINAR MODO
   // ============================================
+  const { t } = useTranslation()
   const isEditMode = elemento && elemento.id;
 
   // ============================================
@@ -127,9 +129,9 @@ function ElementoFormModal({
     const newErrors = {};
 
     if (!formData.nombre.trim()) {
-      newErrors.nombre = "El nombre es obligatorio";
+      newErrors.nombre = t('validation.nameRequired');
     } else if (formData.nombre.trim().length < 3) {
-      newErrors.nombre = "El nombre debe tener al menos 3 caracteres";
+      newErrors.nombre = t('validation.nameMinLength');
     }
 
     setErrors(newErrors);
@@ -161,7 +163,7 @@ function ElementoFormModal({
   const handleTipoGestionChange = (requiereSeries) => {
     if (isEditMode) {
       toast.warning(
-        "No se puede cambiar el tipo de gestión una vez creado el elemento."
+        t('inventory.cannotChangeManagementType')
       );
       return;
     }
@@ -176,7 +178,7 @@ function ElementoFormModal({
     e.preventDefault();
 
     if (!validateForm()) {
-      toast.error("Por favor corrige los errores del formulario");
+      toast.error(t('inventory.fixFormErrors'));
       return;
     }
 
@@ -221,18 +223,18 @@ function ElementoFormModal({
               await subirImagen.mutateAsync({ elementoId, archivo: archivoImagen });
             } catch (err) {
               console.error('Error al subir imagen:', err);
-              toast.warning('Elemento guardado pero error al subir imagen');
+              toast.warning(t('inventory.savedButImageError'));
             }
           }
 
           setArchivoImagen(null);
 
           if (!isEditMode && formData.requiere_series) {
-            toast.success("Elemento creado. Ahora agrega las series.");
+            toast.success(t('inventory.createdAddSeries'));
             onSuccess?.(response?.data, { openSeriesModal: true });
           } else {
             toast.success(
-              isEditMode ? "Elemento actualizado" : "Elemento creado"
+              isEditMode ? t('inventory.elementUpdated') : t('inventory.elementCreated')
             );
             onSuccess?.();
           }
@@ -243,7 +245,7 @@ function ElementoFormModal({
           const mensaje =
             error.response?.data?.mensaje ||
             error.message ||
-            "Error al guardar el elemento";
+            t('messages.error.generic');
           toast.error(mensaje);
         },
       }
@@ -257,14 +259,14 @@ function ElementoFormModal({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={isEditMode ? "Editar Elemento" : "Nuevo Elemento"}
+      title={isEditMode ? t('inventory.editElementTitle') : t('inventory.newElementTitle')}
       size="lg"
     >
       <form onSubmit={handleSubmit}>
         {/* CAMPO: Nombre */}
         <div className="mb-4">
           <label className="block text-sm font-medium text-slate-700 mb-2">
-            Nombre del elemento *
+            {t('inventory.elementName')} *
           </label>
           <input
             type="text"
@@ -290,13 +292,13 @@ function ElementoFormModal({
         {/* CAMPO: Descripción */}
         <div className="mb-4">
           <label className="block text-sm font-medium text-slate-700 mb-2">
-            Descripción (opcional)
+            {t('inventory.descriptionOptional')}
           </label>
           <textarea
             name="descripcion"
             value={formData.descripcion}
             onChange={handleInputChange}
-            placeholder="Descripción detallada del elemento..."
+            placeholder={t('inventory.descriptionPlaceholder')}
             rows={3}
             className="
               w-full px-4 py-2 border border-slate-300 rounded-lg
@@ -304,14 +306,14 @@ function ElementoFormModal({
             "
           />
           <p className="mt-1 text-xs text-slate-500">
-            Los elementos heredan el icono de su subcategoria
+            {t('inventory.elementsInheritIcon')}
           </p>
         </div>
 
         {/* CAMPO: Imagen */}
         <div className="mb-4">
           <label className="block text-sm font-medium text-slate-700 mb-2">
-            Imagen (opcional)
+            {t('inventory.imageOptional')}
           </label>
           <ImageUpload
             imagenUrl={elemento?.imagen}
@@ -320,8 +322,8 @@ function ElementoFormModal({
                 subirImagen.mutate(
                   { elementoId: elemento.id, archivo },
                   {
-                    onSuccess: () => toast.success('Imagen actualizada'),
-                    onError: () => toast.error('Error al subir imagen')
+                    onSuccess: () => toast.success(t('inventory.imageUpdated')),
+                    onError: () => toast.error(t('inventory.errorUploadingImage'))
                   }
                 );
               } else {
@@ -331,8 +333,8 @@ function ElementoFormModal({
             onEliminar={() => {
               if (isEditMode && elemento?.imagen) {
                 eliminarImagen.mutate(elemento.id, {
-                  onSuccess: () => toast.success('Imagen eliminada'),
-                  onError: () => toast.error('Error al eliminar imagen')
+                  onSuccess: () => toast.success(t('inventory.imageDeleted')),
+                  onError: () => toast.error(t('inventory.errorDeletingImage'))
                 });
               } else {
                 setArchivoImagen(null);
@@ -346,7 +348,7 @@ function ElementoFormModal({
         {/* CAMPO: Tipo de gestión */}
         <div className="mb-4">
           <label className="block text-sm font-medium text-slate-700 mb-3">
-            Tipo de gestión *
+            {t('inventory.managementTypeLabel')} *
           </label>
 
           <div className="space-y-3">
@@ -373,14 +375,13 @@ function ElementoFormModal({
               <div className="flex-1">
                 <div className="font-medium text-slate-900 flex items-center gap-2">
                   <Edit3 className="w-4 h-4 text-blue-600" />
-                  Gestión por Series
+                  {t('inventory.seriesManagement')}
                   <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
-                    Tracking individual
+                    {t('inventory.individualTracking')}
                   </span>
                 </div>
                 <p className="text-sm text-slate-600 mt-1">
-                  Cada unidad tiene número de serie único. Ideal para carpas,
-                  proyectores, equipos de sonido.
+                  {t('inventory.seriesManagementDesc')}
                 </p>
               </div>
             </label>
@@ -408,14 +409,13 @@ function ElementoFormModal({
               <div className="flex-1">
                 <div className="font-medium text-slate-900 flex items-center gap-2">
                   <Package className="w-4 h-4 text-purple-600" />
-                  Gestión por Lotes
+                  {t('inventory.batchManagement')}
                   <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded">
-                    Tracking por cantidad
+                    {t('inventory.quantityTracking')}
                   </span>
                 </div>
                 <p className="text-sm text-slate-600 mt-1">
-                  Gestión por cantidad agrupada. Ideal para sillas, mástiles,
-                  postes, estacas.
+                  {t('inventory.batchManagementDesc')}
                 </p>
               </div>
             </label>
@@ -424,7 +424,7 @@ function ElementoFormModal({
           {isEditMode && (
             <p className="mt-2 text-sm text-amber-600 flex items-center gap-2">
               <span>⚠️</span>
-              No se puede cambiar el tipo de gestión una vez creado el elemento
+              {t('inventory.cannotChangeManagementType')}
             </p>
           )}
         </div>
@@ -434,7 +434,7 @@ function ElementoFormModal({
             ============================================ */}
         <div className="mb-4">
           <label className="block text-sm font-medium text-slate-700 mb-2">
-            Material (opcional)
+            {t('inventory.materialOptional')}
           </label>
           <select
             name="material_id"
@@ -446,7 +446,7 @@ function ElementoFormModal({
               focus:outline-none focus:ring-2 focus:ring-blue-500
             "
           >
-            <option value="">Sin especificar</option>
+            <option value="">{t('inventory.unspecified')}</option>
             {materiales.map((material) => (
               <option key={material.id} value={material.id}>
                 {material.nombre}
@@ -460,7 +460,7 @@ function ElementoFormModal({
             ============================================ */}
         <div className="mb-4">
           <label className="block text-sm font-medium text-slate-700 mb-2">
-            Unidad de medida (opcional)
+            {t('inventory.unitOfMeasure')}
           </label>
           <select
             name="unidad_id"
@@ -472,7 +472,7 @@ function ElementoFormModal({
               focus:outline-none focus:ring-2 focus:ring-blue-500
             "
           >
-            <option value="">Sin especificar</option>
+            <option value="">{t('inventory.unspecified')}</option>
             {unidades.map((unidad) => (
               <option key={unidad.id} value={unidad.id}>
                 {unidad.nombre} ({unidad.abreviatura})
@@ -486,7 +486,7 @@ function ElementoFormModal({
             ============================================ */}
         <div className="mb-4">
           <label className="block text-sm font-medium text-slate-700 mb-2">
-            Estado inicial (opcional)
+            {t('inventory.initialState')}
           </label>
           <select
             name="estado"
@@ -497,9 +497,9 @@ function ElementoFormModal({
               focus:outline-none focus:ring-2 focus:ring-blue-500
             "
           >
-            <option value={ESTADOS.BUENO}>Bueno</option>
-            <option value={ESTADOS.MANTENIMIENTO}>Mantenimiento</option>
-            <option value={ESTADOS.DANADO}>Dañado</option>
+            <option value={ESTADOS.BUENO}>{t('states.good')}</option>
+            <option value={ESTADOS.MANTENIMIENTO}>{t('states.maintenance')}</option>
+            <option value={ESTADOS.DANADO}>{t('states.damaged')}</option>
           </select>
         </div>
 
@@ -519,7 +519,7 @@ function ElementoFormModal({
             ============================================ */}
         <div className="mb-4">
           <label className="block text-sm font-medium text-slate-700 mb-2">
-            Cantidad en inventario *
+            {t('inventory.inventoryQuantity')} *
           </label>
           <input
             type="number"
@@ -543,8 +543,8 @@ function ElementoFormModal({
           )}
           <p className="mt-1 text-sm text-slate-500">
             {formData.requiere_series
-              ? "Cantidad total de unidades (se crearán series después)"
-              : "Número de unidades del primer lote"}
+              ? t('inventory.seriesQuantityHint')
+              : t('inventory.batchQuantityHint')}
           </p>
         </div>
 
@@ -554,7 +554,7 @@ function ElementoFormModal({
         <div className="mb-4 grid grid-cols-3 gap-4">
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
-              Stock minimo (opcional)
+              {t('inventory.stockMinimumOptional')}
             </label>
             <input
               type="number"
@@ -575,13 +575,13 @@ function ElementoFormModal({
               "
             />
             <p className="mt-1 text-xs text-slate-500">
-              Alerta cuando el stock baje
+              {t('inventory.stockMinimumHint')}
             </p>
           </div>
 
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
-              Costo adquisicion (opcional)
+              {t('inventory.acquisitionCostOptional')}
             </label>
             <input
               type="number"
@@ -598,13 +598,13 @@ function ElementoFormModal({
               "
             />
             <p className="mt-1 text-xs text-slate-500">
-              Lo que se pago por unidad
+              {t('inventory.acquisitionCostHint')}
             </p>
           </div>
 
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
-              Precio unitario (opcional)
+              {t('inventory.unitPriceOptional')}
             </label>
             <input
               type="number"
@@ -621,7 +621,7 @@ function ElementoFormModal({
               "
             />
             <p className="mt-1 text-xs text-slate-500">
-              Precio de venta/alquiler
+              {t('inventory.unitPriceHint')}
             </p>
           </div>
         </div>
@@ -631,7 +631,7 @@ function ElementoFormModal({
             ============================================ */}
         <div className="mb-4">
           <label className="block text-sm font-medium text-slate-700 mb-2">
-            Fecha de ingreso (opcional)
+            {t('inventory.entryDate')}
           </label>
           <input
             type="date"
@@ -655,16 +655,16 @@ function ElementoFormModal({
             onClick={onClose}
             disabled={mutation.isPending}
           >
-            Cancelar
+            {t('common.cancel')}
           </Button>
           <Button type="submit" variant="primary" disabled={mutation.isPending}>
             {mutation.isPending
               ? isEditMode
-                ? "Guardando..."
-                : "Creando..."
+                ? t('inventory.saving')
+                : t('inventory.creating')
               : isEditMode
-              ? "Guardar Cambios"
-              : "Crear Elemento"}
+              ? t('common.saveChanges')
+              : t('inventory.createElement')}
           </Button>
         </Modal.Footer>
       </form>

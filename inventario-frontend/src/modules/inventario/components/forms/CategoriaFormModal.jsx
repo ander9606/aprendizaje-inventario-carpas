@@ -4,6 +4,7 @@
 // ============================================
 
 import { useState, useEffect } from "react";
+import { useTranslation } from 'react-i18next';
 import Modal from '@shared/components/Modal';
 import Button from '@shared/components/Button';
 import SymbolPicker from '@shared/components/picker/SymbolPicker';
@@ -20,6 +21,8 @@ const CategoriaFormModal = ({
   mode = "crear",
   categoria = null, // Aquí recibimos la categoría padre a editar
 }) => {
+  const { t } = useTranslation();
+
   // ============================================
   // ESTADO LOCAL
   // ============================================
@@ -84,9 +87,9 @@ const CategoriaFormModal = ({
   const validate = () => {
     const newErrors = {};
     if (!formData.nombre.trim()) {
-      newErrors.nombre = "El nombre es obligatorio";
+      newErrors.nombre = t('validation.nameRequired');
     } else if (formData.nombre.trim().length < 3) {
-      newErrors.nombre = "El nombre debe tener al menos 3 caracteres";
+      newErrors.nombre = t('validation.nameMinLength');
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -119,7 +122,7 @@ const CategoriaFormModal = ({
     } catch (error) {
       console.error("❌ Error:", error);
       const mensajeError =
-        error.response?.data?.mensaje || "Error al guardar la categoría";
+        error.response?.data?.mensaje || t('messages.error.saveCategory');
       setErrors({ submit: mensajeError });
     }
   };
@@ -141,7 +144,7 @@ const CategoriaFormModal = ({
       <Modal
         isOpen={isOpen}
         onClose={handleClose}
-        title={mode === "crear" ? "🆕 Nueva Categoría" : "✏️ Editar Categoría"}
+        title={mode === "crear" ? `🆕 ${t('inventory.newCategory')}` : `✏️ ${t('inventory.editCategory')}`}
         size="md"
       >
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -154,7 +157,7 @@ const CategoriaFormModal = ({
           {/* Campo Nombre */}
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
-              Nombre de la Categoría *
+              {t('inventory.categoryName')} *
             </label>
             <input
               type="text"
@@ -162,7 +165,7 @@ const CategoriaFormModal = ({
               value={formData.nombre}
               onChange={handleChange}
               // 👇 Cambiamos el placeholder para que tenga sentido
-              placeholder="Ej: Carpas, Mobiliario, Iluminación..."
+              placeholder={t('inventory.categoryPlaceholder')}
               disabled={isLoading}
               className={`
                 w-full px-4 py-2.5 border rounded-lg
@@ -183,7 +186,7 @@ const CategoriaFormModal = ({
           {/* Campo Icono */}
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
-              Icono
+              {t('inventory.icon')}
             </label>
 
             <button
@@ -195,7 +198,7 @@ const CategoriaFormModal = ({
             >
               <IconoCategoria value={formData.emoji} className="text-3xl" />
               <span className="text-slate-600">
-                Haz clic para cambiar el icono
+                {t('inventory.clickToChangeIcon')}
               </span>
             </button>
           </div>
@@ -209,7 +212,7 @@ const CategoriaFormModal = ({
               disabled={isLoading}
               fullWidth
             >
-              Cancelar
+              {t('common.cancel')}
             </Button>
             <Button
               type="submit"
@@ -218,7 +221,7 @@ const CategoriaFormModal = ({
               disabled={isLoading}
               fullWidth
             >
-              {mode === "crear" ? "Crear Categoría" : "Guardar Cambios"}
+              {mode === "crear" ? t('inventory.createCategory') : t('common.saveChanges')}
             </Button>
           </div>
         </form>

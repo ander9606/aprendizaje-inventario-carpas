@@ -4,6 +4,7 @@
 // ============================================
 
 import { useState, useEffect } from "react";
+import { useTranslation } from 'react-i18next';
 import Modal from '@shared/components/Modal';
 import Button from '@shared/components/Button';
 import SymbolPicker from '@shared/components/picker/SymbolPicker';
@@ -20,6 +21,7 @@ const SubcategoriaFormModal = ({
   padreId = null,
   subcategoria = null,
 }) => {
+  const { t } = useTranslation()
   // ============================================
   // ESTADO LOCAL
   // ============================================
@@ -85,11 +87,11 @@ const SubcategoriaFormModal = ({
     const newErrors = {};
 
     if (!formData.nombre.trim()) {
-      newErrors.nombre = "El nombre es obligatorio";
+      newErrors.nombre = t('validation.nameRequired');
     } else if (formData.nombre.trim().length < 3) {
-      newErrors.nombre = "Debe tener al menos 3 caracteres";
+      newErrors.nombre = t('validation.nameMinLength');
     } else if (formData.nombre.trim().length > 100) {
-      newErrors.nombre = "No puede exceder 100 caracteres";
+      newErrors.nombre = t('validation.maxLength100');
     }
 
     setErrors(newErrors);
@@ -126,8 +128,8 @@ const SubcategoriaFormModal = ({
       const mensajeError =
         error.response?.data?.mensaje ||
         (mode === "crear"
-          ? "Error al crear subcategoría"
-          : "Error al actualizar subcategoría");
+          ? t('inventory.errorCreatingSubcategory')
+          : t('inventory.errorUpdatingSubcategory'));
 
       setErrors({ submit: mensajeError });
     }
@@ -152,8 +154,8 @@ const SubcategoriaFormModal = ({
         onClose={handleClose}
         title={
           mode === "crear"
-            ? "🆕 Nueva Subcategoría"
-            : "✏️ Editar Subcategoría"
+            ? `🆕 ${t('inventory.newSubcategory')}`
+            : `✏️ ${t('inventory.editSubcategoryTitle')}`
         }
         size="md"
       >
@@ -167,7 +169,7 @@ const SubcategoriaFormModal = ({
           {/* Campo Nombre */}
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
-              Nombre de la subcategoría *
+              {t('inventory.subcategoryNameLabel')} *
             </label>
 
             <input
@@ -175,7 +177,7 @@ const SubcategoriaFormModal = ({
               name="nombre"
               value={formData.nombre}
               onChange={handleChange}
-              placeholder="Ej: Carpa 3x3, Mesa redonda..."
+              placeholder={t('inventory.subcategoryPlaceholder')}
               disabled={isLoading}
               className={`
                 w-full px-4 py-2.5 border rounded-lg
@@ -197,7 +199,7 @@ const SubcategoriaFormModal = ({
           {/* Campo Icono */}
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
-              Icono
+              {t('inventory.iconLabel')}
             </label>
 
             <button
@@ -212,12 +214,12 @@ const SubcategoriaFormModal = ({
             >
               <IconoCategoria value={formData.emoji} className="text-3xl" />
               <span className="text-slate-600">
-                Haz clic para cambiar el icono
+                {t('inventory.clickToChangeIcon')}
               </span>
             </button>
 
             <p className="mt-1 text-xs text-slate-500">
-              El icono ayuda a identificar visualmente la subcategoría
+              {t('inventory.iconHelperText')}
             </p>
           </div>
 
@@ -230,7 +232,7 @@ const SubcategoriaFormModal = ({
               disabled={isLoading}
               fullWidth
             >
-              Cancelar
+              {t('common.cancel')}
             </Button>
 
             <Button
@@ -241,8 +243,8 @@ const SubcategoriaFormModal = ({
               fullWidth
             >
               {mode === "crear"
-                ? "Crear Subcategoría"
-                : "Guardar Cambios"}
+                ? t('inventory.createSubcategory')
+                : t('common.saveChanges')}
             </Button>
           </div>
         </form>

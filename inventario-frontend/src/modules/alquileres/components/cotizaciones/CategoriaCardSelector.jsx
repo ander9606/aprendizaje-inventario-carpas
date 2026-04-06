@@ -5,12 +5,14 @@
 
 import { Package } from 'lucide-react'
 import { IconoCategoria } from '@shared/components/IconoCategoria'
+import { useTranslation } from 'react-i18next'
 
 const CategoriaCardSelector = ({
   categoria,
   onClick,
   disabled = false
 }) => {
+  const { t } = useTranslation()
   const { nombre, emoji, total_productos } = categoria
 
   return (

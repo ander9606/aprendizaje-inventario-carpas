@@ -4,6 +4,7 @@
 // ============================================
 
 import { useState, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Plus, FileSpreadsheet, Search, X } from 'lucide-react'
 import ViewTabs from '@shared/components/ViewTabs'
@@ -51,6 +52,7 @@ function ElementosPage() {
   // ============================================
   // HOOKS DE REACT ROUTER
   // ============================================
+  const { t } = useTranslation()
   const { categoriaId, subcategoriaId } = useParams()
   const navigate = useNavigate()
 
@@ -141,10 +143,10 @@ function ElementosPage() {
     setIsExporting(true)
     try {
       await exportarInventarioExcel()
-      toast.success('Inventario exportado a Excel exitosamente')
+      toast.success(t('inventory.exportSuccess'))
     } catch (error) {
       console.error('Error al exportar:', error)
-      toast.error('Error al exportar el inventario')
+      toast.error(t('inventory.exportError'))
     } finally {
       setIsExporting(false)
     }
@@ -175,8 +177,8 @@ function ElementosPage() {
     setDeleteConfirm({
       type: 'elemento',
       data: elemento,
-      title: `¿Eliminar "${elemento.nombre}"?`,
-      message: `Se eliminarán todas las ${elemento.requiere_series ? 'series' : 'unidades en lotes'} asociadas. Esta acción no se puede deshacer.`
+      title: t('inventory.deleteElementConfirm', { name: elemento.nombre }),
+      message: t('inventory.associatedWarning', { type: elemento.requiere_series ? t('inventory.series') : t('inventory.batches') })
     })
   }
 
@@ -186,13 +188,13 @@ function ElementosPage() {
       if (type === 'elemento') {
         await deleteElemento(data.id)
         refetch()
-        toast.success(`Elemento "${data.nombre}" eliminado`)
+        toast.success(t('inventory.elementDeleted', { name: data.nombre }))
       } else if (type === 'serie') {
         await deleteSerie(data.id)
-        toast.success(`Serie "${data.numero_serie}" eliminada`)
+        toast.success(t('inventory.serieDeleted', { serial: data.numero_serie }))
       } else if (type === 'lote') {
         await deleteLote(data.id)
-        toast.success('Lote eliminado exitosamente')
+        toast.success(t('inventory.batchDeleted'))
       }
     } catch (error) {
       const mensaje = error.response?.data?.mensaje || error.message || 'Error desconocido'
@@ -222,8 +224,8 @@ function ElementosPage() {
     setDeleteConfirm({
       type: 'serie',
       data: serie,
-      title: `¿Eliminar serie "${serie.numero_serie}"?`,
-      message: 'Se eliminará esta unidad del inventario. Esta acción no se puede deshacer.'
+      title: t('inventory.deleteSeriesWarning', { serial: serie.numero_serie }),
+      message: t('inventory.deleteSeriesMessage')
     })
   }
 
@@ -250,8 +252,8 @@ function ElementosPage() {
       type: 'lote',
       data: lote,
       extra: ubicacion,
-      title: `¿Eliminar lote?`,
-      message: `Se eliminarán ${lote.cantidad} unidades en estado "${lote.estado}" de "${ubicacion || 'Sin ubicación'}". Esta acción no se puede deshacer.`
+      title: t('inventory.deleteBatchConfirm'),
+      message: t('inventory.deleteBatchMessage', { count: lote.cantidad, state: lote.estado, location: ubicacion || t('inventory.noLocation') })
     })
   }
 
@@ -273,13 +275,12 @@ function ElementosPage() {
   // NOTA: La ruta /subcategorias/:id no existe como página separada
   // Las subcategorías se muestran en la página de categoría
   const breadcrumbItems = [
-    { label: 'Inventario', path: '/inventario' },
+    { label: t('common.inventory'), path: '/inventario' },
     {
-      label: subcategoria?.categoria_padre_nombre || 'Categoría',
+      label: subcategoria?.categoria_padre_nombre || t('inventory.categories'),
       path: `/inventario/categorias/${categoriaId}`
     },
-    // La subcategoría no tiene página propia, mostramos solo el nombre
-    { label: subcategoria?.nombre || 'Elementos' }
+    { label: subcategoria?.nombre || t('common.elements') }
   ]
 
   // ============================================
@@ -301,13 +302,13 @@ function ElementosPage() {
       <div className="container mx-auto px-4 py-8">
         <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
           <h2 className="text-xl font-bold text-red-700 mb-2">
-            Error al cargar elementos
+            {t('inventory.errorLoadingElements')}
           </h2>
           <p className="text-red-600 mb-4">
-            {error.message || 'Ocurrió un error desconocido'}
+            {error.message || t('common.unknownError')}
           </p>
           <Button variant="outline" onClick={refetch}>
-            Reintentar
+            {t('common.retry')}
           </Button>
         </div>
       </div>
@@ -335,17 +336,17 @@ function ElementosPage() {
               </div>
               <div>
                 <h1 className="text-[22px] font-bold text-slate-900">
-                  {subcategoria?.nombre || 'Elementos'}
+                  {subcategoria?.nombre || t('common.elements')}
                 </h1>
                 <p className="text-sm text-slate-500">
-                  {elementos.length} {elementos.length === 1 ? 'elemento' : 'elementos'}
+                  {elementos.length} {elementos.length === 1 ? t('common.element') : t('common.elements')}
                 </p>
               </div>
               <div className="ml-2 hidden sm:block">
                 <ViewTabs
                   tabs={[
-                    { label: 'Cards', value: 'cards' },
-                    { label: 'Listado', value: 'listado' }
+                    { label: t('common.cards'), value: 'cards' },
+                    { label: t('common.list'), value: 'listado' }
                   ]}
                   activeTab={viewMode}
                   onChange={setViewMode}
@@ -361,7 +362,7 @@ function ElementosPage() {
                 onClick={handleExportExcel}
                 disabled={isExporting}
               >
-                <span className="hidden sm:inline">{isExporting ? 'Exportando...' : 'Excel'}</span>
+                <span className="hidden sm:inline">{isExporting ? t('common.exporting') : 'Excel'}</span>
               </Button>
               <Button
                 variant="primary"
@@ -370,7 +371,7 @@ function ElementosPage() {
                 onClick={handleOpenCreateModal}
                 disabled={isDeleting || isDeletingLote || isDeletingSerie}
               >
-                Nuevo Elemento
+                {t('inventory.newElement')}
               </Button>
             </div>
           </div>
@@ -381,7 +382,7 @@ function ElementosPage() {
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               <input
                 type="text"
-                placeholder="Filtrar elementos por nombre..."
+                placeholder={t('inventory.filterElements')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
@@ -401,8 +402,8 @@ function ElementosPage() {
           <div className="mt-3 sm:hidden">
             <ViewTabs
               tabs={[
-                { label: 'Cards', value: 'cards' },
-                { label: 'Listado', value: 'listado' }
+                { label: t('common.cards'), value: 'cards' },
+                { label: t('common.list'), value: 'listado' }
               ]}
               activeTab={viewMode}
               onChange={setViewMode}
@@ -418,7 +419,7 @@ function ElementosPage() {
         <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg flex items-center gap-2">
           <Spinner size="sm" />
           <span className="text-yellow-700">
-            {isDeleting ? 'Eliminando elemento...' : isDeletingLote ? 'Eliminando lote...' : 'Eliminando serie...'}
+            {isDeleting ? t('inventory.deletingElement') : isDeletingLote ? t('inventory.deletingBatch') : t('inventory.deletingSeries')}
           </span>
         </div>
       )}
@@ -427,8 +428,8 @@ function ElementosPage() {
       {elementos.length === 0 ? (
         <EmptyState
           type="no-data"
-          title="No hay elementos registrados"
-          description={`Crea el primer elemento en ${subcategoria?.nombre || 'esta subcategoría'}`}
+          title={t('inventory.noElementsRegistered')}
+          description={t('inventory.createFirstElementIn', { name: subcategoria?.nombre || t('inventory.thisSubcategory') })}
           action={{
             label: 'Crear elemento',
             onClick: handleOpenCreateModal,
@@ -438,7 +439,7 @@ function ElementosPage() {
       ) : elementosFiltrados.length === 0 ? (
         <EmptyState
           type="no-results"
-          title="Sin resultados"
+          title={t('inventory.noResultsTitle')}
           description={`No se encontraron elementos con "${searchTerm}"`}
           action={{
             label: 'Limpiar búsqueda',
@@ -616,7 +617,7 @@ function ElementosPage() {
         title={deleteConfirm?.title || '¿Confirmar eliminación?'}
         message={deleteConfirm?.message || ''}
         variant="danger"
-        confirmText="Eliminar"
+        confirmText={t('common.delete')}
         loading={isDeleting || isDeletingLote || isDeletingSerie}
       />
       </div>

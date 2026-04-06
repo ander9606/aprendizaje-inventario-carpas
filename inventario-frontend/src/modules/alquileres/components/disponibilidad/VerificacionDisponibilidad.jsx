@@ -6,6 +6,7 @@
 import { useEffect } from 'react'
 import { CheckCircle, XCircle, AlertTriangle, Package, RefreshCw } from 'lucide-react'
 import { useVerificarDisponibilidadProductos } from '@inventario/hooks/useDisponibilidad'
+import { useTranslation } from 'react-i18next'
 
 /**
  * VerificacionDisponibilidad
@@ -23,6 +24,7 @@ const VerificacionDisponibilidad = ({
   fechaDesmontaje,
   mostrar = true
 }) => {
+  const { t } = useTranslation()
   const { verificar, limpiar, resultado, isLoading } = useVerificarDisponibilidadProductos()
 
   // Verificar cuando cambien los datos (el debounce está en el hook)

@@ -19,6 +19,7 @@ import Spinner from '@shared/components/Spinner'
 import EmptyState from '@shared/components/EmptyState'
 import { toast } from 'sonner'
 import ElementoFormModal from '../components/forms/ElementoFormModal'
+import { useTranslation } from 'react-i18next'
 
 /**
  * PÁGINA: Subcategorias (Nivel 2)
@@ -54,6 +55,7 @@ import ElementoFormModal from '../components/forms/ElementoFormModal'
  * └─────────────────────────────────────────┘
  */
 export default function Subcategorias() {
+  const { t } = useTranslation()
   
   // ============================================
   // HOOKS: React Router
@@ -180,7 +182,7 @@ export default function Subcategorias() {
       <Spinner 
         fullScreen 
         size="xl" 
-        text="Cargando subcategorías..."
+        text={t('inventory.loadingSubcategories')}
       />
     )
   }
@@ -293,11 +295,11 @@ export default function Subcategorias() {
               ============================================ */
           <EmptyState
             type="no-data"
-            title="No hay subcategorías creadas"
-            description={`Crea la primera subcategoría de "${categoria.nombre}" para organizar tus elementos`}
+            title={t('inventory.noSubcategoriesCreated')}
+            description={t('inventory.createFirstSubcategoryFor', { name: categoria.nombre })}
             icon={Package}
             action={{
-              label: "Crear primera subcategoría",
+              label: t('inventory.createFirstSubcategory'),
               icon: <Plus />,
               onClick: handleOpenCrear
             }}
