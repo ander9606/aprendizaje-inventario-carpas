@@ -414,6 +414,7 @@ const generarChecklistImprimible = ({ ordenId, ordenInfo, productos, elementosCa
 //   - onConfirmado: Callback cuando se confirma el cargue
 // ============================================
 const ModalOrdenCargue = ({ isOpen, onClose, ordenId, ordenInfo, elementos, onConfirmado }) => {
+    const { t } = useTranslation()
     const [expandedProducts, setExpandedProducts] = useState({})
     const cambiarEstadoMasivo = useCambiarEstadoElementosMasivo()
 
