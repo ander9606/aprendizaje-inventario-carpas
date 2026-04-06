@@ -182,7 +182,7 @@ export default function Subcategorias() {
       <Spinner 
         fullScreen 
         size="xl" 
-        text="Cargando subcategorías..."
+        text={t('inventory.loadingSubcategories')}
       />
     )
   }
@@ -295,11 +295,11 @@ export default function Subcategorias() {
               ============================================ */
           <EmptyState
             type="no-data"
-            title="No hay subcategorías creadas"
-            description={`Crea la primera subcategoría de "${categoria.nombre}" para organizar tus elementos`}
+            title={t('inventory.noSubcategoriesCreated')}
+            description={t('inventory.createFirstSubcategoryFor', { name: categoria.nombre })}
             icon={Package}
             action={{
-              label: "Crear primera subcategoría",
+              label: t('inventory.createFirstSubcategory'),
               icon: <Plus />,
               onClick: handleOpenCrear
             }}

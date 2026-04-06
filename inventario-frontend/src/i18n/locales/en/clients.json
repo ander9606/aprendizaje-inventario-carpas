@@ -24,7 +24,10 @@
     "documentType": "Type",
     "cities": "Cities",
     "citiesDescription": "Master city catalog with transport rates by truck type.",
-    "citiesTags": ["Rates", "Transport"],
+    "citiesTags": [
+      "Rates",
+      "Transport"
+    ],
     "addresses": "Addresses",
     "addressesOf": "Addresses -",
     "addAddress": "Add address",
@@ -86,6 +89,13 @@
     "documentNumber": "Number",
     "city": "City",
     "notification": "Notification",
-    "orderDetail": "Order #{{id}} - Click to view detail"
+    "orderDetail": "Order #{{id}} - Click to view detail",
+    "searchCityOrDepartment": "Search city or department...",
+    "manageDestinations": "Manage destinations for this city",
+    "noCitiesRegistered": "No cities registered",
+    "createFirstCityDesc": "Create your first city to get started",
+    "createFirstCity": "Create first city",
+    "cityPlaceholder": "E.g.: New York",
+    "departmentName": "Department name"
   }
 }

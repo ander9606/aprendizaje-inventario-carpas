@@ -24,7 +24,10 @@
     "documentType": "Tipo",
     "cities": "Ciudades",
     "citiesDescription": "Catálogo maestro de ciudades con sus tarifas de transporte por tipo de camión.",
-    "citiesTags": ["Tarifas", "Transporte"],
+    "citiesTags": [
+      "Tarifas",
+      "Transporte"
+    ],
     "addresses": "Direcciones",
     "addressesOf": "Direcciones -",
     "addAddress": "Agregar dirección",
@@ -86,6 +89,13 @@
     "documentNumber": "Número",
     "city": "Ciudad",
     "notification": "Notificación",
-    "orderDetail": "Orden #{{id}} - Click para ver detalle"
+    "orderDetail": "Orden #{{id}} - Click para ver detalle",
+    "searchCityOrDepartment": "Buscar ciudad o departamento...",
+    "manageDestinations": "Gestionar destinos de esta ciudad",
+    "noCitiesRegistered": "No hay ciudades registradas",
+    "createFirstCityDesc": "Crea tu primera ciudad para empezar",
+    "createFirstCity": "Crear primera ciudad",
+    "cityPlaceholder": "Ej: Medellín",
+    "departmentName": "Nombre del departamento"
   }
 }

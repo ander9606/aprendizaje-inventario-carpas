@@ -152,7 +152,7 @@ export default function UbicacionesPage() {
   // ============================================
 
   if (isLoading) {
-    return <Spinner fullScreen size="xl" text="Cargando ubicaciones..." />
+    return <Spinner fullScreen size="xl" text={t('inventory.loadingLocations')} />
   }
 
   if (error) {
@@ -304,7 +304,7 @@ export default function UbicacionesPage() {
                 <Search className="w-4 h-4 text-slate-400" />
                 <input
                   type="text"
-                  placeholder="Buscar destino, direccion o ciudad..."
+                  placeholder={t('inventory.searchDestination')}
                   value={busquedaDestinos}
                   onChange={(e) => setBusquedaDestinos(e.target.value)}
                   className="flex-1 border-0 focus:ring-0 text-sm placeholder:text-slate-400"

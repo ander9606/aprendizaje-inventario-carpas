@@ -273,8 +273,8 @@ const InventarioDashboard = () => {
                     contentStyle={{ borderRadius: 8, border: '1px solid #E2E8F0' }}
                   />
                   <Legend />
-                  <Bar dataKey="series" name="Series" fill="#2563EB" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="lotes" name="Lotes" fill="#8B5CF6" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="series" name={t('inventory.series')} fill="#2563EB" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="lotes" name={t('inventory.batches')} fill="#8B5CF6" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             ) : (

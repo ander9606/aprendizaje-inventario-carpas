@@ -428,8 +428,8 @@ function ElementosPage() {
       {elementos.length === 0 ? (
         <EmptyState
           type="no-data"
-          title="No hay elementos registrados"
-          description={`Crea el primer elemento en ${subcategoria?.nombre || 'esta subcategoría'}`}
+          title={t('inventory.noElementsRegistered')}
+          description={t('inventory.createFirstElementIn', { name: subcategoria?.nombre || t('inventory.thisSubcategory') })}
           action={{
             label: 'Crear elemento',
             onClick: handleOpenCreateModal,
@@ -439,7 +439,7 @@ function ElementosPage() {
       ) : elementosFiltrados.length === 0 ? (
         <EmptyState
           type="no-results"
-          title="Sin resultados"
+          title={t('inventory.noResultsTitle')}
           description={`No se encontraron elementos con "${searchTerm}"`}
           action={{
             label: 'Limpiar búsqueda',
@@ -617,7 +617,7 @@ function ElementosPage() {
         title={deleteConfirm?.title || '¿Confirmar eliminación?'}
         message={deleteConfirm?.message || ''}
         variant="danger"
-        confirmText="Eliminar"
+        confirmText={t('common.delete')}
         loading={isDeleting || isDeletingLote || isDeletingSerie}
       />
       </div>

@@ -2,7 +2,11 @@
   "inventory": {
     "title": "Inventario",
     "description": "Elementos físicos del inventario: carpas, mesas, sillas, accesorios.",
-    "tags": ["Categorías", "Series", "Lotes"],
+    "tags": [
+      "Categorías",
+      "Series",
+      "Lotes"
+    ],
     "individual": "Inventario Individual",
     "manageCategories": "Gestiona tus categorías y elementos",
     "categories": "Categorías",
@@ -26,7 +30,7 @@
     "noStateData": "Sin datos de estado",
     "topCategoriesByQty": "Top Categorías por Cantidad",
     "noCategoryData": "Sin datos de categorías",
-    "byLocation": "Inventario por Ubicación",
+    "byLocation": "Por ubicación",
     "noLocationData": "Sin datos de ubicación",
     "managementType": "Tipo de Gestión",
     "noManagementData": "Sin datos de gestión",
@@ -49,7 +53,7 @@
     "deletingBatch": "Eliminando lote...",
     "deletingSeries": "Eliminando serie...",
     "noElementsRegistered": "No hay elementos registrados",
-    "createFirstElementIn": "Crea el primer elemento en",
+    "createFirstElementIn": "Crea el primer elemento en {{name}}",
     "createElement": "Crear elemento",
     "noResultsFor": "No se encontraron elementos con",
     "deleteElementConfirm": "¿Eliminar",
@@ -94,7 +98,7 @@
     "manageCities": "Gestionar ciudades",
     "newDestination": "Nuevo Destino",
     "searchDestination": "Buscar destino, dirección o ciudad...",
-    "destination": "destino",
+    "destination": "Destino:",
     "destinations": "destinos",
     "noEventDestinations": "No hay destinos de evento registrados",
     "addDestinationsFrom": "Agrega destinos desde aquí o desde el",
@@ -110,7 +114,7 @@
     "errorLoadingCategory": "Error al cargar la categoría",
     "categoryNotFound": "La categoría no existe o no se pudo cargar",
     "noSubcategories": "No hay subcategorías creadas",
-    "createFirstSubcategory": "Crea la primera subcategoría de",
+    "createFirstSubcategory": "Crear primera subcategoría",
     "toOrganizeElements": "para organizar tus elementos",
     "createFirstSubcategoryBtn": "Crear primera subcategoría",
     "newSubcategory": "Nueva Subcategoría",
@@ -158,7 +162,6 @@
     "addSeriesAction": "Agregar serie",
     "unitCost": "Costo unit.:",
     "totalValue": "Valor total:",
-    "byLocation": "Por ubicación",
     "move": "Mover",
     "noBatchesRegisteredMsg": "Sin lotes registrados",
     "addInventoryDescription": "Agrega inventario nuevo mediante compras, donaciones o stock inicial",
@@ -280,7 +283,6 @@
     "useAll": "Usar todo ({{qty}})",
     "unitsWillRemain": "{{qty}} unidades quedarán en el origen",
     "sourceBatchWillBeDeleted": "(El lote origen se eliminará)",
-    "destination": "Destino:",
     "destinationState": "Estado destino *",
     "destinationLocation": "Ubicación destino *",
     "selectDestinationLocation": "Selecciona ubicación destino",
@@ -400,6 +402,10 @@
     "errorDeletingSubcategory": "Error al eliminar subcategoría",
     "categoryDeletedSuccess": "Categoría \"{{name}}\" eliminada",
     "cannotDeleteCategory": "No se pudo eliminar la categoría. Puede tener subcategorías o elementos.",
-    "elementCreatedSuccess": "Elemento creado exitosamente"
+    "elementCreatedSuccess": "Elemento creado exitosamente",
+    "noResultsTitle": "Sin resultados",
+    "thisSubcategory": "esta subcategoría",
+    "noSubcategoriesCreated": "No hay subcategorías creadas",
+    "createFirstSubcategoryFor": "Crea la primera subcategoría de \"{{name}}\" para organizar tus elementos"
   }
 }

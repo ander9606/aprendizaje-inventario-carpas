@@ -94,10 +94,10 @@ export default function ConfiguracionPage() {
       <PageHeader
         icon={Settings}
         iconColor="bg-slate-500"
-        title="Configuración"
-        subtitle="Gestiona los datos maestros del sistema"
+        title={t('config.title')}
+        subtitle={t('config.subtitle')}
         backTo="/"
-        backLabel="Volver a Módulos"
+        backLabel={t('config.backToModules')}
       />
 
       {/* Contenido */}

@@ -2,23 +2,39 @@
   "config": {
     "title": "Settings",
     "description": "Master data: locations, rates, company and employees.",
-    "tags": ["Locations", "Company"],
+    "tags": [
+      "Locations",
+      "Company"
+    ],
     "pageTitle": "Settings",
     "pageSubtitle": "Manage system master data",
     "masterData": "Master Data",
     "masterDataDesc": "This data feeds the other system modules",
     "cities": "Cities",
     "citiesDesc": "Master city catalog with transport rates by truck type.",
-    "citiesTags": ["Rates", "Transport"],
+    "citiesTags": [
+      "Rates",
+      "Transport"
+    ],
     "locationsAndDestinations": "Locations & Destinations",
     "locationsDesc": "Storage warehouses and workshops, plus event destinations grouped by city.",
-    "locationsTags": ["Storage", "Destinations", "Cities"],
+    "locationsTags": [
+      "Storage",
+      "Destinations",
+      "Cities"
+    ],
     "companyData": "Company Data",
     "companyDataDesc": "Logo, name, tax ID, address and contact info shown in documents.",
-    "companyTags": ["Logo", "Contact"],
+    "companyTags": [
+      "Logo",
+      "Contact"
+    ],
     "employees": "Employees",
     "employeesDesc": "Manage system users, assign roles and control access permissions.",
-    "employeesTags": ["Roles", "Permissions"],
+    "employeesTags": [
+      "Roles",
+      "Permissions"
+    ],
     "recommendedFlow": "Recommended flow:",
     "recommendedFlowDesc": "First create cities with their transport rates, then add event destinations from Locations & Destinations or directly from the Cities catalog.",
     "alerts": "Alerts",
@@ -70,6 +86,8 @@
     "clientLabel": "Client:",
     "viewAll": "View all",
     "info": "Info",
-    "total": "Total"
+    "total": "Total",
+    "subtitle": "Manage system master data",
+    "backToModules": "Back to Modules"
   }
 }

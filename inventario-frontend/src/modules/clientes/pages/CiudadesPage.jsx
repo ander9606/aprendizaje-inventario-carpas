@@ -312,7 +312,7 @@ export default function CiudadesPage() {
             <Search className="w-5 h-5 text-slate-400" />
             <input
               type="text"
-              placeholder="Buscar ciudad o departamento..."
+              placeholder={t('clients.searchCityOrDepartment')}
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
               className="flex-1 border-0 focus:ring-0 text-sm placeholder:text-slate-400"
@@ -403,7 +403,7 @@ export default function CiudadesPage() {
                           <button
                             onClick={() => setDireccionesModal({ open: true, ciudad })}
                             className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-green-700 bg-green-50 hover:bg-green-100 border border-green-200 rounded-lg transition-colors"
-                            title="Gestionar destinos de esta ciudad"
+                            title={t('clients.manageDestinations')}
                           >
                             <Navigation className="w-3.5 h-3.5" />
                             Destinos
@@ -411,14 +411,14 @@ export default function CiudadesPage() {
                           <button
                             onClick={() => handleOpenEditar(ciudad)}
                             className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                            title="Editar"
+                            title={t('common.edit')}
                           >
                             <Pencil className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => handleDelete(ciudad.id)}
                             className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                            title="Eliminar"
+                            title={t('common.delete')}
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -433,11 +433,11 @@ export default function CiudadesPage() {
         ) : (
           <EmptyState
             type="no-data"
-            title="No hay ciudades registradas"
-            description="Crea tu primera ciudad para empezar"
+            title={t('clients.noCitiesRegistered')}
+            description={t('clients.createFirstCityDesc')}
             icon={MapPin}
             action={{
-              label: "Crear primera ciudad",
+              label: t('clients.createFirstCity'),
               icon: <Plus />,
               onClick: handleOpenCrear
             }}
@@ -471,7 +471,7 @@ export default function CiudadesPage() {
                       value={formData.nombre}
                       onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
                       className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                      placeholder="Ej: Medellín"
+                      placeholder={t('clients.cityPlaceholder')}
                       required
                     />
                   </div>
@@ -514,7 +514,7 @@ export default function CiudadesPage() {
                             value={nuevoDepartamento}
                             onChange={(e) => setNuevoDepartamento(e.target.value)}
                             className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                            placeholder="Nombre del departamento"
+                            placeholder={t('clients.departmentName')}
                             disabled={creandoDep}
                           />
                           <Button

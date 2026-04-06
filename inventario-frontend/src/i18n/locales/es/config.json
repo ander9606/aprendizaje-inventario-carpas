@@ -2,23 +2,39 @@
   "config": {
     "title": "Configuración",
     "description": "Datos maestros: ubicaciones, tarifas, empresa y empleados.",
-    "tags": ["Ubicaciones", "Empresa"],
+    "tags": [
+      "Ubicaciones",
+      "Empresa"
+    ],
     "pageTitle": "Configuración",
     "pageSubtitle": "Gestiona los datos maestros del sistema",
     "masterData": "Datos Maestros",
     "masterDataDesc": "Estos datos alimentan los demás módulos del sistema",
     "cities": "Ciudades",
     "citiesDesc": "Catálogo maestro de ciudades con sus tarifas de transporte por tipo de camión.",
-    "citiesTags": ["Tarifas", "Transporte"],
+    "citiesTags": [
+      "Tarifas",
+      "Transporte"
+    ],
     "locationsAndDestinations": "Ubicaciones y Destinos",
     "locationsDesc": "Bodegas y talleres de almacenamiento, más destinos de evento agrupados por ciudad.",
-    "locationsTags": ["Almacenamiento", "Destinos", "Ciudades"],
+    "locationsTags": [
+      "Almacenamiento",
+      "Destinos",
+      "Ciudades"
+    ],
     "companyData": "Datos Empresa",
     "companyDataDesc": "Logo, nombre, NIT, dirección y datos de contacto que aparecen en documentos.",
-    "companyTags": ["Logo", "Contacto"],
+    "companyTags": [
+      "Logo",
+      "Contacto"
+    ],
     "employees": "Empleados",
     "employeesDesc": "Gestiona usuarios del sistema, asigna roles y controla permisos de acceso.",
-    "employeesTags": ["Roles", "Permisos"],
+    "employeesTags": [
+      "Roles",
+      "Permisos"
+    ],
     "recommendedFlow": "Flujo recomendado:",
     "recommendedFlowDesc": "Primero crea las ciudades con sus tarifas de transporte, y luego agrega destinos de evento desde Ubicaciones y Destinos o directamente desde el catálogo de Ciudades.",
     "alerts": "Alertas",
@@ -70,6 +86,8 @@
     "clientLabel": "Cliente:",
     "viewAll": "Ver todas",
     "info": "Info",
-    "total": "Total"
+    "total": "Total",
+    "subtitle": "Gestiona los datos maestros del sistema",
+    "backToModules": "Volver a Módulos"
   }
 }

@@ -507,8 +507,8 @@ function ElementoDetallePage() {
       <div className="container mx-auto px-4 py-8">
         <EmptyState
           type="no-data"
-          title="Elemento no encontrado"
-          description="El elemento que buscas no existe"
+          title={t('inventory.elementNotFound')}
+          description={t('inventory.elementNotFoundDesc')}
           action={{
             label: 'Volver a elementos',
             onClick: handleGoBack
@@ -699,7 +699,7 @@ function ElementoDetallePage() {
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input
                   type="text"
-                  placeholder="Buscar..."
+                  placeholder={t('common.search')}
                   value={busqueda}
                   onChange={(e) => { setBusqueda(e.target.value); setPaginaActual(1) }}
                   className="w-full pl-8 pr-3 py-1.5 text-sm border border-slate-200 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
@@ -889,7 +889,7 @@ function ElementoDetallePage() {
         title={deleteConfirm?.title || '¿Confirmar eliminación?'}
         message={deleteConfirm?.message || ''}
         variant="danger"
-        confirmText="Eliminar"
+        confirmText={t('common.delete')}
         loading={deleteElemento.isPending || deleteSerie.isPending || deleteLote.isPending}
       />
 

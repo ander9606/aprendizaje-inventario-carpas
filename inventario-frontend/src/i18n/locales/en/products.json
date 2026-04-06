@@ -2,7 +2,10 @@
   "products": {
     "title": "Products",
     "description": "Product templates combining elements for quoting.",
-    "tags": ["Templates", "Combos"],
+    "tags": [
+      "Templates",
+      "Combos"
+    ],
     "pageTitle": "Product Management",
     "pageSubtitle": "Manage your physical inventory and configure products for rental",
     "individualInventory": "Individual Inventory",
@@ -66,6 +69,7 @@
     "templatesAssociated": "associated template(s).",
     "confirmDeleteCategory": "Are you sure you want to delete the category",
     "confirmDeleteSubcategory": "Are you sure you want to delete the subcategory",
-    "cannotDeleteSubcategory": "Cannot delete. This subcategory has"
+    "cannotDeleteSubcategory": "Cannot delete. This subcategory has",
+    "deleteCompositeElement": "Delete Composite Element"
   }
 }
