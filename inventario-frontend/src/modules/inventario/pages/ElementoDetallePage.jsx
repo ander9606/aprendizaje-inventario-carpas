@@ -57,6 +57,7 @@ import { useTranslation } from 'react-i18next'
  * // Muestra detalle del elemento con ID 12
  */
 function ElementoDetallePage() {
+  const { t } = useTranslation()
   // ============================================
   // 1. HOOKS DE REACT ROUTER
   // ============================================

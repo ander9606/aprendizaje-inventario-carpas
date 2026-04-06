@@ -132,6 +132,7 @@ const CotizacionRow = ({ evento, onClickEvento }) => {
  * @param {function} onClickEvento - Handler al seleccionar un evento
  */
 export default function ModalDiaCotizaciones({ isOpen, onClose, fecha, eventos = [], onClickEvento }) {
+    const { t } = useTranslation()
   const montajes = eventos.filter(e => e.extendedProps?.tipo === EVENT_TYPES.MONTAJE)
   const eventosMain = eventos.filter(e => e.extendedProps?.tipo === EVENT_TYPES.EVENTO)
   const desmontajes = eventos.filter(e => e.extendedProps?.tipo === EVENT_TYPES.DESMONTAJE)

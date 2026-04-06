@@ -54,6 +54,7 @@ const TipoIcon = ({ tipo, className = '' }) => {
  * Badge de estado
  */
 const EstadoBadge = ({ estado }) => {
+    const { t } = useTranslation()
   const estilos = {
     pendiente: 'bg-amber-100 text-amber-800',
     aprobada: 'bg-green-100 text-green-800',

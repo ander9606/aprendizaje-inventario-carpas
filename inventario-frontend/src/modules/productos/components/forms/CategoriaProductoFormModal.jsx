@@ -23,6 +23,7 @@ const CategoriaProductoFormModal = ({
   categoria = null,
   categoriaPadreId = null // Para crear subcategoría directamente
 }) => {
+  const { t } = useTranslation()
   const isEditMode = categoria && categoria.id
 
   // ============================================

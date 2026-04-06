@@ -577,6 +577,7 @@ function StepIndicator({ steps, currentStep, onStepClick }) {
 // ============================================
 
 function Step1InfoBasica({ formData, errors, categorias, loadingCategorias, onChange, onOpenCategoriaModal, imagenUrl, onSubirImagen, onEliminarImagen, isUploadingImagen }) {
+  const { t } = useTranslation()
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2 mb-4">
