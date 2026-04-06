@@ -36,6 +36,7 @@ export const EventosDesglose = ({
   className = '',
   ...props
 }) => {
+  const { t } = useTranslation()
   if (eventos.length === 0) {
     return null
   }
@@ -49,12 +50,12 @@ export const EventosDesglose = ({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-orange-800 text-sm font-medium">
             <Calendar className="w-4 h-4" />
-            <span>En eventos</span>
+            <span>{t('inventory.inEvents')}</span>
           </div>
           <div className="flex items-center gap-1">
             <span className="text-lg font-bold text-orange-900">{totalEnEventos}</span>
             <span className="text-sm text-orange-700">
-              en {eventos.length} {eventos.length === 1 ? 'evento' : 'eventos'}
+              {t('common.in')} {eventos.length} {eventos.length === 1 ? t('inventory.event') : t('inventory.events')}
             </span>
           </div>
         </div>
@@ -72,12 +73,12 @@ export const EventosDesglose = ({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-orange-900 font-medium">
             <Calendar className="w-5 h-5" />
-            <span>En Eventos Activos</span>
+            <span>{t('inventory.inActiveEvents')}</span>
           </div>
           <div className="flex items-center gap-2">
             <Package className="w-4 h-4 text-orange-700" />
             <span className="text-xl font-bold text-orange-900">{totalEnEventos}</span>
-            <span className="text-sm text-orange-700">unidades</span>
+            <span className="text-sm text-orange-700">{t('common.units').toLowerCase()}</span>
           </div>
         </div>
       </div>
@@ -119,11 +120,11 @@ const EventoItem = ({ evento }) => {
           {/* Nombre del evento */}
           <div className="flex items-center gap-2">
             <span className="font-semibold text-orange-900 truncate">
-              {evento_nombre || 'Evento sin nombre'}
+              {evento_nombre || t('inventory.eventNoName')}
             </span>
             {esActivo && (
               <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded-full">
-                En curso
+                {t('inventory.inProgress')}
               </span>
             )}
           </div>
@@ -153,7 +154,7 @@ const EventoItem = ({ evento }) => {
             <span>
               {formatearFechaCorta(fecha_evento)}
               {fecha_desmontaje && (
-                <> - Desmontaje: {formatearFechaCorta(fecha_desmontaje)}</>
+                <> - {t('inventory.disassembly')} {formatearFechaCorta(fecha_desmontaje)}</>
               )}
             </span>
           </div>
@@ -163,7 +164,7 @@ const EventoItem = ({ evento }) => {
         <div className="flex flex-col items-end flex-shrink-0">
           <span className="text-2xl font-bold text-orange-900">{cantidad}</span>
           <span className="text-xs text-orange-700">
-            {cantidad === 1 ? 'unidad' : 'unidades'}
+            {cantidad === 1 ? t('common.unit').toLowerCase() : t('common.units').toLowerCase()}
           </span>
         </div>
       </div>

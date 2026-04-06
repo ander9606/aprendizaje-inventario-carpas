@@ -153,7 +153,7 @@ const ProductoSelectorTarjetas = ({
         <div className="flex items-center justify-between">
           <h4 className="font-semibold text-slate-700 flex items-center gap-2">
             <Package className="w-5 h-5" />
-            Seleccionar Categoria
+            {t('rentals.productSelector.selectCategory')}
           </h4>
         </div>
 

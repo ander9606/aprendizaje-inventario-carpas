@@ -69,10 +69,10 @@ const DescuentosSelectorLocal = ({
 
     const nuevoDescuento = {
       descuento_id: null,
-      nombre: descuentoManual.descripcion || 'Descuento manual',
+      nombre: descuentoManual.descripcion || t('rentals.discountSelector.manualDiscount'),
       tipo: descuentoManual.tipo,
       valor: parseFloat(descuentoManual.valor),
-      descripcion: descuentoManual.descripcion || 'Descuento manual'
+      descripcion: descuentoManual.descripcion || t('rentals.discountSelector.manualDiscount')
     }
 
     onDescuentosChange([...descuentosAplicados, nuevoDescuento])
@@ -97,7 +97,7 @@ const DescuentosSelectorLocal = ({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Tag className="w-4 h-4 text-green-600" />
-          <span className="text-sm font-medium text-slate-700">Descuentos</span>
+          <span className="text-sm font-medium text-slate-700">{t('rentals.discounts')}</span>
           {descuentosAplicados.length > 0 && (
             <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
               {descuentosAplicados.length}
@@ -168,7 +168,7 @@ const DescuentosSelectorLocal = ({
           onClick={() => setMostrarSelector(true)}
           className="text-green-600 hover:text-green-700 hover:bg-green-50"
         >
-          Agregar descuento
+          {t('rentals.discountSelector.addDiscount')}
         </Button>
       )}
 
@@ -176,7 +176,7 @@ const DescuentosSelectorLocal = ({
       {mostrarSelector && !disabled && (
         <div className="border border-slate-200 rounded-lg p-3 bg-slate-50">
           <div className="flex items-center justify-between mb-3">
-            <h4 className="text-sm font-medium text-slate-700">Seleccionar descuento</h4>
+            <h4 className="text-sm font-medium text-slate-700">{t('rentals.discountSelector.selectDiscount')}</h4>
             <button
               type="button"
               onClick={() => setMostrarSelector(false)}
@@ -188,7 +188,7 @@ const DescuentosSelectorLocal = ({
 
           {/* Catálogo de descuentos predefinidos */}
           {cargandoCatalogo ? (
-            <p className="text-sm text-slate-500 text-center py-4">Cargando descuentos...</p>
+            <p className="text-sm text-slate-500 text-center py-4">{t('rentals.discountSelector.loadingDiscounts')}</p>
           ) : descuentosDisponibles.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
               {descuentosDisponibles.map((descuento) => {
@@ -224,8 +224,8 @@ const DescuentosSelectorLocal = ({
           ) : (
             <p className="text-sm text-slate-500 text-center py-2 mb-3">
               {catalogoDescuentos?.length > 0
-                ? 'Todos los descuentos ya están aplicados'
-                : 'No hay descuentos predefinidos'}
+                ? t('rentals.discountSelector.allDiscountsApplied')
+                : t('rentals.discountSelector.noPredefinedDiscounts')}
             </p>
           )}
 
@@ -240,12 +240,12 @@ const DescuentosSelectorLocal = ({
                 onClick={() => setMostrarManual(true)}
                 className="text-slate-600 w-full justify-center"
               >
-                Agregar descuento manual
+                {t('rentals.discountSelector.addManualDiscount')}
               </Button>
             </div>
           ) : (
             <div className="border-t border-slate-200 pt-3 space-y-3">
-              <h5 className="text-xs font-medium text-slate-600 uppercase tracking-wide">Descuento manual</h5>
+              <h5 className="text-xs font-medium text-slate-600 uppercase tracking-wide">{t('rentals.discountSelector.manualDiscount')}</h5>
 
               <div className="flex gap-2">
                 {/* Tipo de descuento */}
@@ -293,14 +293,14 @@ const DescuentosSelectorLocal = ({
                 type="text"
                 value={descuentoManual.descripcion}
                 onChange={(e) => setDescuentoManual(prev => ({ ...prev, descripcion: e.target.value }))}
-                placeholder="Motivo del descuento (ej: Cliente frecuente)"
+                placeholder={t('rentals.discountSelector.discountReasonExample')}
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"
               />
 
               {/* Vista previa */}
               {descuentoManual.valor && parseFloat(descuentoManual.valor) > 0 && (
                 <div className="bg-green-50 border border-green-200 rounded-lg p-2 text-sm">
-                  <span className="text-slate-600">Descuento: </span>
+                  <span className="text-slate-600">{t('rentals.discountSelector.discountPreview')}</span>
                   <span className="font-semibold text-green-600">
                     -{descuentoManual.tipo === 'porcentaje'
                       ? formatearMoneda(baseCalculo * (parseFloat(descuentoManual.valor) / 100))
@@ -323,7 +323,7 @@ const DescuentosSelectorLocal = ({
                   disabled={!descuentoManual.valor || parseFloat(descuentoManual.valor) <= 0}
                   className="flex-1"
                 >
-                  Aplicar
+                  {t('rentals.discountSelector.apply')}
                 </Button>
                 <Button
                   type="button"
@@ -334,7 +334,7 @@ const DescuentosSelectorLocal = ({
                     setDescuentoManual({ valor: '', tipo: 'porcentaje', descripcion: '' })
                   }}
                 >
-                  Cancelar
+                  {t('common.cancel')}
                 </Button>
               </div>
             </div>

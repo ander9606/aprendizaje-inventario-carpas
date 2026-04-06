@@ -33,6 +33,7 @@ export const LoteUbicacionGroup = ({
   className = '',
   ...props
 }) => {
+  const { t } = useTranslation()
   const [expandido, setExpandido] = useState(defaultExpanded)
 
   const {
@@ -65,7 +66,7 @@ export const LoteUbicacionGroup = ({
             {cantidad_total}
           </span>
           <span className="text-sm text-slate-600">
-            {cantidad_total === 1 ? 'unidad' : 'unidades'}
+            {cantidad_total === 1 ? t('common.unit').toLowerCase() : t('common.units').toLowerCase()}
           </span>
         </div>
 
@@ -74,7 +75,7 @@ export const LoteUbicacionGroup = ({
           onClick={() => setExpandido(!expandido)}
           className="text-sm text-blue-600 hover:text-blue-700 font-medium"
         >
-          {expandido ? 'Ocultar' : 'Ver detalle'}
+          {expandido ? t('common.hideDetail') : t('common.showDetail')}
         </button>
       </div>
     )
@@ -109,7 +110,7 @@ export const LoteUbicacionGroup = ({
               {cantidad_total}
             </span>
             <span className="text-sm text-slate-600">
-              {cantidad_total === 1 ? 'unidad' : 'unidades'}
+              {cantidad_total === 1 ? t('common.unit').toLowerCase() : t('common.units').toLowerCase()}
             </span>
           </div>
 
@@ -132,7 +133,7 @@ export const LoteUbicacionGroup = ({
         <div className="p-4 space-y-2 rounded-b-lg">
           {lotes.length === 0 ? (
             <p className="text-sm text-slate-500 text-center py-4">
-              No hay lotes en esta ubicacion
+              {t('inventory.noBatchesInLocation')}
             </p>
           ) : (
             lotes.map((lote, idx) => (
@@ -169,19 +170,19 @@ const LoteItem = ({
 
   const menuOptions = [
     {
-      label: 'Devolver a Bodega Principal',
+      label: t('inventory.returnToMainWarehouse'),
       icon: RotateCcw,
       onClick: () => onDevolverBodega && onDevolverBodega(lote, ubicacion),
       show: !!onDevolverBodega && !esBodegaPrincipal
     },
     {
-      label: 'Mover a otra ubicacion',
+      label: t('inventory.moveToOtherLocation'),
       icon: ArrowRight,
       onClick: () => onMove && onMove(lote, ubicacion),
       show: !!onMove
     },
     {
-      label: 'Eliminar',
+      label: t('common.delete'),
       icon: Trash2,
       onClick: () => onDelete && onDelete(lote, ubicacion),
       danger: true,
@@ -200,7 +201,7 @@ const LoteItem = ({
           {lote.cantidad}
         </span>
         <span className="text-sm text-slate-600">
-          {lote.cantidad === 1 ? 'unidad' : 'unidades'}
+          {lote.cantidad === 1 ? t('common.unit').toLowerCase() : t('common.units').toLowerCase()}
         </span>
       </div>
 
