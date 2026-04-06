@@ -230,7 +230,7 @@ export default function ModalNovedad({ ordenId, productos = [], onClose }) {
                         <div className="relative">
                             <img
                                 src={fotoPreview}
-                                alt="Preview"
+                                alt={t("common.image")}
                                 className="w-full h-40 object-cover rounded-lg"
                             />
                             <button

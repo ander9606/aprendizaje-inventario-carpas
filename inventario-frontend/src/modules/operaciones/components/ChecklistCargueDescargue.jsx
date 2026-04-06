@@ -605,7 +605,7 @@ const ChecklistCargueDescargue = ({ isOpen, onClose, ordenId, ordenInfo, modo = 
         >
             {isLoading ? (
                 <div className="py-12 flex justify-center">
-                    <Spinner size="lg" text="Cargando checklist..." />
+                    <Spinner size="lg" text={t("operations.loadingChecklist")} />
                 </div>
             ) : (
                 <div className="space-y-5">

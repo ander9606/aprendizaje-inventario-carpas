@@ -302,8 +302,8 @@ export const ElementoSerieCard = ({
         ) : series.length === 0 ? (
           <EmptyState
             type="no-data"
-            title="Sin series registradas"
-            description="Agrega el primer número de serie"
+            title={t("inventory.noSeriesRegistered")}
+            description={t("inventory.addFirstSerialNumber")}
             icon={Package}
             action={onAddSerie && {
               label: 'Agregar serie',
@@ -405,7 +405,7 @@ function MenuButton({ options }) {
         ref={btnRef}
         onClick={handleToggle}
         className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors"
-        aria-label="Opciones"
+        aria-label={t("common.actions")}
       >
         <svg className="w-5 h-5 text-slate-500" fill="currentColor" viewBox="0 0 20 20">
           <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />

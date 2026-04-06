@@ -101,12 +101,12 @@ const AprobarCotizacionModal = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Aprobar Cotización"
+      title={t("rentals.approveQuotation")}
       size="lg"
     >
       {isLoading ? (
         <div className="py-12">
-          <Spinner size="lg" text="Verificando disponibilidad..." />
+          <Spinner size="lg" text={t("rentals.checkingAvailability")} />
         </div>
       ) : !cotizacion ? (
         <div className="py-12 text-center text-slate-500">
@@ -312,7 +312,7 @@ const AprobarCotizacionModal = ({
                 value={notasSalida}
                 onChange={(e) => setNotasSalida(e.target.value)}
                 rows={2}
-                placeholder="Notas adicionales para el alquiler..."
+                placeholder={t("rentals.additionalNotesPlaceholder")}
                 className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
               />
             </div>

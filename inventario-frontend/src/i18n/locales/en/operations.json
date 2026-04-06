@@ -794,6 +794,10 @@
     "markAsCompleted": "Mark this order as completed?",
     "cancelWorkOrder": "Cancel work order",
     "cancelWorkOrderMessage": "Are you sure you want to cancel this order? This action cannot be undone and assigned resources will be released.",
-    "yesCancelOrder": "Yes, cancel order"
+    "yesCancelOrder": "Yes, cancel order",
+    "sendWhatsApp": "Send via WhatsApp",
+    "assemblyFinished": "Assembly finished",
+    "enlargedPhoto": "Enlarged photo",
+    "evidence": "Evidence"
   }
 }

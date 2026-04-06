@@ -2,7 +2,10 @@
   "rentals": {
     "title": "Rentals",
     "description": "Quotes, contracts and rental management.",
-    "tags": ["Quotes", "Clients"],
+    "tags": [
+      "Quotes",
+      "Clients"
+    ],
     "quotes": "Quotes",
     "quote": "Quote",
     "rental": "Rental",
@@ -325,7 +328,6 @@
     "truckExtraLargeDesc": "+15 ton",
     "quotesCount": "{{count}} quote",
     "quotesCount_plural": "{{count}} quotes",
-
     "timelineEvents": {
       "quoteCreated": "Quote created",
       "quoteApproved": "Quote approved",
@@ -346,7 +348,6 @@
       "rentalCancelled": "Rental cancelled",
       "noEventsRegistered": "No events registered"
     },
-
     "photoEvidence": "Photo Evidence",
     "loadingPhotos": "Loading photos...",
     "enlargedPhoto": "Enlarged photo",
@@ -364,7 +365,6 @@
       "desmontaje": "Disassembly"
     },
     "photosCount": "{{count}} photos",
-
     "card": {
       "programado": "Scheduled",
       "activo": "Active",
@@ -374,7 +374,6 @@
       "noName": "No name",
       "viewDetail": "View detail"
     },
-
     "quoteCard": {
       "draft": "Draft",
       "estimated": "Estimated",
@@ -388,7 +387,6 @@
       "confirmReject": "Reject this quote?",
       "confirmDelete": "Delete this quote? This action cannot be undone."
     },
-
     "rateForm": {
       "newRate": "New Transport Rate",
       "editRate": "Edit Rate",
@@ -406,7 +404,6 @@
       "pricePositive": "Price must be greater than 0",
       "errorSavingRate": "Error saving rate"
     },
-
     "quoteForm": {
       "quoteCreatedTitle": "Quote Created",
       "quoteUpdatedTitle": "Quote Updated",
@@ -519,7 +516,6 @@
         "otro": "Other"
       }
     },
-
     "componentModal": {
       "title": "Components: {{name}}",
       "availabilityFor": "Availability for {{start}} - {{end}}",
@@ -537,7 +533,6 @@
       "missingCount": "Missing: {{count}}",
       "selectDatesForAvailability": "Select dates to view availability"
     },
-
     "discountSelector": {
       "appliedDiscounts": "Applied discounts",
       "percentageApplied": "Percentage applied",
@@ -554,7 +549,6 @@
       "manualDiscount": "Manual discount",
       "discountReasonExample": "Discount reason (e.g.: Frequent customer)"
     },
-
     "productCard": {
       "verifying": "Verifying...",
       "noDates": "No dates",
@@ -564,7 +558,6 @@
       "viewComponents": "View {{count}} component",
       "viewComponents_plural": "View {{count}} components"
     },
-
     "productSelector": {
       "selectCategory": "Select Category",
       "errorLoadingCategories": "Error loading categories: {{message}}",
@@ -579,7 +572,6 @@
       "noProductsFound": "No products found with that name",
       "noProductsInCategory": "No products in this category"
     },
-
     "returnModal": {
       "registerReturn": "Register Return",
       "expectedReturn": "Expected return: {{date}}",
@@ -603,7 +595,6 @@
       "confirmReturn": "Confirm Return",
       "units": "{{count}} units"
     },
-
     "eventForm": {
       "editEvent": "Edit Event",
       "repeatEventTitle": "Repeat Event",
@@ -634,7 +625,6 @@
       "updateEvent": "Update",
       "createEvent": "Create Event"
     },
-
     "quoteDetailModal": {
       "quotation": "QUOTATION",
       "rentalCompany": "Tent and Event Rentals",
@@ -672,7 +662,6 @@
       "cancelledByClient": "Cancelled by client",
       "eventDateMandatory": "Event date is required"
     },
-
     "assignModal": {
       "assignElementsDeparture": "Assign Elements - Mark Departure",
       "departure": "Departure: {{date}}",
@@ -688,7 +677,6 @@
       "elementsReady": "{{ready}} of {{total}} elements ready",
       "confirmDeparture": "Confirm Departure"
     },
-
     "approveModal": {
       "title": "Approve Quote",
       "verifyingAvailability": "Verifying availability...",
@@ -709,7 +697,6 @@
       "additionalNotes": "Additional notes for the rental...",
       "approveWithWarning": "Approve with Warning"
     },
-
     "surchargeModal": {
       "editSurcharge": "Edit Surcharge",
       "addSurcharge": "Add Surcharge",
@@ -733,6 +720,32 @@
       "surchargeAmount": "Surcharge amount:",
       "updateSurcharge": "Update Surcharge",
       "addSurchargeBtn": "Add Surcharge"
-    }
+    },
+    "surchargeReasonPlaceholder": "Surcharge reason...",
+    "approveQuotation": "Approve Quotation",
+    "checkingAvailability": "Checking availability...",
+    "additionalNotesPlaceholder": "Additional notes...",
+    "assignElementsDeparture": "Assign Elements - Mark Departure",
+    "loadingAvailability": "Loading availability...",
+    "departureObservationsPlaceholder": "Observations at time of departure...",
+    "loadingQuotation": "Loading quotation...",
+    "followUpNotesPlaceholder": "Follow-up notes: what was discussed with the client, result...",
+    "confirmCancellation": "Confirm Cancellation",
+    "eventNamePlaceholder": "E.g.: Garcia-Lopez Wedding",
+    "eventDescPlaceholder": "Event description...",
+    "eventAddressPlaceholder": "Event address...",
+    "registerReturn": "Register Return",
+    "loadingElements": "Loading elements...",
+    "observationsPlaceholder": "Observations...",
+    "returnObservationsPlaceholder": "General return observations...",
+    "searchInCategory": "Search in this category...",
+    "checkAvailability": "Check Availability",
+    "searchProduct": "Search product...",
+    "deleteProduct": "Delete product",
+    "editSurcharge": "Edit surcharge",
+    "deleteSurcharge": "Delete surcharge",
+    "addressPlaceholder": "E.g.: 123 Main St, La Esperanza Farm...",
+    "deleteTransport": "Delete transport",
+    "deliveryInstructionsPlaceholder": "Special delivery instructions, schedules, site access..."
   }
 }

@@ -406,6 +406,11 @@
     "noResultsTitle": "No results",
     "thisSubcategory": "this subcategory",
     "noSubcategoriesCreated": "No subcategories created",
-    "createFirstSubcategoryFor": "Create the first subcategory of \"{{name}}\" to organize your elements"
+    "createFirstSubcategoryFor": "Create the first subcategory of \"{{name}}\" to organize your elements",
+    "addFirstSerialNumber": "Add the first serial number",
+    "moveReasonPlaceholder": "E.g.: Moved for preventive maintenance",
+    "elementNamePlaceholder": "E.g.: Doite Tent 3x3",
+    "locationPlaceholder": "E.g.: Main warehouse",
+    "quantityPlaceholder": "E.g.: 50"
   }
 }

@@ -17,6 +17,12 @@
     "legend": "Legend",
     "dayQuotes": "Day quotes",
     "stats": "Statistics",
-    "operationsCalendar": "Operations Calendar"
+    "operationsCalendar": "Operations Calendar",
+    "totalEvents": "Total Events",
+    "assemblies": "Assemblies",
+    "events": "Events",
+    "disassemblies": "Disassemblies",
+    "approved": "Approved",
+    "loadingProducts": "Loading products..."
   }
 }

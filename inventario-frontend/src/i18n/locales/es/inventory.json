@@ -406,6 +406,11 @@
     "noResultsTitle": "Sin resultados",
     "thisSubcategory": "esta subcategoría",
     "noSubcategoriesCreated": "No hay subcategorías creadas",
-    "createFirstSubcategoryFor": "Crea la primera subcategoría de \"{{name}}\" para organizar tus elementos"
+    "createFirstSubcategoryFor": "Crea la primera subcategoría de \"{{name}}\" para organizar tus elementos",
+    "addFirstSerialNumber": "Agrega el primer número de serie",
+    "moveReasonPlaceholder": "Ej: Movida para mantenimiento preventivo",
+    "elementNamePlaceholder": "Ej: Carpa Doite 3x3",
+    "locationPlaceholder": "Ej: Bodega principal",
+    "quantityPlaceholder": "Ej: 50"
   }
 }

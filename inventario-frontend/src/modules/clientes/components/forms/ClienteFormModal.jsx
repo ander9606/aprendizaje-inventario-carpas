@@ -229,7 +229,7 @@ const ClienteFormModal = ({
                 name="numero_documento"
                 value={formData.numero_documento}
                 onChange={handleChange}
-                placeholder="Ej: 123456789"
+                placeholder={t("clients.documentPlaceholder")}
                 disabled={isLoading}
                 className={`
                   w-full px-4 py-2.5 border rounded-lg

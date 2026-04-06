@@ -17,6 +17,12 @@
     "legend": "Leyenda",
     "dayQuotes": "Cotizaciones del día",
     "stats": "Estadísticas",
-    "operationsCalendar": "Calendario de Operaciones"
+    "operationsCalendar": "Calendario de Operaciones",
+    "totalEvents": "Total Eventos",
+    "assemblies": "Montajes",
+    "events": "Eventos",
+    "disassemblies": "Desmontajes",
+    "approved": "Aprobadas",
+    "loadingProducts": "Cargando productos..."
   }
 }

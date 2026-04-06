@@ -265,7 +265,7 @@ function MoverSerieModal({
           <textarea
             value={formData.descripcion}
             onChange={(e) => setFormData(prev => ({ ...prev, descripcion: e.target.value }))}
-            placeholder="Ej: Movida para mantenimiento preventivo"
+            placeholder={t("inventory.moveReasonPlaceholder")}
             rows={3}
             className="
               w-full px-4 py-2 border border-slate-300 rounded-lg

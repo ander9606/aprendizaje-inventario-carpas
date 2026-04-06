@@ -162,7 +162,7 @@ export default function FotosOrden({ ordenId, tipoOrden = 'montaje', readOnly = 
                     <div className="flex items-start gap-4">
                         <img
                             src={fotoPreview}
-                            alt="Preview"
+                            alt={t("common.image")}
                             className="w-32 h-32 object-cover rounded-lg"
                         />
                         <div className="flex-1 space-y-3">

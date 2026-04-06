@@ -1300,7 +1300,7 @@ const CotizacionFormModal = ({
                 name="evento_nombre"
                 value={formData.evento_nombre}
                 onChange={handleChange}
-                placeholder="Ej: Boda Garcia"
+                placeholder={t("rentals.eventNamePlaceholder")}
                 disabled={isLoading}
                 className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-100"
               />
@@ -1405,7 +1405,7 @@ const CotizacionFormModal = ({
                             }
                           }}
                           disabled={isLoading}
-                          placeholder="Buscar producto..."
+                          placeholder={t("rentals.searchProduct")}
                         />
                       )}
                     </div>
@@ -1414,7 +1414,7 @@ const CotizacionFormModal = ({
                       onClick={() => eliminarProducto(index)}
                       className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors ml-2"
                       disabled={isLoading}
-                      title="Eliminar producto"
+                      title={t("rentals.deleteProduct")}
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -1565,7 +1565,7 @@ const CotizacionFormModal = ({
                                     type="button"
                                     onClick={() => abrirModalRecargo(index, recargoIndex)}
                                     className="p-1 hover:bg-white rounded"
-                                    title="Editar recargo"
+                                    title={t("rentals.editSurcharge")}
                                   >
                                     <Percent className="w-3 h-3 text-slate-400" />
                                   </button>
@@ -1573,7 +1573,7 @@ const CotizacionFormModal = ({
                                     type="button"
                                     onClick={() => eliminarRecargo(index, recargoIndex)}
                                     className="p-1 hover:bg-white rounded text-red-400 hover:text-red-600"
-                                    title="Eliminar recargo"
+                                    title={t("rentals.deleteSurcharge")}
                                 >
                                   <Trash2 className="w-3 h-3" />
                                 </button>
@@ -1713,7 +1713,7 @@ const CotizacionFormModal = ({
                     name="evento_direccion"
                     value={formData.evento_direccion}
                     onChange={handleChange}
-                    placeholder="Ej: Calle 80 #45-20, Finca La Esperanza..."
+                    placeholder={t("rentals.addressPlaceholder")}
                     disabled={isLoading}
                     className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-100"
                   />
@@ -1897,7 +1897,7 @@ const CotizacionFormModal = ({
                             onClick={() => eliminarTransporte(index)}
                             className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                             disabled={isLoading}
-                            title="Eliminar transporte"
+                            title={t("rentals.deleteTransport")}
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -1942,7 +1942,7 @@ const CotizacionFormModal = ({
             name="notas"
             value={formData.notas}
             onChange={handleChange}
-            placeholder="Instrucciones especiales de entrega, horarios, acceso al lugar..."
+            placeholder={t("rentals.deliveryInstructionsPlaceholder")}
             rows={3}
             disabled={isLoading}
             className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-100 resize-none"

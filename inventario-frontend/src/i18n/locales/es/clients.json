@@ -96,6 +96,7 @@
     "createFirstCityDesc": "Crea tu primera ciudad para empezar",
     "createFirstCity": "Crear primera ciudad",
     "cityPlaceholder": "Ej: Medellín",
-    "departmentName": "Nombre del departamento"
+    "departmentName": "Nombre del departamento",
+    "documentPlaceholder": "Ej: 123456789"
   }
 }

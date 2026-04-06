@@ -238,7 +238,7 @@ const ProductoSelectorTarjetas = ({
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
         <input
           type="text"
-          placeholder="Buscar en esta categoria..."
+          placeholder={t("rentals.searchInCategory")}
           value={busqueda}
           onChange={(e) => setBusqueda(e.target.value)}
           className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"

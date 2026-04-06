@@ -794,6 +794,10 @@
     "markAsCompleted": "¿Marcar esta orden como completada?",
     "cancelWorkOrder": "Cancelar orden de trabajo",
     "cancelWorkOrderMessage": "¿Estás seguro de cancelar esta orden? Esta acción no se puede deshacer y los recursos asignados serán liberados.",
-    "yesCancelOrder": "Sí, cancelar orden"
+    "yesCancelOrder": "Sí, cancelar orden",
+    "sendWhatsApp": "Enviar por WhatsApp",
+    "assemblyFinished": "Montaje terminado",
+    "enlargedPhoto": "Foto ampliada",
+    "evidence": "Evidencia"
   }
 }

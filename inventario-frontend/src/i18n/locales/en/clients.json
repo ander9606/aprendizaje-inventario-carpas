@@ -96,6 +96,7 @@
     "createFirstCityDesc": "Create your first city to get started",
     "createFirstCity": "Create first city",
     "cityPlaceholder": "E.g.: New York",
-    "departmentName": "Department name"
+    "departmentName": "Department name",
+    "documentPlaceholder": "E.g.: 123456789"
   }
 }

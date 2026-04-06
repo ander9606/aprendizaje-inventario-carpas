@@ -314,7 +314,7 @@ function CrearLoteModal({
           <UbicacionSelector
             value={formData.ubicacion}
             onChange={handleUbicacionChange}
-            placeholder="Selecciona ubicación del lote"
+            placeholder={t("inventory.selectBatchLocation")}
           />
 
           {errors.ubicacion && (

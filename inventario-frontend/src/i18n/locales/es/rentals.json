@@ -2,7 +2,10 @@
   "rentals": {
     "title": "Alquileres",
     "description": "Cotizaciones, contratos y gestión de alquileres.",
-    "tags": ["Cotizaciones", "Clientes"],
+    "tags": [
+      "Cotizaciones",
+      "Clientes"
+    ],
     "quotes": "Cotizaciones",
     "quote": "Cotización",
     "rental": "Alquiler",
@@ -325,7 +328,6 @@
     "truckExtraLargeDesc": "+15 ton",
     "quotesCount": "{{count}} cotización",
     "quotesCount_plural": "{{count}} cotizaciones",
-
     "timelineEvents": {
       "quoteCreated": "Cotización creada",
       "quoteApproved": "Cotización aprobada",
@@ -346,7 +348,6 @@
       "rentalCancelled": "Alquiler cancelado",
       "noEventsRegistered": "No hay eventos registrados"
     },
-
     "photoEvidence": "Evidencia Fotográfica",
     "loadingPhotos": "Cargando fotos...",
     "enlargedPhoto": "Foto ampliada",
@@ -364,7 +365,6 @@
       "desmontaje": "Desmontaje"
     },
     "photosCount": "{{count}} fotos",
-
     "card": {
       "programado": "Programado",
       "activo": "Activo",
@@ -374,7 +374,6 @@
       "noName": "Sin nombre",
       "viewDetail": "Ver detalle"
     },
-
     "quoteCard": {
       "draft": "Borrador",
       "estimated": "Estimado",
@@ -388,7 +387,6 @@
       "confirmReject": "¿Rechazar esta cotización?",
       "confirmDelete": "¿Eliminar esta cotización? Esta acción no se puede deshacer."
     },
-
     "rateForm": {
       "newRate": "Nueva Tarifa de Transporte",
       "editRate": "Editar Tarifa",
@@ -406,7 +404,6 @@
       "pricePositive": "El precio debe ser mayor a 0",
       "errorSavingRate": "Error al guardar la tarifa"
     },
-
     "quoteForm": {
       "quoteCreatedTitle": "Cotizacion Creada",
       "quoteUpdatedTitle": "Cotizacion Actualizada",
@@ -519,7 +516,6 @@
         "otro": "Otro"
       }
     },
-
     "componentModal": {
       "title": "Componentes: {{name}}",
       "availabilityFor": "Disponibilidad para {{start}} - {{end}}",
@@ -537,7 +533,6 @@
       "missingCount": "Faltan: {{count}}",
       "selectDatesForAvailability": "Seleccione fechas para ver disponibilidad"
     },
-
     "discountSelector": {
       "appliedDiscounts": "Descuentos aplicados",
       "percentageApplied": "Porcentaje aplicado",
@@ -554,7 +549,6 @@
       "manualDiscount": "Descuento manual",
       "discountReasonExample": "Motivo del descuento (ej: Cliente frecuente)"
     },
-
     "productCard": {
       "verifying": "Verificando...",
       "noDates": "Sin fechas",
@@ -564,7 +558,6 @@
       "viewComponents": "Ver {{count}} componente",
       "viewComponents_plural": "Ver {{count}} componentes"
     },
-
     "productSelector": {
       "selectCategory": "Seleccionar Categoria",
       "errorLoadingCategories": "Error al cargar categorías: {{message}}",
@@ -579,7 +572,6 @@
       "noProductsFound": "No se encontraron productos con ese nombre",
       "noProductsInCategory": "No hay productos en esta categoría"
     },
-
     "returnModal": {
       "registerReturn": "Registrar Retorno",
       "expectedReturn": "Retorno esperado: {{date}}",
@@ -603,7 +595,6 @@
       "confirmReturn": "Confirmar Retorno",
       "units": "{{count}} unidades"
     },
-
     "eventForm": {
       "editEvent": "Editar Evento",
       "repeatEventTitle": "Repetir Evento",
@@ -634,7 +625,6 @@
       "updateEvent": "Actualizar",
       "createEvent": "Crear Evento"
     },
-
     "quoteDetailModal": {
       "quotation": "COTIZACIÓN",
       "rentalCompany": "Alquiler de Carpas y Eventos",
@@ -672,7 +662,6 @@
       "cancelledByClient": "Cancelado por el cliente",
       "eventDateMandatory": "La fecha del evento es obligatoria"
     },
-
     "assignModal": {
       "assignElementsDeparture": "Asignar Elementos - Marcar Salida",
       "departure": "Salida: {{date}}",
@@ -688,7 +677,6 @@
       "elementsReady": "{{ready}} de {{total}} elementos listos",
       "confirmDeparture": "Confirmar Salida"
     },
-
     "approveModal": {
       "title": "Aprobar Cotización",
       "verifyingAvailability": "Verificando disponibilidad...",
@@ -709,7 +697,6 @@
       "additionalNotes": "Notas adicionales para el alquiler...",
       "approveWithWarning": "Aprobar con Advertencia"
     },
-
     "surchargeModal": {
       "editSurcharge": "Editar Recargo",
       "addSurcharge": "Agregar Recargo",
@@ -733,6 +720,32 @@
       "surchargeAmount": "Monto recargo:",
       "updateSurcharge": "Actualizar Recargo",
       "addSurchargeBtn": "Agregar Recargo"
-    }
+    },
+    "surchargeReasonPlaceholder": "Razón del recargo...",
+    "approveQuotation": "Aprobar Cotización",
+    "checkingAvailability": "Verificando disponibilidad...",
+    "additionalNotesPlaceholder": "Notas adicionales...",
+    "assignElementsDeparture": "Asignar Elementos - Marcar Salida",
+    "loadingAvailability": "Cargando disponibilidad...",
+    "departureObservationsPlaceholder": "Observaciones al momento de la salida...",
+    "loadingQuotation": "Cargando cotización...",
+    "followUpNotesPlaceholder": "Notas del seguimiento: qué se habló con el cliente, resultado...",
+    "confirmCancellation": "Confirmar Cancelación",
+    "eventNamePlaceholder": "Ej: Boda García-López",
+    "eventDescPlaceholder": "Descripción del evento...",
+    "eventAddressPlaceholder": "Dirección del evento...",
+    "registerReturn": "Registrar Retorno",
+    "loadingElements": "Cargando elementos...",
+    "observationsPlaceholder": "Observaciones...",
+    "returnObservationsPlaceholder": "Observaciones generales del retorno...",
+    "searchInCategory": "Buscar en esta categoría...",
+    "checkAvailability": "Verificar Disponibilidad",
+    "searchProduct": "Buscar producto...",
+    "deleteProduct": "Eliminar producto",
+    "editSurcharge": "Editar recargo",
+    "deleteSurcharge": "Eliminar recargo",
+    "addressPlaceholder": "Ej: Calle 80 #45-20, Finca La Esperanza...",
+    "deleteTransport": "Eliminar transporte",
+    "deliveryInstructionsPlaceholder": "Instrucciones especiales de entrega, horarios, acceso al lugar..."
   }
 }

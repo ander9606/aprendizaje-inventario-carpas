@@ -230,7 +230,7 @@ const EventoFormModal = ({
                         name="nombre"
                         value={formData.nombre}
                         onChange={handleChange}
-                        placeholder="Ej: Boda García-López"
+                        placeholder={t("rentals.eventNamePlaceholder")}
                         className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 ${
                             errors.nombre ? 'border-red-300' : 'border-slate-200'
                         }`}
@@ -251,7 +251,7 @@ const EventoFormModal = ({
                         value={formData.descripcion}
                         onChange={handleChange}
                         rows={2}
-                        placeholder="Descripción del evento..."
+                        placeholder={t("rentals.eventDescPlaceholder")}
                         className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 resize-none"
                     />
                 </div>
@@ -369,7 +369,7 @@ const EventoFormModal = ({
                         name="direccion"
                         value={formData.direccion}
                         onChange={handleChange}
-                        placeholder="Dirección del evento..."
+                        placeholder={t("rentals.eventAddressPlaceholder")}
                         className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                     />
                     <p className="text-xs text-slate-500 mt-1">
@@ -387,7 +387,7 @@ const EventoFormModal = ({
                         value={formData.notas}
                         onChange={handleChange}
                         rows={2}
-                        placeholder="Notas adicionales..."
+                        placeholder={t("rentals.additionalNotesPlaceholder")}
                         className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 resize-none"
                     />
                 </div>

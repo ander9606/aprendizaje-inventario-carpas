@@ -53,35 +53,35 @@ const CalendarStats = ({ stats = {} }) => {
     <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
       <StatCard
         icon={Calendar}
-        label="Total Eventos"
+        label={t("calendar.totalEvents")}
         value={total}
         color="slate"
       />
 
       <StatCard
         icon={Wrench}
-        label="Montajes"
+        label={t("calendar.assemblies")}
         value={porTipo.montaje || 0}
         color="blue"
       />
 
       <StatCard
         icon={PartyPopper}
-        label="Eventos"
+        label={t("calendar.events")}
         value={porTipo.evento || 0}
         color="green"
       />
 
       <StatCard
         icon={PackageOpen}
-        label="Desmontajes"
+        label={t("calendar.disassemblies")}
         value={porTipo.desmontaje || 0}
         color="amber"
       />
 
       <StatCard
         icon={TrendingUp}
-        label="Aprobadas"
+        label={t("calendar.approved")}
         value={porEstado.aprobada || 0}
         color="purple"
       />

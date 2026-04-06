@@ -273,7 +273,7 @@ function ElementoFormModal({
             name="nombre"
             value={formData.nombre}
             onChange={handleInputChange}
-            placeholder="Ej: Carpa Doite 3x3"
+            placeholder={t("inventory.elementNamePlaceholder")}
             className={`
               w-full px-4 py-2 border rounded-lg
               focus:outline-none focus:ring-2
@@ -511,7 +511,7 @@ function ElementoFormModal({
           onChange={(ubicacion) =>
             setFormData((prev) => ({ ...prev, ubicacion }))
           }
-          placeholder="Ej: Bodega principal"
+          placeholder={t("inventory.locationPlaceholder")}
         />
 
         {/* ============================================
@@ -527,7 +527,7 @@ function ElementoFormModal({
             value={formData.cantidad}
             onChange={handleCantidadChange}
             min="0"
-            placeholder="Ej: 50"
+            placeholder={t("inventory.quantityPlaceholder")}
             className={`
               w-full px-4 py-2 border rounded-lg
               focus:outline-none focus:ring-2
