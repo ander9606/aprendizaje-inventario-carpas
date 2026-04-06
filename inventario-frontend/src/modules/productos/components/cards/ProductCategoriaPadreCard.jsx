@@ -42,6 +42,8 @@ function ProductCategoriaPadreCard({
   onCrearSubcategoria,
   onDeleted,
 }) {
+  const { t } = useTranslation()
+
   // Estado para el SymbolPicker
   const [showSymbolPicker, setShowSymbolPicker] = useState(false)
   const [emojiActual, setEmojiActual] = useState(categoria.emoji || '📦')
@@ -102,7 +104,7 @@ function ProductCategoriaPadreCard({
     // Verificar si tiene subcategorías
     if (totalSubcategorias > 0) {
       toast.error(
-        `No se puede eliminar. Esta categoría tiene ${totalSubcategorias} subcategoría(s).`
+        `${t('products.cannotDeleteCategory')} ${totalSubcategorias} ${t('products.subcategoriesAssociated')}`
       )
       return
     }
@@ -110,24 +112,24 @@ function ProductCategoriaPadreCard({
     // Verificar si tiene productos
     if (totalProductos > 0) {
       toast.error(
-        `No se puede eliminar. Esta categoría tiene ${totalProductos} plantilla(s) asociada(s).`
+        `${t('products.cannotDeleteCategory')} ${totalProductos} ${t('products.templatesAssociated')}`
       )
       return
     }
 
     const confirmacion = confirm(
-      `¿Estás seguro de eliminar la categoría "${categoria.nombre}"?\n\nEsta acción no se puede deshacer.`
+      `${t('products.confirmDeleteCategory')} "${categoria.nombre}"?\n\n${t('common.actionCannotBeUndone')}`
     )
 
     if (confirmacion) {
       try {
         await deleteCategoria(categoria.id)
-        toast.success('Categoría eliminada exitosamente')
+        toast.success(t('common.messages.success.categoryDeleted'))
         onDeleted?.()
       } catch (error) {
         console.error('Error al eliminar categoría:', error)
         toast.error(
-          error.response?.data?.mensaje || 'Error al eliminar la categoría'
+          error.response?.data?.mensaje || t('common.messages.error.deleteError')
         )
       }
     }
@@ -149,7 +151,7 @@ function ProductCategoriaPadreCard({
               setShowSymbolPicker(true)
             }}
             className="cursor-pointer hover:scale-110 transition-transform flex items-center justify-center"
-            title="Click para cambiar el icono"
+            title={t('common.clickToChangeIcon')}
           >
             <SymbolRenderer
               value={emojiActual}
@@ -176,7 +178,7 @@ function ProductCategoriaPadreCard({
                 setShowMenu(!showMenu)
               }}
               className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-700 transition-colors"
-              title="Más opciones"
+              title={t('common.moreOptions')}
             >
               <MoreVertical className="w-5 h-5" />
             </button>
@@ -194,7 +196,7 @@ function ProductCategoriaPadreCard({
                   className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
                 >
                   <Edit className="w-4 h-4" />
-                  Editar
+                  {t('common.edit')}
                 </button>
                 <button
                   type="button"
@@ -206,7 +208,7 @@ function ProductCategoriaPadreCard({
                   className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
                 >
                   <Plus className="w-4 h-4" />
-                  Nueva Subcategoría
+                  {t('products.newSubcategory')}
                 </button>
                 <div className="border-t border-slate-100 my-1" />
                 <button
@@ -219,7 +221,7 @@ function ProductCategoriaPadreCard({
                   className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 disabled:opacity-50"
                 >
                   <Trash2 className="w-4 h-4" />
-                  {isDeleting ? 'Eliminando...' : 'Eliminar'}
+                  {isDeleting ? t('common.deleting') : t('common.delete')}
                 </button>
               </div>
             )}
@@ -232,15 +234,14 @@ function ProductCategoriaPadreCard({
           <div className="flex items-center gap-2">
             <Folder className="w-5 h-5" />
             <span className="font-medium">
-              {totalSubcategorias} subcategoría
-              {totalSubcategorias !== 1 ? 's' : ''}
+              {t('products.categoryCard.subcategoriesCount', { count: totalSubcategorias })}
             </span>
           </div>
           {totalProductos > 0 && (
             <div className="flex items-center gap-2">
               <Tent className="w-5 h-5" />
               <span>
-                {totalProductos} plantilla{totalProductos !== 1 ? 's' : ''}
+                {t('products.categoryCard.templatesCount', { count: totalProductos })}
               </span>
             </div>
           )}
@@ -257,7 +258,7 @@ function ProductCategoriaPadreCard({
             onClick()
           }}
         >
-          Ver Subcategorías
+          {t('products.viewSubcategories')}
         </Button>
       </Card.Footer>
 

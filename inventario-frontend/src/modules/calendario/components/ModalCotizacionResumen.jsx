@@ -26,6 +26,7 @@ import { useTranslation } from 'react-i18next'
 // ============================================
 
 const formatCurrency = (value) => {
+  const { t } = useTranslation()
   return new Intl.NumberFormat('es-CO', {
     style: 'currency',
     currency: 'COP',
@@ -62,6 +63,7 @@ const TIPO_CONFIG = {
  * Carga los productos vía useGetCotizacionCompleta
  */
 export default function ModalCotizacionResumen({ isOpen, onClose, cotizacion, tipoEvento, onVerDetalle }) {
+    const { t } = useTranslation()
   // Cargar cotización completa (con productos) cuando el modal está abierto
   const { cotizacion: cotizacionCompleta, isLoading } = useGetCotizacionCompleta(
     isOpen ? cotizacion?.id : null
@@ -165,7 +167,7 @@ export default function ModalCotizacionResumen({ isOpen, onClose, cotizacion, ti
           </h4>
           {isLoading ? (
             <div className="py-4">
-              <Spinner size="sm" text="Cargando productos..." />
+              <Spinner size="sm" text={t("calendar.loadingProducts")} />
             </div>
           ) : productos.length > 0 ? (
             <div className="border border-slate-200 rounded-lg overflow-hidden">

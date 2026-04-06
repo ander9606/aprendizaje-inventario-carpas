@@ -40,7 +40,7 @@ const DisponibilidadModal = ({
   }).filter(p => p.compuesto_id)
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Verificar Disponibilidad" size="lg">
+    <Modal isOpen={isOpen} onClose={onClose} title={t("rentals.checkAvailability")} size="lg">
       {/* Resumen de fechas */}
       <div className="bg-slate-50 rounded-lg p-4 mb-4">
         <div className="flex items-center gap-2 text-sm text-slate-600 mb-2">

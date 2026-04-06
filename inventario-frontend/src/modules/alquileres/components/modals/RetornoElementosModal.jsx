@@ -174,7 +174,7 @@ const RetornoElementosModal = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Registrar Retorno"
+      title={t("rentals.registerReturn")}
       size="xl"
     >
       {/* Info del alquiler */}
@@ -198,7 +198,7 @@ const RetornoElementosModal = ({
       {/* Contenido */}
       {loadingAlquiler ? (
         <div className="flex justify-center py-12">
-          <Spinner size="lg" text="Cargando elementos..." />
+          <Spinner size="lg" text={t("rentals.loadingElements")} />
         </div>
       ) : elementos.length === 0 ? (
         <div className="text-center py-12">
@@ -291,7 +291,7 @@ const RetornoElementosModal = ({
                       type="text"
                       value={retorno.notas_retorno || ''}
                       onChange={(e) => handleCambiarEstado(elem.id, 'notas_retorno', e.target.value)}
-                      placeholder="Observaciones..."
+                      placeholder={t("rentals.observationsPlaceholder")}
                       className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                     />
                   </div>
@@ -308,7 +308,7 @@ const RetornoElementosModal = ({
             <textarea
               value={notasRetorno}
               onChange={(e) => setNotasRetorno(e.target.value)}
-              placeholder="Observaciones generales del retorno..."
+              placeholder={t("rentals.returnObservationsPlaceholder")}
               rows={3}
               className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
             />

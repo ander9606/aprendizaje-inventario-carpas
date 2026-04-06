@@ -193,7 +193,7 @@ export default function ModalInventarioCliente({ ordenId, onClose }) {
                         onClick={handleWhatsApp}
                         disabled={isLoading || !inventario}
                         className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-green-700 bg-green-50 hover:bg-green-100 rounded-lg transition-colors disabled:opacity-50"
-                        title="Enviar por WhatsApp"
+                        title={t("operations.sendWhatsApp")}
                     >
                         <MessageCircle className="w-4 h-4" />
                         <span className="hidden sm:inline">WhatsApp</span>
@@ -304,7 +304,7 @@ export default function ModalInventarioCliente({ ordenId, onClose }) {
                                         >
                                             <img
                                                 src={`${API_URL}${foto.imagen_url}`}
-                                                alt="Montaje terminado"
+                                                alt={t("operations.assemblyFinished")}
                                                 className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                                                 loading="lazy"
                                             />
@@ -460,7 +460,7 @@ export default function ModalInventarioCliente({ ordenId, onClose }) {
                     <div onClick={(e) => e.stopPropagation()} className="relative max-w-3xl w-full">
                         <img
                             src={`${API_URL}${visorFoto.imagen_url}`}
-                            alt="Foto ampliada"
+                            alt={t("operations.enlargedPhoto")}
                             className="w-full max-h-[80vh] object-contain rounded-lg"
                         />
                         <button

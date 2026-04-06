@@ -23,6 +23,7 @@ const CategoriaProductoFormModal = ({
   categoria = null,
   categoriaPadreId = null // Para crear subcategoría directamente
 }) => {
+  const { t } = useTranslation()
   const isEditMode = categoria && categoria.id
 
   // ============================================
@@ -242,7 +243,7 @@ const CategoriaProductoFormModal = ({
               name="nombre"
               value={formData.nombre}
               onChange={handleChange}
-              placeholder={formData.categoria_padre_id ? "Ej: P10, P14, Sillas..." : "Ej: Carpas, Mobiliario, Iluminación..."}
+              placeholder={formData.categoria_padre_id ? t("products.subcategoryPlaceholder") : t("products.categoryPlaceholder")}
               disabled={isLoading}
               autoFocus
               className={`
@@ -292,7 +293,7 @@ const CategoriaProductoFormModal = ({
               name="descripcion"
               value={formData.descripcion}
               onChange={handleChange}
-              placeholder="Breve descripción de esta categoría..."
+              placeholder={t("products.categoryDescPlaceholder")}
               disabled={isLoading}
               rows={2}
               className="

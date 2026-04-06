@@ -70,6 +70,27 @@
     "confirmDeleteCategory": "¿Estás seguro de eliminar la categoría",
     "confirmDeleteSubcategory": "¿Estás seguro de eliminar la subcategoría",
     "cannotDeleteSubcategory": "No se puede eliminar. Esta subcategoría tiene",
-    "deleteCompositeElement": "Eliminar Elemento Compuesto"
+    "deleteCompositeElement": "Eliminar Elemento Compuesto",
+    "subcategoryPlaceholder": "Ej: P10, P14, Sillas...",
+    "categoryPlaceholder": "Ej: Carpas, Mobiliario, Iluminación...",
+    "categoryDescPlaceholder": "Breve descripción de esta categoría...",
+    "createNewCategory": "Crear nueva categoría",
+    "productNamePlaceholder": "Ej: Carpa P10 Completa",
+    "productCodePlaceholder": "Ej: CARPA-P10",
+    "productDescPlaceholder": "Descripción del producto...",
+    "searchInventoryElement": "Buscar elemento del inventario...",
+    "groupNamePlaceholder": "Nombre del grupo (ej: anclajes)",
+    "searchElement": "Buscar elemento...",
+    "searchAdditionalElement": "Buscar elemento adicional...",
+    "categoryCard": {
+      "confirmDeleteCategory": "¿Eliminar esta categoría?",
+      "confirmDeleteSubcategory": "¿Eliminar esta subcategoría?",
+      "deleteHasProductsWarning": "Esta categoría tiene productos asociados",
+      "deleteHasSubcategoriesWarning": "Esta categoría tiene subcategorías",
+      "productsCount": "{{count}} producto(s)",
+      "subcategoriesCount": "{{count}} subcategoría(s)",
+      "templatesCount": "{{count}} plantilla(s)",
+      "viewProducts": "Ver productos"
+    }
   }
 }

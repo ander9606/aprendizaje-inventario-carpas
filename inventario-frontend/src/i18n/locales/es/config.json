@@ -88,6 +88,9 @@
     "info": "Info",
     "total": "Total",
     "subtitle": "Gestiona los datos maestros del sistema",
-    "backToModules": "Volver a Módulos"
+    "backToModules": "Volver a Módulos",
+    "alertCount": "{{count}} alerta(s)",
+    "criticalCount": "{{count}} crítica(s)",
+    "warningCount": "{{count}} advertencia(s)"
   }
 }

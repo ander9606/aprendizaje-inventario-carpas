@@ -70,6 +70,27 @@
     "confirmDeleteCategory": "Are you sure you want to delete the category",
     "confirmDeleteSubcategory": "Are you sure you want to delete the subcategory",
     "cannotDeleteSubcategory": "Cannot delete. This subcategory has",
-    "deleteCompositeElement": "Delete Composite Element"
+    "deleteCompositeElement": "Delete Composite Element",
+    "subcategoryPlaceholder": "E.g.: P10, P14, Chairs...",
+    "categoryPlaceholder": "E.g.: Tents, Furniture, Lighting...",
+    "categoryDescPlaceholder": "Brief description of this category...",
+    "createNewCategory": "Create new category",
+    "productNamePlaceholder": "E.g.: P10 Complete Tent",
+    "productCodePlaceholder": "E.g.: TENT-P10",
+    "productDescPlaceholder": "Product description...",
+    "searchInventoryElement": "Search inventory element...",
+    "groupNamePlaceholder": "Group name (e.g.: anchors)",
+    "searchElement": "Search element...",
+    "searchAdditionalElement": "Search additional element...",
+    "categoryCard": {
+      "confirmDeleteCategory": "Delete this category?",
+      "confirmDeleteSubcategory": "Delete this subcategory?",
+      "deleteHasProductsWarning": "This category has associated products",
+      "deleteHasSubcategoriesWarning": "This category has subcategories",
+      "productsCount": "{{count}} product(s)",
+      "subcategoriesCount": "{{count}} subcategory(ies)",
+      "templatesCount": "{{count}} template(s)",
+      "viewProducts": "View products"
+    }
   }
 }

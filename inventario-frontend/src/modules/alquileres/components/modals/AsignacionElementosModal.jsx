@@ -246,7 +246,7 @@ const AsignacionElementosModal = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Asignar Elementos - Marcar Salida"
+      title={t("rentals.assignElementsDeparture")}
       size="xl"
     >
       {/* Info del alquiler */}
@@ -270,7 +270,7 @@ const AsignacionElementosModal = ({
       {/* Contenido */}
       {loadingDisponibilidad ? (
         <div className="flex justify-center py-12">
-          <Spinner size="lg" text="Cargando disponibilidad..." />
+          <Spinner size="lg" text={t("rentals.loadingAvailability")} />
         </div>
       ) : !disponibilidad?.elementos || disponibilidad.elementos.length === 0 ? (
         <div className="text-center py-12">
@@ -423,7 +423,7 @@ const AsignacionElementosModal = ({
             <textarea
               value={notasSalida}
               onChange={(e) => setNotasSalida(e.target.value)}
-              placeholder="Observaciones al momento de la salida..."
+              placeholder={t("rentals.departureObservationsPlaceholder")}
               rows={3}
               className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
             />

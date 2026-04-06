@@ -27,6 +27,7 @@ function ElementoCompuestoCard({
   onEliminar,
   formatPrecio,
 }) {
+  const { t } = useTranslation()
   return (
     <div className="bg-white border border-slate-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow">
       {/* Imagen */}
@@ -51,7 +52,7 @@ function ElementoCompuestoCard({
           <h3 className="font-medium text-slate-900">{elemento.nombre}</h3>
           {elemento.codigo && (
             <span className="text-sm text-slate-500">
-              Código: {elemento.codigo}
+              {t('common.code')}: {elemento.codigo}
             </span>
           )}
         </div>
@@ -62,7 +63,7 @@ function ElementoCompuestoCard({
               : 'bg-slate-100 text-slate-600'
           }`}
         >
-          {elemento.activo !== false ? 'Activo' : 'Inactivo'}
+          {elemento.activo !== false ? t('common.active') : t('common.inactive')}
         </span>
       </div>
 
@@ -70,11 +71,11 @@ function ElementoCompuestoCard({
       <div className="space-y-2 mb-4">
         <div className="flex items-center gap-2 text-sm text-slate-600">
           <Package className="w-4 h-4" />
-          <span>{elemento.total_componentes || 0} componentes</span>
+          <span>{elemento.total_componentes || 0} {t('products.components')}</span>
         </div>
         <div className="flex items-center gap-2 text-sm text-slate-600">
           <DollarSign className="w-4 h-4" />
-          <span>Base: {formatPrecio(elemento.precio_base)}</span>
+          <span>{t('products.basePrice')} {formatPrecio(elemento.precio_base)}</span>
         </div>
       </div>
 
@@ -83,21 +84,21 @@ function ElementoCompuestoCard({
         <button
           onClick={onVer}
           className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-          title="Ver detalle"
+          title={t('common.viewDetail')}
         >
           <Eye className="w-4 h-4" />
         </button>
         <button
           onClick={onEditar}
           className="p-2 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
-          title="Editar"
+          title={t('common.edit')}
         >
           <Edit className="w-4 h-4" />
         </button>
         <button
           onClick={onEliminar}
           className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-          title="Eliminar"
+          title={t('common.delete')}
         >
           <Trash2 className="w-4 h-4" />
         </button>

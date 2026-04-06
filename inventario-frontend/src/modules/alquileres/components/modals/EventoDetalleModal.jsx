@@ -156,7 +156,7 @@ const EventoDetalleModal = ({ isOpen, onClose, eventoId, onCrearCotizacion, onEd
 
     return (
         <>
-            <Modal isOpen={isOpen} onClose={onClose} title={t('rentals.eventDetail')} size="xl">
+            <Modal isOpen={isOpen} onClose={onClose} title={t('rentals.eventDetailTitle')} size="xl">
                 {isLoading ? (
                     <div className="flex justify-center py-12">
                         <Spinner size="lg" />

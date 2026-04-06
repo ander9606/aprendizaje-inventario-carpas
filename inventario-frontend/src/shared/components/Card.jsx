@@ -5,6 +5,7 @@
 
 import { useState } from 'react'
 import { MoreVertical } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 /**
  * Componente Card - Tarjeta contenedora
@@ -47,7 +48,8 @@ export const Card = ({
   ...props
 }) => {
   const [menuOpen, setMenuOpen] = useState(false)
-  
+  const { t } = useTranslation()
+
   // ============================================
   // ESTILOS BASE
   // ============================================

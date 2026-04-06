@@ -158,7 +158,7 @@ const UbicacionCard = ({
       console.log('✅ Ubicación marcada como principal')
     } catch (error) {
       console.error('❌ Error al marcar como principal:', error)
-      const mensaje = error.response?.data?.message || t('inventory.cannotMarkAsPrincipal')
+      const mensaje = error.response?.data?.message || t('inventory.cannotDeleteLocation')
       alert(mensaje)
     }
   }
@@ -191,7 +191,7 @@ const UbicacionCard = ({
               {!!ubicacion.es_principal && (
                 <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-bold rounded-full bg-yellow-100 text-yellow-800 border border-yellow-300">
                   <Star className="w-3 h-3 fill-yellow-500" />
-                  PRINCIPAL
+                  {t('common.principal')}
                 </span>
               )}
 

@@ -577,6 +577,7 @@ function StepIndicator({ steps, currentStep, onStepClick }) {
 // ============================================
 
 function Step1InfoBasica({ formData, errors, categorias, loadingCategorias, onChange, onOpenCategoriaModal, imagenUrl, onSubirImagen, onEliminarImagen, isUploadingImagen }) {
+  const { t } = useTranslation()
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2 mb-4">
@@ -624,7 +625,7 @@ function Step1InfoBasica({ formData, errors, categorias, loadingCategorias, onCh
             type="button"
             onClick={onOpenCategoriaModal}
             className="px-3 py-2 bg-emerald-50 text-emerald-700 border border-emerald-300 rounded-lg hover:bg-emerald-100 transition-colors flex items-center gap-1"
-            title="Crear nueva categoría"
+            title={t("products.createNewCategory")}
           >
             <Plus className="w-4 h-4" />
           </button>
@@ -644,7 +645,7 @@ function Step1InfoBasica({ formData, errors, categorias, loadingCategorias, onCh
           name="nombre"
           value={formData.nombre}
           onChange={onChange}
-          placeholder="Ej: Carpa P10 Completa"
+          placeholder={t("products.productNamePlaceholder")}
           className={`
             w-full px-4 py-2 border rounded-lg
             focus:outline-none focus:ring-2 focus:ring-emerald-500
@@ -667,7 +668,7 @@ function Step1InfoBasica({ formData, errors, categorias, loadingCategorias, onCh
             name="codigo"
             value={formData.codigo}
             onChange={onChange}
-            placeholder="Ej: CARPA-P10"
+            placeholder={t("products.productCodePlaceholder")}
             className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
           />
         </div>
@@ -731,7 +732,7 @@ function Step1InfoBasica({ formData, errors, categorias, loadingCategorias, onCh
           value={formData.descripcion}
           onChange={onChange}
           rows={3}
-          placeholder="Descripción del producto..."
+          placeholder={t("products.productDescPlaceholder")}
           className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none"
         />
       </div>
@@ -810,7 +811,7 @@ function Step2ComponentesFijos({ componentes, setComponentes, elementosInventari
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Buscar elemento del inventario..."
+              placeholder={t("products.searchInventoryElement")}
               className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
               autoFocus
             />
@@ -977,7 +978,7 @@ function Step3Alternativas({ grupos, setGrupos, elementosInventario }) {
           type="text"
           value={nuevoGrupo}
           onChange={(e) => setNuevoGrupo(e.target.value)}
-          placeholder="Nombre del grupo (ej: anclajes)"
+          placeholder={t("products.groupNamePlaceholder")}
           className="flex-1 px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
           onKeyDown={(e) => e.key === 'Enter' && agregarGrupo()}
         />
@@ -1113,7 +1114,7 @@ function GrupoAlternativaCard({
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Buscar elemento..."
+            placeholder={t("products.searchElement")}
             className="w-full px-3 py-1 border border-slate-300 rounded text-sm mb-2"
             autoFocus
           />
@@ -1202,7 +1203,7 @@ function Step4Adicionales({ componentes, setComponentes, elementosInventario }) 
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Buscar elemento adicional..."
+              placeholder={t("products.searchAdditionalElement")}
               className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
               autoFocus
             />

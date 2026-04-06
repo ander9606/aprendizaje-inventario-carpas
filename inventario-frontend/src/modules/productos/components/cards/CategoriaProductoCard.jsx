@@ -30,6 +30,7 @@ const CategoriaProductoCard = ({
   // ============================================
   // ESTADO LOCAL
   // ============================================
+  const { t } = useTranslation()
   const [mostrarEmojiPicker, setMostrarEmojiPicker] = useState(false)
   const [emojiActual, setEmojiActual] = useState(categoria.emoji || '📦')
 
@@ -85,8 +86,8 @@ const CategoriaProductoCard = ({
     e.stopPropagation()
 
     const mensaje = esPadre
-      ? `¿Eliminar categoría "${categoria.nombre}"?\n\nSi tiene subcategorías, deberás eliminarlas primero.`
-      : `¿Eliminar subcategoría "${categoria.nombre}"?\n\nSi tiene productos asociados, no podrá eliminarse.`
+      ? `${t('products.categoryCard.confirmDeleteCategory', { name: categoria.nombre })}\n\n${t('products.categoryCard.deleteHasSubcategoriesWarning')}`
+      : `${t('products.categoryCard.confirmDeleteSubcategory', { name: categoria.nombre })}\n\n${t('products.categoryCard.deleteHasProductsWarning')}`
 
     if (!confirm(mensaje)) return
 
@@ -119,7 +120,7 @@ const CategoriaProductoCard = ({
               setMostrarEmojiPicker(true)
             }}
             className="cursor-pointer hover:scale-110 transition-transform flex items-center justify-center"
-            title="Cambiar icono"
+            title={t('common.clickToChangeIcon')}
             type="button"
           >
             <IconoCategoria
@@ -137,7 +138,7 @@ const CategoriaProductoCard = ({
             {/* Mostrar categoría padre si es subcategoría */}
             {!esPadre && categoria.categoria_padre_nombre && (
               <span className="text-xs text-slate-500">
-                en {categoria.categoria_padre_nombre}
+                {t('common.in')} {categoria.categoria_padre_nombre}
               </span>
             )}
           </div>
@@ -150,7 +151,7 @@ const CategoriaProductoCard = ({
               : 'bg-green-100 text-green-700'
             }
           `}>
-            {esPadre ? 'Categoría' : 'Subcategoría'}
+            {esPadre ? t('common.category') : t('common.subcategory')}
           </span>
         </div>
       </Card.Header>
@@ -163,7 +164,7 @@ const CategoriaProductoCard = ({
             <div className="flex items-center gap-2">
               <Folder className="w-5 h-5" />
               <span className="font-medium">
-                {totalHijos || categoria.hijos?.length || 0} subcategoría{(totalHijos || categoria.hijos?.length || 0) !== 1 ? 's' : ''}
+                {t('products.categoryCard.subcategoriesCount', { count: totalHijos || categoria.hijos?.length || 0 })}
               </span>
             </div>
           )}
@@ -172,7 +173,7 @@ const CategoriaProductoCard = ({
           <div className="flex items-center gap-2">
             <Package className="w-5 h-5" />
             <span className="font-medium">
-              {totalProductos} producto{totalProductos !== 1 ? 's' : ''}
+              {t('products.categoryCard.productsCount', { count: totalProductos })}
             </span>
           </div>
         </div>
@@ -189,7 +190,7 @@ const CategoriaProductoCard = ({
             icon={<ChevronRight />}
             onClick={handleVerContenido}
           >
-            {esPadre ? `Ver subcategorías` : `Ver productos`}
+            {esPadre ? t('products.viewSubcategories') : t('products.categoryCard.viewProducts')}
           </Button>
 
           {/* Crear hijo (subcategoría para padres, o podría ser producto) */}
@@ -200,7 +201,7 @@ const CategoriaProductoCard = ({
               icon={<Plus />}
               onClick={handleCrearHijo}
             >
-              Nueva subcategoría
+              {t('products.newSubcategory')}
             </Button>
           )}
         </div>
@@ -214,7 +215,7 @@ const CategoriaProductoCard = ({
             onClick={handleEdit}
             className="flex-1"
           >
-            Editar
+            {t('common.edit')}
           </Button>
 
           <Button
@@ -226,7 +227,7 @@ const CategoriaProductoCard = ({
             disabled={isDeleting}
             className="flex-1"
           >
-            Eliminar
+            {t('common.delete')}
           </Button>
         </div>
       </Card.Footer>

@@ -189,7 +189,7 @@ const CotizacionDetalleModal = ({
     >
       {isLoading ? (
         <div className="py-12">
-          <Spinner size="lg" text="Cargando cotización..." />
+          <Spinner size="lg" text={t("rentals.loadingQuotation")} />
         </div>
       ) : !cotizacion ? (
         <div className="py-12 text-center text-slate-500">
@@ -520,7 +520,7 @@ const CotizacionDetalleModal = ({
                       value={notasSeguimiento}
                       onChange={(e) => setNotasSeguimiento(e.target.value)}
                       rows={2}
-                      placeholder="Notas del seguimiento: que se hablo con el cliente, resultado..."
+                      placeholder={t("rentals.followUpNotesPlaceholder")}
                       className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 resize-none"
                     />
                     <div className="flex gap-2 justify-end mt-2">
@@ -746,11 +746,11 @@ const CotizacionDetalleModal = ({
               setNotasCancelacion('')
             }}
             onConfirm={handleCancelarAlquiler}
-            title="Cancelar Alquiler"
+            title={t("rentals.cancelRental")}
             message="¿Está seguro de cancelar este alquiler? Esta acción liberará el inventario reservado."
             variant="danger"
-            confirmText="Confirmar Cancelación"
-            cancelText="Volver"
+            confirmText={t("rentals.confirmCancellation")}
+            cancelText={t("common.back")}
             loading={cancelarMutation.isPending}
             icon={Ban}
           />

@@ -50,6 +50,7 @@ const CalendarLegend = ({
   showEstados = false,
   orientation = 'horizontal'
 }) => {
+    const { t } = useTranslation()
   const containerClass = orientation === 'horizontal'
     ? 'flex flex-wrap items-center gap-4'
     : 'flex flex-col gap-2'
@@ -77,7 +78,7 @@ const CalendarLegend = ({
                   {getTipoIcon(tipo)}
                 </div>
                 <span className="text-xs text-slate-600">
-                  {getTipoLabel(tipo)}
+                  {getTipoLabel(tipo, t)}
                 </span>
               </div>
             ))}

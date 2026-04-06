@@ -37,7 +37,7 @@ import { useTranslation } from 'react-i18next'
 // COMPONENTE: Fila de Elemento con Checkbox
 // ============================================
 const ElementoCheckItem = ({ elemento, modo, onToggle, onMarcarDano, isPending, isDanoPending }) => {
-  const { t } = useTranslation()
+    const { t } = useTranslation()
     const [showNotas, setShowNotas] = useState(false)
     const [notas, setNotas] = useState(elemento.notas || '')
     const [showDanoForm, setShowDanoForm] = useState(false)
@@ -80,11 +80,11 @@ const ElementoCheckItem = ({ elemento, modo, onToggle, onMarcarDano, isPending, 
 
     const handleGuardarDano = () => {
         if (!descripcionDano.trim()) {
-            toast.error('Debe describir el daño')
+            toast.error(t('operations.checklist.mustDescribeDamage'))
             return
         }
         if (esLote && (!cantidadDanada || cantidadDanada < 1)) {
-            toast.error('Debe indicar la cantidad dañada')
+            toast.error(t('operations.checklist.mustIndicateQuantity'))
             return
         }
         onMarcarDano(elemento.id, true, descripcionDano.trim(), esLote ? cantidadDanada : null)
@@ -124,7 +124,7 @@ const ElementoCheckItem = ({ elemento, modo, onToggle, onMarcarDano, isPending, 
                         {tieneDano && (
                             <span className="px-1.5 py-0.5 bg-amber-100 text-amber-700 text-xs rounded font-medium flex items-center gap-1">
                                 <AlertTriangle className="w-3 h-3" />
-                                Daño
+                                {t('operations.damage')}
                             </span>
                         )}
                     </div>
@@ -145,7 +145,7 @@ const ElementoCheckItem = ({ elemento, modo, onToggle, onMarcarDano, isPending, 
                     {/* Descripción del daño preview */}
                     {tieneDano && elemento.descripcion_dano && !showDanoForm && (
                         <p className="text-xs text-amber-600 mt-0.5 italic truncate">
-                            Daño{esLote && elemento.cantidad_danada ? ` (${elemento.cantidad_danada} de ${elemento.cantidad})` : ''}: {elemento.descripcion_dano}
+                            {t('operations.damage')}{esLote && elemento.cantidad_danada ? ` (${elemento.cantidad_danada} ${t('common.of')} ${elemento.cantidad})` : ''}: {elemento.descripcion_dano}
                         </p>
                     )}
                 </div>
@@ -160,7 +160,7 @@ const ElementoCheckItem = ({ elemento, modo, onToggle, onMarcarDano, isPending, 
                                 ? 'text-amber-600 bg-amber-100 hover:bg-amber-200'
                                 : 'text-slate-400 hover:text-amber-600 hover:bg-amber-50'
                         } ${isDanoPending ? 'opacity-50' : ''}`}
-                        title={tieneDano ? 'Quitar marca de daño' : 'Reportar daño'}
+                        title={tieneDano ? t('operations.checklist.removeDamage') : t('operations.checklist.reportDamage')}
                     >
                         <AlertTriangle className="w-4 h-4" />
                     </button>
@@ -174,7 +174,7 @@ const ElementoCheckItem = ({ elemento, modo, onToggle, onMarcarDano, isPending, 
                             ? 'text-blue-600 bg-blue-50'
                             : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'
                     }`}
-                    title="Agregar observación"
+                    title={t('operations.checklist.addObservation')}
                 >
                     <MessageSquare className="w-4 h-4" />
                 </button>
@@ -184,7 +184,7 @@ const ElementoCheckItem = ({ elemento, modo, onToggle, onMarcarDano, isPending, 
             {showDanoForm && !tieneDano && (
                 <div className="mt-2 ml-9 bg-amber-50 border border-amber-200 rounded-lg p-2.5">
                     <div className="flex items-center justify-between mb-1.5">
-                        <span className="text-xs font-medium text-amber-700">Reportar daño</span>
+                        <span className="text-xs font-medium text-amber-700">{t('operations.checklist.reportDamage')}</span>
                         <button onClick={() => setShowDanoForm(false)} className="text-amber-400 hover:text-amber-600 p-0.5">
                             <X className="w-3.5 h-3.5" />
                         </button>
@@ -192,7 +192,7 @@ const ElementoCheckItem = ({ elemento, modo, onToggle, onMarcarDano, isPending, 
                     {esLote && (
                         <div className="mb-2">
                             <label className="block text-xs font-medium text-amber-600 mb-1">
-                                Cantidad dañada (de {elemento.cantidad})
+                                {t('operations.checklist.damagedQuantity', { total: elemento.cantidad })}
                             </label>
                             <input
                                 type="number"
@@ -209,7 +209,7 @@ const ElementoCheckItem = ({ elemento, modo, onToggle, onMarcarDano, isPending, 
                         onChange={(e) => setDescripcionDano(e.target.value)}
                         className="w-full text-sm border border-amber-200 rounded-lg p-2 resize-none focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400 bg-white"
                         rows={2}
-                        placeholder="Describa el daño encontrado..."
+                        placeholder={t('operations.checklist.describeDamage')}
                         autoFocus={!esLote}
                     />
                     <button
@@ -217,7 +217,7 @@ const ElementoCheckItem = ({ elemento, modo, onToggle, onMarcarDano, isPending, 
                         disabled={isDanoPending || !descripcionDano.trim()}
                         className="mt-2 px-3 py-1.5 bg-amber-500 text-white text-xs font-medium rounded-lg hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
-                        Confirmar daño
+                        {t('operations.checklist.confirmDamage')}
                     </button>
                 </div>
             )}
@@ -226,7 +226,7 @@ const ElementoCheckItem = ({ elemento, modo, onToggle, onMarcarDano, isPending, 
             {showNotas && (
                 <div className="mt-2 ml-9 bg-slate-50 border border-slate-200 rounded-lg p-2.5">
                     <div className="flex items-center justify-between mb-1.5">
-                        <span className="text-xs font-medium text-slate-600">Observación</span>
+                        <span className="text-xs font-medium text-slate-600">{t('operations.checklist.observation')}</span>
                         <button onClick={() => setShowNotas(false)} className="text-slate-400 hover:text-slate-600 p-0.5">
                             <X className="w-3.5 h-3.5" />
                         </button>
@@ -238,7 +238,7 @@ const ElementoCheckItem = ({ elemento, modo, onToggle, onMarcarDano, isPending, 
                         onKeyDown={(e) => { if (e.key === 'Escape') setShowNotas(false) }}
                         className="w-full text-sm border border-slate-200 rounded-lg p-2 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 bg-white"
                         rows={2}
-                        placeholder="Ej: Elemento con marca visible..."
+                        placeholder={t('operations.checklist.observationPlaceholder')}
                         autoFocus
                     />
                 </div>
@@ -251,6 +251,7 @@ const ElementoCheckItem = ({ elemento, modo, onToggle, onMarcarDano, isPending, 
 // COMPONENTE: Grupo de Producto
 // ============================================
 const ProductoGroup = ({ compuestoId, nombre, elementos, modo, onToggle, onMarcarDano, isPending, isDanoPending }) => {
+    const { t } = useTranslation()
     const [expanded, setExpanded] = useState(true)
 
     const verificados = elementos.filter(e =>
@@ -274,7 +275,7 @@ const ProductoGroup = ({ compuestoId, nombre, elementos, modo, onToggle, onMarca
                         <Package className="w-5 h-5 text-slate-400" />
                     )}
                     <span className={`font-medium text-sm ${todosVerificados ? 'text-green-800' : 'text-slate-900'}`}>
-                        {nombre || 'Elementos'}
+                        {nombre || t('common.elements')}
                     </span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -318,58 +319,58 @@ const ProductoGroup = ({ compuestoId, nombre, elementos, modo, onToggle, onMarca
 // ============================================
 const MODO_CONFIG = {
     cargue: {
-        titulo: 'Checklist de Cargue',
-        tituloImpresion: 'CHECKLIST DE CARGUE',
+        tituloKey: 'operations.checklist.loadingTitle',
+        tituloImpresionKey: 'operations.checklist.loadingPrintTitle',
         icon: Truck,
         color: 'blue',
         bgIcon: 'bg-blue-100',
         textIcon: 'text-blue-600',
         bgInstruccion: 'bg-blue-50 border-blue-200 text-blue-700',
-        instruccion: 'Marca cada elemento conforme se sube al vehículo. Puedes agregar observaciones si detectas alguna novedad.',
-        columnaVerificado: 'Cargado',
-        mensajeTodosVerificados: 'Todos los elementos han sido verificados para cargue',
-        firmaA: 'Preparó',
-        firmaC: 'Despachó',
-        botonCompleto: 'Cargue Completo'
+        instruccionKey: 'operations.checklist.loadingInstruction',
+        columnaVerificadoKey: 'operations.checklist.loadingColumn',
+        mensajeTodosVerificadosKey: 'operations.checklist.loadingAllVerified',
+        firmaAKey: 'operations.checklist.loadingSignA',
+        firmaCKey: 'operations.checklist.loadingSignC',
+        botonCompletoKey: 'operations.checklist.loadingComplete'
     },
     recogida: {
-        titulo: 'Checklist de Recogida',
-        tituloImpresion: 'CHECKLIST DE RECOGIDA',
+        tituloKey: 'operations.checklist.pickupTitle',
+        tituloImpresionKey: 'operations.checklist.pickupPrintTitle',
         icon: MapPin,
         color: 'orange',
         bgIcon: 'bg-orange-100',
         textIcon: 'text-orange-600',
         bgInstruccion: 'bg-orange-50 border-orange-200 text-orange-700',
-        instruccion: 'Marca cada elemento conforme se recoge del sitio del evento y se sube al vehículo.',
-        columnaVerificado: 'Recogido',
-        mensajeTodosVerificados: 'Todos los elementos han sido recogidos del sitio',
-        firmaA: 'Recogió',
-        firmaC: 'Aprobó',
-        botonCompleto: 'Recogida Completa'
+        instruccionKey: 'operations.checklist.pickupInstruction',
+        columnaVerificadoKey: 'operations.checklist.pickupColumn',
+        mensajeTodosVerificadosKey: 'operations.checklist.pickupAllVerified',
+        firmaAKey: 'operations.checklist.pickupSignA',
+        firmaCKey: 'operations.checklist.pickupSignC',
+        botonCompletoKey: 'operations.checklist.pickupComplete'
     },
     bodega: {
-        titulo: 'Checklist en Bodega',
-        tituloImpresion: 'CHECKLIST EN BODEGA',
+        tituloKey: 'operations.checklist.warehouseTitle',
+        tituloImpresionKey: 'operations.checklist.warehousePrintTitle',
         icon: Home,
         color: 'purple',
         bgIcon: 'bg-purple-100',
         textIcon: 'text-purple-600',
         bgInstruccion: 'bg-purple-50 border-purple-200 text-purple-700',
-        instruccion: 'Marca cada elemento conforme se descarga del vehículo en bodega. Verifica el estado de cada pieza.',
-        columnaVerificado: 'En Bodega',
-        mensajeTodosVerificados: 'Todos los elementos han sido verificados en bodega',
-        firmaA: 'Recibió',
-        firmaC: 'Aprobó',
-        botonCompleto: 'Descarga en Bodega Completa'
+        instruccionKey: 'operations.checklist.warehouseInstruction',
+        columnaVerificadoKey: 'operations.checklist.warehouseColumn',
+        mensajeTodosVerificadosKey: 'operations.checklist.warehouseAllVerified',
+        firmaAKey: 'operations.checklist.warehouseSignA',
+        firmaCKey: 'operations.checklist.warehouseSignC',
+        botonCompletoKey: 'operations.checklist.warehouseComplete'
     }
 }
 
 // ============================================
 // HELPER: Generar HTML imprimible para checklist
 // ============================================
-const generarChecklistPrint = ({ ordenId, ordenInfo, grupos, modo, verificados, total }) => {
+const generarChecklistPrint = ({ ordenId, ordenInfo, grupos, modo, verificados, total, t }) => {
     const config = MODO_CONFIG[modo] || MODO_CONFIG.cargue
-    const titulo = config.tituloImpresion
+    const titulo = t(config.tituloImpresionKey)
     const fecha = ordenInfo?.fecha_programada
         ? new Date(ordenInfo.fecha_programada).toLocaleDateString('es-CO', {
             weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
@@ -430,38 +431,38 @@ const generarChecklistPrint = ({ ordenId, ordenInfo, grupos, modo, verificados, 
 <body>
     <div class="header">
         <h1>${titulo} — Orden #${ordenId}</h1>
-        <div class="sub">${ordenInfo?.tipo === 'montaje' ? 'Montaje' : 'Desmontaje'} — ${ordenInfo?.evento_nombre || ''}</div>
+        <div class="sub">${ordenInfo?.tipo === 'montaje' ? t('operations.assembly') : t('operations.disassembly')} — ${ordenInfo?.evento_nombre || ''}</div>
     </div>
     <div class="info">
-        <div class="info-item"><span class="info-label">Cliente:</span><span class="info-value">${ordenInfo?.cliente_nombre || '-'}</span></div>
-        <div class="info-item"><span class="info-label">Fecha:</span><span class="info-value">${fecha}</span></div>
-        <div class="info-item"><span class="info-label">Ubicación:</span><span class="info-value">${ordenInfo?.ciudad_evento || ''} ${ordenInfo?.direccion_evento ? '- ' + ordenInfo.direccion_evento : ''}</span></div>
+        <div class="info-item"><span class="info-label">${t('operations.client')}:</span><span class="info-value">${ordenInfo?.cliente_nombre || '-'}</span></div>
+        <div class="info-item"><span class="info-label">${t('operations.dateLabel')}:</span><span class="info-value">${fecha}</span></div>
+        <div class="info-item"><span class="info-label">${t('operations.location')}:</span><span class="info-value">${ordenInfo?.ciudad_evento || ''} ${ordenInfo?.direccion_evento ? '- ' + ordenInfo.direccion_evento : ''}</span></div>
     </div>
-    <div class="progress">Verificados: ${verificados} de ${total}</div>
+    <div class="progress">${t('operations.checklist.verifiedCount', { verified: verificados, total })}</div>
     <table>
         <thead>
             <tr>
-                <th style="width:30%">Elemento</th>
-                <th style="width:18%">Serie/Lote</th>
-                <th class="center" style="width:10%">Cant.</th>
-                <th class="center" style="width:12%">${config.columnaVerificado}</th>
-                <th style="width:30%">Observaciones</th>
+                <th style="width:30%">${t('operations.element')}</th>
+                <th style="width:18%">${t('operations.checklist.seriesLot')}</th>
+                <th class="center" style="width:10%">${t('operations.checklist.qty')}</th>
+                <th class="center" style="width:12%">${t(config.columnaVerificadoKey)}</th>
+                <th style="width:30%">${t('operations.checklist.observations')}</th>
             </tr>
         </thead>
         <tbody>${seccionesHTML}</tbody>
     </table>
     <div class="notas">
-        <div class="notas-label">Observaciones generales</div>
+        <div class="notas-label">${t('operations.checklist.generalObservations')}</div>
         <div class="notas-box"></div>
     </div>
     <div class="footer">
         <div class="firma-grid">
-            <div class="firma-item"><div class="firma-linea"></div><div class="firma-label">${config.firmaA}</div></div>
-            <div class="firma-item"><div class="firma-linea"></div><div class="firma-label">Verificó</div></div>
-            <div class="firma-item"><div class="firma-linea"></div><div class="firma-label">${config.firmaC}</div></div>
+            <div class="firma-item"><div class="firma-linea"></div><div class="firma-label">${t(config.firmaAKey)}</div></div>
+            <div class="firma-item"><div class="firma-linea"></div><div class="firma-label">${t('operations.checklist.verified')}</div></div>
+            <div class="firma-item"><div class="firma-linea"></div><div class="firma-label">${t(config.firmaCKey)}</div></div>
         </div>
     </div>
-    <div class="print-date">Impreso: ${new Date().toLocaleString('es-CO')}</div>
+    <div class="print-date">${t('operations.checklist.printed')}: ${new Date().toLocaleString()}</div>
 </body>
 </html>`
 }
@@ -477,6 +478,7 @@ const generarChecklistPrint = ({ ordenId, ordenInfo, grupos, modo, verificados, 
 //   - onCompleto: callback cuando todos verificados
 // ============================================
 const ChecklistCargueDescargue = ({ isOpen, onClose, ordenId, ordenInfo, modo = 'cargue', onCompleto }) => {
+    const { t } = useTranslation()
     const { elementos, totalElementos, verificadosCargue, verificadosRecogida, verificadosBodega, elementosConDano, isLoading, refetch } = useGetChecklist(
         isOpen ? ordenId : null
     )
@@ -506,7 +508,7 @@ const ChecklistCargueDescargue = ({ isOpen, onClose, ordenId, ordenInfo, modo = 
             if (!mapa[key]) {
                 mapa[key] = {
                     compuestoId: key,
-                    nombre: key === 'sin_grupo' ? 'Otros Elementos' : null,
+                    nombre: key === 'sin_grupo' ? t('operations.checklist.otherElements') : null,
                     elementos: []
                 }
             }
@@ -604,7 +606,7 @@ const ChecklistCargueDescargue = ({ isOpen, onClose, ordenId, ordenInfo, modo = 
         >
             {isLoading ? (
                 <div className="py-12 flex justify-center">
-                    <Spinner size="lg" text="Cargando checklist..." />
+                    <Spinner size="lg" text={t("operations.loadingChecklist")} />
                 </div>
             ) : (
                 <div className="space-y-5">

@@ -4,6 +4,7 @@
 // ============================================
 
 import { useState, useEffect, useMemo, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Search, ChevronDown, Package, X, ChevronRight } from 'lucide-react'
 import { useGetProductosAlquiler } from '@productos/hooks/useProductosAlquiler'
 import { useGetCategoriasProductosActivasArbol } from '@productos/hooks/useCategoriasProductos'
@@ -29,6 +30,7 @@ const ProductoSelector = ({
   // HOOKS
   // ============================================
 
+  const { t } = useTranslation()
   const { productos, isLoading: loadingProductos } = useGetProductosAlquiler()
   const { categorias, isLoading: loadingCategorias } = useGetCategoriasProductosActivasArbol()
 

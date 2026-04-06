@@ -38,42 +38,42 @@ const AlquileresSidebar = () => {
     {
       to: '/alquileres/cotizaciones',
       icon: FileText,
-      label: 'Cotizaciones'
+      label: t('rentals.sidebar.quotes')
     },
     {
       to: '/alquileres/gestion',
       icon: Package,
-      label: 'Alquileres'
+      label: t('rentals.sidebar.rentals')
     },
     {
       to: '/alquileres/clientes',
       icon: Users,
-      label: 'Clientes'
+      label: t('rentals.sidebar.clients')
     },
     {
       to: '/alquileres/transporte',
       icon: Truck,
-      label: 'Transporte'
+      label: t('rentals.sidebar.transport')
     },
     {
       to: '/alquileres/calendario',
       icon: Calendar,
-      label: 'Calendario'
+      label: t('rentals.sidebar.calendar')
     },
     {
       to: '/alquileres/reportes',
       icon: BarChart3,
-      label: 'Reportes'
+      label: t('rentals.sidebar.reports')
     },
     {
       to: '/alquileres/historial',
       icon: Archive,
-      label: 'Historial Alquileres'
+      label: t('rentals.sidebar.rentalHistory')
     },
     {
       to: '/alquileres/historial-eventos',
       icon: Calendar,
-      label: 'Historial Eventos'
+      label: t('rentals.sidebar.eventHistory')
     }
   ]
 
@@ -81,17 +81,17 @@ const AlquileresSidebar = () => {
     {
       to: '/alquileres/descuentos',
       icon: Tag,
-      label: 'Descuentos'
+      label: t('rentals.sidebar.discounts')
     },
     {
       to: '/alquileres/configuracion/impuestos',
       icon: Percent,
-      label: 'Impuestos (IVA)'
+      label: t('rentals.sidebar.taxes')
     },
     {
       to: '/alquileres/configuracion/dias-extra',
       icon: Calendar,
-      label: 'Días Extra'
+      label: t('rentals.sidebar.extraDays')
     }
   ]
 
@@ -115,7 +115,7 @@ const AlquileresSidebar = () => {
                      w-full min-h-[44px]"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>Volver a Módulos</span>
+          <span>{t('common.backToModules')}</span>
         </button>
 
         <div className="flex items-center gap-3 px-3 mb-5">
@@ -123,7 +123,7 @@ const AlquileresSidebar = () => {
             <Calendar className="w-5 h-5 text-white" />
           </div>
           <h2 className="text-base font-semibold text-slate-900">
-            Alquileres
+            {t('rentals.sidebar.title')}
           </h2>
         </div>
 
@@ -153,7 +153,7 @@ const AlquileresSidebar = () => {
         >
           <div className="flex items-center gap-3">
             <Settings className="w-5 h-5" />
-            <span className="font-medium text-sm">Configuración</span>
+            <span className="font-medium text-sm">{t('rentals.sidebar.settings')}</span>
           </div>
           {configOpen ? (
             <ChevronDown className="w-4 h-4" />

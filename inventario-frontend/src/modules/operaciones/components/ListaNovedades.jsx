@@ -140,7 +140,7 @@ export default function ListaNovedades({ novedades = [], canResolve = false, sho
                                 {novedad.imagen_url && (
                                     <img
                                         src={`${API_URL}${novedad.imagen_url}`}
-                                        alt="Evidencia"
+                                        alt={t("operations.evidence")}
                                         className="w-full max-h-48 object-cover rounded-lg"
                                     />
                                 )}

@@ -50,6 +50,7 @@ function MoverSerieModal({
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const queryClient = useQueryClient()
+  const { t } = useTranslation()
 
   // Cargar ubicaciones activas desde la base de datos
   const { ubicaciones, isLoading: isLoadingUbicaciones } = useGetUbicacionesActivas()
@@ -265,7 +266,7 @@ function MoverSerieModal({
           <textarea
             value={formData.descripcion}
             onChange={(e) => setFormData(prev => ({ ...prev, descripcion: e.target.value }))}
-            placeholder="Ej: Movida para mantenimiento preventivo"
+            placeholder={t("inventory.moveReasonPlaceholder")}
             rows={3}
             className="
               w-full px-4 py-2 border border-slate-300 rounded-lg
