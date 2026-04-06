@@ -47,6 +47,7 @@ const StatCard = (props) => {
  * @param {Object} stats - Estadísticas de useCalendarEvents
  */
 const CalendarStats = ({ stats = {} }) => {
+  const { t } = useTranslation()
   const { total = 0, porTipo = {}, porEstado = {} } = stats
 
   return (
