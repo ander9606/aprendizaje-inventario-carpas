@@ -44,6 +44,7 @@ export const ElementoLoteCard = ({
     alertas = []
   } = elemento
 
+  const { t } = useTranslation()
   const BACKEND_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api').replace('/api', '')
 
   // ============================================
@@ -66,7 +67,7 @@ export const ElementoLoteCard = ({
   // ============================================
   // TRANSFORMAR LOTES A UBICACIONES
   // ============================================
-  const ubicaciones = transformarLotesAUbicaciones(lotes)
+  const ubicaciones = transformarLotesAUbicaciones(lotes, t('inventory.noLocation'))
 
   // ============================================
   // CÁLCULOS
@@ -85,12 +86,12 @@ export const ElementoLoteCard = ({
   // ============================================
   const menuOptions = [
     {
-      label: 'Editar elemento',
+      label: t('inventory.editElement'),
       onClick: () => onEdit && onEdit(elemento),
       disabled: disabled
     },
     {
-      label: 'Eliminar elemento',
+      label: t('inventory.deleteElement'),
       onClick: () => onDelete && onDelete(elemento),
       danger: true,
       disabled: disabled
@@ -132,7 +133,7 @@ export const ElementoLoteCard = ({
                   <h3 className="text-lg font-bold text-slate-900 truncate">{nombre}</h3>
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-600">
                     <Layers className="w-3 h-3" />
-                    {isLoadingLotes ? '…' : cantidad_total} Lotes
+                    {isLoadingLotes ? '…' : cantidad_total} {t('inventory.batches')}
                   </span>
                 </div>
 
@@ -176,7 +177,7 @@ export const ElementoLoteCard = ({
             <div className="flex items-center gap-2 p-2.5 bg-amber-50 border border-amber-200 rounded-lg">
               <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0" />
               <span className="text-sm text-amber-700">
-                <strong>Stock bajo:</strong> {cantidad_disponible} disponible{cantidad_disponible !== 1 ? 's' : ''} de {stock_minimo} mínimo
+                <strong>{t('inventory.lowStock')}</strong> {cantidad_disponible} {cantidad_disponible !== 1 ? t('inventory.availablesOf') : t('inventory.availableOf')} {stock_minimo} {t('inventory.minimum')}
               </span>
             </div>
           )}
@@ -194,7 +195,7 @@ export const ElementoLoteCard = ({
           ============================================ */}
       {errorLotes && (
         <div className="mx-6 mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-          Error al cargar lotes: {errorLotes.message}
+          {t('inventory.errorLoadingBatches')} {errorLotes.message}
         </div>
       )}
 
@@ -204,18 +205,18 @@ export const ElementoLoteCard = ({
       <div className="px-6 pt-4">
         {/* Stats en grid */}
         <div className="grid grid-cols-5 gap-2 mb-3">
-          <StatMini label="Total" value={isLoadingLotes ? '-' : cantidad_total} color="slate" />
-          <StatMini label="Bueno" value={isLoadingLotes ? '-' : (estadisticas.bueno || 0)} color="green" />
-          <StatMini label="Alquilado" value={isLoadingLotes ? '-' : alquilados} color="blue" />
-          <StatMini label="Mant." value={isLoadingLotes ? '-' : enMantenimiento} color="amber" />
-          <StatMini label="Dañado" value={isLoadingLotes ? '-' : dañados} color="red" />
+          <StatMini label={t('common.total')} value={isLoadingLotes ? '-' : cantidad_total} color="slate" />
+          <StatMini label={t('states.good')} value={isLoadingLotes ? '-' : (estadisticas.bueno || 0)} color="green" />
+          <StatMini label={t('states.rented')} value={isLoadingLotes ? '-' : alquilados} color="blue" />
+          <StatMini label={t('states.maintenanceShort')} value={isLoadingLotes ? '-' : enMantenimiento} color="amber" />
+          <StatMini label={t('states.damaged')} value={isLoadingLotes ? '-' : dañados} color="red" />
         </div>
 
         {/* Barra de disponibilidad */}
         {!isLoadingLotes && cantidad_total > 0 && (
           <div className="mb-4">
             <div className="flex items-center justify-between text-xs text-slate-500 mb-1">
-              <span>Disponibilidad</span>
+              <span>{t('states.availability')}</span>
               <span className="font-medium">{pctDisponible}%</span>
             </div>
             <div className="h-2 bg-slate-100 rounded-full overflow-hidden flex">
@@ -233,15 +234,15 @@ export const ElementoLoteCard = ({
             <div className="flex items-center gap-4 mt-1.5 text-xs text-slate-500">
               <span className="flex items-center gap-1">
                 <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                Disponible
+                {t('states.available')}
               </span>
               <span className="flex items-center gap-1">
                 <span className="w-2 h-2 rounded-full bg-blue-500" />
-                Alquilado
+                {t('states.rented')}
               </span>
               <span className="flex items-center gap-1">
                 <span className="w-2 h-2 rounded-full bg-amber-500" />
-                Mant./Dañado
+                {t('states.maintenanceDamaged')}
               </span>
             </div>
           </div>
@@ -256,7 +257,7 @@ export const ElementoLoteCard = ({
         <div className="flex items-center justify-between mb-3">
           <h4 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
             <MapPin className="w-4 h-4" />
-            Por ubicación
+            {t('inventory.byLocation')}
           </h4>
           <div className="flex items-center gap-2">
             {onMoveLote && lotes.length > 0 && (
@@ -266,9 +267,9 @@ export const ElementoLoteCard = ({
                 icon={<ArrowRightLeft className="w-4 h-4" />}
                 onClick={() => setMostrarSelectorLotes(true)}
                 disabled={disabled}
-                title="Mover cantidad entre ubicaciones/estados"
+                title={t('inventory.moveBatchQuantity')}
               >
-                Mover
+                {t('inventory.move')}
               </Button>
             )}
             {onAddLote && (
@@ -279,7 +280,7 @@ export const ElementoLoteCard = ({
                 onClick={() => onAddLote(elemento)}
                 disabled={disabled}
               >
-                Agregar
+                {t('common.add')}
               </Button>
             )}
           </div>
@@ -292,11 +293,11 @@ export const ElementoLoteCard = ({
         ) : ubicaciones.length === 0 ? (
           <EmptyState
             type="no-data"
-            title="Sin lotes registrados"
-            description="Agrega inventario nuevo mediante compras, donaciones o stock inicial"
+            title={t('inventory.noBatchesRegisteredMsg')}
+            description={t('inventory.addInventoryDescription')}
             icon={Package}
             action={onAddLote && {
-              label: 'Agregar inventario',
+              label: t('inventory.addInventory'),
               onClick: () => onAddLote(elemento),
               icon: <Plus />
             }}
@@ -325,24 +326,24 @@ export const ElementoLoteCard = ({
           <div className="flex items-center justify-between text-sm">
             {/* Resumen */}
             <div className="flex items-center gap-4 text-slate-600">
-              <span>{ubicaciones.length} ubicacion{ubicaciones.length !== 1 ? 'es' : ''}</span>
+              <span>{ubicaciones.length} {t('common.locations').toLowerCase()}</span>
               <span className="text-slate-300">|</span>
-              <span>{cantidad_total} {cantidad_total === 1 ? 'unidad' : 'unidades'}</span>
+              <span>{cantidad_total} {t('common.units').toLowerCase()}</span>
               <span className="text-slate-300">|</span>
-              <span className="text-emerald-600 font-medium">{cantidad_disponible} disponible{cantidad_disponible !== 1 ? 's' : ''}</span>
+              <span className="text-emerald-600 font-medium">{cantidad_disponible} {t('states.available').toLowerCase()}</span>
             </div>
             {/* Costo */}
             <div className="flex items-center gap-4">
               {costo_adquisicion && (
                 <span className="flex items-center gap-1 text-slate-600">
                   <DollarSign className="w-3.5 h-3.5" />
-                  Unit.: <strong className="text-slate-900">{formatearMoneda(costo_adquisicion)}</strong>
+                  {t('inventory.unitCost')} <strong className="text-slate-900">{formatearMoneda(costo_adquisicion)}</strong>
                 </span>
               )}
               {valorTotal && (
                 <span className="flex items-center gap-1 text-slate-600">
                   <TrendingUp className="w-3.5 h-3.5" />
-                  Total: <strong className="text-emerald-700">{formatearMoneda(valorTotal)}</strong>
+                  {t('inventory.totalValue')} <strong className="text-emerald-700">{formatearMoneda(valorTotal)}</strong>
                 </span>
               )}
             </div>
@@ -357,13 +358,13 @@ export const ElementoLoteCard = ({
         <Modal
           isOpen={mostrarSelectorLotes}
           onClose={() => setMostrarSelectorLotes(false)}
-          title="Selecciona el lote que deseas mover"
+          title={t('inventory.selectBatchToMove')}
           size="md"
         >
           <div className="space-y-2 max-h-96 overflow-y-auto">
             {lotes.length === 0 ? (
               <p className="text-center text-slate-500 py-8">
-                No hay lotes disponibles para mover
+                {t('inventory.noBatchesAvailableToMove')}
               </p>
             ) : (
               lotes.map((lote) => (
@@ -377,21 +378,21 @@ export const ElementoLoteCard = ({
                 >
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3 flex-1">
-                      <UbicacionBadge ubicacion={lote.ubicacion || 'Sin ubicación'} />
+                      <UbicacionBadge ubicacion={lote.ubicacion || t('inventory.noLocation')} />
                       <EstadoBadge estado={lote.estado} />
                     </div>
                     <div className="flex items-center gap-3">
                       <div className="text-right">
                         <div className="text-2xl font-bold text-slate-900">{lote.cantidad}</div>
                         <div className="text-xs text-slate-500">
-                          {lote.cantidad === 1 ? 'unidad' : 'unidades'}
+                          {lote.cantidad === 1 ? t('common.unit').toLowerCase() : t('common.units').toLowerCase()}
                         </div>
                       </div>
                       <ArrowRight className="w-5 h-5 text-slate-400 group-hover:text-blue-600 transition-colors" />
                     </div>
                   </div>
                   {lote.lote_numero && (
-                    <div className="mt-2 text-xs text-slate-500">Lote: {lote.lote_numero}</div>
+                    <div className="mt-2 text-xs text-slate-500">{t('inventory.batch')} {lote.lote_numero}</div>
                   )}
                 </button>
               ))
@@ -399,7 +400,7 @@ export const ElementoLoteCard = ({
           </div>
           <Modal.Footer>
             <Button variant="ghost" onClick={() => setMostrarSelectorLotes(false)}>
-              Cancelar
+              {t('common.cancel')}
             </Button>
           </Modal.Footer>
         </Modal>
@@ -433,6 +434,7 @@ function StatMini({ label, value, color }) {
 // SUB-COMPONENTE: MENU BUTTON
 // ============================================
 function MenuButton({ options }) {
+  const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0 })
   const btnRef = useRef(null)
@@ -452,7 +454,7 @@ function MenuButton({ options }) {
         ref={btnRef}
         onClick={handleToggle}
         className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors"
-        aria-label="Opciones"
+        aria-label={t('common.options')}
       >
         <svg className="w-5 h-5 text-slate-500" fill="currentColor" viewBox="0 0 20 20">
           <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
@@ -486,11 +488,11 @@ function MenuButton({ options }) {
 // ============================================
 // FUNCIÓN: TRANSFORMAR LOTES A UBICACIONES
 // ============================================
-function transformarLotesAUbicaciones(lotes) {
+function transformarLotesAUbicaciones(lotes, noLocationLabel = 'Sin ubicación') {
   if (!Array.isArray(lotes) || lotes.length === 0) return []
 
   const ubicacionesMap = lotes.reduce((acc, lote) => {
-    const nombreUbicacion = lote.ubicacion || 'Sin ubicación'
+    const nombreUbicacion = lote.ubicacion || noLocationLabel
     if (!acc[nombreUbicacion]) {
       acc[nombreUbicacion] = { nombre: nombreUbicacion, cantidad_total: 0, lotes: [] }
     }
@@ -500,8 +502,8 @@ function transformarLotesAUbicaciones(lotes) {
   }, {})
 
   return Object.values(ubicacionesMap).sort((a, b) => {
-    if (a.nombre === 'Sin ubicación') return 1
-    if (b.nombre === 'Sin ubicación') return -1
+    if (a.nombre === noLocationLabel) return 1
+    if (b.nombre === noLocationLabel) return -1
     return a.nombre.localeCompare(b.nombre)
   })
 }

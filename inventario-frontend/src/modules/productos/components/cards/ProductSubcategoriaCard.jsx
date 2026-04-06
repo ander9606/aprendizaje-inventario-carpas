@@ -38,6 +38,8 @@ function ProductSubcategoriaCard({
   onEdit,
   onDeleted,
 }) {
+  const { t } = useTranslation()
+
   // Estado para el SymbolPicker
   const [showSymbolPicker, setShowSymbolPicker] = useState(false)
   const [emojiActual, setEmojiActual] = useState(subcategoria.emoji || '📦')
@@ -98,24 +100,24 @@ function ProductSubcategoriaCard({
     // Verificar si tiene productos
     if (totalProductos > 0) {
       toast.error(
-        `No se puede eliminar. Esta subcategoría tiene ${totalProductos} plantilla(s) asociada(s).`
+        `${t('products.cannotDeleteSubcategory')} ${totalProductos} ${t('products.templatesAssociated')}`
       )
       return
     }
 
     const confirmacion = confirm(
-      `¿Estás seguro de eliminar la subcategoría "${subcategoria.nombre}"?\n\nEsta acción no se puede deshacer.`
+      `${t('products.confirmDeleteSubcategory')} "${subcategoria.nombre}"?\n\n${t('common.actionCannotBeUndone')}`
     )
 
     if (confirmacion) {
       try {
         await deleteCategoria(subcategoria.id)
-        toast.success('Subcategoría eliminada exitosamente')
+        toast.success(t('common.messages.success.subcategoryDeleted'))
         onDeleted?.()
       } catch (error) {
         console.error('Error al eliminar subcategoría:', error)
         toast.error(
-          error.response?.data?.mensaje || 'Error al eliminar la subcategoría'
+          error.response?.data?.mensaje || t('common.messages.error.deleteError')
         )
       }
     }
@@ -137,7 +139,7 @@ function ProductSubcategoriaCard({
               setShowSymbolPicker(true)
             }}
             className="cursor-pointer hover:scale-110 transition-transform flex items-center justify-center"
-            title="Click para cambiar el icono"
+            title={t('common.clickToChangeIcon')}
           >
             <SymbolRenderer
               value={emojiActual}
@@ -164,7 +166,7 @@ function ProductSubcategoriaCard({
                 setShowMenu(!showMenu)
               }}
               className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-700 transition-colors"
-              title="Más opciones"
+              title={t('common.moreOptions')}
             >
               <MoreVertical className="w-5 h-5" />
             </button>
@@ -182,7 +184,7 @@ function ProductSubcategoriaCard({
                   className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
                 >
                   <Edit className="w-4 h-4" />
-                  Editar
+                  {t('common.edit')}
                 </button>
                 <div className="border-t border-slate-100 my-1" />
                 <button
@@ -195,7 +197,7 @@ function ProductSubcategoriaCard({
                   className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 disabled:opacity-50"
                 >
                   <Trash2 className="w-4 h-4" />
-                  {isDeleting ? 'Eliminando...' : 'Eliminar'}
+                  {isDeleting ? t('common.deleting') : t('common.delete')}
                 </button>
               </div>
             )}
@@ -207,7 +209,7 @@ function ProductSubcategoriaCard({
         <div className="flex items-center gap-2 text-slate-600">
           <Tent className="w-5 h-5" />
           <span className="font-medium">
-            {totalProductos} plantilla{totalProductos !== 1 ? 's' : ''}
+            {t('products.categoryCard.templatesCount', { count: totalProductos })}
           </span>
         </div>
       </Card.Content>

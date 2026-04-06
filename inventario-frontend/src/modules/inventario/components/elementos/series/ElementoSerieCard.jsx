@@ -132,7 +132,7 @@ export const ElementoSerieCard = ({
                   <h3 className="text-lg font-bold text-slate-900 truncate">{nombre}</h3>
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-purple-50 text-purple-600">
                     <Hash className="w-3 h-3" />
-                    {isLoadingSeries ? '…' : total} Series
+                    {isLoadingSeries ? '…' : total} {t('inventory.series')}
                   </span>
                 </div>
 
@@ -230,7 +230,7 @@ export const ElementoSerieCard = ({
         {!isLoadingSeries && total > 0 && (
           <div className="mb-4">
             <div className="flex items-center justify-between text-xs text-slate-500 mb-1">
-              <span>Disponibilidad</span>
+              <span>{t('states.availability')}</span>
               <span className="font-medium">{pctDisponible}%</span>
             </div>
             <div className="h-2 bg-slate-100 rounded-full overflow-hidden flex">
@@ -257,15 +257,15 @@ export const ElementoSerieCard = ({
             <div className="flex items-center gap-4 mt-1.5 text-xs text-slate-500">
               <span className="flex items-center gap-1">
                 <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                Disponible
+                {t('states.available')}
               </span>
               <span className="flex items-center gap-1">
                 <span className="w-2 h-2 rounded-full bg-blue-500" />
-                Alquilado
+                {t('states.rented')}
               </span>
               <span className="flex items-center gap-1">
                 <span className="w-2 h-2 rounded-full bg-amber-500" />
-                Mant./Dañado
+                {t('states.maintenanceDamaged')}
               </span>
             </div>
           </div>

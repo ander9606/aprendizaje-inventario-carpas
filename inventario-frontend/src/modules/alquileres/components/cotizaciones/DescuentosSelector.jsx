@@ -59,7 +59,7 @@ const DescuentosSelector = ({
         datos: {
           monto: parseFloat(descuentoManual.monto),
           es_porcentaje: descuentoManual.esPorcentaje,
-          notas: descuentoManual.notas || 'Descuento manual'
+          notas: descuentoManual.notas || t('rentals.discountSelector.manualDiscount')
         }
       })
       setDescuentoManual({ monto: '', esPorcentaje: false, notas: '' })
@@ -96,7 +96,7 @@ const DescuentosSelector = ({
       {/* DESCUENTOS APLICADOS */}
       {descuentosAplicados.length > 0 && (
         <div>
-          <h4 className="text-sm font-medium text-slate-700 mb-2">Descuentos aplicados</h4>
+          <h4 className="text-sm font-medium text-slate-700 mb-2">{t('rentals.discountSelector.appliedDiscounts')}</h4>
           <div className="space-y-2">
             {descuentosAplicados.map((d) => (
               <div
@@ -107,10 +107,10 @@ const DescuentosSelector = ({
                   <Tag className="w-4 h-4 text-green-600" />
                   <div>
                     <p className="text-sm font-medium text-green-800">
-                      {d.descuento_nombre || d.notas || 'Descuento manual'}
+                      {d.descuento_nombre || d.notas || t('rentals.discountSelector.manualDiscount')}
                     </p>
                     {d.es_porcentaje && (
-                      <p className="text-xs text-green-600">Porcentaje aplicado</p>
+                      <p className="text-xs text-green-600">{t('rentals.discountSelector.percentageApplied')}</p>
                     )}
                   </div>
                 </div>
@@ -137,7 +137,7 @@ const DescuentosSelector = ({
       {/* AGREGAR DESCUENTOS */}
       {!disabled && (
         <div>
-          <h4 className="text-sm font-medium text-slate-700 mb-2">Agregar descuento</h4>
+          <h4 className="text-sm font-medium text-slate-700 mb-2">{t('rentals.discountSelector.addDiscount')}</h4>
 
           {/* Catálogo de descuentos predefinidos */}
           {!cargandoCatalogo && catalogoDescuentos?.length > 0 && (
@@ -173,7 +173,7 @@ const DescuentosSelector = ({
               onClick={() => setMostrarManual(true)}
               className="text-slate-600"
             >
-              Agregar descuento manual
+              {t('rentals.discountSelector.addManualDiscount')}
             </Button>
           ) : (
             <div className="bg-slate-100 rounded-lg p-3 space-y-3">
@@ -190,7 +190,7 @@ const DescuentosSelector = ({
                     }`}
                   >
                     <DollarSign className="w-3 h-3" />
-                    Fijo
+                    {t('rentals.discountSelector.fixed')}
                   </button>
                   <button
                     type="button"
@@ -223,14 +223,14 @@ const DescuentosSelector = ({
                 type="text"
                 value={descuentoManual.notas}
                 onChange={(e) => setDescuentoManual(prev => ({ ...prev, notas: e.target.value }))}
-                placeholder="Motivo del descuento (opcional)"
+                placeholder={t('rentals.discountSelector.discountReasonPlaceholder')}
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"
               />
 
               {/* Vista previa */}
               {descuentoManual.monto && (
                 <p className="text-xs text-slate-600">
-                  Descuento: {' '}
+                  {t('rentals.discountSelector.discountPreview')}
                   <span className="font-medium text-green-600">
                     -{descuentoManual.esPorcentaje
                       ? formatearMoneda(baseCalculo * (parseFloat(descuentoManual.monto) / 100))
@@ -249,7 +249,7 @@ const DescuentosSelector = ({
                   loading={aplicarMutation.isPending}
                   disabled={!descuentoManual.monto || parseFloat(descuentoManual.monto) <= 0}
                 >
-                  Aplicar
+                  {t('rentals.discountSelector.apply')}
                 </Button>
                 <Button
                   variant="ghost"
@@ -259,7 +259,7 @@ const DescuentosSelector = ({
                     setDescuentoManual({ monto: '', esPorcentaje: false, notas: '' })
                   }}
                 >
-                  Cancelar
+                  {t('common.cancel')}
                 </Button>
               </div>
             </div>
