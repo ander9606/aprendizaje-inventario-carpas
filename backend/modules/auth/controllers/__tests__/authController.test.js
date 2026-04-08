@@ -46,6 +46,7 @@ const mockReq = (overrides = {}) => ({
     ip: '127.0.0.1',
     get: jest.fn().mockReturnValue('jest-test-agent'),
     usuario: null,
+    tenant: { id: 1, slug: 'test', nombre: 'Test Tenant' },
     ...overrides
 });
 
@@ -176,7 +177,7 @@ describe('login', () => {
 
         await authController.login(req, mockRes(), next);
 
-        expect(AuthModel.incrementarIntentosFallidos).toHaveBeenCalledWith(1);
+        expect(AuthModel.incrementarIntentosFallidos).toHaveBeenCalledWith(1, 1);
         expect(next.mock.calls[0][0].message).toBe('Credenciales inválidas');
     });
 
@@ -191,7 +192,7 @@ describe('login', () => {
 
         await authController.login(req, mockRes(), next);
 
-        expect(AuthModel.bloquearCuenta).toHaveBeenCalledWith(1, expect.any(Date));
+        expect(AuthModel.bloquearCuenta).toHaveBeenCalledWith(1, 1, expect.any(Date));
         expect(next.mock.calls[0][0].message).toContain('Demasiados intentos');
     });
 
@@ -206,7 +207,7 @@ describe('login', () => {
         const req = mockReq({ body: { email: 'juan@test.com', password: 'pass' } });
         await authController.login(req, mockRes(), mockNext());
 
-        expect(AuthModel.registrarAuditoria).toHaveBeenCalledWith(expect.objectContaining({
+        expect(AuthModel.registrarAuditoria).toHaveBeenCalledWith(1, expect.objectContaining({
             empleado_id: 1,
             accion: 'LOGIN'
         }));
@@ -230,7 +231,7 @@ describe('logout', () => {
         await authController.logout(req, res, mockNext());
 
         expect(TokenService.revocarRefreshToken).toHaveBeenCalledWith('refresh-123');
-        expect(AuthModel.registrarAuditoria).toHaveBeenCalledWith(expect.objectContaining({
+        expect(AuthModel.registrarAuditoria).toHaveBeenCalledWith(1, expect.objectContaining({
             accion: 'LOGOUT'
         }));
         expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
@@ -263,7 +264,7 @@ describe('logoutAll', () => {
         await authController.logoutAll(req, res, mockNext());
 
         expect(TokenService.revocarTodosTokensEmpleado).toHaveBeenCalledWith(1);
-        expect(AuthModel.registrarAuditoria).toHaveBeenCalledWith(expect.objectContaining({
+        expect(AuthModel.registrarAuditoria).toHaveBeenCalledWith(1, expect.objectContaining({
             accion: 'LOGOUT_ALL'
         }));
     });
@@ -367,7 +368,7 @@ describe('cambiarPassword', () => {
         await authController.cambiarPassword(req, res, mockNext());
 
         expect(bcrypt.hash).toHaveBeenCalledWith('newpass123', 10);
-        expect(AuthModel.cambiarPassword).toHaveBeenCalledWith(1, '$2a$10$newHash');
+        expect(AuthModel.cambiarPassword).toHaveBeenCalledWith(1, 1, '$2a$10$newHash');
         expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
     });
 
@@ -425,7 +426,7 @@ describe('cambiarPassword', () => {
 
         await authController.cambiarPassword(req, mockRes(), mockNext());
 
-        expect(AuthModel.registrarAuditoria).toHaveBeenCalledWith(expect.objectContaining({
+        expect(AuthModel.registrarAuditoria).toHaveBeenCalledWith(1, expect.objectContaining({
             accion: 'CAMBIO_PASSWORD'
         }));
     });
@@ -485,7 +486,7 @@ describe('registro', () => {
             message: expect.stringContaining('Código de verificación')
         }));
         expect(bcrypt.hash).toHaveBeenCalledWith('securepass123', 10);
-        expect(VerificacionEmailModel.crear).toHaveBeenCalledWith(expect.objectContaining({
+        expect(VerificacionEmailModel.crear).toHaveBeenCalledWith(1, expect.objectContaining({
             email: 'maria@test.com'
         }));
         expect(EmailService.enviarCodigoVerificacion).toHaveBeenCalled();
@@ -553,7 +554,7 @@ describe('registro', () => {
 
         await authController.registro(req, mockRes(), mockNext());
 
-        expect(VerificacionEmailModel.crear).toHaveBeenCalledWith(expect.objectContaining({
+        expect(VerificacionEmailModel.crear).toHaveBeenCalledWith(1, expect.objectContaining({
             email: 'maria@test.com'
         }));
     });
@@ -710,7 +711,7 @@ describe('actualizarPerfil', () => {
             success: true,
             message: expect.stringContaining('actualizado')
         }));
-        expect(AuthModel.actualizarPerfil).toHaveBeenCalledWith(1, expect.objectContaining({
+        expect(AuthModel.actualizarPerfil).toHaveBeenCalledWith(1, 1, expect.objectContaining({
             nombre: 'Juan Carlos'
         }));
     });

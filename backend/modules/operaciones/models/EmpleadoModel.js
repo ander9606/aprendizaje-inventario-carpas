@@ -4,10 +4,11 @@ const AppError = require('../../../utils/AppError');
 class EmpleadoModel {
     /**
      * Obtener todos los empleados con paginación y filtros
+     * @param {number} tenantId - ID del tenant
      * @param {Object} options - Opciones de filtrado y paginación
      * @returns {Promise<Object>} Lista de empleados y total
      */
-    static async obtenerTodos(options = {}) {
+    static async obtenerTodos(tenantId, options = {}) {
         const {
             page = 1,
             limit = 20,
@@ -19,8 +20,8 @@ class EmpleadoModel {
         } = options;
 
         const offset = (page - 1) * limit;
-        const params = [];
-        let whereClause = 'WHERE 1=1';
+        const params = [tenantId];
+        let whereClause = 'WHERE e.tenant_id = ?';
 
         // Filtro por búsqueda (nombre, apellido, email)
         if (buscar) {
@@ -89,10 +90,11 @@ class EmpleadoModel {
 
     /**
      * Obtener empleado por ID
+     * @param {number} tenantId - ID del tenant
      * @param {number} id
      * @returns {Promise<Object|null>}
      */
-    static async obtenerPorId(id) {
+    static async obtenerPorId(tenantId, id) {
         const [rows] = await pool.query(`
             SELECT
                 e.id,
@@ -116,8 +118,8 @@ class EmpleadoModel {
             FROM empleados e
             LEFT JOIN roles r ON e.rol_id = r.id
             LEFT JOIN roles rs ON e.rol_solicitado_id = rs.id
-            WHERE e.id = ?
-        `, [id]);
+            WHERE e.id = ? AND e.tenant_id = ?
+        `, [id, tenantId]);
 
         if (rows.length === 0) {
             return null;
@@ -133,16 +135,17 @@ class EmpleadoModel {
 
     /**
      * Crear nuevo empleado
+     * @param {number} tenantId - ID del tenant
      * @param {Object} datos
      * @returns {Promise<Object>} Empleado creado
      */
-    static async crear(datos) {
+    static async crear(tenantId, datos) {
         const { nombre, apellido, email, telefono, password_hash, rol_id } = datos;
 
         // Verificar si el email ya existe
         const [existente] = await pool.query(
-            'SELECT id FROM empleados WHERE email = ?',
-            [email]
+            'SELECT id FROM empleados WHERE email = ? AND tenant_id = ?',
+            [email, tenantId]
         );
 
         if (existente.length > 0) {
@@ -156,24 +159,25 @@ class EmpleadoModel {
         }
 
         const [result] = await pool.query(`
-            INSERT INTO empleados (nombre, apellido, email, telefono, password_hash, rol_id, estado)
-            VALUES (?, ?, ?, ?, ?, ?, 'activo')
-        `, [nombre, apellido, email, telefono || null, password_hash, rol_id]);
+            INSERT INTO empleados (tenant_id, nombre, apellido, email, telefono, password_hash, rol_id, estado)
+            VALUES (?, ?, ?, ?, ?, ?, ?, 'activo')
+        `, [tenantId, nombre, apellido, email, telefono || null, password_hash, rol_id]);
 
-        return this.obtenerPorId(result.insertId);
+        return this.obtenerPorId(tenantId, result.insertId);
     }
 
     /**
      * Actualizar empleado
+     * @param {number} tenantId - ID del tenant
      * @param {number} id
      * @param {Object} datos
      * @returns {Promise<Object>} Empleado actualizado
      */
-    static async actualizar(id, datos) {
+    static async actualizar(tenantId, id, datos) {
         const { nombre, apellido, email, telefono, rol_id, estado } = datos;
 
         // Verificar que existe
-        const empleadoExistente = await this.obtenerPorId(id);
+        const empleadoExistente = await this.obtenerPorId(tenantId, id);
         if (!empleadoExistente) {
             throw new AppError('Empleado no encontrado', 404);
         }
@@ -181,8 +185,8 @@ class EmpleadoModel {
         // Verificar si el nuevo email ya existe (si cambió)
         if (email && email !== empleadoExistente.email) {
             const [existente] = await pool.query(
-                'SELECT id FROM empleados WHERE email = ? AND id != ?',
-                [email, id]
+                'SELECT id FROM empleados WHERE email = ? AND id != ? AND tenant_id = ?',
+                [email, id, tenantId]
             );
 
             if (existente.length > 0) {
@@ -231,56 +235,59 @@ class EmpleadoModel {
             throw new AppError('No hay datos para actualizar', 400);
         }
 
-        valores.push(id);
+        valores.push(id, tenantId);
 
         await pool.query(`
             UPDATE empleados
             SET ${campos.join(', ')}
-            WHERE id = ?
+            WHERE id = ? AND tenant_id = ?
         `, valores);
 
-        return this.obtenerPorId(id);
+        return this.obtenerPorId(tenantId, id);
     }
 
     /**
      * Eliminar (desactivar) empleado
+     * @param {number} tenantId - ID del tenant
      * @param {number} id
      * @returns {Promise<boolean>}
      */
-    static async eliminar(id) {
-        const empleado = await this.obtenerPorId(id);
+    static async eliminar(tenantId, id) {
+        const empleado = await this.obtenerPorId(tenantId, id);
         if (!empleado) {
             throw new AppError('Empleado no encontrado', 404);
         }
 
         // Soft delete - cambiar estado a inactivo
-        await pool.query("UPDATE empleados SET estado = 'inactivo' WHERE id = ?", [id]);
+        await pool.query("UPDATE empleados SET estado = 'inactivo' WHERE id = ? AND tenant_id = ?", [id, tenantId]);
 
         return true;
     }
 
     /**
      * Reactivar empleado
+     * @param {number} tenantId - ID del tenant
      * @param {number} id
      * @returns {Promise<Object>}
      */
-    static async reactivar(id) {
-        const [rows] = await pool.query('SELECT id FROM empleados WHERE id = ?', [id]);
+    static async reactivar(tenantId, id) {
+        const [rows] = await pool.query('SELECT id FROM empleados WHERE id = ? AND tenant_id = ?', [id, tenantId]);
         if (rows.length === 0) {
             throw new AppError('Empleado no encontrado', 404);
         }
 
-        await pool.query("UPDATE empleados SET estado = 'activo' WHERE id = ?", [id]);
+        await pool.query("UPDATE empleados SET estado = 'activo' WHERE id = ? AND tenant_id = ?", [id, tenantId]);
 
-        return this.obtenerPorId(id);
+        return this.obtenerPorId(tenantId, id);
     }
 
     /**
      * Obtener empleados por rol
+     * @param {number} tenantId - ID del tenant
      * @param {number} rolId
      * @returns {Promise<Array>}
      */
-    static async obtenerPorRol(rolId) {
+    static async obtenerPorRol(tenantId, rolId) {
         const [rows] = await pool.query(`
             SELECT
                 e.id,
@@ -292,9 +299,9 @@ class EmpleadoModel {
                 r.nombre as rol_nombre
             FROM empleados e
             INNER JOIN roles r ON e.rol_id = r.id
-            WHERE e.rol_id = ? AND e.estado = 'activo'
+            WHERE e.rol_id = ? AND e.estado = 'activo' AND e.tenant_id = ?
             ORDER BY e.nombre ASC
-        `, [rolId]);
+        `, [rolId, tenantId]);
 
         return rows;
     }
@@ -302,10 +309,11 @@ class EmpleadoModel {
     /**
      * Obtener empleados disponibles para trabajo de campo
      * (operaciones y personal que puede asignarse a órdenes)
+     * @param {number} tenantId - ID del tenant
      * @param {Date} fecha - Fecha para verificar disponibilidad (opcional)
      * @returns {Promise<Array>}
      */
-    static async obtenerDisponiblesCampo(fecha = null) {
+    static async obtenerDisponiblesCampo(tenantId, fecha = null) {
         // Roles que pueden ir a campo: operaciones (4)
         const [rows] = await pool.query(`
             SELECT
@@ -319,8 +327,9 @@ class EmpleadoModel {
             INNER JOIN roles r ON e.rol_id = r.id
             WHERE e.estado = 'activo'
               AND r.nombre IN ('operaciones', 'bodega')
+              AND e.tenant_id = ?
             ORDER BY e.nombre ASC
-        `);
+        `, [tenantId]);
 
         // TODO: Si se proporciona fecha, filtrar por disponibilidad
         // (no asignados a otras órdenes en esa fecha)
@@ -330,11 +339,12 @@ class EmpleadoModel {
 
     /**
      * Cambiar contraseña de empleado (admin)
+     * @param {number} tenantId - ID del tenant
      * @param {number} id
      * @param {string} nuevoPasswordHash
      */
-    static async cambiarPassword(id, nuevoPasswordHash) {
-        const empleado = await this.obtenerPorId(id);
+    static async cambiarPassword(tenantId, id, nuevoPasswordHash) {
+        const empleado = await this.obtenerPorId(tenantId, id);
         if (!empleado) {
             throw new AppError('Empleado no encontrado', 404);
         }
@@ -344,15 +354,16 @@ class EmpleadoModel {
             SET password_hash = ?,
                 intentos_fallidos = 0,
                 bloqueado_hasta = NULL
-            WHERE id = ?
-        `, [nuevoPasswordHash, id]);
+            WHERE id = ? AND tenant_id = ?
+        `, [nuevoPasswordHash, id, tenantId]);
     }
 
     /**
      * Obtener todos los roles disponibles
+     * @param {number} tenantId - ID del tenant
      * @returns {Promise<Array>}
      */
-    static async obtenerRoles() {
+    static async obtenerRoles(tenantId) {
         const [rows] = await pool.query(`
             SELECT id, nombre, descripcion, permisos
             FROM roles
@@ -367,9 +378,10 @@ class EmpleadoModel {
 
     /**
      * Obtener estadísticas de empleados
+     * @param {number} tenantId - ID del tenant
      * @returns {Promise<Object>}
      */
-    static async obtenerEstadisticas() {
+    static async obtenerEstadisticas(tenantId) {
         const [stats] = await pool.query(`
             SELECT
                 COUNT(*) as total,
@@ -378,17 +390,18 @@ class EmpleadoModel {
                 SUM(CASE WHEN estado = 'pendiente' THEN 1 ELSE 0 END) as pendientes,
                 SUM(CASE WHEN bloqueado_hasta > NOW() THEN 1 ELSE 0 END) as bloqueados
             FROM empleados
-        `);
+            WHERE tenant_id = ?
+        `, [tenantId]);
 
         const [porRol] = await pool.query(`
             SELECT
                 r.nombre as rol,
                 COUNT(e.id) as cantidad
             FROM roles r
-            LEFT JOIN empleados e ON r.id = e.rol_id AND e.estado = 'activo'
+            LEFT JOIN empleados e ON r.id = e.rol_id AND e.estado = 'activo' AND e.tenant_id = ?
             GROUP BY r.id, r.nombre
             ORDER BY r.id
-        `);
+        `, [tenantId]);
 
         return {
             ...stats[0],
@@ -397,12 +410,13 @@ class EmpleadoModel {
     }
     /**
      * Aprobar solicitud de acceso
+     * @param {number} tenantId - ID del tenant
      * @param {number} id - ID del empleado pendiente
      * @param {number} rolId - Rol a asignar
      * @returns {Promise<Object>} Empleado aprobado
      */
-    static async aprobarSolicitud(id, rolId) {
-        const empleado = await this.obtenerPorId(id);
+    static async aprobarSolicitud(tenantId, id, rolId) {
+        const empleado = await this.obtenerPorId(tenantId, id);
         if (!empleado) {
             throw new AppError('Empleado no encontrado', 404);
         }
@@ -419,20 +433,21 @@ class EmpleadoModel {
         await pool.query(`
             UPDATE empleados
             SET estado = 'activo', rol_id = ?, motivo_rechazo = NULL
-            WHERE id = ?
-        `, [rolId, id]);
+            WHERE id = ? AND tenant_id = ?
+        `, [rolId, id, tenantId]);
 
-        return this.obtenerPorId(id);
+        return this.obtenerPorId(tenantId, id);
     }
 
     /**
      * Rechazar solicitud de acceso
+     * @param {number} tenantId - ID del tenant
      * @param {number} id - ID del empleado pendiente
      * @param {string} motivo - Motivo del rechazo
      * @returns {Promise<Object>} Empleado rechazado
      */
-    static async rechazarSolicitud(id, motivo) {
-        const empleado = await this.obtenerPorId(id);
+    static async rechazarSolicitud(tenantId, id, motivo) {
+        const empleado = await this.obtenerPorId(tenantId, id);
         if (!empleado) {
             throw new AppError('Empleado no encontrado', 404);
         }
@@ -443,19 +458,21 @@ class EmpleadoModel {
         await pool.query(`
             UPDATE empleados
             SET estado = 'inactivo', motivo_rechazo = ?
-            WHERE id = ?
-        `, [motivo || null, id]);
+            WHERE id = ? AND tenant_id = ?
+        `, [motivo || null, id, tenantId]);
 
-        return this.obtenerPorId(id);
+        return this.obtenerPorId(tenantId, id);
     }
 
     /**
      * Contar solicitudes pendientes
+     * @param {number} tenantId - ID del tenant
      * @returns {Promise<number>}
      */
-    static async contarPendientes() {
+    static async contarPendientes(tenantId) {
         const [rows] = await pool.query(
-            "SELECT COUNT(*) as total FROM empleados WHERE estado = 'pendiente'"
+            "SELECT COUNT(*) as total FROM empleados WHERE estado = 'pendiente' AND tenant_id = ?",
+            [tenantId]
         );
         return rows[0].total;
     }

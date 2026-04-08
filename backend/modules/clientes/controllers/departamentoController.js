@@ -6,7 +6,6 @@
 const DepartamentoModel = require('../models/DepartamentoModel');
 const AppError = require('../../../utils/AppError');
 const logger = require('../../../utils/logger');
-const createCrudController = require('../../../utils/crudController');
 
 function validateBody(body, existing) {
     let nombre;
@@ -24,45 +23,128 @@ function validateBody(body, existing) {
     return { nombre, activo };
 }
 
-async function checkDuplicate(data, excludeId) {
-    const existe = await DepartamentoModel.nombreExiste(data.nombre, excludeId || null);
-    if (existe) {
-        throw new AppError('Ya existe un departamento con ese nombre', 400);
+// ============================================
+// OBTENER TODOS
+// ============================================
+exports.obtenerTodos = async (req, res, next) => {
+    try {
+        const tenantId = req.tenant.id;
+        const data = await DepartamentoModel.obtenerTodos(tenantId);
+        res.json({ success: true, data, total: data.length });
+    } catch (error) {
+        logger.error('departamentoController.obtenerTodos', error);
+        next(error);
     }
-}
+};
 
-const crud = createCrudController({
-    Model: DepartamentoModel,
-    entityName: 'Departamento',
-    controllerName: 'departamentoController',
-    validateBody,
-    checkDuplicate
-});
+// ============================================
+// OBTENER POR ID
+// ============================================
+exports.obtenerPorId = async (req, res, next) => {
+    try {
+        const tenantId = req.tenant.id;
+        const { id } = req.params;
+        const data = await DepartamentoModel.obtenerPorId(tenantId, id);
+        if (!data) {
+            throw new AppError('Departamento no encontrado', 404);
+        }
+        res.json({ success: true, data });
+    } catch (error) {
+        logger.error('departamentoController.obtenerPorId', error);
+        next(error);
+    }
+};
 
-exports.obtenerTodos = crud.obtenerTodos;
-exports.obtenerPorId = crud.obtenerPorId;
-exports.crear = crud.crear;
-exports.actualizar = crud.actualizar;
+// ============================================
+// CREAR
+// ============================================
+exports.crear = async (req, res, next) => {
+    try {
+        const tenantId = req.tenant.id;
+        const cleanData = validateBody(req.body);
 
-// Custom: obtenerActivos (not in standard CRUD)
+        const existe = await DepartamentoModel.nombreExiste(tenantId, cleanData.nombre, null);
+        if (existe) {
+            throw new AppError('Ya existe un departamento con ese nombre', 400);
+        }
+
+        const nuevoId = await DepartamentoModel.crear(tenantId, cleanData);
+        const data = await DepartamentoModel.obtenerPorId(tenantId, nuevoId);
+
+        logger.info('departamentoController.crear', 'Departamento creado exitosamente', { id: nuevoId });
+
+        res.status(201).json({
+            success: true,
+            message: 'Departamento creado exitosamente',
+            data
+        });
+    } catch (error) {
+        logger.error('departamentoController.crear', error);
+        next(error);
+    }
+};
+
+// ============================================
+// ACTUALIZAR
+// ============================================
+exports.actualizar = async (req, res, next) => {
+    try {
+        const tenantId = req.tenant.id;
+        const { id } = req.params;
+
+        const existe = await DepartamentoModel.obtenerPorId(tenantId, id);
+        if (!existe) {
+            throw new AppError('Departamento no encontrado', 404);
+        }
+
+        const cleanData = validateBody(req.body, existe);
+
+        const duplicado = await DepartamentoModel.nombreExiste(tenantId, cleanData.nombre, id);
+        if (duplicado) {
+            throw new AppError('Ya existe un departamento con ese nombre', 400);
+        }
+
+        await DepartamentoModel.actualizar(tenantId, id, cleanData);
+        const data = await DepartamentoModel.obtenerPorId(tenantId, id);
+
+        logger.info('departamentoController.actualizar', 'Departamento actualizado exitosamente', { id });
+
+        res.json({
+            success: true,
+            message: 'Departamento actualizado exitosamente',
+            data
+        });
+    } catch (error) {
+        logger.error('departamentoController.actualizar', error);
+        next(error);
+    }
+};
+
+// ============================================
+// OBTENER ACTIVOS
+// ============================================
 exports.obtenerActivos = async (req, res, next) => {
     try {
-        const departamentos = await DepartamentoModel.obtenerActivos();
+        const tenantId = req.tenant.id;
+        const departamentos = await DepartamentoModel.obtenerActivos(tenantId);
         res.json({ success: true, data: departamentos, total: departamentos.length });
     } catch (error) {
         next(error);
     }
 };
 
-// Custom: eliminar with FK error from model
+// ============================================
+// ELIMINAR
+// ============================================
 exports.eliminar = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { id } = req.params;
-        const departamento = await DepartamentoModel.obtenerPorId(id);
+        const departamento = await DepartamentoModel.obtenerPorId(tenantId, id);
         if (!departamento) {
             throw new AppError('Departamento no encontrado', 404);
         }
-        await DepartamentoModel.eliminar(id);
+        await DepartamentoModel.eliminar(tenantId, id);
         res.json({ success: true, message: 'Departamento eliminado exitosamente' });
     } catch (error) {
         if (error.message.includes('ciudades asociadas')) {

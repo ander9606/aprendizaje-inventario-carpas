@@ -35,8 +35,14 @@ const verificarToken = (req, res, next) => {
             apellido: decoded.apellido,
             rol_id: decoded.rol_id,
             rol_nombre: decoded.rol_nombre,
-            permisos: decoded.permisos
+            permisos: decoded.permisos,
+            tenant_id: decoded.tenant_id
         };
+
+        // Verificar que el token pertenece al tenant actual
+        if (req.tenant && decoded.tenant_id && decoded.tenant_id !== req.tenant.id) {
+            throw new AppError('Token no pertenece a este tenant', 403);
+        }
 
         next();
     } catch (error) {
@@ -76,7 +82,8 @@ const verificarTokenOpcional = (req, res, next) => {
                 apellido: decoded.apellido,
                 rol_id: decoded.rol_id,
                 rol_nombre: decoded.rol_nombre,
-                permisos: decoded.permisos
+                permisos: decoded.permisos,
+                tenant_id: decoded.tenant_id
             };
         } catch (error) {
             req.usuario = null;

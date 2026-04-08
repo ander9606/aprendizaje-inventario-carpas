@@ -10,42 +10,45 @@ class DescuentoModel {
   // ============================================
   // OBTENER TODOS (activos por defecto)
   // ============================================
-  static async obtenerTodos(incluirInactivos = false) {
+  static async obtenerTodos(tenantId, incluirInactivos = false) {
     let query = `
       SELECT id, nombre, descripcion, tipo, valor, activo, created_at
       FROM descuentos
+      WHERE tenant_id = ?
     `;
+    const params = [tenantId];
     if (!incluirInactivos) {
-      query += ' WHERE activo = TRUE';
+      query += ' AND activo = TRUE';
     }
     query += ' ORDER BY nombre ASC';
 
-    const [rows] = await pool.query(query);
+    const [rows] = await pool.query(query, params);
     return rows;
   }
 
   // ============================================
   // OBTENER POR ID
   // ============================================
-  static async obtenerPorId(id) {
+  static async obtenerPorId(tenantId, id) {
     const query = `
       SELECT id, nombre, descripcion, tipo, valor, activo, created_at
       FROM descuentos
-      WHERE id = ?
+      WHERE id = ? AND tenant_id = ?
     `;
-    const [rows] = await pool.query(query, [id]);
+    const [rows] = await pool.query(query, [id, tenantId]);
     return rows[0];
   }
 
   // ============================================
   // CREAR
   // ============================================
-  static async crear({ nombre, descripcion, tipo, valor }) {
+  static async crear(tenantId, { nombre, descripcion, tipo, valor }) {
     const query = `
-      INSERT INTO descuentos (nombre, descripcion, tipo, valor)
-      VALUES (?, ?, ?, ?)
+      INSERT INTO descuentos (tenant_id, nombre, descripcion, tipo, valor)
+      VALUES (?, ?, ?, ?, ?)
     `;
     const [result] = await pool.query(query, [
+      tenantId,
       nombre,
       descripcion || null,
       tipo || 'porcentaje',
@@ -57,11 +60,11 @@ class DescuentoModel {
   // ============================================
   // ACTUALIZAR
   // ============================================
-  static async actualizar(id, { nombre, descripcion, tipo, valor, activo }) {
+  static async actualizar(tenantId, id, { nombre, descripcion, tipo, valor, activo }) {
     const query = `
       UPDATE descuentos
       SET nombre = ?, descripcion = ?, tipo = ?, valor = ?, activo = ?
-      WHERE id = ?
+      WHERE id = ? AND tenant_id = ?
     `;
     const [result] = await pool.query(query, [
       nombre,
@@ -69,7 +72,8 @@ class DescuentoModel {
       tipo || 'porcentaje',
       valor || 0,
       activo !== undefined ? activo : true,
-      id
+      id,
+      tenantId
     ]);
     return result;
   }
@@ -77,17 +81,17 @@ class DescuentoModel {
   // ============================================
   // ELIMINAR (soft delete - desactivar)
   // ============================================
-  static async eliminar(id) {
-    const query = `UPDATE descuentos SET activo = FALSE WHERE id = ?`;
-    const [result] = await pool.query(query, [id]);
+  static async eliminar(tenantId, id) {
+    const query = `UPDATE descuentos SET activo = FALSE WHERE id = ? AND tenant_id = ?`;
+    const [result] = await pool.query(query, [id, tenantId]);
     return result;
   }
 
   // ============================================
   // ELIMINAR PERMANENTE
   // ============================================
-  static async eliminarPermanente(id) {
-    const [result] = await pool.query('DELETE FROM descuentos WHERE id = ?', [id]);
+  static async eliminarPermanente(tenantId, id) {
+    const [result] = await pool.query('DELETE FROM descuentos WHERE id = ? AND tenant_id = ?', [id, tenantId]);
     return result;
   }
 

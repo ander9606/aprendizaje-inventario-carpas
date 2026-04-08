@@ -27,6 +27,7 @@ class TokenService {
             rol_id: empleado.rol_id,
             rol_nombre: empleado.rol_nombre,
             permisos: empleado.permisos,
+            tenant_id: empleado.tenant_id,
             tipo: 'access'
         };
 
@@ -53,9 +54,9 @@ class TokenService {
 
         // Guardar en base de datos
         await pool.query(`
-            INSERT INTO refresh_tokens (empleado_id, token, expires_at)
-            VALUES (?, ?, ?)
-        `, [empleado.id, tokenValue, expiraEn]);
+            INSERT INTO refresh_tokens (tenant_id, empleado_id, token, expires_at)
+            VALUES (?, ?, ?, ?)
+        `, [empleado.tenant_id, empleado.id, tokenValue, expiraEn]);
 
         return tokenValue;
     }
@@ -107,6 +108,7 @@ class TokenService {
                 e.email,
                 e.rol_id,
                 e.estado,
+                e.tenant_id,
                 r.nombre as rol_nombre,
                 r.permisos
             FROM refresh_tokens rt

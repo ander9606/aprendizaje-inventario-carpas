@@ -13,10 +13,11 @@ const logger = require('../../../utils/logger');
  */
 const getAlertas = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const usuario_id = req.usuario?.id;
     const { solo_criticas } = req.query;
 
-    const alertas = await AlertasAlquilerService.obtenerTodasLasAlertas({
+    const alertas = await AlertasAlquilerService.obtenerTodasLasAlertas(tenantId, {
       usuario_id,
       solo_criticas: solo_criticas === 'true'
     });
@@ -37,9 +38,10 @@ const getAlertas = async (req, res, next) => {
  */
 const getAlertasCriticas = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const usuario_id = req.usuario?.id;
 
-    const alertas = await AlertasAlquilerService.obtenerTodasLasAlertas({
+    const alertas = await AlertasAlquilerService.obtenerTodasLasAlertas(tenantId, {
       usuario_id,
       solo_criticas: true
     });
@@ -60,8 +62,9 @@ const getAlertasCriticas = async (req, res, next) => {
  */
 const getResumen = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const usuario_id = req.usuario?.id;
-    const resumen = await AlertasAlquilerService.obtenerResumen(usuario_id);
+    const resumen = await AlertasAlquilerService.obtenerResumen(tenantId, usuario_id);
 
     res.json({
       success: true,
@@ -80,6 +83,7 @@ const getResumen = async (req, res, next) => {
  */
 const ignorarAlerta = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { tipo, referencia_id, dias = 1 } = req.body;
     const usuario_id = req.usuario.id;
 
@@ -92,6 +96,7 @@ const ignorarAlerta = async (req, res, next) => {
     }
 
     const resultado = await AlertasAlquilerService.ignorarAlerta(
+      tenantId,
       tipo,
       referencia_id,
       usuario_id,
@@ -116,7 +121,8 @@ const ignorarAlerta = async (req, res, next) => {
  */
 const limpiarExpiradas = async (req, res, next) => {
   try {
-    const eliminadas = await AlertasAlquilerService.limpiarAlertasExpiradas();
+    const tenantId = req.tenant.id;
+    const eliminadas = await AlertasAlquilerService.limpiarAlertasExpiradas(tenantId);
 
     res.json({
       success: true,

@@ -12,7 +12,8 @@ const logger = require('../../../utils/logger');
 // ============================================
 exports.obtenerTodas = async (req, res, next) => {
   try {
-    const categorias = await CategoriaProductoModel.obtenerTodas();
+    const tenantId = req.tenant.id;
+    const categorias = await CategoriaProductoModel.obtenerTodas(tenantId);
     res.json({
       success: true,
       data: categorias,
@@ -28,7 +29,8 @@ exports.obtenerTodas = async (req, res, next) => {
 // ============================================
 exports.obtenerActivas = async (req, res, next) => {
   try {
-    const categorias = await CategoriaProductoModel.obtenerActivas();
+    const tenantId = req.tenant.id;
+    const categorias = await CategoriaProductoModel.obtenerActivas(tenantId);
     res.json({
       success: true,
       data: categorias,
@@ -44,7 +46,8 @@ exports.obtenerActivas = async (req, res, next) => {
 // ============================================
 exports.obtenerArbol = async (req, res, next) => {
   try {
-    const categorias = await CategoriaProductoModel.obtenerArbol();
+    const tenantId = req.tenant.id;
+    const categorias = await CategoriaProductoModel.obtenerArbol(tenantId);
     res.json({
       success: true,
       data: categorias
@@ -59,7 +62,8 @@ exports.obtenerArbol = async (req, res, next) => {
 // ============================================
 exports.obtenerActivasArbol = async (req, res, next) => {
   try {
-    const categorias = await CategoriaProductoModel.obtenerActivasArbol();
+    const tenantId = req.tenant.id;
+    const categorias = await CategoriaProductoModel.obtenerActivasArbol(tenantId);
     res.json({
       success: true,
       data: categorias
@@ -74,8 +78,9 @@ exports.obtenerActivasArbol = async (req, res, next) => {
 // ============================================
 exports.obtenerHijos = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { id } = req.params;
-    const hijos = await CategoriaProductoModel.obtenerHijos(id);
+    const hijos = await CategoriaProductoModel.obtenerHijos(tenantId, id);
     res.json({
       success: true,
       data: hijos,
@@ -91,8 +96,9 @@ exports.obtenerHijos = async (req, res, next) => {
 // ============================================
 exports.obtenerPorId = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { id } = req.params;
-    const categoria = await CategoriaProductoModel.obtenerPorId(id);
+    const categoria = await CategoriaProductoModel.obtenerPorId(tenantId, id);
 
     if (!categoria) {
       throw new AppError('Categoría de producto no encontrada', 404);
@@ -112,6 +118,7 @@ exports.obtenerPorId = async (req, res, next) => {
 // ============================================
 exports.crear = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { nombre, descripcion, emoji, categoria_padre_id } = req.body;
 
     if (!nombre || nombre.trim() === '') {
@@ -120,7 +127,7 @@ exports.crear = async (req, res, next) => {
 
     // Validar que la categoría padre existe si se proporciona
     if (categoria_padre_id) {
-      const padre = await CategoriaProductoModel.obtenerPorId(categoria_padre_id);
+      const padre = await CategoriaProductoModel.obtenerPorId(tenantId, categoria_padre_id);
       if (!padre) {
         throw new AppError('La categoría padre no existe', 400);
       }
@@ -128,14 +135,14 @@ exports.crear = async (req, res, next) => {
 
     logger.info('categoriaProductoController.crear', 'Creando categoría', { nombre, categoria_padre_id });
 
-    const resultado = await CategoriaProductoModel.crear({
+    const resultado = await CategoriaProductoModel.crear(tenantId, {
       nombre: nombre.trim(),
       descripcion,
       emoji,
       categoria_padre_id
     });
 
-    const categoriaCreada = await CategoriaProductoModel.obtenerPorId(resultado.insertId);
+    const categoriaCreada = await CategoriaProductoModel.obtenerPorId(tenantId, resultado.insertId);
 
     res.status(201).json({
       success: true,
@@ -153,10 +160,11 @@ exports.crear = async (req, res, next) => {
 // ============================================
 exports.actualizar = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { id } = req.params;
     const { nombre, descripcion, emoji, activo, categoria_padre_id } = req.body;
 
-    const categoriaExistente = await CategoriaProductoModel.obtenerPorId(id);
+    const categoriaExistente = await CategoriaProductoModel.obtenerPorId(tenantId, id);
     if (!categoriaExistente) {
       throw new AppError('Categoría de producto no encontrada', 404);
     }
@@ -172,13 +180,13 @@ exports.actualizar = async (req, res, next) => {
 
     // Validar que la categoría padre existe si se proporciona
     if (categoria_padre_id) {
-      const padre = await CategoriaProductoModel.obtenerPorId(categoria_padre_id);
+      const padre = await CategoriaProductoModel.obtenerPorId(tenantId, categoria_padre_id);
       if (!padre) {
         throw new AppError('La categoría padre no existe', 400);
       }
     }
 
-    await CategoriaProductoModel.actualizar(id, {
+    await CategoriaProductoModel.actualizar(tenantId, id, {
       nombre: nombre.trim(),
       descripcion,
       emoji,
@@ -186,7 +194,7 @@ exports.actualizar = async (req, res, next) => {
       categoria_padre_id
     });
 
-    const categoriaActualizada = await CategoriaProductoModel.obtenerPorId(id);
+    const categoriaActualizada = await CategoriaProductoModel.obtenerPorId(tenantId, id);
 
     res.json({
       success: true,
@@ -204,26 +212,27 @@ exports.actualizar = async (req, res, next) => {
 // ============================================
 exports.eliminar = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { id } = req.params;
 
-    const categoria = await CategoriaProductoModel.obtenerPorId(id);
+    const categoria = await CategoriaProductoModel.obtenerPorId(tenantId, id);
     if (!categoria) {
       throw new AppError('Categoría de producto no encontrada', 404);
     }
 
     // Verificar si tiene subcategorías
-    const tieneSubcategorias = await CategoriaProductoModel.tieneSubcategorias(id);
+    const tieneSubcategorias = await CategoriaProductoModel.tieneSubcategorias(tenantId, id);
     if (tieneSubcategorias) {
       throw new AppError('No se puede eliminar una categoría que tiene subcategorías. Elimine primero las subcategorías.', 400);
     }
 
     // Verificar si tiene productos
-    const tieneProductos = await CategoriaProductoModel.tieneProductos(id);
+    const tieneProductos = await CategoriaProductoModel.tieneProductos(tenantId, id);
     if (tieneProductos) {
       throw new AppError('No se puede eliminar una categoría que tiene productos asociados', 400);
     }
 
-    await CategoriaProductoModel.eliminar(id);
+    await CategoriaProductoModel.eliminar(tenantId, id);
 
     res.json({
       success: true,
@@ -241,7 +250,8 @@ exports.eliminar = async (req, res, next) => {
 // ============================================
 exports.obtenerCategoriasConConteo = async (req, res, next) => {
   try {
-    const categorias = await CategoriaProductoModel.obtenerCategoriasConConteo();
+    const tenantId = req.tenant.id;
+    const categorias = await CategoriaProductoModel.obtenerCategoriasConConteo(tenantId);
     res.json({
       success: true,
       data: categorias,

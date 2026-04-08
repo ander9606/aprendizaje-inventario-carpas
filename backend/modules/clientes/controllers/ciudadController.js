@@ -12,7 +12,8 @@ const logger = require('../../../utils/logger');
 // ============================================
 exports.obtenerTodas = async (req, res, next) => {
   try {
-    const ciudades = await CiudadModel.obtenerTodas();
+    const tenantId = req.tenant.id;
+    const ciudades = await CiudadModel.obtenerTodas(tenantId);
     res.json({
       success: true,
       data: ciudades,
@@ -28,7 +29,8 @@ exports.obtenerTodas = async (req, res, next) => {
 // ============================================
 exports.obtenerActivas = async (req, res, next) => {
   try {
-    const ciudades = await CiudadModel.obtenerActivas();
+    const tenantId = req.tenant.id;
+    const ciudades = await CiudadModel.obtenerActivas(tenantId);
     res.json({
       success: true,
       data: ciudades,
@@ -44,8 +46,9 @@ exports.obtenerActivas = async (req, res, next) => {
 // ============================================
 exports.obtenerPorId = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { id } = req.params;
-    const ciudad = await CiudadModel.obtenerPorId(id);
+    const ciudad = await CiudadModel.obtenerPorId(tenantId, id);
 
     if (!ciudad) {
       throw new AppError('Ciudad no encontrada', 404);
@@ -65,6 +68,7 @@ exports.obtenerPorId = async (req, res, next) => {
 // ============================================
 exports.crear = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { nombre, departamento_id, departamento, tarifas } = req.body;
 
     if (!nombre) {
@@ -72,12 +76,12 @@ exports.crear = async (req, res, next) => {
     }
 
     // Verificar que no exista
-    const existe = await CiudadModel.nombreExiste(nombre);
+    const existe = await CiudadModel.nombreExiste(tenantId, nombre);
     if (existe) {
       throw new AppError('Ya existe una ciudad con ese nombre', 400);
     }
 
-    const resultado = await CiudadModel.crear({ nombre, departamento_id, departamento, tarifas });
+    const resultado = await CiudadModel.crear(tenantId, { nombre, departamento_id, departamento, tarifas });
 
     logger.info('ciudadController.crear', 'Ciudad creada con tarifas', {
       id: resultado.insertId,
@@ -86,7 +90,7 @@ exports.crear = async (req, res, next) => {
       tarifas
     });
 
-    const ciudadCreada = await CiudadModel.obtenerPorId(resultado.insertId);
+    const ciudadCreada = await CiudadModel.obtenerPorId(tenantId, resultado.insertId);
 
     res.status(201).json({
       success: true,
@@ -104,23 +108,24 @@ exports.crear = async (req, res, next) => {
 // ============================================
 exports.actualizar = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { id } = req.params;
     const { nombre, departamento_id, departamento, activo, tarifas } = req.body;
 
-    const ciudadExistente = await CiudadModel.obtenerPorId(id);
+    const ciudadExistente = await CiudadModel.obtenerPorId(tenantId, id);
     if (!ciudadExistente) {
       throw new AppError('Ciudad no encontrada', 404);
     }
 
     // Verificar nombre único
     if (nombre && nombre !== ciudadExistente.nombre) {
-      const existe = await CiudadModel.nombreExiste(nombre, id);
+      const existe = await CiudadModel.nombreExiste(tenantId, nombre, id);
       if (existe) {
         throw new AppError('Ya existe una ciudad con ese nombre', 400);
       }
     }
 
-    await CiudadModel.actualizar(id, {
+    await CiudadModel.actualizar(tenantId, id, {
       nombre: nombre || ciudadExistente.nombre,
       departamento_id: departamento_id !== undefined ? departamento_id : ciudadExistente.departamento_id,
       departamento: departamento !== undefined ? departamento : ciudadExistente.departamento,
@@ -128,7 +133,7 @@ exports.actualizar = async (req, res, next) => {
       tarifas
     });
 
-    const ciudadActualizada = await CiudadModel.obtenerPorId(id);
+    const ciudadActualizada = await CiudadModel.obtenerPorId(tenantId, id);
 
     res.json({
       success: true,
@@ -146,14 +151,15 @@ exports.actualizar = async (req, res, next) => {
 // ============================================
 exports.eliminar = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { id } = req.params;
 
-    const ciudad = await CiudadModel.obtenerPorId(id);
+    const ciudad = await CiudadModel.obtenerPorId(tenantId, id);
     if (!ciudad) {
       throw new AppError('Ciudad no encontrada', 404);
     }
 
-    await CiudadModel.eliminar(id);
+    await CiudadModel.eliminar(tenantId, id);
 
     res.json({
       success: true,
@@ -174,14 +180,15 @@ exports.eliminar = async (req, res, next) => {
 // ============================================
 exports.desactivar = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { id } = req.params;
 
-    const ciudad = await CiudadModel.obtenerPorId(id);
+    const ciudad = await CiudadModel.obtenerPorId(tenantId, id);
     if (!ciudad) {
       throw new AppError('Ciudad no encontrada', 404);
     }
 
-    await CiudadModel.desactivar(id);
+    await CiudadModel.desactivar(tenantId, id);
 
     res.json({
       success: true,

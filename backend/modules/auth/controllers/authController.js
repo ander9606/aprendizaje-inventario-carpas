@@ -26,6 +26,7 @@ const generarCodigo = () => {
  */
 const login = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { email, password } = req.body;
 
         // Validar campos requeridos
@@ -34,7 +35,7 @@ const login = async (req, res, next) => {
         }
 
         // Buscar empleado por email
-        const empleado = await AuthModel.buscarPorEmail(email);
+        const empleado = await AuthModel.buscarPorEmail(tenantId, email);
 
         if (!empleado) {
             throw new AppError('Credenciales inválidas', 401);
@@ -65,13 +66,13 @@ const login = async (req, res, next) => {
 
         if (!passwordValido) {
             // Incrementar intentos fallidos
-            const intentos = await AuthModel.incrementarIntentosFallidos(empleado.id);
+            const intentos = await AuthModel.incrementarIntentosFallidos(tenantId, empleado.id);
 
             // Bloquear cuenta si excede límite
             if (intentos >= MAX_INTENTOS_FALLIDOS) {
                 const bloqueadoHasta = new Date();
                 bloqueadoHasta.setMinutes(bloqueadoHasta.getMinutes() + MINUTOS_BLOQUEO);
-                await AuthModel.bloquearCuenta(empleado.id, bloqueadoHasta);
+                await AuthModel.bloquearCuenta(tenantId, empleado.id, bloqueadoHasta);
 
                 logger.warn('auth', `Cuenta bloqueada por exceso de intentos: ${email}`);
 
@@ -85,14 +86,14 @@ const login = async (req, res, next) => {
         }
 
         // Login exitoso - actualizar último login
-        await AuthModel.actualizarUltimoLogin(empleado.id);
+        await AuthModel.actualizarUltimoLogin(tenantId, empleado.id);
 
         // Generar tokens
         const accessToken = TokenService.generarAccessToken(empleado);
         const refreshToken = await TokenService.generarRefreshToken(empleado);
 
         // Registrar en auditoría
-        await AuthModel.registrarAuditoria({
+        await AuthModel.registrarAuditoria(tenantId, {
             empleado_id: empleado.id,
             accion: 'LOGIN',
             ip_address: req.ip,
@@ -131,6 +132,7 @@ const login = async (req, res, next) => {
  */
 const logout = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { refreshToken } = req.body;
 
         if (refreshToken) {
@@ -139,7 +141,7 @@ const logout = async (req, res, next) => {
 
         // Registrar en auditoría si hay usuario autenticado
         if (req.usuario) {
-            await AuthModel.registrarAuditoria({
+            await AuthModel.registrarAuditoria(tenantId, {
                 empleado_id: req.usuario.id,
                 accion: 'LOGOUT',
                 ip_address: req.ip,
@@ -164,9 +166,10 @@ const logout = async (req, res, next) => {
  */
 const logoutAll = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         await TokenService.revocarTodosTokensEmpleado(req.usuario.id);
 
-        await AuthModel.registrarAuditoria({
+        await AuthModel.registrarAuditoria(tenantId, {
             empleado_id: req.usuario.id,
             accion: 'LOGOUT_ALL',
             ip_address: req.ip,
@@ -220,7 +223,8 @@ const refresh = async (req, res, next) => {
  */
 const me = async (req, res, next) => {
     try {
-        const empleado = await AuthModel.obtenerPorId(req.usuario.id);
+        const tenantId = req.tenant.id;
+        const empleado = await AuthModel.obtenerPorId(tenantId, req.usuario.id);
 
         if (!empleado) {
             throw new AppError('Usuario no encontrado', 404);
@@ -251,6 +255,7 @@ const me = async (req, res, next) => {
  */
 const actualizarPerfil = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { nombre, apellido, telefono } = req.body;
 
         if (!nombre && !apellido && telefono === undefined) {
@@ -262,11 +267,11 @@ const actualizarPerfil = async (req, res, next) => {
         if (apellido) datos.apellido = apellido.trim();
         if (telefono !== undefined) datos.telefono = telefono?.trim() || null;
 
-        const empleadoAnterior = await AuthModel.obtenerPorId(req.usuario.id);
-        await AuthModel.actualizarPerfil(req.usuario.id, datos);
-        const empleadoActualizado = await AuthModel.obtenerPorId(req.usuario.id);
+        const empleadoAnterior = await AuthModel.obtenerPorId(tenantId, req.usuario.id);
+        await AuthModel.actualizarPerfil(tenantId, req.usuario.id, datos);
+        const empleadoActualizado = await AuthModel.obtenerPorId(tenantId, req.usuario.id);
 
-        await AuthModel.registrarAuditoria({
+        await AuthModel.registrarAuditoria(tenantId, {
             empleado_id: req.usuario.id,
             accion: 'ACTUALIZAR_PERFIL',
             tabla_afectada: 'empleados',
@@ -307,6 +312,7 @@ const actualizarPerfil = async (req, res, next) => {
  */
 const cambiarPassword = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { passwordActual, passwordNuevo } = req.body;
 
         // Validar campos requeridos
@@ -320,7 +326,7 @@ const cambiarPassword = async (req, res, next) => {
         }
 
         // Obtener empleado con password
-        const empleado = await AuthModel.buscarPorEmail(req.usuario.email);
+        const empleado = await AuthModel.buscarPorEmail(tenantId, req.usuario.email);
 
         if (!empleado) {
             throw new AppError('Usuario no encontrado', 404);
@@ -337,9 +343,9 @@ const cambiarPassword = async (req, res, next) => {
         const nuevoHash = await bcrypt.hash(passwordNuevo, 10);
 
         // Actualizar contraseña
-        await AuthModel.cambiarPassword(empleado.id, nuevoHash);
+        await AuthModel.cambiarPassword(tenantId, empleado.id, nuevoHash);
 
-        await AuthModel.registrarAuditoria({
+        await AuthModel.registrarAuditoria(tenantId, {
             empleado_id: empleado.id,
             accion: 'CAMBIO_PASSWORD',
             ip_address: req.ip,
@@ -385,11 +391,13 @@ const getSessions = async (req, res, next) => {
  */
 const obtenerHistorial = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const page = parseInt(req.query.page) || 1;
         const limit = Math.min(parseInt(req.query.limit) || 20, 100);
         const offset = (page - 1) * limit;
 
         const { registros, total } = await AuthModel.obtenerHistorialUsuario(
+            tenantId,
             req.usuario.id,
             limit,
             offset
@@ -416,6 +424,7 @@ const obtenerHistorial = async (req, res, next) => {
  */
 const registro = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { nombre, apellido, email, telefono, password, rol_solicitado_id } = req.body;
 
         // Validar campos requeridos
@@ -440,7 +449,7 @@ const registro = async (req, res, next) => {
         }
 
         // Verificar si el email ya está registrado como empleado
-        const existente = await AuthModel.buscarPorEmail(emailNormalizado);
+        const existente = await AuthModel.buscarPorEmail(tenantId, emailNormalizado);
         if (existente) {
             if (existente.estado === 'pendiente') {
                 throw new AppError('Ya existe una solicitud pendiente con este email', 400);
@@ -457,7 +466,7 @@ const registro = async (req, res, next) => {
         expira_en.setMinutes(expira_en.getMinutes() + MINUTOS_EXPIRACION_CODIGO);
 
         // Guardar en tabla de verificación
-        await VerificacionEmailModel.crear({
+        await VerificacionEmailModel.crear(tenantId, {
             email: emailNormalizado,
             codigo,
             datos_registro: {
@@ -499,6 +508,7 @@ const registro = async (req, res, next) => {
  */
 const verificarEmail = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { email, codigo } = req.body;
 
         if (!email || !codigo) {
@@ -508,7 +518,7 @@ const verificarEmail = async (req, res, next) => {
         const emailNormalizado = email.trim().toLowerCase();
 
         // Buscar verificación pendiente
-        const verificacion = await VerificacionEmailModel.buscarPorEmail(emailNormalizado);
+        const verificacion = await VerificacionEmailModel.buscarPorEmail(tenantId, emailNormalizado);
 
         if (!verificacion) {
             throw new AppError('No se encontró una verificación pendiente. El código puede haber expirado.', 400);
@@ -534,7 +544,7 @@ const verificarEmail = async (req, res, next) => {
 
         // Crear empleado con estado pendiente
         const datos = verificacion.datos_registro;
-        const solicitud = await AuthModel.registrarSolicitud({
+        const solicitud = await AuthModel.registrarSolicitud(tenantId, {
             nombre: datos.nombre,
             apellido: datos.apellido,
             email: emailNormalizado,
@@ -544,7 +554,7 @@ const verificarEmail = async (req, res, next) => {
         });
 
         // Registrar en auditoría
-        await AuthModel.registrarAuditoria({
+        await AuthModel.registrarAuditoria(tenantId, {
             empleado_id: null,
             accion: 'SOLICITUD_ACCESO',
             tabla_afectada: 'empleados',
@@ -571,6 +581,7 @@ const verificarEmail = async (req, res, next) => {
  */
 const reenviarCodigo = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { email } = req.body;
 
         if (!email) {
@@ -580,13 +591,13 @@ const reenviarCodigo = async (req, res, next) => {
         const emailNormalizado = email.trim().toLowerCase();
 
         // Verificar si ya existe como empleado
-        const existente = await AuthModel.buscarPorEmail(emailNormalizado);
+        const existente = await AuthModel.buscarPorEmail(tenantId, emailNormalizado);
         if (existente) {
             throw new AppError('Este email ya está registrado en el sistema', 400);
         }
 
         // Buscar verificación pendiente para obtener datos
-        const verificacionAnterior = await VerificacionEmailModel.buscarPorEmail(emailNormalizado);
+        const verificacionAnterior = await VerificacionEmailModel.buscarPorEmail(tenantId, emailNormalizado);
 
         if (!verificacionAnterior) {
             throw new AppError('No se encontró una solicitud de registro para este email. Regístrate nuevamente.', 400);
@@ -598,7 +609,7 @@ const reenviarCodigo = async (req, res, next) => {
         expira_en.setMinutes(expira_en.getMinutes() + MINUTOS_EXPIRACION_CODIGO);
 
         // Crear nueva verificación (la anterior se elimina automáticamente)
-        await VerificacionEmailModel.crear({
+        await VerificacionEmailModel.crear(tenantId, {
             email: emailNormalizado,
             codigo,
             datos_registro: verificacionAnterior.datos_registro,
@@ -637,7 +648,8 @@ const reenviarCodigo = async (req, res, next) => {
  */
 const getRolesRegistro = async (req, res, next) => {
     try {
-        const roles = await AuthModel.obtenerRolesPublicos();
+        const tenantId = req.tenant.id;
+        const roles = await AuthModel.obtenerRolesPublicos(tenantId);
 
         res.json({
             success: true,

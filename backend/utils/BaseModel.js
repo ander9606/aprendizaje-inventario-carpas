@@ -35,30 +35,31 @@ class BaseModel {
     return this.columns.map(c => c.includes('.') ? c : `${this.alias}.${c}`).join(', ');
   }
 
-  async obtenerTodos() {
+  async obtenerTodos(tenantId) {
     const [rows] = await pool.query(
-      `SELECT ${this.selectColumns} FROM ${this.table} ${this.alias} ORDER BY ${this.alias}.${this.defaultSort}`
+      `SELECT ${this.selectColumns} FROM ${this.table} ${this.alias} WHERE ${this.alias}.tenant_id = ? ORDER BY ${this.alias}.${this.defaultSort}`,
+      [tenantId]
     );
     return rows;
   }
 
-  async obtenerPorId(id) {
+  async obtenerPorId(tenantId, id) {
     const [rows] = await pool.query(
-      `SELECT ${this.selectColumns} FROM ${this.table} ${this.alias} WHERE ${this.alias}.id = ?`,
-      [id]
+      `SELECT ${this.selectColumns} FROM ${this.table} ${this.alias} WHERE ${this.alias}.id = ? AND ${this.alias}.tenant_id = ?`,
+      [id, tenantId]
     );
     return rows[0];
   }
 
-  async obtenerConPaginacion({ limit, offset, sortBy, order = 'ASC', search = null }) {
-    let query = `SELECT ${this.selectColumns} FROM ${this.table} ${this.alias}`;
-    const params = [];
+  async obtenerConPaginacion(tenantId, { limit, offset, sortBy, order = 'ASC', search = null }) {
+    let query = `SELECT ${this.selectColumns} FROM ${this.table} ${this.alias} WHERE ${this.alias}.tenant_id = ?`;
+    const params = [tenantId];
 
     if (search) {
       const conditions = this.searchColumns
         .map(col => `${col.includes('.') ? col : `${this.alias}.${col}`} LIKE ?`)
         .join(' OR ');
-      query += ` WHERE (${conditions})`;
+      query += ` AND (${conditions})`;
       for (let i = 0; i < this.searchColumns.length; i++) {
         params.push(`%${search}%`);
       }
@@ -74,15 +75,15 @@ class BaseModel {
     return rows;
   }
 
-  async contarTodos(search = null) {
-    let query = `SELECT COUNT(*) as total FROM ${this.table} ${this.alias}`;
-    const params = [];
+  async contarTodos(tenantId, search = null) {
+    let query = `SELECT COUNT(*) as total FROM ${this.table} ${this.alias} WHERE ${this.alias}.tenant_id = ?`;
+    const params = [tenantId];
 
     if (search) {
       const conditions = this.searchColumns
         .map(col => `${col.includes('.') ? col : `${this.alias}.${col}`} LIKE ?`)
         .join(' OR ');
-      query += ` WHERE (${conditions})`;
+      query += ` AND (${conditions})`;
       for (let i = 0; i < this.searchColumns.length; i++) {
         params.push(`%${search}%`);
       }
@@ -92,17 +93,17 @@ class BaseModel {
     return rows[0].total;
   }
 
-  async obtenerPorNombre(nombre) {
+  async obtenerPorNombre(tenantId, nombre) {
     const [rows] = await pool.query(
-      `SELECT ${this.selectColumns} FROM ${this.table} ${this.alias} WHERE ${this.alias}.nombre = ? LIMIT 1`,
-      [nombre]
+      `SELECT ${this.selectColumns} FROM ${this.table} ${this.alias} WHERE ${this.alias}.nombre = ? AND ${this.alias}.tenant_id = ? LIMIT 1`,
+      [nombre, tenantId]
     );
     return rows[0];
   }
 
-  async nombreExiste(nombre, excluirId = null) {
-    let query = `SELECT COUNT(*) as total FROM ${this.table} WHERE nombre = ?`;
-    const params = [nombre];
+  async nombreExiste(tenantId, nombre, excluirId = null) {
+    let query = `SELECT COUNT(*) as total FROM ${this.table} WHERE nombre = ? AND tenant_id = ?`;
+    const params = [nombre, tenantId];
     if (excluirId) {
       query += ' AND id != ?';
       params.push(excluirId);
@@ -111,9 +112,10 @@ class BaseModel {
     return rows[0].total > 0;
   }
 
-  async crear(data) {
-    const campos = Object.keys(data);
-    const valores = Object.values(data);
+  async crear(tenantId, data) {
+    const dataWithTenant = { ...data, tenant_id: tenantId };
+    const campos = Object.keys(dataWithTenant);
+    const valores = Object.values(dataWithTenant);
     const placeholders = campos.map(() => '?').join(', ');
 
     const [result] = await pool.query(
@@ -123,22 +125,22 @@ class BaseModel {
     return result.insertId;
   }
 
-  async actualizar(id, data) {
+  async actualizar(tenantId, id, data) {
     const campos = Object.keys(data);
     const valores = Object.values(data);
     const setClause = campos.map(c => `${c} = ?`).join(', ');
 
     const [result] = await pool.query(
-      `UPDATE ${this.table} SET ${setClause} WHERE id = ?`,
-      [...valores, id]
+      `UPDATE ${this.table} SET ${setClause} WHERE id = ? AND tenant_id = ?`,
+      [...valores, id, tenantId]
     );
     return result.affectedRows;
   }
 
-  async eliminar(id) {
+  async eliminar(tenantId, id) {
     const [result] = await pool.query(
-      `DELETE FROM ${this.table} WHERE id = ?`,
-      [id]
+      `DELETE FROM ${this.table} WHERE id = ? AND tenant_id = ?`,
+      [id, tenantId]
     );
     return result.affectedRows;
   }

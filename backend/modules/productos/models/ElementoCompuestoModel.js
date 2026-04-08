@@ -10,7 +10,7 @@ class ElementoCompuestoModel {
   // ============================================
   // OBTENER TODOS
   // ============================================
-  static async obtenerTodos() {
+  static async obtenerTodos(tenantId) {
     const query = `
       SELECT
         ec.id,
@@ -28,17 +28,18 @@ class ElementoCompuestoModel {
         cp.emoji AS categoria_emoji,
         (SELECT COUNT(*) FROM compuesto_componentes cc WHERE cc.compuesto_id = ec.id) AS total_componentes
       FROM elementos_compuestos ec
-      LEFT JOIN categorias_productos cp ON ec.categoria_id = cp.id
+      LEFT JOIN categorias_productos cp ON ec.categoria_id = cp.id AND cp.tenant_id = ?
+      WHERE ec.tenant_id = ?
       ORDER BY ec.nombre
     `;
-    const [rows] = await pool.query(query);
+    const [rows] = await pool.query(query, [tenantId, tenantId]);
     return rows;
   }
 
   // ============================================
   // OBTENER POR CATEGORÍA
   // ============================================
-  static async obtenerPorCategoria(categoriaId) {
+  static async obtenerPorCategoria(tenantId, categoriaId) {
     const query = `
       SELECT
         ec.id,
@@ -53,17 +54,17 @@ class ElementoCompuestoModel {
         ec.created_at,
         (SELECT COUNT(*) FROM compuesto_componentes cc WHERE cc.compuesto_id = ec.id) AS total_componentes
       FROM elementos_compuestos ec
-      WHERE ec.categoria_id = ? AND ec.activo = TRUE
+      WHERE ec.tenant_id = ? AND ec.categoria_id = ? AND ec.activo = TRUE
       ORDER BY ec.nombre
     `;
-    const [rows] = await pool.query(query, [categoriaId]);
+    const [rows] = await pool.query(query, [tenantId, categoriaId]);
     return rows;
   }
 
   // ============================================
   // OBTENER POR ID
   // ============================================
-  static async obtenerPorId(id) {
+  static async obtenerPorId(tenantId, id) {
     const query = `
       SELECT
         ec.id,
@@ -80,19 +81,19 @@ class ElementoCompuestoModel {
         cp.nombre AS categoria_nombre,
         cp.emoji AS categoria_emoji
       FROM elementos_compuestos ec
-      LEFT JOIN categorias_productos cp ON ec.categoria_id = cp.id
-      WHERE ec.id = ?
+      LEFT JOIN categorias_productos cp ON ec.categoria_id = cp.id AND cp.tenant_id = ?
+      WHERE ec.tenant_id = ? AND ec.id = ?
     `;
-    const [rows] = await pool.query(query, [id]);
+    const [rows] = await pool.query(query, [tenantId, tenantId, id]);
     return rows[0];
   }
 
   // ============================================
   // OBTENER POR ID CON COMPONENTES
   // ============================================
-  static async obtenerPorIdConComponentes(id) {
+  static async obtenerPorIdConComponentes(tenantId, id) {
     // Obtener el elemento compuesto
-    const elemento = await this.obtenerPorId(id);
+    const elemento = await this.obtenerPorId(tenantId, id);
     if (!elemento) return null;
 
     // Obtener sus componentes
@@ -111,12 +112,12 @@ class ElementoCompuestoModel {
         c.nombre AS elemento_categoria,
         c.emoji AS elemento_emoji
       FROM compuesto_componentes cc
-      INNER JOIN elementos e ON cc.elemento_id = e.id
-      LEFT JOIN categorias c ON e.categoria_id = c.id
+      INNER JOIN elementos e ON cc.elemento_id = e.id AND e.tenant_id = ?
+      LEFT JOIN categorias c ON e.categoria_id = c.id AND c.tenant_id = ?
       WHERE cc.compuesto_id = ?
       ORDER BY cc.tipo, cc.grupo, cc.orden, e.nombre
     `;
-    const [componentes] = await pool.query(queryComponentes, [id]);
+    const [componentes] = await pool.query(queryComponentes, [tenantId, tenantId, id]);
 
     return {
       ...elemento,
@@ -127,13 +128,14 @@ class ElementoCompuestoModel {
   // ============================================
   // CREAR
   // ============================================
-  static async crear({ categoria_id, nombre, codigo, descripcion, precio_base, deposito }) {
+  static async crear(tenantId, { categoria_id, nombre, codigo, descripcion, precio_base, deposito }) {
     const query = `
       INSERT INTO elementos_compuestos
-        (categoria_id, nombre, codigo, descripcion, precio_base, deposito)
-      VALUES (?, ?, ?, ?, ?, ?)
+        (tenant_id, categoria_id, nombre, codigo, descripcion, precio_base, deposito)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
     `;
     const [result] = await pool.query(query, [
+      tenantId,
       categoria_id,
       nombre,
       codigo || null,
@@ -147,12 +149,12 @@ class ElementoCompuestoModel {
   // ============================================
   // ACTUALIZAR
   // ============================================
-  static async actualizar(id, { categoria_id, nombre, codigo, descripcion, precio_base, deposito, activo }) {
+  static async actualizar(tenantId, id, { categoria_id, nombre, codigo, descripcion, precio_base, deposito, activo }) {
     const query = `
       UPDATE elementos_compuestos
       SET categoria_id = ?, nombre = ?, codigo = ?, descripcion = ?,
           precio_base = ?, deposito = ?, activo = ?
-      WHERE id = ?
+      WHERE tenant_id = ? AND id = ?
     `;
     const [result] = await pool.query(query, [
       categoria_id,
@@ -162,6 +164,7 @@ class ElementoCompuestoModel {
       precio_base || 0,
       deposito || 0,
       activo !== undefined ? activo : true,
+      tenantId,
       id
     ]);
     return result;
@@ -170,18 +173,18 @@ class ElementoCompuestoModel {
   // ============================================
   // ELIMINAR
   // ============================================
-  static async eliminar(id) {
-    const [result] = await pool.query('DELETE FROM elementos_compuestos WHERE id = ?', [id]);
+  static async eliminar(tenantId, id) {
+    const [result] = await pool.query('DELETE FROM elementos_compuestos WHERE tenant_id = ? AND id = ?', [tenantId, id]);
     return result;
   }
 
   // ============================================
   // VERIFICAR SI TIENE COTIZACIONES
   // ============================================
-  static async tieneCotizaciones(id) {
+  static async tieneCotizaciones(tenantId, id) {
     const [rows] = await pool.query(
-      'SELECT COUNT(*) AS total FROM cotizaciones WHERE compuesto_id = ?',
-      [id]
+      'SELECT COUNT(*) AS total FROM cotizaciones WHERE tenant_id = ? AND compuesto_id = ?',
+      [tenantId, id]
     );
     return rows[0].total > 0;
   }
@@ -189,10 +192,10 @@ class ElementoCompuestoModel {
   // ============================================
   // ACTUALIZAR IMAGEN
   // ============================================
-  static async actualizarImagen(id, imagenUrl) {
+  static async actualizarImagen(tenantId, id, imagenUrl) {
     const [result] = await pool.query(
-      'UPDATE elementos_compuestos SET imagen = ? WHERE id = ?',
-      [imagenUrl, id]
+      'UPDATE elementos_compuestos SET imagen = ? WHERE tenant_id = ? AND id = ?',
+      [imagenUrl, tenantId, id]
     );
     return result.affectedRows;
   }
@@ -200,7 +203,7 @@ class ElementoCompuestoModel {
   // ============================================
   // BUSCAR
   // ============================================
-  static async buscar(termino) {
+  static async buscar(tenantId, termino) {
     const query = `
       SELECT
         ec.id,
@@ -211,14 +214,14 @@ class ElementoCompuestoModel {
         cp.nombre AS categoria_nombre,
         cp.emoji AS categoria_emoji
       FROM elementos_compuestos ec
-      LEFT JOIN categorias_productos cp ON ec.categoria_id = cp.id
-      WHERE ec.activo = TRUE
+      LEFT JOIN categorias_productos cp ON ec.categoria_id = cp.id AND cp.tenant_id = ?
+      WHERE ec.tenant_id = ? AND ec.activo = TRUE
         AND (ec.nombre LIKE ? OR ec.codigo LIKE ?)
       ORDER BY ec.nombre
       LIMIT 20
     `;
     const busqueda = `%${termino}%`;
-    const [rows] = await pool.query(query, [busqueda, busqueda]);
+    const [rows] = await pool.query(query, [tenantId, tenantId, busqueda, busqueda]);
     return rows;
   }
 }

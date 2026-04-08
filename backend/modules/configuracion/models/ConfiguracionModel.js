@@ -27,40 +27,41 @@ class ConfiguracionModel {
   // ============================================
   // OBTENER TODAS LAS CONFIGURACIONES
   // ============================================
-  static async obtenerTodas() {
+  static async obtenerTodas(tenantId) {
     const query = `
       SELECT id, clave, valor, tipo, descripcion, categoria, orden
       FROM configuracion_alquileres
+      WHERE tenant_id = ?
       ORDER BY categoria, orden
     `;
-    const [rows] = await pool.query(query);
+    const [rows] = await pool.query(query, [tenantId]);
     return rows;
   }
 
   // ============================================
   // OBTENER POR CATEGORÍA
   // ============================================
-  static async obtenerPorCategoria(categoria) {
+  static async obtenerPorCategoria(tenantId, categoria) {
     const query = `
       SELECT id, clave, valor, tipo, descripcion, categoria, orden
       FROM configuracion_alquileres
-      WHERE categoria = ?
+      WHERE tenant_id = ? AND categoria = ?
       ORDER BY orden
     `;
-    const [rows] = await pool.query(query, [categoria]);
+    const [rows] = await pool.query(query, [tenantId, categoria]);
     return rows;
   }
 
   // ============================================
   // OBTENER VALOR POR CLAVE
   // ============================================
-  static async obtenerValor(clave) {
+  static async obtenerValor(tenantId, clave) {
     const query = `
       SELECT valor, tipo
       FROM configuracion_alquileres
-      WHERE clave = ?
+      WHERE tenant_id = ? AND clave = ?
     `;
-    const [rows] = await pool.query(query, [clave]);
+    const [rows] = await pool.query(query, [tenantId, clave]);
 
     if (!rows[0]) {
       return this.DEFAULTS[clave] || null;
@@ -72,14 +73,14 @@ class ConfiguracionModel {
   // ============================================
   // OBTENER MÚLTIPLES VALORES
   // ============================================
-  static async obtenerValores(claves) {
+  static async obtenerValores(tenantId, claves) {
     const placeholders = claves.map(() => '?').join(',');
     const query = `
       SELECT clave, valor, tipo
       FROM configuracion_alquileres
-      WHERE clave IN (${placeholders})
+      WHERE tenant_id = ? AND clave IN (${placeholders})
     `;
-    const [rows] = await pool.query(query, claves);
+    const [rows] = await pool.query(query, [tenantId, ...claves]);
 
     const resultado = {};
     for (const clave of claves) {
@@ -96,8 +97,8 @@ class ConfiguracionModel {
   // ============================================
   // OBTENER CONFIGURACIÓN COMPLETA (OBJETO)
   // ============================================
-  static async obtenerConfiguracionCompleta() {
-    const rows = await this.obtenerTodas();
+  static async obtenerConfiguracionCompleta(tenantId) {
+    const rows = await this.obtenerTodas(tenantId);
     const config = {};
 
     for (const row of rows) {
@@ -111,28 +112,28 @@ class ConfiguracionModel {
   // ============================================
   // ACTUALIZAR VALOR
   // ============================================
-  static async actualizarValor(clave, valor) {
+  static async actualizarValor(tenantId, clave, valor) {
     const query = `
       UPDATE configuracion_alquileres
       SET valor = ?
-      WHERE clave = ?
+      WHERE tenant_id = ? AND clave = ?
     `;
-    const [result] = await pool.query(query, [String(valor), clave]);
+    const [result] = await pool.query(query, [String(valor), tenantId, clave]);
     return result;
   }
 
   // ============================================
   // ACTUALIZAR MÚLTIPLES VALORES
   // ============================================
-  static async actualizarValores(valores) {
+  static async actualizarValores(tenantId, valores) {
     const connection = await pool.getConnection();
     try {
       await connection.beginTransaction();
 
       for (const [clave, valor] of Object.entries(valores)) {
         await connection.query(
-          'UPDATE configuracion_alquileres SET valor = ? WHERE clave = ?',
-          [String(valor), clave]
+          'UPDATE configuracion_alquileres SET valor = ? WHERE tenant_id = ? AND clave = ?',
+          [String(valor), tenantId, clave]
         );
       }
 
@@ -165,13 +166,14 @@ class ConfiguracionModel {
   // ============================================
   // OBTENER CATEGORÍAS DISPONIBLES
   // ============================================
-  static async obtenerCategorias() {
+  static async obtenerCategorias(tenantId) {
     const query = `
       SELECT DISTINCT categoria
       FROM configuracion_alquileres
+      WHERE tenant_id = ?
       ORDER BY categoria
     `;
-    const [rows] = await pool.query(query);
+    const [rows] = await pool.query(query, [tenantId]);
     return rows.map(r => r.categoria);
   }
 }

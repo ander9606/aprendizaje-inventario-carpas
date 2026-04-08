@@ -15,7 +15,8 @@ const { deleteImageFile } = require('../../../middleware/upload');
 // ============================================
 exports.obtenerTodos = async (req, res, next) => {
   try {
-    const elementos = await ElementoCompuestoModel.obtenerTodos();
+    const tenantId = req.tenant.id;
+    const elementos = await ElementoCompuestoModel.obtenerTodos(tenantId);
     res.json({
       success: true,
       data: elementos,
@@ -31,8 +32,9 @@ exports.obtenerTodos = async (req, res, next) => {
 // ============================================
 exports.obtenerPorCategoria = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { categoriaId } = req.params;
-    const elementos = await ElementoCompuestoModel.obtenerPorCategoria(categoriaId);
+    const elementos = await ElementoCompuestoModel.obtenerPorCategoria(tenantId, categoriaId);
     res.json({
       success: true,
       data: elementos,
@@ -48,8 +50,9 @@ exports.obtenerPorCategoria = async (req, res, next) => {
 // ============================================
 exports.obtenerPorId = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { id } = req.params;
-    const elemento = await ElementoCompuestoModel.obtenerPorId(id);
+    const elemento = await ElementoCompuestoModel.obtenerPorId(tenantId, id);
 
     if (!elemento) {
       throw new AppError('Elemento compuesto no encontrado', 404);
@@ -69,8 +72,9 @@ exports.obtenerPorId = async (req, res, next) => {
 // ============================================
 exports.obtenerPorIdConComponentes = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { id } = req.params;
-    const elemento = await ElementoCompuestoModel.obtenerPorIdConComponentes(id);
+    const elemento = await ElementoCompuestoModel.obtenerPorIdConComponentes(tenantId, id);
 
     if (!elemento) {
       throw new AppError('Elemento compuesto no encontrado', 404);
@@ -90,14 +94,15 @@ exports.obtenerPorIdConComponentes = async (req, res, next) => {
 // ============================================
 exports.obtenerComponentesAgrupados = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { id } = req.params;
 
-    const elemento = await ElementoCompuestoModel.obtenerPorId(id);
+    const elemento = await ElementoCompuestoModel.obtenerPorId(tenantId, id);
     if (!elemento) {
       throw new AppError('Elemento compuesto no encontrado', 404);
     }
 
-    const componentes = await CompuestoComponenteModel.obtenerAgrupados(id);
+    const componentes = await CompuestoComponenteModel.obtenerAgrupados(tenantId, id);
 
     res.json({
       success: true,
@@ -116,6 +121,7 @@ exports.obtenerComponentesAgrupados = async (req, res, next) => {
 // ============================================
 exports.crear = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { categoria_id, nombre, codigo, descripcion, precio_base, deposito, componentes } = req.body;
 
     // Validaciones
@@ -127,7 +133,7 @@ exports.crear = async (req, res, next) => {
     }
 
     // Verificar que la categoría existe
-    const categoria = await CategoriaProductoModel.obtenerPorId(categoria_id);
+    const categoria = await CategoriaProductoModel.obtenerPorId(tenantId, categoria_id);
     if (!categoria) {
       throw new AppError('Categoría no encontrada', 404);
     }
@@ -135,7 +141,7 @@ exports.crear = async (req, res, next) => {
     logger.info('elementoCompuestoController.crear', 'Creando elemento compuesto', { nombre });
 
     // Crear elemento compuesto
-    const resultado = await ElementoCompuestoModel.crear({
+    const resultado = await ElementoCompuestoModel.crear(tenantId, {
       categoria_id,
       nombre: nombre.trim(),
       codigo,
@@ -148,10 +154,10 @@ exports.crear = async (req, res, next) => {
 
     // Agregar componentes si vienen
     if (componentes && componentes.length > 0) {
-      await CompuestoComponenteModel.agregarMultiples(elementoId, componentes);
+      await CompuestoComponenteModel.agregarMultiples(tenantId, elementoId, componentes);
     }
 
-    const elementoCreado = await ElementoCompuestoModel.obtenerPorIdConComponentes(elementoId);
+    const elementoCreado = await ElementoCompuestoModel.obtenerPorIdConComponentes(tenantId, elementoId);
 
     res.status(201).json({
       success: true,
@@ -169,10 +175,11 @@ exports.crear = async (req, res, next) => {
 // ============================================
 exports.actualizar = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { id } = req.params;
     const { categoria_id, nombre, codigo, descripcion, precio_base, deposito, activo } = req.body;
 
-    const elementoExistente = await ElementoCompuestoModel.obtenerPorId(id);
+    const elementoExistente = await ElementoCompuestoModel.obtenerPorId(tenantId, id);
     if (!elementoExistente) {
       throw new AppError('Elemento compuesto no encontrado', 404);
     }
@@ -181,7 +188,7 @@ exports.actualizar = async (req, res, next) => {
       throw new AppError('El nombre es obligatorio', 400);
     }
 
-    await ElementoCompuestoModel.actualizar(id, {
+    await ElementoCompuestoModel.actualizar(tenantId, id, {
       categoria_id,
       nombre: nombre.trim(),
       codigo,
@@ -191,7 +198,7 @@ exports.actualizar = async (req, res, next) => {
       activo
     });
 
-    const elementoActualizado = await ElementoCompuestoModel.obtenerPorId(id);
+    const elementoActualizado = await ElementoCompuestoModel.obtenerPorId(tenantId, id);
 
     res.json({
       success: true,
@@ -209,20 +216,21 @@ exports.actualizar = async (req, res, next) => {
 // ============================================
 exports.eliminar = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { id } = req.params;
 
-    const elemento = await ElementoCompuestoModel.obtenerPorId(id);
+    const elemento = await ElementoCompuestoModel.obtenerPorId(tenantId, id);
     if (!elemento) {
       throw new AppError('Elemento compuesto no encontrado', 404);
     }
 
-    const tieneCotizaciones = await ElementoCompuestoModel.tieneCotizaciones(id);
+    const tieneCotizaciones = await ElementoCompuestoModel.tieneCotizaciones(tenantId, id);
     if (tieneCotizaciones) {
       throw new AppError('No se puede eliminar un producto que tiene cotizaciones asociadas', 400);
     }
 
     // Los componentes se eliminan automáticamente por CASCADE
-    await ElementoCompuestoModel.eliminar(id);
+    await ElementoCompuestoModel.eliminar(tenantId, id);
 
     res.json({
       success: true,
@@ -239,13 +247,14 @@ exports.eliminar = async (req, res, next) => {
 // ============================================
 exports.buscar = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { q } = req.query;
 
     if (!q || q.trim().length < 2) {
       throw new AppError('El término de búsqueda debe tener al menos 2 caracteres', 400);
     }
 
-    const resultados = await ElementoCompuestoModel.buscar(q.trim());
+    const resultados = await ElementoCompuestoModel.buscar(tenantId, q.trim());
 
     res.json({
       success: true,
@@ -262,10 +271,11 @@ exports.buscar = async (req, res, next) => {
 // ============================================
 exports.agregarComponente = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { id } = req.params;
     const { elemento_id, cantidad, tipo, grupo, es_default, precio_adicional, orden } = req.body;
 
-    const elemento = await ElementoCompuestoModel.obtenerPorId(id);
+    const elemento = await ElementoCompuestoModel.obtenerPorId(tenantId, id);
     if (!elemento) {
       throw new AppError('Elemento compuesto no encontrado', 404);
     }
@@ -275,12 +285,12 @@ exports.agregarComponente = async (req, res, next) => {
     }
 
     // Verificar si ya existe
-    const existe = await CompuestoComponenteModel.existeEnCompuesto(id, elemento_id);
+    const existe = await CompuestoComponenteModel.existeEnCompuesto(tenantId, id, elemento_id);
     if (existe) {
       throw new AppError('Este elemento ya está agregado al compuesto', 400);
     }
 
-    await CompuestoComponenteModel.agregar({
+    await CompuestoComponenteModel.agregar(tenantId, {
       compuesto_id: id,
       elemento_id,
       cantidad,
@@ -291,7 +301,7 @@ exports.agregarComponente = async (req, res, next) => {
       orden
     });
 
-    const elementoActualizado = await ElementoCompuestoModel.obtenerPorIdConComponentes(id);
+    const elementoActualizado = await ElementoCompuestoModel.obtenerPorIdConComponentes(tenantId, id);
 
     res.status(201).json({
       success: true,
@@ -309,14 +319,15 @@ exports.agregarComponente = async (req, res, next) => {
 // ============================================
 exports.eliminarComponente = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { id, componenteId } = req.params;
 
-    const componente = await CompuestoComponenteModel.obtenerPorId(componenteId);
+    const componente = await CompuestoComponenteModel.obtenerPorId(tenantId, componenteId);
     if (!componente || componente.compuesto_id !== parseInt(id)) {
       throw new AppError('Componente no encontrado', 404);
     }
 
-    await CompuestoComponenteModel.eliminar(componenteId);
+    await CompuestoComponenteModel.eliminar(tenantId, componenteId);
 
     res.json({
       success: true,
@@ -333,23 +344,24 @@ exports.eliminarComponente = async (req, res, next) => {
 // ============================================
 exports.actualizarComponentes = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { id } = req.params;
     const { componentes } = req.body;
 
-    const elemento = await ElementoCompuestoModel.obtenerPorId(id);
+    const elemento = await ElementoCompuestoModel.obtenerPorId(tenantId, id);
     if (!elemento) {
       throw new AppError('Elemento compuesto no encontrado', 404);
     }
 
     // Eliminar componentes existentes
-    await CompuestoComponenteModel.eliminarPorCompuesto(id);
+    await CompuestoComponenteModel.eliminarPorCompuesto(tenantId, id);
 
     // Agregar nuevos componentes
     if (componentes && componentes.length > 0) {
-      await CompuestoComponenteModel.agregarMultiples(id, componentes);
+      await CompuestoComponenteModel.agregarMultiples(tenantId, id, componentes);
     }
 
-    const elementoActualizado = await ElementoCompuestoModel.obtenerPorIdConComponentes(id);
+    const elementoActualizado = await ElementoCompuestoModel.obtenerPorIdConComponentes(tenantId, id);
 
     res.json({
       success: true,
@@ -367,13 +379,14 @@ exports.actualizarComponentes = async (req, res, next) => {
 // ============================================
 exports.subirImagen = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { id } = req.params;
 
     if (!req.file) {
       throw new AppError('No se recibió ningún archivo', 400);
     }
 
-    const elemento = await ElementoCompuestoModel.obtenerPorId(id);
+    const elemento = await ElementoCompuestoModel.obtenerPorId(tenantId, id);
     if (!elemento) {
       throw new AppError('Elemento compuesto no encontrado', 404);
     }
@@ -384,7 +397,7 @@ exports.subirImagen = async (req, res, next) => {
     }
 
     const imagenUrl = `/uploads/productos/${req.file.filename}`;
-    await ElementoCompuestoModel.actualizarImagen(id, imagenUrl);
+    await ElementoCompuestoModel.actualizarImagen(tenantId, id, imagenUrl);
 
     logger.info('elementoCompuestoController.subirImagen', 'Imagen subida', { id, imagenUrl });
 
@@ -404,9 +417,10 @@ exports.subirImagen = async (req, res, next) => {
 // ============================================
 exports.eliminarImagen = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { id } = req.params;
 
-    const elemento = await ElementoCompuestoModel.obtenerPorId(id);
+    const elemento = await ElementoCompuestoModel.obtenerPorId(tenantId, id);
     if (!elemento) {
       throw new AppError('Elemento compuesto no encontrado', 404);
     }
@@ -415,7 +429,7 @@ exports.eliminarImagen = async (req, res, next) => {
       deleteImageFile(elemento.imagen);
     }
 
-    await ElementoCompuestoModel.actualizarImagen(id, null);
+    await ElementoCompuestoModel.actualizarImagen(tenantId, id, null);
 
     logger.info('elementoCompuestoController.eliminarImagen', 'Imagen eliminada', { id });
 

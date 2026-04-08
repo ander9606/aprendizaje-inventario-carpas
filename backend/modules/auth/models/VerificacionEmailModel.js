@@ -3,22 +3,23 @@ const { pool } = require('../../../config/database');
 class VerificacionEmailModel {
     /**
      * Crear registro de verificación
+     * @param {number} tenantId
      * @param {Object} datos - email, codigo, datos_registro, expira_en
      * @returns {Promise<Object>}
      */
-    static async crear(datos) {
+    static async crear(tenantId, datos) {
         const { email, codigo, datos_registro, expira_en } = datos;
 
         // Eliminar verificaciones anteriores no completadas del mismo email
         await pool.query(
-            'DELETE FROM verificacion_email WHERE email = ? AND verificado = 0',
-            [email]
+            'DELETE FROM verificacion_email WHERE email = ? AND verificado = 0 AND tenant_id = ?',
+            [email, tenantId]
         );
 
         const [result] = await pool.query(
-            `INSERT INTO verificacion_email (email, codigo, datos_registro, expira_en)
-             VALUES (?, ?, ?, ?)`,
-            [email, codigo, JSON.stringify(datos_registro), expira_en]
+            `INSERT INTO verificacion_email (tenant_id, email, codigo, datos_registro, expira_en)
+             VALUES (?, ?, ?, ?, ?)`,
+            [tenantId, email, codigo, JSON.stringify(datos_registro), expira_en]
         );
 
         return { id: result.insertId, email, expira_en };
@@ -26,15 +27,16 @@ class VerificacionEmailModel {
 
     /**
      * Buscar verificación pendiente por email
+     * @param {number} tenantId
      * @param {string} email
      * @returns {Promise<Object|null>}
      */
-    static async buscarPorEmail(email) {
+    static async buscarPorEmail(tenantId, email) {
         const [rows] = await pool.query(
             `SELECT * FROM verificacion_email
-             WHERE email = ? AND verificado = 0 AND expira_en > NOW()
+             WHERE email = ? AND verificado = 0 AND expira_en > NOW() AND tenant_id = ?
              ORDER BY created_at DESC LIMIT 1`,
-            [email]
+            [email, tenantId]
         );
 
         if (rows.length === 0) return null;

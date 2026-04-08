@@ -34,6 +34,7 @@ function createCrudController(config) {
 
     const obtenerTodos = async (req, res, next) => {
         try {
+            const tenantId = req.tenant.id;
             const paginar = shouldPaginate(req.query) && (req.query.page || req.query.limit);
 
             if (paginar) {
@@ -49,15 +50,15 @@ function createCrudController(config) {
                 const contarFn = Model.contarTodos || Model.contarTodas;
 
                 const [data, total] = await Promise.all([
-                    obtenerFn.call(Model, { limit, offset, sortBy, order, search }),
-                    contarFn.call(Model, search)
+                    obtenerFn.call(Model, tenantId, { limit, offset, sortBy, order, search }),
+                    contarFn.call(Model, tenantId, search)
                 ]);
 
                 return res.json(getPaginatedResponse(data, page, limit, total));
             }
 
             const obtenerAllFn = Model.obtenerTodos || Model.obtenerTodas;
-            const data = await obtenerAllFn.call(Model);
+            const data = await obtenerAllFn.call(Model, tenantId);
 
             res.json({ success: true, data, total: data.length });
         } catch (error) {
@@ -68,10 +69,11 @@ function createCrudController(config) {
 
     const obtenerPorId = async (req, res, next) => {
         try {
+            const tenantId = req.tenant.id;
             const { id } = req.params;
             validateId(id, `ID de ${entityName}`);
 
-            const data = await Model.obtenerPorId(id);
+            const data = await Model.obtenerPorId(tenantId, id);
             if (!data) {
                 throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO(entityName), 404);
             }
@@ -85,17 +87,18 @@ function createCrudController(config) {
 
     const crear = async (req, res, next) => {
         try {
+            const tenantId = req.tenant.id;
             const body = req.body;
             logger.info(`${controllerName}.crear`, `Creando ${entityName}`, { nombre: body.nombre });
 
             const cleanData = validateBody ? validateBody(body) : body;
 
             if (checkDuplicate) {
-                await checkDuplicate(cleanData);
+                await checkDuplicate(tenantId, cleanData);
             }
 
-            const nuevoId = await Model.crear(cleanData);
-            const data = await Model.obtenerPorId(nuevoId);
+            const nuevoId = await Model.crear(tenantId, cleanData);
+            const data = await Model.obtenerPorId(tenantId, nuevoId);
 
             logger.info(`${controllerName}.crear`, `${entityName} creado exitosamente`, { id: nuevoId });
 
@@ -112,13 +115,14 @@ function createCrudController(config) {
 
     const actualizar = async (req, res, next) => {
         try {
+            const tenantId = req.tenant.id;
             const { id } = req.params;
             const body = req.body;
 
             logger.info(`${controllerName}.actualizar`, `Actualizando ${entityName}`, { id });
             validateId(id, `ID de ${entityName}`);
 
-            const existe = await Model.obtenerPorId(id);
+            const existe = await Model.obtenerPorId(tenantId, id);
             if (!existe) {
                 throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO(entityName), 404);
             }
@@ -126,11 +130,11 @@ function createCrudController(config) {
             const cleanData = validateBody ? validateBody(body, existe) : body;
 
             if (checkDuplicate) {
-                await checkDuplicate(cleanData, id);
+                await checkDuplicate(tenantId, cleanData, id);
             }
 
-            await Model.actualizar(id, cleanData);
-            const data = await Model.obtenerPorId(id);
+            await Model.actualizar(tenantId, id, cleanData);
+            const data = await Model.obtenerPorId(tenantId, id);
 
             logger.info(`${controllerName}.actualizar`, `${entityName} actualizado exitosamente`, { id });
 
@@ -147,17 +151,18 @@ function createCrudController(config) {
 
     const eliminar = async (req, res, next) => {
         try {
+            const tenantId = req.tenant.id;
             const { id } = req.params;
 
             logger.info(`${controllerName}.eliminar`, `Eliminando ${entityName}`, { id });
             validateId(id, `ID de ${entityName}`);
 
-            const existe = await Model.obtenerPorId(id);
+            const existe = await Model.obtenerPorId(tenantId, id);
             if (!existe) {
                 throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO(entityName), 404);
             }
 
-            await Model.eliminar(id);
+            await Model.eliminar(tenantId, id);
 
             logger.info(`${controllerName}.eliminar`, `${entityName} eliminado exitosamente`, { id });
 

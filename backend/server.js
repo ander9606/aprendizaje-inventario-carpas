@@ -10,6 +10,7 @@ require('dotenv').config();
 const { testConnection } = require('./config/database');
 const { errorHandler, notFound } = require('./middleware/errorHandler');
 const httpLogger = require('./middleware/httpLogger');
+const resolverTenant = require('./middleware/resolverTenant');
 
 // Importar módulos
 const inventarioModule = require('./modules/inventario');
@@ -60,7 +61,7 @@ const corsOptions = {
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-    allowedHeaders: ['Content-Type', 'Authorization']
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Tenant-Slug']
 };
 
 // Rate Limiting - Limitar peticiones para prevenir DoS
@@ -152,6 +153,9 @@ app.get('/', (req, res) => {
         }
     });
 });
+
+// Resolver tenant para todas las rutas de API
+app.use('/api', resolverTenant);
 
 // Registrar módulos
 app.use('/api', inventarioModule);

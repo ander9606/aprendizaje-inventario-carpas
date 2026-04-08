@@ -46,7 +46,8 @@ exports.uploadLogo = multer({
 // ============================================
 exports.obtenerTodas = async (req, res, next) => {
   try {
-    const configuraciones = await ConfiguracionModel.obtenerTodas();
+    const tenantId = req.tenant.id;
+    const configuraciones = await ConfiguracionModel.obtenerTodas(tenantId);
 
     // Agrupar por categoría
     const agrupadas = configuraciones.reduce((acc, config) => {
@@ -72,8 +73,9 @@ exports.obtenerTodas = async (req, res, next) => {
 // ============================================
 exports.obtenerPorCategoria = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { categoria } = req.params;
-    const configuraciones = await ConfiguracionModel.obtenerPorCategoria(categoria);
+    const configuraciones = await ConfiguracionModel.obtenerPorCategoria(tenantId, categoria);
 
     res.json({
       success: true,
@@ -89,8 +91,9 @@ exports.obtenerPorCategoria = async (req, res, next) => {
 // ============================================
 exports.obtenerValor = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { clave } = req.params;
-    const valor = await ConfiguracionModel.obtenerValor(clave);
+    const valor = await ConfiguracionModel.obtenerValor(tenantId, clave);
 
     if (valor === null) {
       throw new AppError('Configuración no encontrada', 404);
@@ -110,7 +113,8 @@ exports.obtenerValor = async (req, res, next) => {
 // ============================================
 exports.obtenerConfiguracionCompleta = async (req, res, next) => {
   try {
-    const config = await ConfiguracionModel.obtenerConfiguracionCompleta();
+    const tenantId = req.tenant.id;
+    const config = await ConfiguracionModel.obtenerConfiguracionCompleta(tenantId);
 
     res.json({
       success: true,
@@ -126,6 +130,7 @@ exports.obtenerConfiguracionCompleta = async (req, res, next) => {
 // ============================================
 exports.actualizarValor = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { clave } = req.params;
     const { valor } = req.body;
 
@@ -133,8 +138,8 @@ exports.actualizarValor = async (req, res, next) => {
       throw new AppError('El valor es requerido', 400);
     }
 
-    await ConfiguracionModel.actualizarValor(clave, valor);
-    const valorActualizado = await ConfiguracionModel.obtenerValor(clave);
+    await ConfiguracionModel.actualizarValor(tenantId, clave, valor);
+    const valorActualizado = await ConfiguracionModel.obtenerValor(tenantId, clave);
 
     res.json({
       success: true,
@@ -151,14 +156,15 @@ exports.actualizarValor = async (req, res, next) => {
 // ============================================
 exports.actualizarValores = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { valores } = req.body;
 
     if (!valores || typeof valores !== 'object') {
       throw new AppError('Se requiere un objeto con los valores a actualizar', 400);
     }
 
-    const resultado = await ConfiguracionModel.actualizarValores(valores);
-    const configActualizada = await ConfiguracionModel.obtenerConfiguracionCompleta();
+    const resultado = await ConfiguracionModel.actualizarValores(tenantId, valores);
+    const configActualizada = await ConfiguracionModel.obtenerConfiguracionCompleta(tenantId);
 
     res.json({
       success: true,
@@ -175,7 +181,8 @@ exports.actualizarValores = async (req, res, next) => {
 // ============================================
 exports.obtenerCategorias = async (req, res, next) => {
   try {
-    const categorias = await ConfiguracionModel.obtenerCategorias();
+    const tenantId = req.tenant.id;
+    const categorias = await ConfiguracionModel.obtenerCategorias(tenantId);
 
     res.json({
       success: true,
@@ -191,6 +198,7 @@ exports.obtenerCategorias = async (req, res, next) => {
 // ============================================
 exports.subirLogo = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     if (!req.file) {
       throw new AppError('No se recibió ningún archivo', 400);
     }
@@ -198,7 +206,7 @@ exports.subirLogo = async (req, res, next) => {
     const logoUrl = `/uploads/logos/${req.file.filename}`;
 
     // Guardar la ruta en configuración
-    await ConfiguracionModel.actualizarValor('empresa_logo', logoUrl);
+    await ConfiguracionModel.actualizarValor(tenantId, 'empresa_logo', logoUrl);
 
     res.json({
       success: true,
@@ -215,7 +223,8 @@ exports.subirLogo = async (req, res, next) => {
 // ============================================
 exports.eliminarLogo = async (req, res, next) => {
   try {
-    const logoActual = await ConfiguracionModel.obtenerValor('empresa_logo');
+    const tenantId = req.tenant.id;
+    const logoActual = await ConfiguracionModel.obtenerValor(tenantId, 'empresa_logo');
 
     if (logoActual) {
       const baseDir = path.resolve(__dirname, '../../../');
@@ -227,7 +236,7 @@ exports.eliminarLogo = async (req, res, next) => {
       }
     }
 
-    await ConfiguracionModel.actualizarValor('empresa_logo', '');
+    await ConfiguracionModel.actualizarValor(tenantId, 'empresa_logo', '');
 
     res.json({
       success: true,

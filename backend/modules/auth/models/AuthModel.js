@@ -7,7 +7,7 @@ class AuthModel {
      * @param {string} email
      * @returns {Promise<Object|null>} Empleado con rol y permisos
      */
-    static async buscarPorEmail(email) {
+    static async buscarPorEmail(tenantId, email) {
         const [rows] = await pool.query(`
             SELECT
                 e.id,
@@ -18,15 +18,16 @@ class AuthModel {
                 e.telefono,
                 e.rol_id,
                 e.estado,
+                e.tenant_id,
                 e.intentos_fallidos,
                 e.bloqueado_hasta,
                 e.ultimo_login,
                 r.nombre as rol_nombre,
                 r.permisos
             FROM empleados e
-            LEFT JOIN roles r ON e.rol_id = r.id
-            WHERE e.email = ?
-        `, [email]);
+            LEFT JOIN roles r ON e.rol_id = r.id AND r.tenant_id = ?
+            WHERE e.email = ? AND e.tenant_id = ?
+        `, [tenantId, email, tenantId]);
 
         if (rows.length === 0) {
             return null;
@@ -45,14 +46,14 @@ class AuthModel {
      * Actualizar fecha de último login
      * @param {number} empleadoId
      */
-    static async actualizarUltimoLogin(empleadoId) {
+    static async actualizarUltimoLogin(tenantId, empleadoId) {
         await pool.query(`
             UPDATE empleados
             SET ultimo_login = CURRENT_TIMESTAMP,
                 intentos_fallidos = 0,
                 bloqueado_hasta = NULL
-            WHERE id = ?
-        `, [empleadoId]);
+            WHERE id = ? AND tenant_id = ?
+        `, [empleadoId, tenantId]);
     }
 
     /**
@@ -60,16 +61,16 @@ class AuthModel {
      * @param {number} empleadoId
      * @returns {Promise<number>} Intentos actuales
      */
-    static async incrementarIntentosFallidos(empleadoId) {
+    static async incrementarIntentosFallidos(tenantId, empleadoId) {
         await pool.query(`
             UPDATE empleados
             SET intentos_fallidos = intentos_fallidos + 1
-            WHERE id = ?
-        `, [empleadoId]);
+            WHERE id = ? AND tenant_id = ?
+        `, [empleadoId, tenantId]);
 
         const [rows] = await pool.query(`
-            SELECT intentos_fallidos FROM empleados WHERE id = ?
-        `, [empleadoId]);
+            SELECT intentos_fallidos FROM empleados WHERE id = ? AND tenant_id = ?
+        `, [empleadoId, tenantId]);
 
         return rows[0]?.intentos_fallidos || 0;
     }
@@ -79,25 +80,25 @@ class AuthModel {
      * @param {number} empleadoId
      * @param {Date} hasta - Fecha hasta cuando estará bloqueada
      */
-    static async bloquearCuenta(empleadoId, hasta) {
+    static async bloquearCuenta(tenantId, empleadoId, hasta) {
         await pool.query(`
             UPDATE empleados
             SET bloqueado_hasta = ?
-            WHERE id = ?
-        `, [hasta, empleadoId]);
+            WHERE id = ? AND tenant_id = ?
+        `, [hasta, empleadoId, tenantId]);
     }
 
     /**
      * Desbloquear cuenta y resetear intentos
      * @param {number} empleadoId
      */
-    static async desbloquearCuenta(empleadoId) {
+    static async desbloquearCuenta(tenantId, empleadoId) {
         await pool.query(`
             UPDATE empleados
             SET bloqueado_hasta = NULL,
                 intentos_fallidos = 0
-            WHERE id = ?
-        `, [empleadoId]);
+            WHERE id = ? AND tenant_id = ?
+        `, [empleadoId, tenantId]);
     }
 
     /**
@@ -105,12 +106,12 @@ class AuthModel {
      * @param {number} empleadoId
      * @returns {Promise<Date|null>} Fecha de desbloqueo o null
      */
-    static async verificarBloqueo(empleadoId) {
+    static async verificarBloqueo(tenantId, empleadoId) {
         const [rows] = await pool.query(`
             SELECT bloqueado_hasta
             FROM empleados
-            WHERE id = ? AND bloqueado_hasta > CURRENT_TIMESTAMP
-        `, [empleadoId]);
+            WHERE id = ? AND tenant_id = ? AND bloqueado_hasta > CURRENT_TIMESTAMP
+        `, [empleadoId, tenantId]);
 
         return rows[0]?.bloqueado_hasta || null;
     }
@@ -120,14 +121,14 @@ class AuthModel {
      * @param {number} empleadoId
      * @param {string} nuevoPasswordHash
      */
-    static async cambiarPassword(empleadoId, nuevoPasswordHash) {
+    static async cambiarPassword(tenantId, empleadoId, nuevoPasswordHash) {
         await pool.query(`
             UPDATE empleados
             SET password_hash = ?,
                 intentos_fallidos = 0,
                 bloqueado_hasta = NULL
-            WHERE id = ?
-        `, [nuevoPasswordHash, empleadoId]);
+            WHERE id = ? AND tenant_id = ?
+        `, [nuevoPasswordHash, empleadoId, tenantId]);
     }
 
     /**
@@ -135,7 +136,7 @@ class AuthModel {
      * @param {number} id
      * @returns {Promise<Object|null>}
      */
-    static async obtenerPorId(id) {
+    static async obtenerPorId(tenantId, id) {
         const [rows] = await pool.query(`
             SELECT
                 e.id,
@@ -145,14 +146,15 @@ class AuthModel {
                 e.telefono,
                 e.rol_id,
                 e.estado,
+                e.tenant_id,
                 e.ultimo_login,
                 e.created_at,
                 r.nombre as rol_nombre,
                 r.permisos
             FROM empleados e
-            LEFT JOIN roles r ON e.rol_id = r.id
-            WHERE e.id = ?
-        `, [id]);
+            LEFT JOIN roles r ON e.rol_id = r.id AND r.tenant_id = ?
+            WHERE e.id = ? AND e.tenant_id = ?
+        `, [tenantId, id, tenantId]);
 
         if (rows.length === 0) {
             return null;
@@ -171,13 +173,13 @@ class AuthModel {
      * @param {Object} datos - Datos del solicitante
      * @returns {Promise<Object>} Empleado creado con estado pendiente
      */
-    static async registrarSolicitud(datos) {
+    static async registrarSolicitud(tenantId, datos) {
         const { nombre, apellido, email, telefono, password_hash, rol_solicitado_id } = datos;
 
         // Verificar si el email ya existe
         const [existente] = await pool.query(
-            'SELECT id, estado FROM empleados WHERE email = ?',
-            [email]
+            'SELECT id, estado FROM empleados WHERE email = ? AND tenant_id = ?',
+            [email, tenantId]
         );
 
         if (existente.length > 0) {
@@ -189,16 +191,16 @@ class AuthModel {
 
         // Verificar que el rol solicitado existe
         if (rol_solicitado_id) {
-            const [rol] = await pool.query('SELECT id FROM roles WHERE id = ? AND activo = TRUE', [rol_solicitado_id]);
+            const [rol] = await pool.query('SELECT id FROM roles WHERE id = ? AND activo = TRUE AND tenant_id = ?', [rol_solicitado_id, tenantId]);
             if (rol.length === 0) {
                 throw new AppError('El rol solicitado no existe', 400);
             }
         }
 
         const [result] = await pool.query(`
-            INSERT INTO empleados (nombre, apellido, email, telefono, password_hash, estado, rol_solicitado_id)
-            VALUES (?, ?, ?, ?, ?, 'pendiente', ?)
-        `, [nombre, apellido, email, telefono || null, password_hash, rol_solicitado_id || null]);
+            INSERT INTO empleados (tenant_id, nombre, apellido, email, telefono, password_hash, estado, rol_solicitado_id)
+            VALUES (?, ?, ?, ?, ?, ?, 'pendiente', ?)
+        `, [tenantId, nombre, apellido, email, telefono || null, password_hash, rol_solicitado_id || null]);
 
         return { id: result.insertId, nombre, apellido, email, estado: 'pendiente' };
     }
@@ -207,13 +209,13 @@ class AuthModel {
      * Obtener roles disponibles para solicitud de registro
      * @returns {Promise<Array>}
      */
-    static async obtenerRolesPublicos() {
+    static async obtenerRolesPublicos(tenantId) {
         const [rows] = await pool.query(`
             SELECT id, nombre, descripcion
             FROM roles
-            WHERE activo = TRUE AND nombre != 'admin'
+            WHERE activo = TRUE AND nombre != 'admin' AND tenant_id = ?
             ORDER BY id ASC
-        `);
+        `, [tenantId]);
         return rows;
     }
 
@@ -222,7 +224,7 @@ class AuthModel {
      * @param {number} id
      * @param {Object} datos
      */
-    static async actualizarPerfil(id, datos) {
+    static async actualizarPerfil(tenantId, id, datos) {
         const campos = [];
         const valores = [];
 
@@ -241,9 +243,9 @@ class AuthModel {
 
         if (campos.length === 0) return;
 
-        valores.push(id);
+        valores.push(id, tenantId);
         await pool.query(
-            `UPDATE empleados SET ${campos.join(', ')} WHERE id = ?`,
+            `UPDATE empleados SET ${campos.join(', ')} WHERE id = ? AND tenant_id = ?`,
             valores
         );
     }
@@ -255,19 +257,19 @@ class AuthModel {
      * @param {number} offset
      * @returns {Promise<{registros: Array, total: number}>}
      */
-    static async obtenerHistorialUsuario(empleadoId, limit = 20, offset = 0) {
+    static async obtenerHistorialUsuario(tenantId, empleadoId, limit = 20, offset = 0) {
         const [countRows] = await pool.query(
-            'SELECT COUNT(*) as total FROM audit_log WHERE empleado_id = ?',
-            [empleadoId]
+            'SELECT COUNT(*) as total FROM audit_log WHERE empleado_id = ? AND tenant_id = ?',
+            [empleadoId, tenantId]
         );
 
         const [rows] = await pool.query(`
             SELECT id, accion, tabla_afectada, registro_id, datos_anteriores, datos_nuevos, ip_address, created_at
             FROM audit_log
-            WHERE empleado_id = ?
+            WHERE empleado_id = ? AND tenant_id = ?
             ORDER BY created_at DESC
             LIMIT ? OFFSET ?
-        `, [empleadoId, limit, offset]);
+        `, [empleadoId, tenantId, limit, offset]);
 
         return {
             registros: rows.map(r => ({
@@ -285,14 +287,15 @@ class AuthModel {
      * Registrar acción en audit_log
      * @param {Object} datos
      */
-    static async registrarAuditoria(datos) {
+    static async registrarAuditoria(tenantId, datos) {
         const { empleado_id, accion, tabla_afectada, registro_id, datos_anteriores, datos_nuevos, ip_address, user_agent } = datos;
 
         await pool.query(`
             INSERT INTO audit_log
-            (empleado_id, accion, tabla_afectada, registro_id, datos_anteriores, datos_nuevos, ip_address, user_agent)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            (tenant_id, empleado_id, accion, tabla_afectada, registro_id, datos_anteriores, datos_nuevos, ip_address, user_agent)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, [
+            tenantId,
             empleado_id,
             accion,
             tabla_afectada || null,

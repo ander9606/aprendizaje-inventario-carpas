@@ -13,18 +13,19 @@ class CiudadModel {
   // ============================================
   // OBTENER TODAS CON TARIFAS
   // ============================================
-  static async obtenerTodas() {
+  static async obtenerTodas(tenantId) {
     const query = `
       SELECT c.id, c.nombre, c.departamento_id,
              COALESCE(d.nombre, c.departamento) as departamento,
              c.activo, c.created_at, c.updated_at,
              t.tipo_camion, t.precio
       FROM ciudades c
-      LEFT JOIN departamentos d ON c.departamento_id = d.id
-      LEFT JOIN tarifas_transporte t ON t.ciudad_id = c.id
+      LEFT JOIN departamentos d ON c.departamento_id = d.id AND d.tenant_id = ?
+      LEFT JOIN tarifas_transporte t ON t.ciudad_id = c.id AND t.tenant_id = ?
+      WHERE c.tenant_id = ?
       ORDER BY c.nombre, t.tipo_camion
     `;
-    const [rows] = await pool.query(query);
+    const [rows] = await pool.query(query, [tenantId, tenantId, tenantId]);
 
     // Agrupar tarifas por ciudad
     const ciudadesMap = new Map();
@@ -52,32 +53,32 @@ class CiudadModel {
   // ============================================
   // OBTENER ACTIVAS
   // ============================================
-  static async obtenerActivas() {
+  static async obtenerActivas(tenantId) {
     const query = `
       SELECT c.id, c.nombre, c.departamento_id,
              COALESCE(d.nombre, c.departamento) as departamento
       FROM ciudades c
-      LEFT JOIN departamentos d ON c.departamento_id = d.id
-      WHERE c.activo = TRUE
+      LEFT JOIN departamentos d ON c.departamento_id = d.id AND d.tenant_id = ?
+      WHERE c.activo = TRUE AND c.tenant_id = ?
       ORDER BY c.nombre
     `;
-    const [rows] = await pool.query(query);
+    const [rows] = await pool.query(query, [tenantId, tenantId]);
     return rows;
   }
 
   // ============================================
   // OBTENER POR ID CON TARIFAS
   // ============================================
-  static async obtenerPorId(id) {
+  static async obtenerPorId(tenantId, id) {
     const queryCiudad = `
       SELECT c.id, c.nombre, c.departamento_id,
              COALESCE(d.nombre, c.departamento) as departamento,
              c.activo, c.created_at, c.updated_at
       FROM ciudades c
-      LEFT JOIN departamentos d ON c.departamento_id = d.id
-      WHERE c.id = ?
+      LEFT JOIN departamentos d ON c.departamento_id = d.id AND d.tenant_id = ?
+      WHERE c.id = ? AND c.tenant_id = ?
     `;
-    const [rows] = await pool.query(queryCiudad, [id]);
+    const [rows] = await pool.query(queryCiudad, [tenantId, id, tenantId]);
 
     if (!rows[0]) return null;
 
@@ -87,9 +88,9 @@ class CiudadModel {
     const queryTarifas = `
       SELECT tipo_camion, precio
       FROM tarifas_transporte
-      WHERE ciudad_id = ?
+      WHERE ciudad_id = ? AND tenant_id = ?
     `;
-    const [tarifas] = await pool.query(queryTarifas, [id]);
+    const [tarifas] = await pool.query(queryTarifas, [id, tenantId]);
 
     ciudad.tarifas = {};
     for (const tarifa of tarifas) {
@@ -102,20 +103,20 @@ class CiudadModel {
   // ============================================
   // OBTENER POR NOMBRE
   // ============================================
-  static async obtenerPorNombre(nombre) {
+  static async obtenerPorNombre(tenantId, nombre) {
     const query = `
       SELECT id, nombre, departamento_id, departamento, activo
       FROM ciudades
-      WHERE nombre = ?
+      WHERE nombre = ? AND tenant_id = ?
     `;
-    const [rows] = await pool.query(query, [nombre]);
+    const [rows] = await pool.query(query, [nombre, tenantId]);
     return rows[0];
   }
 
   // ============================================
   // CREAR CON TARIFAS
   // ============================================
-  static async crear({ nombre, departamento_id, departamento, tarifas }) {
+  static async crear(tenantId, { nombre, departamento_id, departamento, tarifas }) {
     const connection = await pool.getConnection();
 
     try {
@@ -123,13 +124,14 @@ class CiudadModel {
 
       // Crear ciudad
       const queryCiudad = `
-        INSERT INTO ciudades (nombre, departamento_id, departamento)
-        VALUES (?, ?, ?)
+        INSERT INTO ciudades (nombre, departamento_id, departamento, tenant_id)
+        VALUES (?, ?, ?, ?)
       `;
       const [result] = await connection.query(queryCiudad, [
         nombre,
         departamento_id || null,
-        departamento || null
+        departamento || null,
+        tenantId
       ]);
       const ciudadId = result.insertId;
 
@@ -139,10 +141,10 @@ class CiudadModel {
           const precio = tarifas[tipoCamion];
           if (precio !== undefined && precio !== null && precio !== '') {
             const queryTarifa = `
-              INSERT INTO tarifas_transporte (tipo_camion, ciudad_id, precio)
-              VALUES (?, ?, ?)
+              INSERT INTO tarifas_transporte (tipo_camion, ciudad_id, precio, tenant_id)
+              VALUES (?, ?, ?, ?)
             `;
-            await connection.query(queryTarifa, [tipoCamion, ciudadId, parseFloat(precio)]);
+            await connection.query(queryTarifa, [tipoCamion, ciudadId, parseFloat(precio), tenantId]);
           }
         }
       }
@@ -161,7 +163,7 @@ class CiudadModel {
   // ============================================
   // ACTUALIZAR CON TARIFAS
   // ============================================
-  static async actualizar(id, { nombre, departamento_id, departamento, activo, tarifas }) {
+  static async actualizar(tenantId, id, { nombre, departamento_id, departamento, activo, tarifas }) {
     const connection = await pool.getConnection();
 
     try {
@@ -171,14 +173,15 @@ class CiudadModel {
       const queryCiudad = `
         UPDATE ciudades
         SET nombre = ?, departamento_id = ?, departamento = ?, activo = ?
-        WHERE id = ?
+        WHERE id = ? AND tenant_id = ?
       `;
       await connection.query(queryCiudad, [
         nombre,
         departamento_id || null,
         departamento || null,
         activo !== undefined ? activo : true,
-        id
+        id,
+        tenantId
       ]);
 
       // Actualizar tarifas si se proporcionan
@@ -187,26 +190,26 @@ class CiudadModel {
           const precio = tarifas[tipoCamion];
 
           const [existing] = await connection.query(
-            'SELECT id FROM tarifas_transporte WHERE ciudad_id = ? AND tipo_camion = ?',
-            [id, tipoCamion]
+            'SELECT id FROM tarifas_transporte WHERE ciudad_id = ? AND tipo_camion = ? AND tenant_id = ?',
+            [id, tipoCamion, tenantId]
           );
 
           if (precio !== undefined && precio !== null && precio !== '') {
             if (existing.length > 0) {
               await connection.query(
-                'UPDATE tarifas_transporte SET precio = ? WHERE id = ?',
-                [parseFloat(precio), existing[0].id]
+                'UPDATE tarifas_transporte SET precio = ? WHERE id = ? AND tenant_id = ?',
+                [parseFloat(precio), existing[0].id, tenantId]
               );
             } else {
               await connection.query(
-                'INSERT INTO tarifas_transporte (tipo_camion, ciudad_id, precio) VALUES (?, ?, ?)',
-                [tipoCamion, id, parseFloat(precio)]
+                'INSERT INTO tarifas_transporte (tipo_camion, ciudad_id, precio, tenant_id) VALUES (?, ?, ?, ?)',
+                [tipoCamion, id, parseFloat(precio), tenantId]
               );
             }
           } else if (existing.length > 0) {
             await connection.query(
-              'DELETE FROM tarifas_transporte WHERE id = ?',
-              [existing[0].id]
+              'DELETE FROM tarifas_transporte WHERE id = ? AND tenant_id = ?',
+              [existing[0].id, tenantId]
             );
           }
         }
@@ -226,7 +229,7 @@ class CiudadModel {
   // ============================================
   // ELIMINAR
   // ============================================
-  static async eliminar(id) {
+  static async eliminar(tenantId, id) {
     const connection = await pool.getConnection();
 
     try {
@@ -234,8 +237,8 @@ class CiudadModel {
 
       // Verificar si tiene ubicaciones asociadas
       const [ubicaciones] = await connection.query(
-        'SELECT COUNT(*) as total FROM ubicaciones WHERE ciudad_id = ?',
-        [id]
+        'SELECT COUNT(*) as total FROM ubicaciones WHERE ciudad_id = ? AND tenant_id = ?',
+        [id, tenantId]
       );
 
       if (ubicaciones[0].total > 0) {
@@ -243,10 +246,10 @@ class CiudadModel {
       }
 
       // Eliminar tarifas asociadas
-      await connection.query('DELETE FROM tarifas_transporte WHERE ciudad_id = ?', [id]);
+      await connection.query('DELETE FROM tarifas_transporte WHERE ciudad_id = ? AND tenant_id = ?', [id, tenantId]);
 
       // Eliminar ciudad
-      const [result] = await connection.query('DELETE FROM ciudades WHERE id = ?', [id]);
+      const [result] = await connection.query('DELETE FROM ciudades WHERE id = ? AND tenant_id = ?', [id, tenantId]);
 
       await connection.commit();
       return result;
@@ -262,10 +265,10 @@ class CiudadModel {
   // ============================================
   // DESACTIVAR
   // ============================================
-  static async desactivar(id) {
+  static async desactivar(tenantId, id) {
     const [result] = await pool.query(
-      'UPDATE ciudades SET activo = FALSE WHERE id = ?',
-      [id]
+      'UPDATE ciudades SET activo = FALSE WHERE id = ? AND tenant_id = ?',
+      [id, tenantId]
     );
     return result;
   }
@@ -273,9 +276,9 @@ class CiudadModel {
   // ============================================
   // VERIFICAR SI NOMBRE EXISTE
   // ============================================
-  static async nombreExiste(nombre, excluirId = null) {
-    let query = 'SELECT COUNT(*) as total FROM ciudades WHERE nombre = ?';
-    const params = [nombre];
+  static async nombreExiste(tenantId, nombre, excluirId = null) {
+    let query = 'SELECT COUNT(*) as total FROM ciudades WHERE nombre = ? AND tenant_id = ?';
+    const params = [nombre, tenantId];
 
     if (excluirId) {
       query += ' AND id != ?';
