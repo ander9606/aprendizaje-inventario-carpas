@@ -22,6 +22,7 @@ const mockReq = (overrides = {}) => ({
     body: {},
     params: {},
     query: {},
+    tenant: { id: 1, slug: 'test', nombre: 'Test Tenant' },
     ...overrides
 });
 
@@ -239,7 +240,7 @@ describe('crear', () => {
 
         await controller.crear(req, res, next);
 
-        expect(CategoriaModel.crear).toHaveBeenCalledWith({
+        expect(CategoriaModel.crear).toHaveBeenCalledWith(1, {
             nombre: 'Nueva',
             emoji: '🏕️',
             padre_id: null
@@ -306,7 +307,7 @@ describe('actualizar', () => {
 
         await controller.actualizar(req, res, next);
 
-        expect(CategoriaModel.actualizar).toHaveBeenCalledWith('1', {
+        expect(CategoriaModel.actualizar).toHaveBeenCalledWith(1, '1', {
             nombre: 'Nueva',
             emoji: '⛺',
             padre_id: null
@@ -375,7 +376,7 @@ describe('eliminar', () => {
 
         await controller.eliminar(req, res, next);
 
-        expect(CategoriaModel.eliminar).toHaveBeenCalledWith('1');
+        expect(CategoriaModel.eliminar).toHaveBeenCalledWith(1, '1');
         expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
     });
 

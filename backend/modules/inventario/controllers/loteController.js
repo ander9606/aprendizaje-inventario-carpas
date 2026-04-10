@@ -16,22 +16,11 @@ const { getPaginationParams, getPaginatedResponse, shouldPaginate, getSortParams
 // OBTENER TODOS LOS LOTES
 // ============================================
 
-/**
- * GET /api/lotes
- *
- * Soporta paginación opcional:
- * - Sin params: Retorna todos los lotes
- * - Con ?page=1&limit=20: Retorna paginado
- * - Con ?search=LOTE-123: Búsqueda por número de lote o elemento
- * - Con ?sortBy=cantidad&order=DESC: Ordenamiento
- * - Con ?paginate=false: Fuerza sin paginación
- */
-
 exports.obtenerTodos = async (req, res, next) => {
     try {
-        // Verificar si se debe paginar
+        const tenantId = req.tenant.id;
+
         if (shouldPaginate(req.query) && (req.query.page || req.query.limit)) {
-            // MODO PAGINADO
             const { page, limit, offset } = getPaginationParams(req.query);
             const { sortBy, order } = getSortParams(req.query, 'lote_numero');
             const search = req.query.search || null;
@@ -40,21 +29,18 @@ exports.obtenerTodos = async (req, res, next) => {
                 page, limit, offset, sortBy, order, search
             });
 
-            // Obtener datos y total
-            const lotes = await LoteModel.obtenerConPaginacion({
+            const lotes = await LoteModel.obtenerConPaginacion(tenantId, {
                 limit,
                 offset,
                 sortBy,
                 order,
                 search
             });
-            const total = await LoteModel.contarTodos(search);
+            const total = await LoteModel.contarTodos(tenantId, search);
 
-            // Retornar respuesta paginada
             res.json(getPaginatedResponse(lotes, page, limit, total));
         } else {
-            // MODO SIN PAGINACIÓN (retrocompatible)
-            const lotes = await LoteModel.obtenerTodos();
+            const lotes = await LoteModel.obtenerTodos(tenantId);
 
             res.json({
                 success: true,
@@ -72,8 +58,9 @@ exports.obtenerTodos = async (req, res, next) => {
 // ============================================
 exports.obtenerPorId = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { id } = req.params;
-        const lote = await LoteModel.obtenerPorId(id);
+        const lote = await LoteModel.obtenerPorId(tenantId, id);
 
         if (!lote) {
             throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO(ENTIDADES.LOTE), 404);
@@ -93,18 +80,16 @@ exports.obtenerPorId = async (req, res, next) => {
 // ============================================
 exports.obtenerPorElemento = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { elementoId } = req.params;
 
-        // Validar elementoId
         validateId(elementoId, 'ID de elemento');
 
-        // Verificar que el elemento existe
-        const elemento = await ElementoModel.obtenerPorId(elementoId);
+        const elemento = await ElementoModel.obtenerPorId(tenantId, elementoId);
         if (!elemento) {
             throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO(ENTIDADES.ELEMENTO), 404);
         }
 
-        // Verificar que NO requiere series
         if (elemento.requiere_series) {
             throw new AppError(
                 'Este elemento requiere series individuales. Use el endpoint /api/series',
@@ -112,11 +97,8 @@ exports.obtenerPorElemento = async (req, res, next) => {
             );
         }
 
-        // Obtener lotes
-        const lotes = await LoteModel.obtenerPorElemento(elementoId);
-
-        // Obtener estadísticas
-        const stats = await LoteModel.obtenerEstadisticas(elementoId);
+        const lotes = await LoteModel.obtenerPorElemento(tenantId, elementoId);
+        const stats = await LoteModel.obtenerEstadisticas(tenantId, elementoId);
 
         res.json({
             success: true,
@@ -139,12 +121,12 @@ exports.obtenerPorElemento = async (req, res, next) => {
 // ============================================
 exports.obtenerPorEstado = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { estado } = req.params;
 
-        // Validar estado
         const estadoValidado = validateEstado(estado, true);
 
-        const lotes = await LoteModel.obtenerPorEstado(estadoValidado);
+        const lotes = await LoteModel.obtenerPorEstado(tenantId, estadoValidado);
 
         res.json({
             success: true,
@@ -161,11 +143,6 @@ exports.obtenerPorEstado = async (req, res, next) => {
 // CREAR LOTE MANUALMENTE
 // ============================================
 
-/**
- * Genera un número de lote automático basado en la fecha actual.
- * Formato: LOTE-YYYYMMDD-XXXX (donde XXXX es un sufijo aleatorio de 4 caracteres)
- * Ejemplo: LOTE-20260215-A3F7
- */
 function generarNumeroLote() {
     const now = new Date();
     const yyyy = now.getFullYear();
@@ -177,25 +154,20 @@ function generarNumeroLote() {
 
 exports.crear = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { elemento_id, cantidad, estado, ubicacion } = req.body;
 
         logger.info('loteController.crear', 'Creando nuevo lote', { elemento_id, cantidad });
-
-        // ============================================
-        // VALIDACIONES
-        // ============================================
 
         const elementoIdValidado = validateId(elemento_id, 'elemento_id');
         const cantidadValidada = validateCantidad(cantidad, 'Cantidad');
         const estadoValidado = estado ? validateEstado(estado, false) : 'bueno';
 
-        // Verificar que el elemento existe
-        const elemento = await ElementoModel.obtenerPorId(elementoIdValidado);
+        const elemento = await ElementoModel.obtenerPorId(tenantId, elementoIdValidado);
         if (!elemento) {
             throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO(ENTIDADES.ELEMENTO), 404);
         }
 
-        // Verificar que NO requiere series
         if (elemento.requiere_series) {
             throw new AppError(
                 'Este elemento requiere series individuales, no puede usar lotes',
@@ -203,11 +175,7 @@ exports.crear = async (req, res, next) => {
             );
         }
 
-        // ============================================
-        // CREAR LOTE (número generado automáticamente)
-        // ============================================
-
-        const nuevoId = await LoteModel.crear({
+        const nuevoId = await LoteModel.crear(tenantId, {
             elemento_id: elementoIdValidado,
             lote_numero: generarNumeroLote(),
             cantidad: cantidadValidada,
@@ -215,8 +183,7 @@ exports.crear = async (req, res, next) => {
             ubicacion: ubicacion || null
         });
 
-        // Obtener el lote creado
-        const nuevoLote = await LoteModel.obtenerPorId(nuevoId);
+        const nuevoLote = await LoteModel.obtenerPorId(tenantId, nuevoId);
 
         logger.info('loteController.crear', 'Lote creado exitosamente', {
             id: nuevoId,
@@ -237,21 +204,11 @@ exports.crear = async (req, res, next) => {
 // ============================================
 // MOVER CANTIDAD ENTRE LOTES (Función Principal)
 // ============================================
-/**
- * MOVER CANTIDAD ENTRE LOTES
- *
- * Mueve una cantidad de un lote origen a un lote destino.
- * Si el lote destino no existe, lo crea.
- * Si el lote origen queda vacío, lo elimina.
- * Usa transacciones para garantizar atomicidad.
- *
- * POST /api/lotes/mover
- * Body: { lote_origen_id, cantidad, estado_destino, ubicacion_destino, motivo, descripcion, costo_reparacion }
- */
 exports.moverCantidad = async (req, res, next) => {
     const connection = await pool.getConnection();
 
     try {
+        const tenantId = req.tenant.id;
         const {
             lote_origen_id,
             cantidad,
@@ -268,21 +225,15 @@ exports.moverCantidad = async (req, res, next) => {
             estado_destino
         });
 
-        // ═══════════════════════════════════════
-        // VALIDACIONES
-        // ═══════════════════════════════════════
-
         const loteOrigenId = validateId(lote_origen_id, 'lote_origen_id');
         const cantidadValidada = validateCantidad(cantidad, 'Cantidad');
         const estadoDestinoValidado = validateEstado(estado_destino);
 
-        // Obtener lote origen
-        const loteOrigen = await LoteModel.obtenerPorId(loteOrigenId);
+        const loteOrigen = await LoteModel.obtenerPorId(tenantId, loteOrigenId);
         if (!loteOrigen) {
             throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO('Lote origen'), 404);
         }
 
-        // Verificar cantidad disponible
         if (loteOrigen.cantidad < cantidadValidada) {
             throw new AppError(
                 `Cantidad insuficiente. Disponible: ${loteOrigen.cantidad}, Solicitado: ${cantidadValidada}`,
@@ -290,15 +241,12 @@ exports.moverCantidad = async (req, res, next) => {
             );
         }
 
-        // ═══════════════════════════════════════
-        // INICIAR TRANSACCIÓN
-        // ═══════════════════════════════════════
-
         await connection.beginTransaction();
         logger.debug('loteController.moverCantidad', 'Transacción iniciada');
 
         // 1. Buscar o crear lote destino
         let loteDestino = await LoteModel.buscarLoteEspecifico(
+            tenantId,
             loteOrigen.elemento_id,
             estadoDestinoValidado,
             ubicacion_destino
@@ -312,12 +260,12 @@ exports.moverCantidad = async (req, res, next) => {
                 lote_destino_id: loteDestino.id
             });
 
-            await LoteModel.sumarCantidad(loteDestino.id, cantidadValidada);
+            await LoteModel.sumarCantidad(tenantId, loteDestino.id, cantidadValidada);
             loteDestinoId = loteDestino.id;
         } else {
             logger.debug('loteController.moverCantidad', 'Creando nuevo lote destino');
 
-            loteDestinoId = await LoteModel.crear({
+            loteDestinoId = await LoteModel.crear(tenantId, {
                 elemento_id: loteOrigen.elemento_id,
                 cantidad: cantidadValidada,
                 estado: estadoDestinoValidado,
@@ -328,11 +276,11 @@ exports.moverCantidad = async (req, res, next) => {
         }
 
         // 2. Restar cantidad del lote origen
-        await LoteModel.restarCantidad(loteOrigenId, cantidadValidada);
+        await LoteModel.restarCantidad(tenantId, loteOrigenId, cantidadValidada);
         logger.debug('loteController.moverCantidad', 'Cantidad restada del lote origen');
 
         // 3. Registrar movimiento en historial
-        await LoteModel.registrarMovimiento({
+        await LoteModel.registrarMovimiento(tenantId, {
             lote_origen_id: loteOrigenId,
             lote_destino_id: loteDestinoId,
             cantidad: cantidadValidada,
@@ -347,18 +295,14 @@ exports.moverCantidad = async (req, res, next) => {
         logger.debug('loteController.moverCantidad', 'Movimiento registrado en historial');
 
         // 4. Si el lote origen quedó vacío, eliminarlo
-        const loteOrigenActualizado = await LoteModel.obtenerPorId(loteOrigenId);
+        const loteOrigenActualizado = await LoteModel.obtenerPorId(tenantId, loteOrigenId);
         let loteOrigenEliminado = false;
 
         if (loteOrigenActualizado && loteOrigenActualizado.cantidad === 0) {
-            await LoteModel.eliminar(loteOrigenId);
+            await LoteModel.eliminar(tenantId, loteOrigenId);
             loteOrigenEliminado = true;
             logger.debug('loteController.moverCantidad', 'Lote origen eliminado (cantidad = 0)');
         }
-
-        // ═══════════════════════════════════════
-        // COMMIT TRANSACCIÓN
-        // ═══════════════════════════════════════
 
         await connection.commit();
         logger.info('loteController.moverCantidad', 'Transacción completada exitosamente', {
@@ -367,12 +311,8 @@ exports.moverCantidad = async (req, res, next) => {
         });
 
         // 5. Obtener estado actualizado
-        const estadisticas = await LoteModel.obtenerEstadisticas(loteOrigen.elemento_id);
-        const lotesActualizados = await LoteModel.obtenerPorElemento(loteOrigen.elemento_id);
-
-        // ═══════════════════════════════════════
-        // RESPUESTA
-        // ═══════════════════════════════════════
+        const estadisticas = await LoteModel.obtenerEstadisticas(tenantId, loteOrigen.elemento_id);
+        const lotesActualizados = await LoteModel.obtenerPorElemento(tenantId, loteOrigen.elemento_id);
 
         res.json({
             success: true,
@@ -389,10 +329,6 @@ exports.moverCantidad = async (req, res, next) => {
         });
 
     } catch (error) {
-        // ═══════════════════════════════════════
-        // ROLLBACK EN CASO DE ERROR
-        // ═══════════════════════════════════════
-
         await connection.rollback();
         logger.error('loteController.moverCantidad', error, {
             lote_origen_id: req.body.lote_origen_id,
@@ -411,25 +347,23 @@ exports.moverCantidad = async (req, res, next) => {
 // ============================================
 exports.actualizar = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { id } = req.params;
         const { cantidad, ubicacion } = req.body;
 
         logger.info('loteController.actualizar', 'Actualizando lote', { id });
 
-        // Obtener lote actual
-        const lote = await LoteModel.obtenerPorId(id);
+        const lote = await LoteModel.obtenerPorId(tenantId, id);
         if (!lote) {
             throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO(ENTIDADES.LOTE), 404);
         }
 
-        // Actualizar cantidad si se proporciona
         if (cantidad !== undefined) {
             const cantidadValidada = validateCantidad(cantidad, 'Cantidad', false);
-            await LoteModel.actualizarCantidad(id, cantidadValidada);
+            await LoteModel.actualizarCantidad(tenantId, id, cantidadValidada);
 
-            // Si la cantidad queda en 0, eliminar el lote automáticamente
             if (cantidadValidada === 0) {
-                await LoteModel.eliminar(id);
+                await LoteModel.eliminar(tenantId, id);
                 logger.info('loteController.actualizar', 'Lote eliminado automáticamente (cantidad = 0)', { id });
 
                 return res.json({
@@ -441,16 +375,14 @@ exports.actualizar = async (req, res, next) => {
             }
         }
 
-        // Si se proporciona ubicación, actualizar
         if (ubicacion !== undefined) {
             await pool.query(
-                'UPDATE lotes SET ubicacion = ? WHERE id = ?',
-                [ubicacion, id]
+                'UPDATE lotes SET ubicacion = ? WHERE id = ? AND tenant_id = ?',
+                [ubicacion, id, tenantId]
             );
         }
 
-        // Obtener lote actualizado
-        const loteActualizado = await LoteModel.obtenerPorId(id);
+        const loteActualizado = await LoteModel.obtenerPorId(tenantId, id);
 
         logger.info('loteController.actualizar', 'Lote actualizado exitosamente', { id });
 
@@ -470,17 +402,16 @@ exports.actualizar = async (req, res, next) => {
 // ============================================
 exports.eliminar = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { id } = req.params;
 
         logger.info('loteController.eliminar', 'Eliminando lote', { id });
 
-        // Obtener lote para verificar
-        const lote = await LoteModel.obtenerPorId(id);
+        const lote = await LoteModel.obtenerPorId(tenantId, id);
         if (!lote) {
             throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO(ENTIDADES.LOTE), 404);
         }
 
-        // Advertencia si tiene cantidad
         if (lote.cantidad > 0) {
             throw new AppError(
                 `No se puede eliminar un lote con cantidad ${lote.cantidad}. Primero mueva o reduzca la cantidad a 0.`,
@@ -488,7 +419,7 @@ exports.eliminar = async (req, res, next) => {
             );
         }
 
-        const filasAfectadas = await LoteModel.eliminar(id);
+        const filasAfectadas = await LoteModel.eliminar(tenantId, id);
 
         if (filasAfectadas === 0) {
             throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO(ENTIDADES.LOTE), 404);
@@ -514,15 +445,15 @@ exports.eliminar = async (req, res, next) => {
 // ============================================
 exports.obtenerHistorial = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { id } = req.params;
 
-        // Verificar que el lote existe
-        const lote = await LoteModel.obtenerPorId(id);
+        const lote = await LoteModel.obtenerPorId(tenantId, id);
         if (!lote) {
             throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO(ENTIDADES.LOTE), 404);
         }
 
-        const historial = await LoteModel.obtenerHistorial(id);
+        const historial = await LoteModel.obtenerHistorial(tenantId, id);
 
         res.json({
             success: true,
@@ -545,6 +476,7 @@ exports.obtenerHistorial = async (req, res, next) => {
 // ============================================
 exports.obtenerResumenDisponibilidad = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const query = `
             SELECT
                 e.id,
@@ -554,14 +486,14 @@ exports.obtenerResumenDisponibilidad = async (req, res, next) => {
                 SUM(CASE WHEN l.estado = 'alquilado' THEN l.cantidad ELSE 0 END) AS alquilados,
                 SUM(CASE WHEN l.estado = 'mantenimiento' THEN l.cantidad ELSE 0 END) AS en_mantenimiento
             FROM elementos e
-            LEFT JOIN lotes l ON e.id = l.elemento_id
-            WHERE e.requiere_series = FALSE
+            LEFT JOIN lotes l ON e.id = l.elemento_id AND l.tenant_id = e.tenant_id
+            WHERE e.requiere_series = FALSE AND e.tenant_id = ?
             GROUP BY e.id, e.nombre, e.cantidad
             HAVING COUNT(l.id) > 0
             ORDER BY e.nombre
         `;
 
-        const [rows] = await pool.query(query);
+        const [rows] = await pool.query(query, [tenantId]);
 
         res.json({
             success: true,
@@ -574,31 +506,20 @@ exports.obtenerResumenDisponibilidad = async (req, res, next) => {
 };
 
 // ============================================
-// OBTENER LOTES CON CONTEXTO DE ALQUILER ✨ NUEVO
+// OBTENER LOTES CON CONTEXTO DE ALQUILER
 // ============================================
-
-/**
- * GET /api/lotes/elemento/:elementoId/contexto
- *
- * Retorna los lotes de un elemento CON información de:
- * - Estadísticas generales
- * - Lotes agrupados por ubicación
- * - Desglose de cantidades en eventos activos
- */
 exports.obtenerPorElementoConContexto = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { elementoId } = req.params;
 
-        // Validar elementoId
         validateId(elementoId, 'ID de elemento');
 
-        // Verificar que el elemento existe
-        const elemento = await ElementoModel.obtenerPorId(elementoId);
+        const elemento = await ElementoModel.obtenerPorId(tenantId, elementoId);
         if (!elemento) {
             throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO(ENTIDADES.ELEMENTO), 404);
         }
 
-        // Verificar que NO requiere series
         if (elemento.requiere_series) {
             throw new AppError(
                 'Este elemento requiere series individuales. Use el endpoint de series.',
@@ -606,8 +527,7 @@ exports.obtenerPorElementoConContexto = async (req, res, next) => {
             );
         }
 
-        // Obtener lotes con contexto
-        const resultado = await LoteModel.obtenerPorElementoConContexto(elementoId);
+        const resultado = await LoteModel.obtenerPorElementoConContexto(tenantId, elementoId);
 
         res.json({
             success: true,
@@ -628,16 +548,11 @@ exports.obtenerPorElementoConContexto = async (req, res, next) => {
 };
 
 // ============================================
-// OBTENER DESGLOSE DE ALQUILERES ✨ NUEVO
+// VERIFICAR EXISTENCIA DE LOTE
 // ============================================
-
-/**
- * GET /api/lotes/elemento/:elementoId/alquileres
- *
- * Retorna el desglose de en qué eventos están las cantidades alquiladas
- */
 exports.verificarExistencia = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { elementoId, ubicacion, estado } = req.query;
 
         validateId(elementoId, 'ID de elemento');
@@ -647,6 +562,7 @@ exports.verificarExistencia = async (req, res, next) => {
         }
 
         const loteExistente = await LoteModel.buscarLoteEspecifico(
+            tenantId,
             elementoId,
             estado,
             ubicacion || null
@@ -669,31 +585,22 @@ exports.verificarExistencia = async (req, res, next) => {
 };
 
 // ============================================
-// OBTENER DESGLOSE DE ALQUILERES ✨ NUEVO
+// OBTENER DESGLOSE DE ALQUILERES
 // ============================================
-
-/**
- * GET /api/lotes/elemento/:elementoId/alquileres
- *
- * Retorna el desglose de en qué eventos están las cantidades alquiladas
- */
 exports.obtenerDesgloseAlquileres = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { elementoId } = req.params;
 
-        // Validar elementoId
         validateId(elementoId, 'ID de elemento');
 
-        // Verificar que el elemento existe
-        const elemento = await ElementoModel.obtenerPorId(elementoId);
+        const elemento = await ElementoModel.obtenerPorId(tenantId, elementoId);
         if (!elemento) {
             throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO(ENTIDADES.ELEMENTO), 404);
         }
 
-        // Obtener desglose
-        const desglose = await LoteModel.obtenerDesgloseAlquileres(elementoId);
+        const desglose = await LoteModel.obtenerDesgloseAlquileres(tenantId, elementoId);
 
-        // Calcular total
         const totalEnEventos = desglose.reduce((sum, e) => sum + e.cantidad_total, 0);
 
         res.json({

@@ -15,17 +15,6 @@ const {
 const { MENSAJES_ERROR, MENSAJES_EXITO, ENTIDADES } = require('../../../config/constants');
 const { getPaginationParams, getPaginatedResponse, shouldPaginate, getSortParams } = require('../../../utils/pagination');
 
-/**
- * MEJORAS EN ESTA VERSIÓN:
- *
- * 1. Usa AppError para manejo centralizado de errores
- * 2. Usa validadores centralizados de utils/validators
- * 3. Usa constantes centralizadas de config/constants
- * 4. Logging estructurado con utils/logger
- * 5. Paginación opcional con infraestructura reutilizable
- * 6. Los errores se propagan al middleware global
- */
-
 // ============================================
 // VALIDADOR ESPECÍFICO PARA NÚMERO DE SERIE
 // ============================================
@@ -54,21 +43,11 @@ const validateNumeroSerie = (numeroSerie) => {
 // OBTENER TODAS LAS SERIES
 // ============================================
 
-/**
- * GET /api/series
- *
- * Soporta paginación opcional:
- * - Sin params: Retorna todas las series
- * - Con ?page=1&limit=20: Retorna paginado
- * - Con ?search=ABC123: Búsqueda por número de serie o elemento
- * - Con ?sortBy=numero_serie&order=DESC: Ordenamiento
- * - Con ?paginate=false: Fuerza sin paginación
- */
 exports.obtenerTodas = async (req, res, next) => {
     try {
-        // Verificar si se debe paginar
+        const tenantId = req.tenant.id;
+
         if (shouldPaginate(req.query) && (req.query.page || req.query.limit)) {
-            // MODO PAGINADO
             const { page, limit, offset } = getPaginationParams(req.query);
             const { sortBy, order } = getSortParams(req.query, 'numero_serie');
             const search = req.query.search || null;
@@ -77,21 +56,18 @@ exports.obtenerTodas = async (req, res, next) => {
                 page, limit, offset, sortBy, order, search
             });
 
-            // Obtener datos y total
-            const series = await SerieModel.obtenerConPaginacion({
+            const series = await SerieModel.obtenerConPaginacion(tenantId, {
                 limit,
                 offset,
                 sortBy,
                 order,
                 search
             });
-            const total = await SerieModel.contarTodas(search);
+            const total = await SerieModel.contarTodas(tenantId, search);
 
-            // Retornar respuesta paginada
             res.json(getPaginatedResponse(series, page, limit, total));
         } else {
-            // MODO SIN PAGINACIÓN (retrocompatible)
-            const series = await SerieModel.obtenerTodas();
+            const series = await SerieModel.obtenerTodas(tenantId);
 
             res.json({
                 success: true,
@@ -108,13 +84,11 @@ exports.obtenerTodas = async (req, res, next) => {
 // OBTENER SERIE POR ID
 // ============================================
 
-/**
- * GET /api/series/:id
- */
 exports.obtenerPorId = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { id } = req.params;
-        const serie = await SerieModel.obtenerPorId(id);
+        const serie = await SerieModel.obtenerPorId(tenantId, id);
 
         if (!serie) {
             throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO(ENTIDADES.SERIE), 404);
@@ -133,13 +107,11 @@ exports.obtenerPorId = async (req, res, next) => {
 // OBTENER SERIE POR NÚMERO DE SERIE
 // ============================================
 
-/**
- * GET /api/series/numero/:numeroSerie
- */
 exports.obtenerPorNumeroSerie = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { numeroSerie } = req.params;
-        const serie = await SerieModel.obtenerPorNumeroSerie(numeroSerie);
+        const serie = await SerieModel.obtenerPorNumeroSerie(tenantId, numeroSerie);
 
         if (!serie) {
             throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO(ENTIDADES.SERIE), 404);
@@ -158,27 +130,20 @@ exports.obtenerPorNumeroSerie = async (req, res, next) => {
 // OBTENER SERIES DE UN ELEMENTO
 // ============================================
 
-/**
- * GET /api/series/elemento/:elementoId
- */
 exports.obtenerPorElemento = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { elementoId } = req.params;
 
-        // Validar elementoId
         validateId(elementoId, 'ID de elemento');
 
-        // Verificar que el elemento existe
-        const elemento = await ElementoModel.obtenerPorId(elementoId);
+        const elemento = await ElementoModel.obtenerPorId(tenantId, elementoId);
         if (!elemento) {
             throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO(ENTIDADES.ELEMENTO), 404);
         }
 
-        // Obtener series
-        const series = await SerieModel.obtenerPorElemento(elementoId);
-
-        // Obtener estadísticas
-        const stats = await SerieModel.contarPorElemento(elementoId);
+        const series = await SerieModel.obtenerPorElemento(tenantId, elementoId);
+        const stats = await SerieModel.contarPorElemento(tenantId, elementoId);
 
         res.json({
             success: true,
@@ -199,17 +164,14 @@ exports.obtenerPorElemento = async (req, res, next) => {
 // OBTENER SERIES POR ESTADO
 // ============================================
 
-/**
- * GET /api/series/estado/:estado
- */
 exports.obtenerPorEstado = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { estado } = req.params;
 
-        // Validar estado
         const estadoValidado = validateEstado(estado, true);
 
-        const series = await SerieModel.obtenerPorEstado(estadoValidado);
+        const series = await SerieModel.obtenerPorEstado(tenantId, estadoValidado);
 
         res.json({
             success: true,
@@ -226,12 +188,10 @@ exports.obtenerPorEstado = async (req, res, next) => {
 // OBTENER SERIES DISPONIBLES
 // ============================================
 
-/**
- * GET /api/series/disponibles
- */
 exports.obtenerDisponibles = async (req, res, next) => {
     try {
-        const series = await SerieModel.obtenerDisponibles();
+        const tenantId = req.tenant.id;
+        const series = await SerieModel.obtenerDisponibles(tenantId);
 
         res.json({
             success: true,
@@ -247,12 +207,10 @@ exports.obtenerDisponibles = async (req, res, next) => {
 // OBTENER SERIES ALQUILADAS
 // ============================================
 
-/**
- * GET /api/series/alquiladas
- */
 exports.obtenerAlquiladas = async (req, res, next) => {
     try {
-        const series = await SerieModel.obtenerAlquiladas();
+        const tenantId = req.tenant.id;
+        const series = await SerieModel.obtenerAlquiladas(tenantId);
 
         res.json({
             success: true,
@@ -268,21 +226,9 @@ exports.obtenerAlquiladas = async (req, res, next) => {
 // CREAR SERIE
 // ============================================
 
-/**
- * POST /api/series
- *
- * Body:
- * {
- *   "id_elemento": 1,
- *   "numero_serie": "ABC-12345",
- *   "estado": "bueno",  // opcional
- *   "ubicacion": "Bodega A",  // opcional
- *   "ubicacion_id": 1,  // opcional
- *   "fecha_ingreso": "2024-01-15"  // opcional
- * }
- */
 exports.crear = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const {
             id_elemento,
             numero_serie,
@@ -294,46 +240,29 @@ exports.crear = async (req, res, next) => {
 
         logger.info('serieController.crear', 'Creando nueva serie', { numero_serie });
 
-        // ============================================
-        // VALIDACIONES
-        // ============================================
-
-        // Validar id_elemento
         const idElementoValidado = validateId(id_elemento, 'id_elemento');
-
-        // Validar numero_serie
         const numeroSerieValidado = validateNumeroSerie(numero_serie);
-
-        // Validar estado si existe
         const estadoValidado = estado ? validateEstado(estado, false) : 'bueno';
 
-        // Verificar que el elemento existe
-        const elemento = await ElementoModel.obtenerPorId(idElementoValidado);
+        const elemento = await ElementoModel.obtenerPorId(tenantId, idElementoValidado);
         if (!elemento) {
             throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO(ENTIDADES.ELEMENTO), 404);
         }
 
-        // Verificar que el elemento requiere series
         if (!elemento.requiere_series) {
             throw new AppError('Este elemento no requiere números de serie', 400);
         }
 
-        // Verificar que el número de serie no exista
-        const serieExistente = await SerieModel.obtenerPorNumeroSerie(numeroSerieValidado);
+        const serieExistente = await SerieModel.obtenerPorNumeroSerie(tenantId, numeroSerieValidado);
         if (serieExistente) {
             throw new AppError('Este número de serie ya existe', 400);
         }
 
-        // Validar ubicacion_id si existe
         if (ubicacion_id) {
             validateId(ubicacion_id, 'ubicacion_id');
         }
 
-        // ============================================
-        // CREAR SERIE
-        // ============================================
-
-        const nuevoId = await SerieModel.crear({
+        const nuevoId = await SerieModel.crear(tenantId, {
             id_elemento: idElementoValidado,
             numero_serie: numeroSerieValidado,
             estado: estadoValidado,
@@ -342,8 +271,7 @@ exports.crear = async (req, res, next) => {
             fecha_ingreso: fecha_ingreso || null
         });
 
-        // Obtener la serie creada con todos sus datos
-        const serieCreada = await SerieModel.obtenerPorId(nuevoId);
+        const serieCreada = await SerieModel.obtenerPorId(tenantId, nuevoId);
 
         logger.info('serieController.crear', 'Serie creada exitosamente', {
             id: nuevoId,
@@ -365,13 +293,9 @@ exports.crear = async (req, res, next) => {
 // ACTUALIZAR SERIE
 // ============================================
 
-/**
- * PUT /api/series/:id
- *
- * Body: Similar a crear
- */
 exports.actualizar = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { id } = req.params;
         const {
             numero_serie,
@@ -383,38 +307,24 @@ exports.actualizar = async (req, res, next) => {
 
         logger.info('serieController.actualizar', 'Actualizando serie', { id });
 
-        // ============================================
-        // VALIDACIONES
-        // ============================================
-
-        // Verificar que la serie existe
-        const serieExistente = await SerieModel.obtenerPorId(id);
+        const serieExistente = await SerieModel.obtenerPorId(tenantId, id);
         if (!serieExistente) {
             throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO(ENTIDADES.SERIE), 404);
         }
 
-        // Validar numero_serie
         const numeroSerieValidado = validateNumeroSerie(numero_serie);
-
-        // Validar estado si existe
         const estadoValidado = estado ? validateEstado(estado, false) : 'bueno';
 
-        // Verificar que el número de serie no esté en uso por otra serie
-        const serieConMismoNumero = await SerieModel.obtenerPorNumeroSerie(numeroSerieValidado);
+        const serieConMismoNumero = await SerieModel.obtenerPorNumeroSerie(tenantId, numeroSerieValidado);
         if (serieConMismoNumero && serieConMismoNumero.id != id) {
             throw new AppError('Este número de serie ya está en uso', 400);
         }
 
-        // Validar ubicacion_id si existe
         if (ubicacion_id) {
             validateId(ubicacion_id, 'ubicacion_id');
         }
 
-        // ============================================
-        // ACTUALIZAR SERIE
-        // ============================================
-
-        await SerieModel.actualizar(id, {
+        await SerieModel.actualizar(tenantId, id, {
             numero_serie: numeroSerieValidado,
             estado: estadoValidado,
             ubicacion: ubicacion || null,
@@ -422,8 +332,7 @@ exports.actualizar = async (req, res, next) => {
             fecha_ingreso: fecha_ingreso || null
         });
 
-        // Obtener la serie actualizada
-        const serieActualizada = await SerieModel.obtenerPorId(id);
+        const serieActualizada = await SerieModel.obtenerPorId(tenantId, id);
 
         logger.info('serieController.actualizar', 'Serie actualizada exitosamente', {
             id,
@@ -445,49 +354,28 @@ exports.actualizar = async (req, res, next) => {
 // CAMBIAR ESTADO DE SERIE
 // ============================================
 
-/**
- * PATCH /api/series/:id/estado
- *
- * Body:
- * {
- *   "estado": "alquilado",
- *   "ubicacion": "Evento XYZ",  // opcional
- *   "ubicacion_id": 5  // opcional
- * }
- */
 exports.cambiarEstado = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { id } = req.params;
         const { estado, ubicacion, ubicacion_id } = req.body;
 
         logger.info('serieController.cambiarEstado', 'Cambiando estado de serie', { id, estado });
 
-        // ============================================
-        // VALIDACIONES
-        // ============================================
-
-        // Verificar que la serie existe
-        const serieExistente = await SerieModel.obtenerPorId(id);
+        const serieExistente = await SerieModel.obtenerPorId(tenantId, id);
         if (!serieExistente) {
             throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO(ENTIDADES.SERIE), 404);
         }
 
-        // Validar estado
         const estadoValidado = validateEstado(estado, true);
 
-        // Validar ubicacion_id si existe
         if (ubicacion_id) {
             validateId(ubicacion_id, 'ubicacion_id');
         }
 
-        // ============================================
-        // CAMBIAR ESTADO
-        // ============================================
+        await SerieModel.cambiarEstado(tenantId, id, estadoValidado, ubicacion, ubicacion_id);
 
-        await SerieModel.cambiarEstado(id, estadoValidado, ubicacion, ubicacion_id);
-
-        // Obtener la serie actualizada
-        const serieActualizada = await SerieModel.obtenerPorId(id);
+        const serieActualizada = await SerieModel.obtenerPorId(tenantId, id);
 
         logger.info('serieController.cambiarEstado', 'Estado cambiado exitosamente', {
             id,
@@ -510,23 +398,19 @@ exports.cambiarEstado = async (req, res, next) => {
 // ELIMINAR SERIE
 // ============================================
 
-/**
- * DELETE /api/series/:id
- */
 exports.eliminar = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { id } = req.params;
 
         logger.info('serieController.eliminar', 'Eliminando serie', { id });
 
-        // Verificar que la serie existe
-        const serie = await SerieModel.obtenerPorId(id);
+        const serie = await SerieModel.obtenerPorId(tenantId, id);
         if (!serie) {
             throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO(ENTIDADES.SERIE), 404);
         }
 
-        // Eliminar serie
-        const filasAfectadas = await SerieModel.eliminar(id);
+        const filasAfectadas = await SerieModel.eliminar(tenantId, id);
 
         if (filasAfectadas === 0) {
             throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO(ENTIDADES.SERIE), 404);
@@ -551,19 +435,14 @@ exports.eliminar = async (req, res, next) => {
 // OBTENER SIGUIENTE NÚMERO DE SERIE
 // ============================================
 
-/**
- * GET /api/series/siguiente-numero/:elementoId
- *
- * Genera el siguiente número de serie secuencial para un elemento.
- * Formato: PREFI-001, PREFI-002, etc.
- */
 exports.obtenerSiguienteNumero = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { elementoId } = req.params;
 
         validateId(elementoId, 'ID de elemento');
 
-        const elemento = await ElementoModel.obtenerPorId(elementoId);
+        const elemento = await ElementoModel.obtenerPorId(tenantId, elementoId);
         if (!elemento) {
             throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO(ENTIDADES.ELEMENTO), 404);
         }
@@ -572,7 +451,7 @@ exports.obtenerSiguienteNumero = async (req, res, next) => {
             throw new AppError('Este elemento no requiere números de serie', 400);
         }
 
-        const numero = await SerieModel.obtenerSiguienteNumero(elementoId);
+        const numero = await SerieModel.obtenerSiguienteNumero(tenantId, elementoId);
 
         res.json({
             success: true,
@@ -585,31 +464,21 @@ exports.obtenerSiguienteNumero = async (req, res, next) => {
 };
 
 // ============================================
-// OBTENER SERIES CON CONTEXTO DE ALQUILER ✨ NUEVO
+// OBTENER SERIES CON CONTEXTO DE ALQUILER
 // ============================================
 
-/**
- * GET /api/series/elemento/:elementoId/contexto
- *
- * Retorna las series de un elemento CON información de:
- * - Evento actual (si está alquilado)
- * - Próximo evento (si tiene reserva futura)
- * - Estado operativo detallado
- */
 exports.obtenerPorElementoConContexto = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { elementoId } = req.params;
 
-        // Validar elementoId
         validateId(elementoId, 'ID de elemento');
 
-        // Verificar que el elemento existe
-        const elemento = await ElementoModel.obtenerPorId(elementoId);
+        const elemento = await ElementoModel.obtenerPorId(tenantId, elementoId);
         if (!elemento) {
             throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO(ENTIDADES.ELEMENTO), 404);
         }
 
-        // Verificar que requiere series
         if (!elemento.requiere_series) {
             throw new AppError(
                 'Este elemento no requiere series. Use el endpoint de lotes.',
@@ -617,13 +486,9 @@ exports.obtenerPorElementoConContexto = async (req, res, next) => {
             );
         }
 
-        // Obtener series con contexto
-        const series = await SerieModel.obtenerPorElementoConContexto(elementoId);
+        const series = await SerieModel.obtenerPorElementoConContexto(tenantId, elementoId);
+        const stats = await SerieModel.contarPorElemento(tenantId, elementoId);
 
-        // Obtener estadísticas
-        const stats = await SerieModel.contarPorElemento(elementoId);
-
-        // Calcular resumen de estados
         const resumen = {
             total: series.length,
             disponibles: series.filter(s => s.estado === 'bueno' && !s.en_alquiler).length,
@@ -651,22 +516,15 @@ exports.obtenerPorElementoConContexto = async (req, res, next) => {
 };
 
 // ============================================
-// OBTENER SERIE POR ID CON CONTEXTO ✨ NUEVO
+// OBTENER SERIE POR ID CON CONTEXTO
 // ============================================
 
-/**
- * GET /api/series/:id/contexto
- *
- * Retorna una serie específica CON:
- * - Información del evento actual
- * - Próximo evento
- * - Historial de alquileres
- */
 exports.obtenerPorIdConContexto = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { id } = req.params;
 
-        const serie = await SerieModel.obtenerPorIdConContexto(id);
+        const serie = await SerieModel.obtenerPorIdConContexto(tenantId, id);
 
         if (!serie) {
             throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO(ENTIDADES.SERIE), 404);

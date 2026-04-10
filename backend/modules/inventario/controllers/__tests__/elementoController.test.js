@@ -27,6 +27,7 @@ const mockReq = (overrides = {}) => ({
     body: {},
     params: {},
     query: {},
+    tenant: { id: 1, slug: 'test', nombre: 'Test Tenant' },
     ...overrides
 });
 
@@ -132,7 +133,7 @@ describe('obtenerPorCategoria', () => {
 
         await controller.obtenerPorCategoria(req, res, next);
 
-        expect(ElementoModel.obtenerPorCategoria).toHaveBeenCalledWith('5');
+        expect(ElementoModel.obtenerPorCategoria).toHaveBeenCalledWith(1, '5');
         expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true, total: 1 }));
     });
 
@@ -289,7 +290,7 @@ describe('crear', () => {
 
         await controller.crear(req, res, next);
 
-        expect(LoteModel.crear).toHaveBeenCalledWith(expect.objectContaining({
+        expect(LoteModel.crear).toHaveBeenCalledWith(1, expect.objectContaining({
             elemento_id: 10,
             cantidad: 50
         }));
@@ -379,7 +380,7 @@ describe('actualizar', () => {
 
         await controller.actualizar(req, res, next);
 
-        expect(ElementoModel.actualizar).toHaveBeenCalledWith('1', expect.objectContaining({
+        expect(ElementoModel.actualizar).toHaveBeenCalledWith(1, '1', expect.objectContaining({
             nombre: 'Carpa',
             cantidad: 5
         }));
@@ -495,7 +496,7 @@ describe('subirImagen', () => {
 
         await controller.subirImagen(req, res, next);
 
-        expect(ElementoModel.actualizarImagen).toHaveBeenCalledWith('1', '/uploads/elementos/foto.jpg');
+        expect(ElementoModel.actualizarImagen).toHaveBeenCalledWith(1, '1', '/uploads/elementos/foto.jpg');
         expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
     });
 
@@ -555,7 +556,7 @@ describe('eliminarImagen', () => {
         await controller.eliminarImagen(req, res, next);
 
         expect(deleteImageFile).toHaveBeenCalledWith('/uploads/elementos/foto.jpg');
-        expect(ElementoModel.actualizarImagen).toHaveBeenCalledWith('1', null);
+        expect(ElementoModel.actualizarImagen).toHaveBeenCalledWith(1, '1', null);
     });
 
     test('error 404 si elemento no existe', async () => {

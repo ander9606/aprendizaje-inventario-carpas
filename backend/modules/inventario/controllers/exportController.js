@@ -12,14 +12,15 @@ const logger = require('../../../utils/logger');
 
 exports.exportarExcel = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         logger.info('exportController.exportarExcel', 'Generando exportación Excel del inventario');
 
         // Obtener todos los datos en paralelo
         const [inventario, resumenCategoria, resumenUbicacion, alertasStock] = await Promise.all([
-            ExportModel.obtenerInventarioCompleto(),
-            ExportModel.obtenerResumenPorCategoria(),
-            ExportModel.obtenerResumenPorUbicacion(),
-            ExportModel.obtenerAlertasStockBajo()
+            ExportModel.obtenerInventarioCompleto(tenantId),
+            ExportModel.obtenerResumenPorCategoria(tenantId),
+            ExportModel.obtenerResumenPorUbicacion(tenantId),
+            ExportModel.obtenerAlertasStockBajo(tenantId)
         ]);
 
         // Generar workbook
