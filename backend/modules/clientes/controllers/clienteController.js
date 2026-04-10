@@ -12,7 +12,8 @@ const logger = require('../../../utils/logger');
 // ============================================
 exports.obtenerTodos = async (req, res, next) => {
   try {
-    const clientes = await ClienteModel.obtenerTodos();
+    const tenantId = req.tenant.id;
+    const clientes = await ClienteModel.obtenerTodos(tenantId);
     res.json({
       success: true,
       data: clientes,
@@ -28,7 +29,8 @@ exports.obtenerTodos = async (req, res, next) => {
 // ============================================
 exports.obtenerActivos = async (req, res, next) => {
   try {
-    const clientes = await ClienteModel.obtenerActivos();
+    const tenantId = req.tenant.id;
+    const clientes = await ClienteModel.obtenerActivos(tenantId);
     res.json({
       success: true,
       data: clientes,
@@ -44,8 +46,9 @@ exports.obtenerActivos = async (req, res, next) => {
 // ============================================
 exports.obtenerPorId = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { id } = req.params;
-    const cliente = await ClienteModel.obtenerPorId(id);
+    const cliente = await ClienteModel.obtenerPorId(tenantId, id);
 
     if (!cliente) {
       throw new AppError('Cliente no encontrado', 404);
@@ -65,6 +68,7 @@ exports.obtenerPorId = async (req, res, next) => {
 // ============================================
 exports.crear = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { tipo_documento, numero_documento, nombre, telefono, email, direccion, ciudad, notas } = req.body;
 
     // Validaciones
@@ -77,6 +81,7 @@ exports.crear = async (req, res, next) => {
 
     // Verificar si ya existe
     const clienteExistente = await ClienteModel.obtenerPorDocumento(
+      tenantId,
       tipo_documento || 'CC',
       numero_documento.trim()
     );
@@ -86,7 +91,7 @@ exports.crear = async (req, res, next) => {
 
     logger.info('clienteController.crear', 'Creando cliente', { nombre });
 
-    const resultado = await ClienteModel.crear({
+    const resultado = await ClienteModel.crear(tenantId, {
       tipo_documento,
       numero_documento: numero_documento.trim(),
       nombre: nombre.trim(),
@@ -97,7 +102,7 @@ exports.crear = async (req, res, next) => {
       notas
     });
 
-    const clienteCreado = await ClienteModel.obtenerPorId(resultado.insertId);
+    const clienteCreado = await ClienteModel.obtenerPorId(tenantId, resultado.insertId);
 
     res.status(201).json({
       success: true,
@@ -115,10 +120,11 @@ exports.crear = async (req, res, next) => {
 // ============================================
 exports.actualizar = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { id } = req.params;
     const { tipo_documento, numero_documento, nombre, telefono, email, direccion, ciudad, notas, activo } = req.body;
 
-    const clienteExistente = await ClienteModel.obtenerPorId(id);
+    const clienteExistente = await ClienteModel.obtenerPorId(tenantId, id);
     if (!clienteExistente) {
       throw new AppError('Cliente no encontrado', 404);
     }
@@ -132,6 +138,7 @@ exports.actualizar = async (req, res, next) => {
 
     // Verificar si el documento ya existe en otro cliente
     const otroCliente = await ClienteModel.obtenerPorDocumento(
+      tenantId,
       tipo_documento || 'CC',
       numero_documento.trim()
     );
@@ -139,7 +146,7 @@ exports.actualizar = async (req, res, next) => {
       throw new AppError('Ya existe otro cliente con este documento', 400);
     }
 
-    await ClienteModel.actualizar(id, {
+    await ClienteModel.actualizar(tenantId, id, {
       tipo_documento,
       numero_documento: numero_documento.trim(),
       nombre: nombre.trim(),
@@ -151,7 +158,7 @@ exports.actualizar = async (req, res, next) => {
       activo
     });
 
-    const clienteActualizado = await ClienteModel.obtenerPorId(id);
+    const clienteActualizado = await ClienteModel.obtenerPorId(tenantId, id);
 
     res.json({
       success: true,
@@ -169,19 +176,20 @@ exports.actualizar = async (req, res, next) => {
 // ============================================
 exports.eliminar = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { id } = req.params;
 
-    const cliente = await ClienteModel.obtenerPorId(id);
+    const cliente = await ClienteModel.obtenerPorId(tenantId, id);
     if (!cliente) {
       throw new AppError('Cliente no encontrado', 404);
     }
 
-    const tieneCotizaciones = await ClienteModel.tieneCotizaciones(id);
+    const tieneCotizaciones = await ClienteModel.tieneCotizaciones(tenantId, id);
     if (tieneCotizaciones) {
       throw new AppError('No se puede eliminar un cliente que tiene cotizaciones asociadas', 400);
     }
 
-    await ClienteModel.eliminar(id);
+    await ClienteModel.eliminar(tenantId, id);
 
     res.json({
       success: true,
@@ -198,14 +206,15 @@ exports.eliminar = async (req, res, next) => {
 // ============================================
 exports.obtenerHistorialEventos = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { id } = req.params;
 
-    const cliente = await ClienteModel.obtenerPorId(id);
+    const cliente = await ClienteModel.obtenerPorId(tenantId, id);
     if (!cliente) {
       throw new AppError('Cliente no encontrado', 404);
     }
 
-    const historial = await ClienteModel.obtenerHistorialEventos(id);
+    const historial = await ClienteModel.obtenerHistorialEventos(tenantId, id);
 
     res.json({
       success: true,
@@ -224,13 +233,14 @@ exports.obtenerHistorialEventos = async (req, res, next) => {
 // ============================================
 exports.buscar = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { q } = req.query;
 
     if (!q || q.trim().length < 2) {
       throw new AppError('El término de búsqueda debe tener al menos 2 caracteres', 400);
     }
 
-    const resultados = await ClienteModel.buscar(q.trim());
+    const resultados = await ClienteModel.buscar(tenantId, q.trim());
 
     res.json({
       success: true,

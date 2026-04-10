@@ -19,7 +19,7 @@ jest.mock('../../../../utils/logger', () => ({
 const DepartamentoModel = require('../../models/DepartamentoModel');
 const controller = require('../departamentoController');
 
-const mockReq = (o = {}) => ({ body: {}, params: {}, query: {}, ...o });
+const mockReq = (o = {}) => ({ body: {}, params: {}, query: {}, tenant: { id: 1, slug: 'test', nombre: 'Test Tenant' }, ...o });
 const mockRes = () => { const r = {}; r.status = jest.fn().mockReturnValue(r); r.json = jest.fn().mockReturnValue(r); return r; };
 const mockNext = () => jest.fn();
 
@@ -130,7 +130,7 @@ describe('crear', () => {
         DepartamentoModel.obtenerPorId.mockResolvedValue({ id: 1 });
         const res = mockRes();
         await controller.crear(mockReq({ body: { nombre: '  Valle  ' } }), res, mockNext());
-        expect(DepartamentoModel.nombreExiste).toHaveBeenCalledWith('Valle', null);
+        expect(DepartamentoModel.nombreExiste).toHaveBeenCalledWith(1, 'Valle', null);
     });
 });
 

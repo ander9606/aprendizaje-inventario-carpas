@@ -35,6 +35,7 @@ const {
 
 exports.obtenerTodos = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const paginar = shouldPaginate(req.query) && (req.query.page || req.query.limit);
 
         if (paginar) {
@@ -47,15 +48,15 @@ exports.obtenerTodos = async (req, res, next) => {
             });
 
             const [elementos, total] = await Promise.all([
-                ElementoModel.obtenerConPaginacion({ limit, offset, sortBy, order, search }),
-                ElementoModel.contarTodos(search)
+                ElementoModel.obtenerConPaginacion(tenantId, { limit, offset, sortBy, order, search }),
+                ElementoModel.contarTodos(tenantId, search)
             ]);
 
             return res.json(getPaginatedResponse(elementos, page, limit, total));
         }
 
         // MODO SIN PAGINACIÓN
-        const elementos = await ElementoModel.obtenerTodos();
+        const elementos = await ElementoModel.obtenerTodos(tenantId);
 
         res.json({
             success: true,
@@ -75,12 +76,13 @@ exports.obtenerTodos = async (req, res, next) => {
 
 exports.obtenerPorId = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { id } = req.params;
-        
+
         // Validar ID
         validateId(id, 'ID de elemento');
-        
-        const elemento = await ElementoModel.obtenerPorId(id);
+
+        const elemento = await ElementoModel.obtenerPorId(tenantId, id);
 
         if (!elemento) {
             throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO(ENTIDADES.ELEMENTO), 404);
@@ -100,6 +102,7 @@ exports.obtenerPorId = async (req, res, next) => {
 
 exports.obtenerPorCategoria = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { categoriaId, subcategoriaId } = req.params;
         const id = subcategoriaId || categoriaId;
 
@@ -111,7 +114,7 @@ exports.obtenerPorCategoria = async (req, res, next) => {
 
         // Si es subcategoría, obtener con información adicional
         if (subcategoriaId) {
-            const resultado = await ElementoModel.obtenerPorSubcategoriaConInfo(id);
+            const resultado = await ElementoModel.obtenerPorSubcategoriaConInfo(tenantId, id);
 
             return res.json({
                 success: true,
@@ -122,7 +125,7 @@ exports.obtenerPorCategoria = async (req, res, next) => {
         }
 
         // Si es categoría padre, incluir elementos de subcategorías
-        const elementos = await ElementoModel.obtenerPorCategoria(id);
+        const elementos = await ElementoModel.obtenerPorCategoria(tenantId, id);
 
         res.json({
             success: true,
@@ -143,11 +146,12 @@ exports.obtenerPorCategoria = async (req, res, next) => {
 
 exports.obtenerDirectosPorCategoria = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { categoriaId } = req.params;
 
         validateId(categoriaId, 'ID de categoría');
 
-        const elementos = await ElementoModel.obtenerDirectosPorCategoria(categoriaId);
+        const elementos = await ElementoModel.obtenerDirectosPorCategoria(tenantId, categoriaId);
 
         res.json({
             success: true,
@@ -165,9 +169,10 @@ exports.obtenerDirectosPorCategoria = async (req, res, next) => {
 // ELEMENTOS CON SERIES
 // ============================================
 
-exports.obtenerConSeries = async (_req, res, next) => {
+exports.obtenerConSeries = async (req, res, next) => {
     try {
-        const elementos = await ElementoModel.obtenerConSeries();
+        const tenantId = req.tenant.id;
+        const elementos = await ElementoModel.obtenerConSeries(tenantId);
         res.json({ success: true, data: elementos, total: elementos.length });
 
     } catch (error) {
@@ -180,9 +185,10 @@ exports.obtenerConSeries = async (_req, res, next) => {
 // ELEMENTOS SIN SERIES
 // ============================================
 
-exports.obtenerSinSeries = async (_req, res, next) => {
+exports.obtenerSinSeries = async (req, res, next) => {
     try {
-        const elementos = await ElementoModel.obtenerSinSeries();
+        const tenantId = req.tenant.id;
+        const elementos = await ElementoModel.obtenerSinSeries(tenantId);
         res.json({ success: true, data: elementos, total: elementos.length });
 
     } catch (error) {
@@ -197,8 +203,9 @@ exports.obtenerSinSeries = async (_req, res, next) => {
 
 exports.buscar = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const termino = validateTerminoBusqueda(req.query.q);
-        const elementos = await ElementoModel.buscarPorNombre(termino);
+        const elementos = await ElementoModel.buscarPorNombre(tenantId, termino);
 
         res.json({
             success: true,
@@ -219,6 +226,7 @@ exports.buscar = async (req, res, next) => {
 
 exports.crear = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const body = req.body;
         logger.info('elementoController.crear', 'Creando elemento', { nombre: body.nombre });
 
@@ -245,7 +253,7 @@ exports.crear = async (req, res, next) => {
             unidad_id: body.unidad_id ? validateId(body.unidad_id, 'unidad_id') : null
         };
 
-        const nuevoId = await ElementoModel.crear(data);
+        const nuevoId = await ElementoModel.crear(tenantId, data);
 
         // ============================================
         // CREAR LOTE INICIAL (si es gestión por lotes)
@@ -263,7 +271,7 @@ exports.crear = async (req, res, next) => {
                     ubicacion: ubicacionInicial
                 });
 
-                await LoteModel.crear({
+                await LoteModel.crear(tenantId, {
                     elemento_id: nuevoId,
                     lote_numero: `LOTE-${nuevoId}-001`,
                     cantidad: cantidadInicial,
@@ -275,7 +283,7 @@ exports.crear = async (req, res, next) => {
             }
         }
 
-        const elementoCreado = await ElementoModel.obtenerPorId(nuevoId);
+        const elementoCreado = await ElementoModel.obtenerPorId(tenantId, nuevoId);
 
         logger.info('elementoController.crear', 'Elemento creado exitosamente', {
             id: nuevoId,
@@ -300,6 +308,7 @@ exports.crear = async (req, res, next) => {
 
 exports.actualizar = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { id } = req.params;
         const body = req.body;
 
@@ -308,7 +317,7 @@ exports.actualizar = async (req, res, next) => {
         // Validar ID
         validateId(id, 'ID de elemento');
 
-        const existente = await ElementoModel.obtenerPorId(id);
+        const existente = await ElementoModel.obtenerPorId(tenantId, id);
         if (!existente) {
             throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO(ENTIDADES.ELEMENTO), 404);
         }
@@ -360,12 +369,12 @@ exports.actualizar = async (req, res, next) => {
                 : existente.unidad_id
         };
 
-        await ElementoModel.actualizar(id, data);
-        const actualizado = await ElementoModel.obtenerPorId(id);
+        await ElementoModel.actualizar(tenantId, id, data);
+        const actualizado = await ElementoModel.obtenerPorId(tenantId, id);
 
-        logger.info('elementoController.actualizar', 'Elemento actualizado exitosamente', { 
-            id, 
-            nombre: data.nombre 
+        logger.info('elementoController.actualizar', 'Elemento actualizado exitosamente', {
+            id,
+            nombre: data.nombre
         });
 
         res.json({
@@ -386,6 +395,7 @@ exports.actualizar = async (req, res, next) => {
 
 exports.eliminar = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { id } = req.params;
 
         logger.info('elementoController.eliminar', 'Eliminando elemento', { id });
@@ -393,19 +403,19 @@ exports.eliminar = async (req, res, next) => {
         // Validar ID
         validateId(id, 'ID de elemento');
 
-        const existente = await ElementoModel.obtenerPorId(id);
+        const existente = await ElementoModel.obtenerPorId(tenantId, id);
         if (!existente) {
             throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO(ENTIDADES.ELEMENTO), 404);
         }
 
-        const filas = await ElementoModel.eliminar(id);
+        const filas = await ElementoModel.eliminar(tenantId, id);
         if (filas === 0) {
             throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO(ENTIDADES.ELEMENTO), 404);
         }
 
-        logger.info('elementoController.eliminar', 'Elemento eliminado exitosamente', { 
-            id, 
-            nombre: existente.nombre 
+        logger.info('elementoController.eliminar', 'Elemento eliminado exitosamente', {
+            id,
+            nombre: existente.nombre
         });
 
         res.json({
@@ -423,9 +433,10 @@ exports.eliminar = async (req, res, next) => {
 // ALERTAS DE STOCK BAJO
 // ============================================
 
-exports.obtenerAlertasStock = async (_req, res, next) => {
+exports.obtenerAlertasStock = async (req, res, next) => {
     try {
-        const alertas = await ElementoModel.obtenerConStockBajo();
+        const tenantId = req.tenant.id;
+        const alertas = await ElementoModel.obtenerConStockBajo(tenantId);
 
         res.json({
             success: true,
@@ -443,14 +454,15 @@ exports.obtenerAlertasStock = async (_req, res, next) => {
 // ESTADISTICAS DE INVENTARIO (Dashboard)
 // ============================================
 
-exports.obtenerEstadisticasInventario = async (_req, res, next) => {
+exports.obtenerEstadisticasInventario = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const [generales, distribucionEstado, topCategorias, distribucionUbicacion, alertasStock] = await Promise.all([
-            ElementoModel.obtenerEstadisticasGenerales(),
-            ElementoModel.obtenerDistribucionPorEstado(),
-            ElementoModel.obtenerTopCategorias(10),
-            ElementoModel.obtenerDistribucionPorUbicacion(),
-            ElementoModel.obtenerConStockBajo()
+            ElementoModel.obtenerEstadisticasGenerales(tenantId),
+            ElementoModel.obtenerDistribucionPorEstado(tenantId),
+            ElementoModel.obtenerTopCategorias(tenantId, 10),
+            ElementoModel.obtenerDistribucionPorUbicacion(tenantId),
+            ElementoModel.obtenerConStockBajo(tenantId)
         ]);
 
         res.json({
@@ -476,6 +488,7 @@ exports.obtenerEstadisticasInventario = async (_req, res, next) => {
 
 exports.subirImagen = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { id } = req.params;
         validateId(id, 'ID de elemento');
 
@@ -483,7 +496,7 @@ exports.subirImagen = async (req, res, next) => {
             throw new AppError('No se recibió ningún archivo', 400);
         }
 
-        const elemento = await ElementoModel.obtenerPorId(id);
+        const elemento = await ElementoModel.obtenerPorId(tenantId, id);
         if (!elemento) {
             throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO(ENTIDADES.ELEMENTO), 404);
         }
@@ -494,7 +507,7 @@ exports.subirImagen = async (req, res, next) => {
         }
 
         const imagenUrl = `/uploads/elementos/${req.file.filename}`;
-        await ElementoModel.actualizarImagen(id, imagenUrl);
+        await ElementoModel.actualizarImagen(tenantId, id, imagenUrl);
 
         logger.info('elementoController.subirImagen', 'Imagen subida', { id, imagenUrl });
 
@@ -515,10 +528,11 @@ exports.subirImagen = async (req, res, next) => {
 
 exports.eliminarImagen = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { id } = req.params;
         validateId(id, 'ID de elemento');
 
-        const elemento = await ElementoModel.obtenerPorId(id);
+        const elemento = await ElementoModel.obtenerPorId(tenantId, id);
         if (!elemento) {
             throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO(ENTIDADES.ELEMENTO), 404);
         }
@@ -527,7 +541,7 @@ exports.eliminarImagen = async (req, res, next) => {
             deleteImageFile(elemento.imagen);
         }
 
-        await ElementoModel.actualizarImagen(id, null);
+        await ElementoModel.actualizarImagen(tenantId, id, null);
 
         logger.info('elementoController.eliminarImagen', 'Imagen eliminada', { id });
 

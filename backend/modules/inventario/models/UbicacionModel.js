@@ -10,7 +10,7 @@ class UbicacionModel {
     // ============================================
     // OBTENER TODAS LAS UBICACIONES
     // ============================================
-    static async obtenerTodas() {
+    static async obtenerTodas(tenantId) {
         const query = `
             SELECT
                 u.id,
@@ -29,18 +29,19 @@ class UbicacionModel {
                 u.created_at,
                 u.updated_at
             FROM ubicaciones u
-            LEFT JOIN ciudades c ON u.ciudad_id = c.id
+            LEFT JOIN ciudades c ON u.ciudad_id = c.id AND c.tenant_id = u.tenant_id
+            WHERE u.tenant_id = ?
             ORDER BY u.es_principal DESC, u.tipo, u.nombre
         `;
 
-        const [rows] = await pool.query(query);
+        const [rows] = await pool.query(query, [tenantId]);
         return rows;
     }
 
     // ============================================
     // OBTENER CON PAGINACIÓN
     // ============================================
-    static async obtenerConPaginacion({ limit, offset, sortBy = 'nombre', order = 'ASC', search = null }) {
+    static async obtenerConPaginacion(tenantId, { limit, offset, sortBy = 'nombre', order = 'ASC', search = null }) {
         const sortFieldMap = {
             'nombre': 'u.nombre',
             'tipo': 'u.tipo',
@@ -55,12 +56,13 @@ class UbicacionModel {
                 u.capacidad_estimada, u.observaciones, u.activo,
                 u.es_principal, u.created_at, u.updated_at
             FROM ubicaciones u
-            LEFT JOIN ciudades c ON u.ciudad_id = c.id
+            LEFT JOIN ciudades c ON u.ciudad_id = c.id AND c.tenant_id = u.tenant_id
+            WHERE u.tenant_id = ?
         `;
-        const params = [];
+        const params = [tenantId];
 
         if (search) {
-            query += ` WHERE u.nombre LIKE ?`;
+            query += ` AND u.nombre LIKE ?`;
             params.push(`%${search}%`);
         }
 
@@ -77,12 +79,12 @@ class UbicacionModel {
     // ============================================
     // CONTAR TOTAL
     // ============================================
-    static async contarTodas(search = null) {
-        let query = `SELECT COUNT(*) as total FROM ubicaciones`;
-        const params = [];
+    static async contarTodas(tenantId, search = null) {
+        let query = `SELECT COUNT(*) as total FROM ubicaciones WHERE tenant_id = ?`;
+        const params = [tenantId];
 
         if (search) {
-            query += ` WHERE nombre LIKE ?`;
+            query += ` AND nombre LIKE ?`;
             params.push(`%${search}%`);
         }
 
@@ -93,7 +95,7 @@ class UbicacionModel {
     // ============================================
     // OBTENER SOLO UBICACIONES ACTIVAS
     // ============================================
-    static async obtenerActivas() {
+    static async obtenerActivas(tenantId) {
         const query = `
             SELECT
                 u.id,
@@ -107,19 +109,19 @@ class UbicacionModel {
                 u.activo,
                 u.es_principal
             FROM ubicaciones u
-            LEFT JOIN ciudades c ON u.ciudad_id = c.id
-            WHERE u.activo = TRUE
+            LEFT JOIN ciudades c ON u.ciudad_id = c.id AND c.tenant_id = u.tenant_id
+            WHERE u.activo = TRUE AND u.tenant_id = ?
             ORDER BY u.es_principal DESC, u.tipo, u.nombre
         `;
 
-        const [rows] = await pool.query(query);
+        const [rows] = await pool.query(query, [tenantId]);
         return rows;
     }
 
     // ============================================
     // OBTENER UBICACIÓN POR ID
     // ============================================
-    static async obtenerPorId(id) {
+    static async obtenerPorId(tenantId, id) {
         const query = `
             SELECT
                 u.id,
@@ -138,18 +140,18 @@ class UbicacionModel {
                 u.created_at,
                 u.updated_at
             FROM ubicaciones u
-            LEFT JOIN ciudades c ON u.ciudad_id = c.id
-            WHERE u.id = ?
+            LEFT JOIN ciudades c ON u.ciudad_id = c.id AND c.tenant_id = u.tenant_id
+            WHERE u.id = ? AND u.tenant_id = ?
         `;
 
-        const [rows] = await pool.query(query, [id]);
+        const [rows] = await pool.query(query, [id, tenantId]);
         return rows[0];
     }
 
     // ============================================
     // OBTENER UBICACIÓN PRINCIPAL
     // ============================================
-    static async obtenerPrincipal() {
+    static async obtenerPrincipal(tenantId) {
         const query = `
             SELECT
                 u.id, u.nombre, u.tipo, u.direccion, u.ciudad_id,
@@ -157,73 +159,73 @@ class UbicacionModel {
                 u.capacidad_estimada, u.observaciones, u.activo,
                 u.es_principal, u.created_at, u.updated_at
             FROM ubicaciones u
-            LEFT JOIN ciudades c ON u.ciudad_id = c.id
-            WHERE u.es_principal = TRUE
+            LEFT JOIN ciudades c ON u.ciudad_id = c.id AND c.tenant_id = u.tenant_id
+            WHERE u.es_principal = TRUE AND u.tenant_id = ?
             LIMIT 1
         `;
 
-        const [rows] = await pool.query(query);
+        const [rows] = await pool.query(query, [tenantId]);
         return rows[0];
     }
 
     // ============================================
     // OBTENER UBICACIONES POR CIUDAD
     // ============================================
-    static async obtenerPorCiudadId(ciudadId) {
+    static async obtenerPorCiudadId(tenantId, ciudadId) {
         const query = `
             SELECT
                 u.id, u.nombre, u.tipo, u.direccion, u.ciudad_id,
                 c.nombre as ciudad, u.responsable, u.telefono,
                 u.observaciones, u.activo, u.es_principal
             FROM ubicaciones u
-            LEFT JOIN ciudades c ON u.ciudad_id = c.id
-            WHERE u.ciudad_id = ? AND u.activo = TRUE
+            LEFT JOIN ciudades c ON u.ciudad_id = c.id AND c.tenant_id = u.tenant_id
+            WHERE u.ciudad_id = ? AND u.activo = TRUE AND u.tenant_id = ?
             ORDER BY u.tipo, u.nombre
         `;
 
-        const [rows] = await pool.query(query, [ciudadId]);
+        const [rows] = await pool.query(query, [ciudadId, tenantId]);
         return rows;
     }
 
     // ============================================
     // OBTENER UBICACIONES POR TIPO
     // ============================================
-    static async obtenerPorTipo(tipo) {
+    static async obtenerPorTipo(tenantId, tipo) {
         const query = `
             SELECT
                 u.id, u.nombre, u.tipo, u.direccion, u.ciudad_id,
                 c.nombre as ciudad, u.responsable, u.telefono,
                 u.activo, u.es_principal
             FROM ubicaciones u
-            LEFT JOIN ciudades c ON u.ciudad_id = c.id
-            WHERE u.tipo = ? AND u.activo = TRUE
+            LEFT JOIN ciudades c ON u.ciudad_id = c.id AND c.tenant_id = u.tenant_id
+            WHERE u.tipo = ? AND u.activo = TRUE AND u.tenant_id = ?
             ORDER BY u.es_principal DESC, u.nombre
         `;
 
-        const [rows] = await pool.query(query, [tipo]);
+        const [rows] = await pool.query(query, [tipo, tenantId]);
         return rows;
     }
 
     // ============================================
     // OBTENER UBICACIÓN POR NOMBRE
     // ============================================
-    static async obtenerPorNombre(nombre) {
+    static async obtenerPorNombre(tenantId, nombre) {
         const query = `
             SELECT u.*, c.nombre as ciudad
             FROM ubicaciones u
-            LEFT JOIN ciudades c ON u.ciudad_id = c.id
-            WHERE u.nombre = ?
+            LEFT JOIN ciudades c ON u.ciudad_id = c.id AND c.tenant_id = u.tenant_id
+            WHERE u.nombre = ? AND u.tenant_id = ?
             LIMIT 1
         `;
 
-        const [rows] = await pool.query(query, [nombre]);
+        const [rows] = await pool.query(query, [nombre, tenantId]);
         return rows[0];
     }
 
     // ============================================
     // OBTENER UBICACIONES CON INVENTARIO
     // ============================================
-    static async obtenerConInventario() {
+    static async obtenerConInventario(tenantId) {
         const query = `
             SELECT
                 u.id, u.nombre, u.tipo, u.ciudad_id,
@@ -232,39 +234,39 @@ class UbicacionModel {
                 COALESCE(lotes.total_unidades, 0) as total_unidades,
                 COALESCE(series.total_series, 0) + COALESCE(lotes.total_unidades, 0) as total_items
             FROM ubicaciones u
-            LEFT JOIN ciudades c ON u.ciudad_id = c.id
+            LEFT JOIN ciudades c ON u.ciudad_id = c.id AND c.tenant_id = u.tenant_id
             LEFT JOIN (
                 SELECT ubicacion_id, COUNT(*) as total_series
                 FROM series
-                WHERE ubicacion_id IS NOT NULL
+                WHERE ubicacion_id IS NOT NULL AND tenant_id = ?
                 GROUP BY ubicacion_id
             ) series ON u.id = series.ubicacion_id
             LEFT JOIN (
                 SELECT ubicacion_id, SUM(cantidad) as total_unidades
                 FROM lotes
-                WHERE ubicacion_id IS NOT NULL
+                WHERE ubicacion_id IS NOT NULL AND tenant_id = ?
                 GROUP BY ubicacion_id
             ) lotes ON u.id = lotes.ubicacion_id
-            WHERE u.activo = TRUE
+            WHERE u.activo = TRUE AND u.tenant_id = ?
             ORDER BY u.es_principal DESC, total_items DESC, u.tipo, u.nombre
         `;
 
-        const [rows] = await pool.query(query);
+        const [rows] = await pool.query(query, [tenantId, tenantId, tenantId]);
         return rows;
     }
 
     // ============================================
     // OBTENER DETALLE DE INVENTARIO POR UBICACIÓN
     // ============================================
-    static async obtenerDetalleInventario(id) {
+    static async obtenerDetalleInventario(tenantId, id) {
         const querySeries = `
             SELECT
                 e.nombre AS elemento_nombre,
                 s.estado,
                 COUNT(*) as cantidad
             FROM series s
-            INNER JOIN elementos e ON s.id_elemento = e.id
-            WHERE s.ubicacion_id = ?
+            INNER JOIN elementos e ON s.id_elemento = e.id AND e.tenant_id = s.tenant_id
+            WHERE s.ubicacion_id = ? AND s.tenant_id = ?
             GROUP BY e.nombre, s.estado
             ORDER BY e.nombre, s.estado
         `;
@@ -275,14 +277,14 @@ class UbicacionModel {
                 l.estado,
                 SUM(l.cantidad) as cantidad
             FROM lotes l
-            INNER JOIN elementos e ON l.elemento_id = e.id
-            WHERE l.ubicacion_id = ?
+            INNER JOIN elementos e ON l.elemento_id = e.id AND e.tenant_id = l.tenant_id
+            WHERE l.ubicacion_id = ? AND l.tenant_id = ?
             GROUP BY e.nombre, l.estado
             ORDER BY e.nombre, l.estado
         `;
 
-        const [series] = await pool.query(querySeries, [id]);
-        const [lotes] = await pool.query(queryLotes, [id]);
+        const [series] = await pool.query(querySeries, [id, tenantId]);
+        const [lotes] = await pool.query(queryLotes, [id, tenantId]);
 
         return { series, lotes };
     }
@@ -290,7 +292,7 @@ class UbicacionModel {
     // ============================================
     // CREAR NUEVA UBICACIÓN
     // ============================================
-    static async crear(datos) {
+    static async crear(tenantId, datos) {
         const {
             nombre, tipo, direccion, ciudad_id, responsable,
             telefono, email, capacidad_estimada, observaciones,
@@ -298,17 +300,18 @@ class UbicacionModel {
         } = datos;
 
         if (es_principal) {
-            await pool.query('UPDATE ubicaciones SET es_principal = FALSE');
+            await pool.query('UPDATE ubicaciones SET es_principal = FALSE WHERE tenant_id = ?', [tenantId]);
         }
 
         const query = `
             INSERT INTO ubicaciones
-            (nombre, tipo, direccion, ciudad_id, responsable, telefono,
+            (tenant_id, nombre, tipo, direccion, ciudad_id, responsable, telefono,
              email, capacidad_estimada, observaciones, activo, es_principal)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `;
 
         const [result] = await pool.query(query, [
+            tenantId,
             nombre,
             tipo || 'bodega',
             direccion || null,
@@ -328,7 +331,7 @@ class UbicacionModel {
     // ============================================
     // ACTUALIZAR UBICACIÓN
     // ============================================
-    static async actualizar(id, datos) {
+    static async actualizar(tenantId, id, datos) {
         const {
             nombre, tipo, direccion, ciudad_id, responsable,
             telefono, email, capacidad_estimada, observaciones,
@@ -336,7 +339,10 @@ class UbicacionModel {
         } = datos;
 
         if (es_principal) {
-            await pool.query('UPDATE ubicaciones SET es_principal = FALSE WHERE id != ?', [id]);
+            await pool.query(
+                'UPDATE ubicaciones SET es_principal = FALSE WHERE id != ? AND tenant_id = ?',
+                [id, tenantId]
+            );
         }
 
         const query = `
@@ -345,7 +351,7 @@ class UbicacionModel {
                 responsable = ?, telefono = ?, email = ?,
                 capacidad_estimada = ?, observaciones = ?,
                 activo = ?, es_principal = ?
-            WHERE id = ?
+            WHERE id = ? AND tenant_id = ?
         `;
 
         const [result] = await pool.query(query, [
@@ -353,7 +359,7 @@ class UbicacionModel {
             ciudad_id || null, responsable || null, telefono || null,
             email || null, capacidad_estimada || null, observaciones || null,
             activo !== undefined ? activo : true,
-            es_principal !== undefined ? es_principal : false, id
+            es_principal !== undefined ? es_principal : false, id, tenantId
         ]);
 
         return result.affectedRows;
@@ -362,12 +368,15 @@ class UbicacionModel {
     // ============================================
     // MARCAR COMO PRINCIPAL
     // ============================================
-    static async marcarComoPrincipal(id) {
-        await pool.query('UPDATE ubicaciones SET es_principal = FALSE WHERE id != ?', [id]);
+    static async marcarComoPrincipal(tenantId, id) {
+        await pool.query(
+            'UPDATE ubicaciones SET es_principal = FALSE WHERE id != ? AND tenant_id = ?',
+            [id, tenantId]
+        );
 
         const [result] = await pool.query(
-            'UPDATE ubicaciones SET es_principal = TRUE WHERE id = ?',
-            [id]
+            'UPDATE ubicaciones SET es_principal = TRUE WHERE id = ? AND tenant_id = ?',
+            [id, tenantId]
         );
 
         return result.affectedRows;
@@ -376,15 +385,15 @@ class UbicacionModel {
     // ============================================
     // DESACTIVAR UBICACIÓN (Soft Delete)
     // ============================================
-    static async desactivar(id) {
-        const ubicacion = await this.obtenerPorId(id);
+    static async desactivar(tenantId, id) {
+        const ubicacion = await this.obtenerPorId(tenantId, id);
         if (ubicacion && ubicacion.es_principal) {
             throw new AppError('No se puede desactivar la ubicación principal. Marca otra como principal primero.', 400);
         }
 
         const [result] = await pool.query(
-            'UPDATE ubicaciones SET activo = FALSE WHERE id = ?',
-            [id]
+            'UPDATE ubicaciones SET activo = FALSE WHERE id = ? AND tenant_id = ?',
+            [id, tenantId]
         );
         return result.affectedRows;
     }
@@ -392,10 +401,10 @@ class UbicacionModel {
     // ============================================
     // ACTIVAR UBICACIÓN
     // ============================================
-    static async activar(id) {
+    static async activar(tenantId, id) {
         const [result] = await pool.query(
-            'UPDATE ubicaciones SET activo = TRUE WHERE id = ?',
-            [id]
+            'UPDATE ubicaciones SET activo = TRUE WHERE id = ? AND tenant_id = ?',
+            [id, tenantId]
         );
         return result.affectedRows;
     }
@@ -403,25 +412,25 @@ class UbicacionModel {
     // ============================================
     // ELIMINAR UBICACIÓN (Hard Delete)
     // ============================================
-    static async eliminar(id) {
-        const ubicacion = await this.obtenerPorId(id);
+    static async eliminar(tenantId, id) {
+        const ubicacion = await this.obtenerPorId(tenantId, id);
         if (ubicacion && ubicacion.es_principal) {
             throw new AppError('No se puede eliminar la ubicación principal. Marca otra como principal primero.', 400);
         }
 
-        const querySeries = 'SELECT COUNT(*) as total FROM series WHERE ubicacion_id = ?';
-        const queryLotes = 'SELECT COUNT(*) as total FROM lotes WHERE ubicacion_id = ?';
+        const querySeries = 'SELECT COUNT(*) as total FROM series WHERE ubicacion_id = ? AND tenant_id = ?';
+        const queryLotes = 'SELECT COUNT(*) as total FROM lotes WHERE ubicacion_id = ? AND tenant_id = ?';
 
-        const [series] = await pool.query(querySeries, [id]);
-        const [lotes] = await pool.query(queryLotes, [id]);
+        const [series] = await pool.query(querySeries, [id, tenantId]);
+        const [lotes] = await pool.query(queryLotes, [id, tenantId]);
 
         if (series[0].total > 0 || lotes[0].total > 0) {
             throw new AppError('No se puede eliminar una ubicación con inventario asociado', 400);
         }
 
         const [result] = await pool.query(
-            'DELETE FROM ubicaciones WHERE id = ?',
-            [id]
+            'DELETE FROM ubicaciones WHERE id = ? AND tenant_id = ?',
+            [id, tenantId]
         );
 
         return result.affectedRows;
@@ -430,9 +439,9 @@ class UbicacionModel {
     // ============================================
     // VERIFICAR SI NOMBRE EXISTE
     // ============================================
-    static async nombreExiste(nombre, excluirId = null) {
-        let query = 'SELECT COUNT(*) as total FROM ubicaciones WHERE nombre = ?';
-        const params = [nombre];
+    static async nombreExiste(tenantId, nombre, excluirId = null) {
+        let query = 'SELECT COUNT(*) as total FROM ubicaciones WHERE nombre = ? AND tenant_id = ?';
+        const params = [nombre, tenantId];
 
         if (excluirId) {
             query += ' AND id != ?';

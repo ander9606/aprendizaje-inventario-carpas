@@ -19,8 +19,8 @@ function validateBody(body, existing) {
     return { nombre, abreviatura, tipo };
 }
 
-async function checkDuplicate(data, excludeId) {
-    const existente = await UnidadModel.obtenerPorNombre(data.nombre);
+async function checkDuplicate(tenantId, data, excludeId) {
+    const existente = await UnidadModel.obtenerPorNombre(tenantId, data.nombre);
     if (existente && (!excludeId || existente.id != excludeId)) {
         throw new AppError('Ya existe una unidad con ese nombre', 400);
     }
@@ -43,9 +43,10 @@ exports.eliminar = crud.eliminar;
 // Custom: obtenerPorTipo
 exports.obtenerPorTipo = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { tipo } = req.params;
         validateTipoUnidad(tipo, true);
-        const unidades = await UnidadModel.obtenerPorTipo(tipo);
+        const unidades = await UnidadModel.obtenerPorTipo(tenantId, tipo);
         res.json({ success: true, tipo, data: unidades, total: unidades.length });
     } catch (error) {
         logger.error('unidadController.obtenerPorTipo', error);
@@ -56,7 +57,8 @@ exports.obtenerPorTipo = async (req, res, next) => {
 // Custom: obtenerMasUsadas
 exports.obtenerMasUsadas = async (req, res, next) => {
     try {
-        const unidades = await UnidadModel.obtenerMasUsadas();
+        const tenantId = req.tenant.id;
+        const unidades = await UnidadModel.obtenerMasUsadas(tenantId);
         res.json({ success: true, data: unidades, total: unidades.length });
     } catch (error) {
         logger.error('unidadController.obtenerMasUsadas', error);

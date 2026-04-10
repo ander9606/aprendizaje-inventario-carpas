@@ -17,38 +17,38 @@ const base = new BaseModel({
 
 class MaterialModel {
 
-    static obtenerTodos() {
-        return base.obtenerTodos();
+    static obtenerTodos(tenantId) {
+        return base.obtenerTodos(tenantId);
     }
 
-    static obtenerConPaginacion(params) {
-        return base.obtenerConPaginacion(params);
+    static obtenerConPaginacion(tenantId, params) {
+        return base.obtenerConPaginacion(tenantId, params);
     }
 
-    static contarTodos(search) {
-        return base.contarTodos(search);
+    static contarTodos(tenantId, search) {
+        return base.contarTodos(tenantId, search);
     }
 
-    static obtenerPorId(id) {
-        return base.obtenerPorId(id);
+    static obtenerPorId(tenantId, id) {
+        return base.obtenerPorId(tenantId, id);
     }
 
-    static obtenerPorNombre(nombre) {
-        return base.obtenerPorNombre(nombre);
+    static obtenerPorNombre(tenantId, nombre) {
+        return base.obtenerPorNombre(tenantId, nombre);
     }
 
-    static crear(data) {
+    static crear(tenantId, data) {
         const { nombre, descripcion = null } = data;
-        return base.crear({ nombre, descripcion });
+        return base.crear(tenantId, { nombre, descripcion });
     }
 
-    static actualizar(id, data) {
+    static actualizar(tenantId, id, data) {
         const { nombre, descripcion = null } = data;
-        return base.actualizar(id, { nombre, descripcion });
+        return base.actualizar(tenantId, id, { nombre, descripcion });
     }
 
-    static eliminar(id) {
-        return base.eliminar(id);
+    static eliminar(tenantId, id) {
+        return base.eliminar(tenantId, id);
     }
 }
 

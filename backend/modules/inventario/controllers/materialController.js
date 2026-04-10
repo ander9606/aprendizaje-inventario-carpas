@@ -18,8 +18,8 @@ function validateBody(body, existing) {
     return { nombre, descripcion };
 }
 
-async function checkDuplicate(data, excludeId) {
-    const existente = await MaterialModel.obtenerPorNombre(data.nombre);
+async function checkDuplicate(tenantId, data, excludeId) {
+    const existente = await MaterialModel.obtenerPorNombre(tenantId, data.nombre);
     if (existente && (!excludeId || existente.id != excludeId)) {
         throw new AppError('Ya existe un material con ese nombre', 400);
     }

@@ -10,9 +10,9 @@ class CategoriaModel {
   // ============================================
   // OBTENER TODAS LAS CATEGORÍAS
   // ============================================
-  static async obtenerTodas() {
+  static async obtenerTodas(tenantId) {
     const query = `
-      SELECT 
+      SELECT
         c.id,
         c.nombre,
         c.emoji,
@@ -21,50 +21,51 @@ class CategoriaModel {
         padre.nombre AS padre_nombre,
         padre.emoji AS padre_emoji,
         (
-          SELECT COUNT(*) 
-          FROM categorias 
-          WHERE padre_id = c.id
+          SELECT COUNT(*)
+          FROM categorias
+          WHERE padre_id = c.id AND tenant_id = ?
         ) AS total_subcategorias
       FROM categorias c
-      LEFT JOIN categorias padre ON c.padre_id = padre.id
-      ORDER BY 
+      LEFT JOIN categorias padre ON c.padre_id = padre.id AND padre.tenant_id = ?
+      WHERE c.tenant_id = ?
+      ORDER BY
         c.padre_id IS NULL DESC,
         c.padre_id,
         c.nombre
     `;
-    const [rows] = await pool.query(query);
+    const [rows] = await pool.query(query, [tenantId, tenantId, tenantId]);
     return rows;
   }
 
   // ============================================
   // OBTENER SOLO CATEGORÍAS PADRE
   // ============================================
-  static async obtenerPadres() {
+  static async obtenerPadres(tenantId) {
     const query = `
-      SELECT 
+      SELECT
         c.id,
         c.nombre,
         c.emoji,
         c.created_at,
         (
-          SELECT COUNT(*) 
-          FROM categorias 
-          WHERE padre_id = c.id
+          SELECT COUNT(*)
+          FROM categorias
+          WHERE padre_id = c.id AND tenant_id = ?
         ) AS total_subcategorias
       FROM categorias c
-      WHERE c.padre_id IS NULL
+      WHERE c.padre_id IS NULL AND c.tenant_id = ?
       ORDER BY c.nombre
     `;
-    const [rows] = await pool.query(query);
+    const [rows] = await pool.query(query, [tenantId, tenantId]);
     return rows;
   }
 
   // ============================================
   // OBTENER CATEGORÍA POR ID
   // ============================================
-  static async obtenerPorId(id) {
+  static async obtenerPorId(tenantId, id) {
     const query = `
-      SELECT 
+      SELECT
         c.id,
         c.nombre,
         c.emoji,
@@ -73,51 +74,51 @@ class CategoriaModel {
         padre.nombre AS padre_nombre,
         padre.emoji AS padre_emoji,
         (
-          SELECT COUNT(*) 
-          FROM categorias 
-          WHERE padre_id = c.id
+          SELECT COUNT(*)
+          FROM categorias
+          WHERE padre_id = c.id AND tenant_id = ?
         ) AS total_subcategorias
       FROM categorias c
-      LEFT JOIN categorias padre ON c.padre_id = padre.id
-      WHERE c.id = ?
+      LEFT JOIN categorias padre ON c.padre_id = padre.id AND padre.tenant_id = ?
+      WHERE c.id = ? AND c.tenant_id = ?
     `;
-    const [rows] = await pool.query(query, [id]);
+    const [rows] = await pool.query(query, [tenantId, tenantId, id, tenantId]);
     return rows[0];
   }
 
   // ============================================
   // OBTENER SUBCATEGORÍAS DE UNA CATEGORÍA
   // ============================================
-  static async obtenerHijas(padreId) {
+  static async obtenerHijas(tenantId, padreId) {
     const query = `
-      SELECT 
+      SELECT
         id,
         nombre,
         emoji,
         padre_id,
         created_at,
         (
-          SELECT COUNT(*) 
-          FROM elementos 
-          WHERE categoria_id = categorias.id
+          SELECT COUNT(*)
+          FROM elementos
+          WHERE categoria_id = categorias.id AND tenant_id = ?
         ) AS total_elementos
       FROM categorias
-      WHERE padre_id = ?
+      WHERE padre_id = ? AND tenant_id = ?
       ORDER BY nombre
     `;
-    const [rows] = await pool.query(query, [padreId]);
+    const [rows] = await pool.query(query, [tenantId, padreId, tenantId]);
     return rows;
   }
 
   // ============================================
   // CREAR NUEVA CATEGORÍA
   // ============================================
-  static async crear({ nombre, emoji, padre_id }) {
+  static async crear(tenantId, { nombre, emoji, padre_id }) {
     const query = `
-      INSERT INTO categorias (nombre, emoji, padre_id)
-      VALUES (?, ?, ?)
+      INSERT INTO categorias (nombre, emoji, padre_id, tenant_id)
+      VALUES (?, ?, ?, ?)
     `;
-    const values = [nombre, emoji || null, padre_id || null];
+    const values = [nombre, emoji || null, padre_id || null, tenantId];
     const [result] = await pool.query(query, values);
     return result;
   }
@@ -125,13 +126,13 @@ class CategoriaModel {
   // ============================================
   // ACTUALIZAR CATEGORÍA
   // ============================================
-  static async actualizar(id, { nombre, emoji, padre_id }) {
+  static async actualizar(tenantId, id, { nombre, emoji, padre_id }) {
     const query = `
-      UPDATE categorias 
+      UPDATE categorias
       SET nombre = ?, emoji = ?, padre_id = ?
-      WHERE id = ?
+      WHERE id = ? AND tenant_id = ?
     `;
-    const values = [nombre, emoji || null, padre_id || null, id];
+    const values = [nombre, emoji || null, padre_id || null, id, tenantId];
     const [result] = await pool.query(query, values);
     return result;
   }
@@ -139,18 +140,18 @@ class CategoriaModel {
   // ============================================
   // ELIMINAR CATEGORÍA
   // ============================================
-  static async eliminar(id) {
-    const [result] = await pool.query('DELETE FROM categorias WHERE id = ?', [id]);
+  static async eliminar(tenantId, id) {
+    const [result] = await pool.query('DELETE FROM categorias WHERE id = ? AND tenant_id = ?', [id, tenantId]);
     return result;
   }
 
   // ============================================
   // VERIFICAR SI TIENE SUBCATEGORÍAS
   // ============================================
-  static async tieneSubcategorias(id) {
+  static async tieneSubcategorias(tenantId, id) {
     const [rows] = await pool.query(
-      'SELECT COUNT(*) AS total FROM categorias WHERE padre_id = ?',
-      [id]
+      'SELECT COUNT(*) AS total FROM categorias WHERE padre_id = ? AND tenant_id = ?',
+      [id, tenantId]
     );
     return rows[0].total > 0;
   }
@@ -158,24 +159,24 @@ class CategoriaModel {
   // ============================================
   // VERIFICAR SI TIENE ELEMENTOS
   // ============================================
-  static async tieneElementos(id) {
+  static async tieneElementos(tenantId, id) {
     const [rows] = await pool.query(
-      'SELECT COUNT(*) AS total FROM elementos WHERE categoria_id = ?',
-      [id]
+      'SELECT COUNT(*) AS total FROM elementos WHERE categoria_id = ? AND tenant_id = ?',
+      [id, tenantId]
     );
     const total = rows[0].total;
 
     // Si es una categoría padre, también verificar subcategorías
     const [subcategoriasRows] = await pool.query(
-      'SELECT id FROM categorias WHERE padre_id = ?',
-      [id]
+      'SELECT id FROM categorias WHERE padre_id = ? AND tenant_id = ?',
+      [id, tenantId]
     );
 
     if (subcategoriasRows.length > 0) {
       for (const subcat of subcategoriasRows) {
         const [elementosEnSubcat] = await pool.query(
-          'SELECT COUNT(*) AS total FROM elementos WHERE categoria_id = ?',
-          [subcat.id]
+          'SELECT COUNT(*) AS total FROM elementos WHERE categoria_id = ? AND tenant_id = ?',
+          [subcat.id, tenantId]
         );
         if (elementosEnSubcat[0].total > 0) {
           return true;
@@ -189,18 +190,7 @@ class CategoriaModel {
   // ============================================
   // OBTENER CATEGORÍAS CON PAGINACIÓN
   // ============================================
-  /**
-   * Obtiene categorías con paginación y ordenamiento
-   * @param {Object} options - Opciones de paginación
-   * @param {number} options.limit - Elementos por página
-   * @param {number} options.offset - Offset
-   * @param {string} options.sortBy - Campo de ordenamiento (default: 'nombre')
-   * @param {string} options.order - Orden ASC/DESC (default: 'ASC')
-   * @param {string} options.search - Término de búsqueda (opcional)
-   * @returns {Array} Categorías paginadas
-   */
-  static async obtenerConPaginacion({ limit = 20, offset = 0, sortBy = 'nombre', order = 'ASC', search = null }) {
-    // Construir query base
+  static async obtenerConPaginacion(tenantId, { limit = 20, offset = 0, sortBy = 'nombre', order = 'ASC', search = null }) {
     let query = `
       SELECT
         c.id,
@@ -213,17 +203,18 @@ class CategoriaModel {
         (
           SELECT COUNT(*)
           FROM categorias
-          WHERE padre_id = c.id
+          WHERE padre_id = c.id AND tenant_id = ?
         ) AS total_subcategorias
       FROM categorias c
-      LEFT JOIN categorias padre ON c.padre_id = padre.id
+      LEFT JOIN categorias padre ON c.padre_id = padre.id AND padre.tenant_id = ?
+      WHERE c.tenant_id = ?
     `;
 
-    const params = [];
+    const params = [tenantId, tenantId, tenantId];
 
     // Agregar búsqueda si existe
     if (search) {
-      query += ' WHERE c.nombre LIKE ?';
+      query += ' AND c.nombre LIKE ?';
       params.push(`%${search}%`);
     }
 
@@ -242,17 +233,15 @@ class CategoriaModel {
     return rows;
   }
 
-  /**
-   * Obtiene el total de categorías (para paginación)
-   * @param {string} search - Término de búsqueda (opcional)
-   * @returns {number} Total de categorías
-   */
-  static async contarTodas(search = null) {
-    let query = 'SELECT COUNT(*) AS total FROM categorias';
-    const params = [];
+  // ============================================
+  // CONTAR TOTAL DE CATEGORÍAS
+  // ============================================
+  static async contarTodas(tenantId, search = null) {
+    let query = 'SELECT COUNT(*) AS total FROM categorias WHERE tenant_id = ?';
+    const params = [tenantId];
 
     if (search) {
-      query += ' WHERE nombre LIKE ?';
+      query += ' AND nombre LIKE ?';
       params.push(`%${search}%`);
     }
 
@@ -260,12 +249,10 @@ class CategoriaModel {
     return rows[0].total;
   }
 
-  /**
-   * Obtiene categorías padre con paginación
-   * @param {Object} options - Opciones de paginación
-   * @returns {Array} Categorías padre paginadas
-   */
-  static async obtenerPadresConPaginacion({ limit = 20, offset = 0, sortBy = 'nombre', order = 'ASC', search = null }) {
+  // ============================================
+  // OBTENER CATEGORÍAS PADRE CON PAGINACIÓN
+  // ============================================
+  static async obtenerPadresConPaginacion(tenantId, { limit = 20, offset = 0, sortBy = 'nombre', order = 'ASC', search = null }) {
     let query = `
       SELECT
         c.id,
@@ -275,13 +262,13 @@ class CategoriaModel {
         (
           SELECT COUNT(*)
           FROM categorias
-          WHERE padre_id = c.id
+          WHERE padre_id = c.id AND tenant_id = ?
         ) AS total_subcategorias
       FROM categorias c
-      WHERE c.padre_id IS NULL
+      WHERE c.padre_id IS NULL AND c.tenant_id = ?
     `;
 
-    const params = [];
+    const params = [tenantId, tenantId];
 
     // Agregar búsqueda
     if (search) {
@@ -302,14 +289,12 @@ class CategoriaModel {
     return rows;
   }
 
-  /**
-   * Cuenta categorías padre (para paginación)
-   * @param {string} search - Término de búsqueda (opcional)
-   * @returns {number} Total de categorías padre
-   */
-  static async contarPadres(search = null) {
-    let query = 'SELECT COUNT(*) AS total FROM categorias WHERE padre_id IS NULL';
-    const params = [];
+  // ============================================
+  // CONTAR CATEGORÍAS PADRE
+  // ============================================
+  static async contarPadres(tenantId, search = null) {
+    let query = 'SELECT COUNT(*) AS total FROM categorias WHERE padre_id IS NULL AND tenant_id = ?';
+    const params = [tenantId];
 
     if (search) {
       query += ' AND nombre LIKE ?';

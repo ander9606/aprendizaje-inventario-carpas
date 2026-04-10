@@ -21,7 +21,7 @@ jest.mock('../../../../utils/logger', () => ({
 const ClienteModel = require('../../models/ClienteModel');
 const controller = require('../clienteController');
 
-const mockReq = (o = {}) => ({ body: {}, params: {}, query: {}, ...o });
+const mockReq = (o = {}) => ({ body: {}, params: {}, query: {}, tenant: { id: 1, slug: 'test', nombre: 'Test Tenant' }, ...o });
 const mockRes = () => { const r = {}; r.status = jest.fn().mockReturnValue(r); r.json = jest.fn().mockReturnValue(r); return r; };
 const mockNext = () => jest.fn();
 
@@ -160,7 +160,7 @@ describe('crear', () => {
         await controller.crear(mockReq({
             body: { numero_documento: '123', nombre: 'Juan' }
         }), res, mockNext());
-        expect(ClienteModel.obtenerPorDocumento).toHaveBeenCalledWith('CC', '123');
+        expect(ClienteModel.obtenerPorDocumento).toHaveBeenCalledWith(1, 'CC', '123');
     });
 });
 
@@ -315,7 +315,7 @@ describe('buscar', () => {
             data: [{ id: 1, nombre: 'Juan' }],
             total: 1
         });
-        expect(ClienteModel.buscar).toHaveBeenCalledWith('Juan');
+        expect(ClienteModel.buscar).toHaveBeenCalledWith(1, 'Juan');
     });
 
     test('error si término menor a 2 caracteres', async () => {
@@ -335,6 +335,6 @@ describe('buscar', () => {
         ClienteModel.buscar.mockResolvedValue([]);
         const res = mockRes();
         await controller.buscar(mockReq({ query: { q: '  Juan  ' } }), res, mockNext());
-        expect(ClienteModel.buscar).toHaveBeenCalledWith('Juan');
+        expect(ClienteModel.buscar).toHaveBeenCalledWith(1, 'Juan');
     });
 });

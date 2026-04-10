@@ -17,6 +17,7 @@ const { getPaginationParams, getPaginatedResponse, shouldPaginate, getSortParams
 
 exports.obtenerTodas = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const paginar = shouldPaginate(req.query) && (req.query.page || req.query.limit);
 
         if (paginar) {
@@ -29,14 +30,14 @@ exports.obtenerTodas = async (req, res, next) => {
             });
 
             const [ubicaciones, total] = await Promise.all([
-                UbicacionModel.obtenerConPaginacion({ limit, offset, sortBy, order, search }),
-                UbicacionModel.contarTodas(search)
+                UbicacionModel.obtenerConPaginacion(tenantId, { limit, offset, sortBy, order, search }),
+                UbicacionModel.contarTodas(tenantId, search)
             ]);
 
             return res.json(getPaginatedResponse(ubicaciones, page, limit, total));
         }
 
-        const ubicaciones = await UbicacionModel.obtenerTodas();
+        const ubicaciones = await UbicacionModel.obtenerTodas(tenantId);
 
         res.json({
             success: true,
@@ -54,7 +55,8 @@ exports.obtenerTodas = async (req, res, next) => {
 
 exports.obtenerActivas = async (req, res, next) => {
     try {
-        const ubicaciones = await UbicacionModel.obtenerActivas();
+        const tenantId = req.tenant.id;
+        const ubicaciones = await UbicacionModel.obtenerActivas(tenantId);
 
         res.json({
             success: true,
@@ -72,7 +74,8 @@ exports.obtenerActivas = async (req, res, next) => {
 
 exports.obtenerPrincipal = async (req, res, next) => {
     try {
-        const ubicacion = await UbicacionModel.obtenerPrincipal();
+        const tenantId = req.tenant.id;
+        const ubicacion = await UbicacionModel.obtenerPrincipal(tenantId);
 
         if (!ubicacion) {
             throw new AppError('No hay ubicación principal configurada', 404);
@@ -94,10 +97,11 @@ exports.obtenerPrincipal = async (req, res, next) => {
 
 exports.obtenerPorId = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { id } = req.params;
         validateId(id, 'ID de ubicación');
 
-        const ubicacion = await UbicacionModel.obtenerPorId(id);
+        const ubicacion = await UbicacionModel.obtenerPorId(tenantId, id);
 
         if (!ubicacion) {
             throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO(ENTIDADES.UBICACION), 404);
@@ -116,10 +120,11 @@ exports.obtenerPorId = async (req, res, next) => {
 
 exports.obtenerPorCiudad = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { ciudadId } = req.params;
         validateId(ciudadId, 'ID de ciudad');
 
-        const ubicaciones = await UbicacionModel.obtenerPorCiudadId(ciudadId);
+        const ubicaciones = await UbicacionModel.obtenerPorCiudadId(tenantId, ciudadId);
 
         res.json({
             success: true,
@@ -138,10 +143,11 @@ exports.obtenerPorCiudad = async (req, res, next) => {
 
 exports.obtenerPorTipo = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { tipo } = req.params;
         validateTipoUbicacion(tipo, true);
 
-        const ubicaciones = await UbicacionModel.obtenerPorTipo(tipo);
+        const ubicaciones = await UbicacionModel.obtenerPorTipo(tenantId, tipo);
 
         res.json({
             success: true,
@@ -159,7 +165,8 @@ exports.obtenerPorTipo = async (req, res, next) => {
 
 exports.obtenerConInventario = async (req, res, next) => {
     try {
-        const ubicaciones = await UbicacionModel.obtenerConInventario();
+        const tenantId = req.tenant.id;
+        const ubicaciones = await UbicacionModel.obtenerConInventario(tenantId);
 
         res.json({
             success: true,
@@ -177,15 +184,16 @@ exports.obtenerConInventario = async (req, res, next) => {
 
 exports.obtenerDetalleInventario = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { id } = req.params;
         validateId(id, 'ID de ubicación');
 
-        const ubicacion = await UbicacionModel.obtenerPorId(id);
+        const ubicacion = await UbicacionModel.obtenerPorId(tenantId, id);
         if (!ubicacion) {
             throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO(ENTIDADES.UBICACION), 404);
         }
 
-        const detalle = await UbicacionModel.obtenerDetalleInventario(id);
+        const detalle = await UbicacionModel.obtenerDetalleInventario(tenantId, id);
 
         res.json({
             success: true,
@@ -210,6 +218,7 @@ exports.obtenerDetalleInventario = async (req, res, next) => {
 
 exports.crear = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const body = req.body;
         logger.info('ubicacionController.crear', 'Creando ubicación', { nombre: body.nombre });
 
@@ -220,13 +229,13 @@ exports.crear = async (req, res, next) => {
         }
 
         // Verificar duplicados
-        const nombreExiste = await UbicacionModel.nombreExiste(body.nombre);
+        const nombreExiste = await UbicacionModel.nombreExiste(tenantId, body.nombre);
         if (nombreExiste) {
             throw new AppError('Ya existe una ubicación con ese nombre', 400);
         }
 
-        const nuevoId = await UbicacionModel.crear(body);
-        const ubicacion = await UbicacionModel.obtenerPorId(nuevoId);
+        const nuevoId = await UbicacionModel.crear(tenantId, body);
+        const ubicacion = await UbicacionModel.obtenerPorId(tenantId, nuevoId);
 
         logger.info('ubicacionController.crear', 'Ubicación creada exitosamente', { id: nuevoId });
 
@@ -247,6 +256,7 @@ exports.crear = async (req, res, next) => {
 
 exports.actualizar = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { id } = req.params;
         const body = req.body;
 
@@ -254,7 +264,7 @@ exports.actualizar = async (req, res, next) => {
 
         validateId(id, 'ID de ubicación');
 
-        const ubicacionExiste = await UbicacionModel.obtenerPorId(id);
+        const ubicacionExiste = await UbicacionModel.obtenerPorId(tenantId, id);
         if (!ubicacionExiste) {
             throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO(ENTIDADES.UBICACION), 404);
         }
@@ -262,7 +272,7 @@ exports.actualizar = async (req, res, next) => {
         if (body.nombre && body.nombre.trim() !== '') {
             validateNombre(body.nombre, ENTIDADES.UBICACION);
 
-            const nombreExiste = await UbicacionModel.nombreExiste(body.nombre, id);
+            const nombreExiste = await UbicacionModel.nombreExiste(tenantId, body.nombre, id);
             if (nombreExiste) {
                 throw new AppError('Ya existe otra ubicación con ese nombre', 400);
             }
@@ -272,8 +282,8 @@ exports.actualizar = async (req, res, next) => {
             validateTipoUbicacion(body.tipo, false);
         }
 
-        await UbicacionModel.actualizar(id, body);
-        const ubicacionActualizada = await UbicacionModel.obtenerPorId(id);
+        await UbicacionModel.actualizar(tenantId, id, body);
+        const ubicacionActualizada = await UbicacionModel.obtenerPorId(tenantId, id);
 
         logger.info('ubicacionController.actualizar', 'Ubicación actualizada exitosamente', { id });
 
@@ -294,10 +304,11 @@ exports.actualizar = async (req, res, next) => {
 
 exports.marcarComoPrincipal = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { id } = req.params;
         validateId(id, 'ID de ubicación');
 
-        const ubicacion = await UbicacionModel.obtenerPorId(id);
+        const ubicacion = await UbicacionModel.obtenerPorId(tenantId, id);
         if (!ubicacion) {
             throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO(ENTIDADES.UBICACION), 404);
         }
@@ -306,8 +317,8 @@ exports.marcarComoPrincipal = async (req, res, next) => {
             throw new AppError('No se puede marcar como principal una ubicación inactiva', 400);
         }
 
-        await UbicacionModel.marcarComoPrincipal(id);
-        const ubicacionActualizada = await UbicacionModel.obtenerPorId(id);
+        await UbicacionModel.marcarComoPrincipal(tenantId, id);
+        const ubicacionActualizada = await UbicacionModel.obtenerPorId(tenantId, id);
 
         res.json({
             success: true,
@@ -326,15 +337,16 @@ exports.marcarComoPrincipal = async (req, res, next) => {
 
 exports.desactivar = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { id } = req.params;
         validateId(id, 'ID de ubicación');
 
-        const ubicacion = await UbicacionModel.obtenerPorId(id);
+        const ubicacion = await UbicacionModel.obtenerPorId(tenantId, id);
         if (!ubicacion) {
             throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO(ENTIDADES.UBICACION), 404);
         }
 
-        await UbicacionModel.desactivar(id);
+        await UbicacionModel.desactivar(tenantId, id);
 
         res.json({
             success: true,
@@ -352,15 +364,16 @@ exports.desactivar = async (req, res, next) => {
 
 exports.activar = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { id } = req.params;
         validateId(id, 'ID de ubicación');
 
-        const ubicacion = await UbicacionModel.obtenerPorId(id);
+        const ubicacion = await UbicacionModel.obtenerPorId(tenantId, id);
         if (!ubicacion) {
             throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO(ENTIDADES.UBICACION), 404);
         }
 
-        await UbicacionModel.activar(id);
+        await UbicacionModel.activar(tenantId, id);
 
         res.json({
             success: true,
@@ -378,15 +391,16 @@ exports.activar = async (req, res, next) => {
 
 exports.eliminar = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { id } = req.params;
         validateId(id, 'ID de ubicación');
 
-        const ubicacion = await UbicacionModel.obtenerPorId(id);
+        const ubicacion = await UbicacionModel.obtenerPorId(tenantId, id);
         if (!ubicacion) {
             throw new AppError(MENSAJES_ERROR.NO_ENCONTRADO(ENTIDADES.UBICACION), 404);
         }
 
-        await UbicacionModel.eliminar(id);
+        await UbicacionModel.eliminar(tenantId, id);
 
         res.json({
             success: true,
