@@ -12,7 +12,8 @@ const logger = require('../../../utils/logger');
 // ============================================
 exports.obtenerTodas = async (req, res, next) => {
   try {
-    const tarifas = await TarifaTransporteModel.obtenerTodas();
+    const tenantId = req.tenant.id;
+    const tarifas = await TarifaTransporteModel.obtenerTodas(tenantId);
     res.json({
       success: true,
       data: tarifas,
@@ -28,7 +29,8 @@ exports.obtenerTodas = async (req, res, next) => {
 // ============================================
 exports.obtenerActivas = async (req, res, next) => {
   try {
-    const tarifas = await TarifaTransporteModel.obtenerActivas();
+    const tenantId = req.tenant.id;
+    const tarifas = await TarifaTransporteModel.obtenerActivas(tenantId);
     res.json({
       success: true,
       data: tarifas,
@@ -44,8 +46,9 @@ exports.obtenerActivas = async (req, res, next) => {
 // ============================================
 exports.obtenerPorId = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { id } = req.params;
-    const tarifa = await TarifaTransporteModel.obtenerPorId(id);
+    const tarifa = await TarifaTransporteModel.obtenerPorId(tenantId, id);
 
     if (!tarifa) {
       throw new AppError('Tarifa no encontrada', 404);
@@ -65,8 +68,9 @@ exports.obtenerPorId = async (req, res, next) => {
 // ============================================
 exports.obtenerPorCiudadId = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { ciudadId } = req.params;
-    const tarifas = await TarifaTransporteModel.obtenerPorCiudadId(ciudadId);
+    const tarifas = await TarifaTransporteModel.obtenerPorCiudadId(tenantId, ciudadId);
 
     res.json({
       success: true,
@@ -83,7 +87,8 @@ exports.obtenerPorCiudadId = async (req, res, next) => {
 // ============================================
 exports.obtenerCiudades = async (req, res, next) => {
   try {
-    const ciudades = await TarifaTransporteModel.obtenerCiudades();
+    const tenantId = req.tenant.id;
+    const ciudades = await TarifaTransporteModel.obtenerCiudades(tenantId);
     res.json({
       success: true,
       data: ciudades
@@ -98,7 +103,8 @@ exports.obtenerCiudades = async (req, res, next) => {
 // ============================================
 exports.obtenerTiposCamion = async (req, res, next) => {
   try {
-    const tipos = await TarifaTransporteModel.obtenerTiposCamion();
+    const tenantId = req.tenant.id;
+    const tipos = await TarifaTransporteModel.obtenerTiposCamion(tenantId);
     res.json({
       success: true,
       data: tipos
@@ -113,13 +119,14 @@ exports.obtenerTiposCamion = async (req, res, next) => {
 // ============================================
 exports.buscarTarifa = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { tipo_camion, ciudad_id } = req.query;
 
     if (!tipo_camion || !ciudad_id) {
       throw new AppError('Se requiere tipo_camion y ciudad_id', 400);
     }
 
-    const tarifa = await TarifaTransporteModel.buscarTarifa(tipo_camion, ciudad_id);
+    const tarifa = await TarifaTransporteModel.buscarTarifa(tenantId, tipo_camion, ciudad_id);
 
     if (!tarifa) {
       throw new AppError('No existe tarifa para esa combinación', 404);
@@ -139,6 +146,7 @@ exports.buscarTarifa = async (req, res, next) => {
 // ============================================
 exports.crear = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { tipo_camion, ciudad_id, precio } = req.body;
 
     if (!tipo_camion || !ciudad_id || !precio) {
@@ -146,12 +154,12 @@ exports.crear = async (req, res, next) => {
     }
 
     // Verificar que no exista
-    const existente = await TarifaTransporteModel.buscarTarifa(tipo_camion, ciudad_id);
+    const existente = await TarifaTransporteModel.buscarTarifa(tenantId, tipo_camion, ciudad_id);
     if (existente) {
       throw new AppError('Ya existe una tarifa para esa combinación', 400);
     }
 
-    const resultado = await TarifaTransporteModel.crear({ tipo_camion, ciudad_id, precio });
+    const resultado = await TarifaTransporteModel.crear(tenantId, { tipo_camion, ciudad_id, precio });
 
     logger.info('tarifaTransporteController.crear', 'Tarifa creada', {
       id: resultado.insertId,
@@ -160,7 +168,7 @@ exports.crear = async (req, res, next) => {
       precio
     });
 
-    const tarifaCreada = await TarifaTransporteModel.obtenerPorId(resultado.insertId);
+    const tarifaCreada = await TarifaTransporteModel.obtenerPorId(tenantId, resultado.insertId);
 
     res.status(201).json({
       success: true,
@@ -178,22 +186,23 @@ exports.crear = async (req, res, next) => {
 // ============================================
 exports.actualizar = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { id } = req.params;
     const { tipo_camion, ciudad_id, precio, activo } = req.body;
 
-    const tarifaExistente = await TarifaTransporteModel.obtenerPorId(id);
+    const tarifaExistente = await TarifaTransporteModel.obtenerPorId(tenantId, id);
     if (!tarifaExistente) {
       throw new AppError('Tarifa no encontrada', 404);
     }
 
-    await TarifaTransporteModel.actualizar(id, {
+    await TarifaTransporteModel.actualizar(tenantId, id, {
       tipo_camion: tipo_camion || tarifaExistente.tipo_camion,
       ciudad_id: ciudad_id || tarifaExistente.ciudad_id,
       precio: precio !== undefined ? precio : tarifaExistente.precio,
       activo
     });
 
-    const tarifaActualizada = await TarifaTransporteModel.obtenerPorId(id);
+    const tarifaActualizada = await TarifaTransporteModel.obtenerPorId(tenantId, id);
 
     res.json({
       success: true,
@@ -211,14 +220,15 @@ exports.actualizar = async (req, res, next) => {
 // ============================================
 exports.eliminar = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { id } = req.params;
 
-    const tarifa = await TarifaTransporteModel.obtenerPorId(id);
+    const tarifa = await TarifaTransporteModel.obtenerPorId(tenantId, id);
     if (!tarifa) {
       throw new AppError('Tarifa no encontrada', 404);
     }
 
-    await TarifaTransporteModel.eliminar(id);
+    await TarifaTransporteModel.eliminar(tenantId, id);
 
     res.json({
       success: true,
@@ -235,14 +245,15 @@ exports.eliminar = async (req, res, next) => {
 // ============================================
 exports.desactivar = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { id } = req.params;
 
-    const tarifa = await TarifaTransporteModel.obtenerPorId(id);
+    const tarifa = await TarifaTransporteModel.obtenerPorId(tenantId, id);
     if (!tarifa) {
       throw new AppError('Tarifa no encontrada', 404);
     }
 
-    await TarifaTransporteModel.desactivar(id);
+    await TarifaTransporteModel.desactivar(tenantId, id);
 
     res.json({
       success: true,

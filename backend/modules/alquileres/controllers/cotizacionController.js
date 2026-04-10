@@ -23,7 +23,7 @@ const ConfiguracionModel = require('../../configuracion/models/ConfiguracionMode
 // ============================================
 // HELPER: Enriquecer transporte con precios
 // ============================================
-const enriquecerTransporteConPrecios = async (transporte) => {
+const enriquecerTransporteConPrecios = async (tenantId, transporte) => {
   if (!transporte || transporte.length === 0) return [];
 
   const transporteConPrecios = await Promise.all(
@@ -34,7 +34,7 @@ const enriquecerTransporteConPrecios = async (transporte) => {
       }
 
       // Obtener precio de la tarifa
-      const tarifa = await TarifaTransporteModel.obtenerPorId(t.tarifa_id);
+      const tarifa = await TarifaTransporteModel.obtenerPorId(tenantId, t.tarifa_id);
       if (!tarifa) {
         throw new AppError(`Tarifa de transporte ${t.tarifa_id} no encontrada`, 404);
       }
@@ -54,7 +54,8 @@ const enriquecerTransporteConPrecios = async (transporte) => {
 // ============================================
 exports.obtenerTodas = async (req, res, next) => {
   try {
-    const cotizaciones = await CotizacionModel.obtenerTodas();
+    const tenantId = req.tenant.id;
+    const cotizaciones = await CotizacionModel.obtenerTodas(tenantId);
     res.json({
       success: true,
       data: cotizaciones,
@@ -70,6 +71,7 @@ exports.obtenerTodas = async (req, res, next) => {
 // ============================================
 exports.obtenerPorEstado = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { estado } = req.params;
     const estadosValidos = ['borrador', 'pendiente', 'aprobada', 'rechazada', 'vencida'];
 
@@ -77,7 +79,7 @@ exports.obtenerPorEstado = async (req, res, next) => {
       throw new AppError(`Estado inválido. Valores permitidos: ${estadosValidos.join(', ')}`, 400);
     }
 
-    const cotizaciones = await CotizacionModel.obtenerPorEstado(estado);
+    const cotizaciones = await CotizacionModel.obtenerPorEstado(tenantId, estado);
     res.json({
       success: true,
       data: cotizaciones,
@@ -93,8 +95,9 @@ exports.obtenerPorEstado = async (req, res, next) => {
 // ============================================
 exports.obtenerPorId = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { id } = req.params;
-    const cotizacion = await CotizacionModel.obtenerPorId(id);
+    const cotizacion = await CotizacionModel.obtenerPorId(tenantId, id);
 
     if (!cotizacion) {
       throw new AppError('Cotización no encontrada', 404);
@@ -114,8 +117,9 @@ exports.obtenerPorId = async (req, res, next) => {
 // ============================================
 exports.obtenerCompleta = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { id } = req.params;
-    const cotizacion = await CotizacionModel.obtenerCompleta(id);
+    const cotizacion = await CotizacionModel.obtenerCompleta(tenantId, id);
 
     if (!cotizacion) {
       throw new AppError('Cotización no encontrada', 404);
@@ -135,15 +139,16 @@ exports.obtenerCompleta = async (req, res, next) => {
 // ============================================
 exports.generarPDF = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { id } = req.params;
-    const cotizacion = await CotizacionModel.obtenerCompleta(id);
+    const cotizacion = await CotizacionModel.obtenerCompleta(tenantId, id);
 
     if (!cotizacion) {
       throw new AppError('Cotización no encontrada', 404);
     }
 
     // Obtener datos de empresa
-    const empresaConfig = await ConfiguracionModel.obtenerPorCategoria('empresa');
+    const empresaConfig = await ConfiguracionModel.obtenerPorCategoria(tenantId, 'empresa');
     const empresa = {};
     empresaConfig.forEach(c => {
       const key = c.clave.replace('empresa_', '');
@@ -178,6 +183,7 @@ exports.generarPDF = async (req, res, next) => {
 // ============================================
 exports.crear = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const {
       cliente_id,
       evento_id,
@@ -212,14 +218,14 @@ exports.crear = async (req, res, next) => {
     }
 
     // Verificar cliente
-    const cliente = await ClienteModel.obtenerPorId(cliente_id);
+    const cliente = await ClienteModel.obtenerPorId(tenantId, cliente_id);
     if (!cliente) {
       throw new AppError('Cliente no encontrado', 404);
     }
 
     // Si viene evento_id, verificar que existe, pertenece al cliente y acepta cotizaciones
     if (evento_id) {
-      const evento = await EventoModel.obtenerPorId(evento_id);
+      const evento = await EventoModel.obtenerPorId(tenantId, evento_id);
       if (!evento) {
         throw new AppError('Evento no encontrado', 404);
       }
@@ -228,7 +234,7 @@ exports.crear = async (req, res, next) => {
       }
 
       // Verificar si el evento permite agregar cotizaciones
-      const { permitido, motivo } = await EventoModel.puedeAgregarCotizaciones(evento_id);
+      const { permitido, motivo } = await EventoModel.puedeAgregarCotizaciones(tenantId, evento_id);
       if (!permitido) {
         throw new AppError(motivo, 400);
       }
@@ -242,7 +248,7 @@ exports.crear = async (req, res, next) => {
     });
 
     // Crear cotización (sin totales, se calcularán después)
-    const resultado = await CotizacionModel.crear({
+    const resultado = await CotizacionModel.crear(tenantId, {
       cliente_id,
       evento_id: evento_id || null,
       fecha_montaje,
@@ -264,7 +270,7 @@ exports.crear = async (req, res, next) => {
 
     // Agregar productos (ahora soporta recargos en cada producto)
     for (const producto of productos) {
-      const resultadoProducto = await CotizacionProductoModel.agregar({
+      const resultadoProducto = await CotizacionProductoModel.agregar(tenantId, {
         cotizacion_id: cotizacionId,
         compuesto_id: producto.compuesto_id,
         cantidad: producto.cantidad,
@@ -278,7 +284,7 @@ exports.crear = async (req, res, next) => {
       // Si el producto tiene recargos, agregarlos
       if (producto.recargos && producto.recargos.length > 0) {
         for (const recargo of producto.recargos) {
-          await CotizacionProductoRecargoModel.agregar({
+          await CotizacionProductoRecargoModel.agregar(tenantId, {
             cotizacion_producto_id: resultadoProducto.insertId,
             tipo: recargo.tipo,
             dias: recargo.dias,
@@ -293,8 +299,8 @@ exports.crear = async (req, res, next) => {
 
     // Agregar transporte si viene (enriquecer con precios)
     if (transporte && transporte.length > 0) {
-      const transporteConPrecios = await enriquecerTransporteConPrecios(transporte);
-      await CotizacionTransporteModel.agregarMultiples(cotizacionId, transporteConPrecios);
+      const transporteConPrecios = await enriquecerTransporteConPrecios(tenantId, transporte);
+      await CotizacionTransporteModel.agregarMultiples(tenantId, cotizacionId, transporteConPrecios);
     }
 
     // Agregar descuentos si vienen (necesitamos el subtotal para calcular montos)
@@ -305,19 +311,19 @@ exports.crear = async (req, res, next) => {
         return total + (precio * parseInt(p.cantidad || 1));
       }, 0);
       const subtotalTransporte = transporte
-        ? (await enriquecerTransporteConPrecios(transporte)).reduce((total, t) => {
+        ? (await enriquecerTransporteConPrecios(tenantId, transporte)).reduce((total, t) => {
             return total + (parseFloat(t.precio_unitario) * parseInt(t.cantidad || 1));
           }, 0)
         : 0;
       const baseCalculo = subtotalProductos + subtotalTransporte;
 
-      await CotizacionDescuentoModel.agregarMultiples(cotizacionId, descuentos, baseCalculo);
+      await CotizacionDescuentoModel.agregarMultiples(tenantId, cotizacionId, descuentos, baseCalculo);
     }
 
     // Recalcular totales
-    await CotizacionModel.recalcularTotales(cotizacionId);
+    await CotizacionModel.recalcularTotales(tenantId, cotizacionId);
 
-    const cotizacionCreada = await CotizacionModel.obtenerCompleta(cotizacionId);
+    const cotizacionCreada = await CotizacionModel.obtenerCompleta(tenantId, cotizacionId);
 
     res.status(201).json({
       success: true,
@@ -335,6 +341,7 @@ exports.crear = async (req, res, next) => {
 // ============================================
 exports.actualizar = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { id } = req.params;
     const {
       fecha_montaje,
@@ -353,7 +360,7 @@ exports.actualizar = async (req, res, next) => {
       fechas_confirmadas
     } = req.body;
 
-    const cotizacionExistente = await CotizacionModel.obtenerPorId(id);
+    const cotizacionExistente = await CotizacionModel.obtenerPorId(tenantId, id);
     if (!cotizacionExistente) {
       throw new AppError('Cotización no encontrada', 404);
     }
@@ -363,7 +370,7 @@ exports.actualizar = async (req, res, next) => {
     }
 
     // Actualizar datos generales
-    await CotizacionModel.actualizar(id, {
+    await CotizacionModel.actualizar(tenantId, id, {
       fecha_montaje: fecha_montaje || cotizacionExistente.fecha_montaje || null,
       fecha_evento: fecha_evento || cotizacionExistente.fecha_evento || null,
       fecha_desmontaje: fecha_desmontaje || cotizacionExistente.fecha_desmontaje || null,
@@ -381,34 +388,34 @@ exports.actualizar = async (req, res, next) => {
 
     // Si vienen productos, reemplazar
     if (productos) {
-      await CotizacionProductoModel.eliminarPorCotizacion(id);
+      await CotizacionProductoModel.eliminarPorCotizacion(tenantId, id);
       if (productos.length > 0) {
-        await CotizacionProductoModel.agregarMultiples(id, productos);
+        await CotizacionProductoModel.agregarMultiples(tenantId, id, productos);
       }
     }
 
     // Si viene transporte, reemplazar (enriquecer con precios)
     if (transporte) {
-      await CotizacionTransporteModel.eliminarPorCotizacion(id);
+      await CotizacionTransporteModel.eliminarPorCotizacion(tenantId, id);
       if (transporte.length > 0) {
-        const transporteConPrecios = await enriquecerTransporteConPrecios(transporte);
-        await CotizacionTransporteModel.agregarMultiples(id, transporteConPrecios);
+        const transporteConPrecios = await enriquecerTransporteConPrecios(tenantId, transporte);
+        await CotizacionTransporteModel.agregarMultiples(tenantId, id, transporteConPrecios);
       }
     }
 
     // Si vienen descuentos, reemplazar
     if (descuentos !== undefined) {
       // Calcular base para los descuentos
-      const cotizacionActual = await CotizacionModel.obtenerCompleta(id);
+      const cotizacionActual = await CotizacionModel.obtenerCompleta(tenantId, id);
       const baseCalculo = parseFloat(cotizacionActual.resumen?.subtotal || 0);
 
-      await CotizacionDescuentoModel.reemplazarDescuentos(id, descuentos, baseCalculo);
+      await CotizacionDescuentoModel.reemplazarDescuentos(tenantId, id, descuentos, baseCalculo);
     }
 
     // Recalcular totales
-    await CotizacionModel.recalcularTotales(id);
+    await CotizacionModel.recalcularTotales(tenantId, id);
 
-    const cotizacionActualizada = await CotizacionModel.obtenerCompleta(id);
+    const cotizacionActualizada = await CotizacionModel.obtenerCompleta(tenantId, id);
 
     res.json({
       success: true,
@@ -426,10 +433,11 @@ exports.actualizar = async (req, res, next) => {
 // ============================================
 exports.agregarProducto = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { id } = req.params;
     const { compuesto_id, cantidad, precio_base, deposito, precio_adicionales, descuento_porcentaje, notas } = req.body;
 
-    const cotizacion = await CotizacionModel.obtenerPorId(id);
+    const cotizacion = await CotizacionModel.obtenerPorId(tenantId, id);
     if (!cotizacion) {
       throw new AppError('Cotización no encontrada', 404);
     }
@@ -438,7 +446,7 @@ exports.agregarProducto = async (req, res, next) => {
       throw new AppError('Solo se pueden modificar cotizaciones pendientes o en borrador', 400);
     }
 
-    await CotizacionProductoModel.agregar({
+    await CotizacionProductoModel.agregar(tenantId, {
       cotizacion_id: id,
       compuesto_id,
       cantidad,
@@ -449,8 +457,8 @@ exports.agregarProducto = async (req, res, next) => {
       notas
     });
 
-    await CotizacionModel.recalcularTotales(id);
-    const cotizacionActualizada = await CotizacionModel.obtenerCompleta(id);
+    await CotizacionModel.recalcularTotales(tenantId, id);
+    const cotizacionActualizada = await CotizacionModel.obtenerCompleta(tenantId, id);
 
     res.json({
       success: true,
@@ -467,9 +475,10 @@ exports.agregarProducto = async (req, res, next) => {
 // ============================================
 exports.eliminarProducto = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { id, productoId } = req.params;
 
-    const cotizacion = await CotizacionModel.obtenerPorId(id);
+    const cotizacion = await CotizacionModel.obtenerPorId(tenantId, id);
     if (!cotizacion) {
       throw new AppError('Cotización no encontrada', 404);
     }
@@ -478,10 +487,10 @@ exports.eliminarProducto = async (req, res, next) => {
       throw new AppError('Solo se pueden modificar cotizaciones pendientes o en borrador', 400);
     }
 
-    await CotizacionProductoModel.eliminar(productoId);
-    await CotizacionModel.recalcularTotales(id);
+    await CotizacionProductoModel.eliminar(tenantId, productoId);
+    await CotizacionModel.recalcularTotales(tenantId, id);
 
-    const cotizacionActualizada = await CotizacionModel.obtenerCompleta(id);
+    const cotizacionActualizada = await CotizacionModel.obtenerCompleta(tenantId, id);
 
     res.json({
       success: true,
@@ -498,10 +507,11 @@ exports.eliminarProducto = async (req, res, next) => {
 // ============================================
 exports.agregarTransporte = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { id } = req.params;
     const { tarifa_id, cantidad, notas } = req.body;
 
-    const cotizacion = await CotizacionModel.obtenerPorId(id);
+    const cotizacion = await CotizacionModel.obtenerPorId(tenantId, id);
     if (!cotizacion) {
       throw new AppError('Cotización no encontrada', 404);
     }
@@ -511,12 +521,12 @@ exports.agregarTransporte = async (req, res, next) => {
     }
 
     // Obtener precio de la tarifa
-    const tarifa = await TarifaTransporteModel.obtenerPorId(tarifa_id);
+    const tarifa = await TarifaTransporteModel.obtenerPorId(tenantId, tarifa_id);
     if (!tarifa) {
       throw new AppError('Tarifa no encontrada', 404);
     }
 
-    await CotizacionTransporteModel.agregar({
+    await CotizacionTransporteModel.agregar(tenantId, {
       cotizacion_id: id,
       tarifa_id,
       cantidad,
@@ -524,8 +534,8 @@ exports.agregarTransporte = async (req, res, next) => {
       notas
     });
 
-    await CotizacionModel.recalcularTotales(id);
-    const cotizacionActualizada = await CotizacionModel.obtenerCompleta(id);
+    await CotizacionModel.recalcularTotales(tenantId, id);
+    const cotizacionActualizada = await CotizacionModel.obtenerCompleta(tenantId, id);
 
     res.json({
       success: true,
@@ -542,9 +552,10 @@ exports.agregarTransporte = async (req, res, next) => {
 // ============================================
 exports.eliminarTransporte = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { id, transporteId } = req.params;
 
-    const cotizacion = await CotizacionModel.obtenerPorId(id);
+    const cotizacion = await CotizacionModel.obtenerPorId(tenantId, id);
     if (!cotizacion) {
       throw new AppError('Cotización no encontrada', 404);
     }
@@ -553,10 +564,10 @@ exports.eliminarTransporte = async (req, res, next) => {
       throw new AppError('Solo se pueden modificar cotizaciones pendientes o en borrador', 400);
     }
 
-    await CotizacionTransporteModel.eliminar(transporteId);
-    await CotizacionModel.recalcularTotales(id);
+    await CotizacionTransporteModel.eliminar(tenantId, transporteId);
+    await CotizacionModel.recalcularTotales(tenantId, id);
 
-    const cotizacionActualizada = await CotizacionModel.obtenerCompleta(id);
+    const cotizacionActualizada = await CotizacionModel.obtenerCompleta(tenantId, id);
 
     res.json({
       success: true,
@@ -573,6 +584,7 @@ exports.eliminarTransporte = async (req, res, next) => {
 // ============================================
 exports.cambiarEstado = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { id } = req.params;
     const { estado } = req.body;
 
@@ -581,12 +593,12 @@ exports.cambiarEstado = async (req, res, next) => {
       throw new AppError(`Estado inválido. Valores permitidos: ${estadosValidos.join(', ')}`, 400);
     }
 
-    const cotizacion = await CotizacionModel.obtenerPorId(id);
+    const cotizacion = await CotizacionModel.obtenerPorId(tenantId, id);
     if (!cotizacion) {
       throw new AppError('Cotización no encontrada', 404);
     }
 
-    await CotizacionModel.actualizarEstado(id, estado);
+    await CotizacionModel.actualizarEstado(tenantId, id, estado);
 
     logger.info('cotizacionController.cambiarEstado', 'Estado actualizado', {
       id,
@@ -610,10 +622,11 @@ exports.cambiarEstado = async (req, res, next) => {
 // ============================================
 exports.verificarDisponibilidad = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { id } = req.params;
     const { fecha_inicio, fecha_fin } = req.query;
 
-    const cotizacion = await CotizacionModel.obtenerPorId(id);
+    const cotizacion = await CotizacionModel.obtenerPorId(tenantId, id);
     if (!cotizacion) {
       throw new AppError('Cotización no encontrada', 404);
     }
@@ -623,6 +636,7 @@ exports.verificarDisponibilidad = async (req, res, next) => {
     const fechaFin = fecha_fin || cotizacion.fecha_desmontaje || cotizacion.fecha_evento;
 
     const disponibilidad = await DisponibilidadModel.verificarDisponibilidadCotizacion(
+      tenantId,
       id,
       fechaInicio,
       fechaFin
@@ -642,10 +656,11 @@ exports.verificarDisponibilidad = async (req, res, next) => {
 // ============================================
 exports.aprobarYCrearAlquiler = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { id } = req.params;
     const { fecha_salida, fecha_retorno_esperado, deposito_cobrado, notas_salida, forzar } = req.body;
 
-    const cotizacion = await CotizacionModel.obtenerCompleta(id);
+    const cotizacion = await CotizacionModel.obtenerCompleta(tenantId, id);
     if (!cotizacion) {
       throw new AppError('Cotización no encontrada', 404);
     }
@@ -663,7 +678,7 @@ exports.aprobarYCrearAlquiler = async (req, res, next) => {
     }
 
     // Verificar si ya tiene alquiler
-    const tieneAlquiler = await CotizacionModel.tieneAlquiler(id);
+    const tieneAlquiler = await CotizacionModel.tieneAlquiler(tenantId, id);
     if (tieneAlquiler) {
       throw new AppError('Esta cotización ya tiene un alquiler asociado', 400);
     }
@@ -674,6 +689,7 @@ exports.aprobarYCrearAlquiler = async (req, res, next) => {
 
     // Verificar disponibilidad de elementos
     const disponibilidad = await DisponibilidadModel.verificarDisponibilidadCotizacion(
+      tenantId,
       id,
       fechaSalida,
       fechaRetorno
@@ -705,7 +721,7 @@ exports.aprobarYCrearAlquiler = async (req, res, next) => {
     }
 
     // Aprobar cotización
-    await CotizacionModel.actualizarEstado(id, 'aprobada');
+    await CotizacionModel.actualizarEstado(tenantId, id, 'aprobada');
 
     // Determinar depósito cobrado: usar valor explícito, o basarse en cobrar_deposito de la cotización
     let depositoFinal = deposito_cobrado;
@@ -717,7 +733,7 @@ exports.aprobarYCrearAlquiler = async (req, res, next) => {
     }
 
     // Crear alquiler con fechas de la cotización
-    const resultadoAlquiler = await AlquilerModel.crear({
+    const resultadoAlquiler = await AlquilerModel.crear(tenantId, {
       cotizacion_id: id,
       fecha_salida: fechaSalida,
       fecha_retorno_esperado: fechaRetorno,
@@ -730,6 +746,7 @@ exports.aprobarYCrearAlquiler = async (req, res, next) => {
 
     // Asignar elementos automáticamente
     const asignacion = await DisponibilidadModel.asignarAutomaticamente(
+      tenantId,
       id,
       fechaSalida,
       fechaRetorno
@@ -737,7 +754,7 @@ exports.aprobarYCrearAlquiler = async (req, res, next) => {
 
     // Guardar asignaciones en alquiler_elementos
     if (asignacion.asignaciones.length > 0) {
-      await AlquilerElementoModel.asignarMultiples(alquilerId, asignacion.asignaciones);
+      await AlquilerElementoModel.asignarMultiples(tenantId, alquilerId, asignacion.asignaciones);
     }
 
     // =============================================
@@ -745,6 +762,7 @@ exports.aprobarYCrearAlquiler = async (req, res, next) => {
     // =============================================
     let ordenesTrabajo = null;
     try {
+      // TODO: pasar tenantId cuando se migre operaciones (Fase 4.2)
       ordenesTrabajo = await OrdenTrabajoModel.crearDesdeAlquiler(alquilerId, {
         montaje: {
           fecha: fechaSalida,
@@ -778,7 +796,7 @@ exports.aprobarYCrearAlquiler = async (req, res, next) => {
       });
     }
 
-    const alquiler = await AlquilerModel.obtenerCompleto(alquilerId);
+    const alquiler = await AlquilerModel.obtenerCompleto(tenantId, alquilerId);
 
     logger.info('cotizacionController.aprobarYCrearAlquiler', 'Cotización aprobada y alquiler creado', {
       cotizacionId: id,
@@ -813,15 +831,16 @@ exports.aprobarYCrearAlquiler = async (req, res, next) => {
 // ============================================
 exports.duplicar = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { id } = req.params;
 
-    const cotizacion = await CotizacionModel.obtenerPorId(id);
+    const cotizacion = await CotizacionModel.obtenerPorId(tenantId, id);
     if (!cotizacion) {
       throw new AppError('Cotización no encontrada', 404);
     }
 
-    const nuevaCotizacionId = await CotizacionModel.duplicar(id);
-    const cotizacionDuplicada = await CotizacionModel.obtenerCompleta(nuevaCotizacionId);
+    const nuevaCotizacionId = await CotizacionModel.duplicar(tenantId, id);
+    const cotizacionDuplicada = await CotizacionModel.obtenerCompleta(tenantId, nuevaCotizacionId);
 
     logger.info('cotizacionController.duplicar', 'Cotización duplicada', {
       original: id,
@@ -844,19 +863,20 @@ exports.duplicar = async (req, res, next) => {
 // ============================================
 exports.eliminar = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { id } = req.params;
 
-    const cotizacion = await CotizacionModel.obtenerPorId(id);
+    const cotizacion = await CotizacionModel.obtenerPorId(tenantId, id);
     if (!cotizacion) {
       throw new AppError('Cotización no encontrada', 404);
     }
 
-    const tieneAlquiler = await CotizacionModel.tieneAlquiler(id);
+    const tieneAlquiler = await CotizacionModel.tieneAlquiler(tenantId, id);
     if (tieneAlquiler) {
       throw new AppError('No se puede eliminar una cotización que tiene alquiler asociado', 400);
     }
 
-    await CotizacionModel.eliminar(id);
+    await CotizacionModel.eliminar(tenantId, id);
 
     res.json({
       success: true,
@@ -873,14 +893,15 @@ exports.eliminar = async (req, res, next) => {
 // ============================================
 exports.obtenerPorCliente = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { clienteId } = req.params;
 
-    const cliente = await ClienteModel.obtenerPorId(clienteId);
+    const cliente = await ClienteModel.obtenerPorId(tenantId, clienteId);
     if (!cliente) {
       throw new AppError('Cliente no encontrado', 404);
     }
 
-    const cotizaciones = await CotizacionModel.obtenerPorCliente(clienteId);
+    const cotizaciones = await CotizacionModel.obtenerPorCliente(tenantId, clienteId);
 
     res.json({
       success: true,
@@ -897,9 +918,10 @@ exports.obtenerPorCliente = async (req, res, next) => {
 // ============================================
 exports.obtenerUbicacionesCliente = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { clienteId } = req.params;
 
-    const ubicaciones = await CotizacionModel.obtenerUbicacionesPorCliente(clienteId);
+    const ubicaciones = await CotizacionModel.obtenerUbicacionesPorCliente(tenantId, clienteId);
 
     res.json({
       success: true,
@@ -916,11 +938,12 @@ exports.obtenerUbicacionesCliente = async (req, res, next) => {
 // ============================================
 exports.agregarRecargoProducto = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { id, productoId } = req.params;
     const { tipo, dias, porcentaje, fecha_original, fecha_modificada, notas } = req.body;
 
     // Validar cotización
-    const cotizacion = await CotizacionModel.obtenerPorId(id);
+    const cotizacion = await CotizacionModel.obtenerPorId(tenantId, id);
     if (!cotizacion) {
       throw new AppError('Cotización no encontrada', 404);
     }
@@ -930,7 +953,7 @@ exports.agregarRecargoProducto = async (req, res, next) => {
     }
 
     // Validar producto
-    const producto = await CotizacionProductoModel.obtenerPorId(productoId);
+    const producto = await CotizacionProductoModel.obtenerPorId(tenantId, productoId);
     if (!producto || producto.cotizacion_id !== parseInt(id)) {
       throw new AppError('Producto no encontrado en esta cotización', 404);
     }
@@ -949,7 +972,7 @@ exports.agregarRecargoProducto = async (req, res, next) => {
     }
 
     // Agregar recargo
-    const recargo = await CotizacionProductoRecargoModel.agregar({
+    const recargo = await CotizacionProductoRecargoModel.agregar(tenantId, {
       cotizacion_producto_id: productoId,
       tipo,
       dias,
@@ -960,9 +983,9 @@ exports.agregarRecargoProducto = async (req, res, next) => {
     });
 
     // Recalcular totales de la cotización
-    await CotizacionModel.recalcularTotales(id);
+    await CotizacionModel.recalcularTotales(tenantId, id);
 
-    const cotizacionActualizada = await CotizacionModel.obtenerCompleta(id);
+    const cotizacionActualizada = await CotizacionModel.obtenerCompleta(tenantId, id);
 
     logger.info('cotizacionController.agregarRecargoProducto', 'Recargo agregado', {
       cotizacionId: id,
@@ -987,11 +1010,12 @@ exports.agregarRecargoProducto = async (req, res, next) => {
 // ============================================
 exports.actualizarRecargoProducto = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { id, productoId, recargoId } = req.params;
     const { dias, porcentaje, fecha_modificada, notas } = req.body;
 
     // Validar cotización
-    const cotizacion = await CotizacionModel.obtenerPorId(id);
+    const cotizacion = await CotizacionModel.obtenerPorId(tenantId, id);
     if (!cotizacion) {
       throw new AppError('Cotización no encontrada', 404);
     }
@@ -1001,13 +1025,13 @@ exports.actualizarRecargoProducto = async (req, res, next) => {
     }
 
     // Validar recargo
-    const recargo = await CotizacionProductoRecargoModel.obtenerPorId(recargoId);
+    const recargo = await CotizacionProductoRecargoModel.obtenerPorId(tenantId, recargoId);
     if (!recargo || recargo.cotizacion_producto_id !== parseInt(productoId)) {
       throw new AppError('Recargo no encontrado', 404);
     }
 
     // Actualizar recargo
-    await CotizacionProductoRecargoModel.actualizar(recargoId, {
+    await CotizacionProductoRecargoModel.actualizar(tenantId, recargoId, {
       dias,
       porcentaje,
       fecha_modificada,
@@ -1015,9 +1039,9 @@ exports.actualizarRecargoProducto = async (req, res, next) => {
     });
 
     // Recalcular totales
-    await CotizacionModel.recalcularTotales(id);
+    await CotizacionModel.recalcularTotales(tenantId, id);
 
-    const cotizacionActualizada = await CotizacionModel.obtenerCompleta(id);
+    const cotizacionActualizada = await CotizacionModel.obtenerCompleta(tenantId, id);
 
     res.json({
       success: true,
@@ -1035,10 +1059,11 @@ exports.actualizarRecargoProducto = async (req, res, next) => {
 // ============================================
 exports.eliminarRecargoProducto = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { id, productoId, recargoId } = req.params;
 
     // Validar cotización
-    const cotizacion = await CotizacionModel.obtenerPorId(id);
+    const cotizacion = await CotizacionModel.obtenerPorId(tenantId, id);
     if (!cotizacion) {
       throw new AppError('Cotización no encontrada', 404);
     }
@@ -1048,18 +1073,18 @@ exports.eliminarRecargoProducto = async (req, res, next) => {
     }
 
     // Validar recargo
-    const recargo = await CotizacionProductoRecargoModel.obtenerPorId(recargoId);
+    const recargo = await CotizacionProductoRecargoModel.obtenerPorId(tenantId, recargoId);
     if (!recargo || recargo.cotizacion_producto_id !== parseInt(productoId)) {
       throw new AppError('Recargo no encontrado', 404);
     }
 
     // Eliminar recargo
-    await CotizacionProductoRecargoModel.eliminar(recargoId);
+    await CotizacionProductoRecargoModel.eliminar(tenantId, recargoId);
 
     // Recalcular totales
-    await CotizacionModel.recalcularTotales(id);
+    await CotizacionModel.recalcularTotales(tenantId, id);
 
-    const cotizacionActualizada = await CotizacionModel.obtenerCompleta(id);
+    const cotizacionActualizada = await CotizacionModel.obtenerCompleta(tenantId, id);
 
     logger.info('cotizacionController.eliminarRecargoProducto', 'Recargo eliminado', {
       cotizacionId: id,
@@ -1083,21 +1108,22 @@ exports.eliminarRecargoProducto = async (req, res, next) => {
 // ============================================
 exports.obtenerRecargosProducto = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { id, productoId } = req.params;
 
     // Validar cotización
-    const cotizacion = await CotizacionModel.obtenerPorId(id);
+    const cotizacion = await CotizacionModel.obtenerPorId(tenantId, id);
     if (!cotizacion) {
       throw new AppError('Cotización no encontrada', 404);
     }
 
     // Validar producto
-    const producto = await CotizacionProductoModel.obtenerPorId(productoId);
+    const producto = await CotizacionProductoModel.obtenerPorId(tenantId, productoId);
     if (!producto || producto.cotizacion_id !== parseInt(id)) {
       throw new AppError('Producto no encontrado en esta cotización', 404);
     }
 
-    const recargos = await CotizacionProductoRecargoModel.obtenerPorProducto(productoId);
+    const recargos = await CotizacionProductoRecargoModel.obtenerPorProducto(tenantId, productoId);
 
     res.json({
       success: true,
@@ -1114,10 +1140,11 @@ exports.obtenerRecargosProducto = async (req, res, next) => {
 // ============================================
 exports.confirmarFechas = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { id } = req.params;
     const { fecha_montaje, fecha_evento, fecha_desmontaje } = req.body;
 
-    const cotizacion = await CotizacionModel.obtenerPorId(id);
+    const cotizacion = await CotizacionModel.obtenerPorId(tenantId, id);
     if (!cotizacion) {
       throw new AppError('Cotización no encontrada', 404);
     }
@@ -1130,13 +1157,13 @@ exports.confirmarFechas = async (req, res, next) => {
       throw new AppError('La fecha del evento es obligatoria para confirmar', 400);
     }
 
-    await CotizacionModel.confirmarFechas(id, {
+    await CotizacionModel.confirmarFechas(tenantId, id, {
       fecha_montaje,
       fecha_evento,
       fecha_desmontaje
     });
 
-    const cotizacionActualizada = await CotizacionModel.obtenerCompleta(id);
+    const cotizacionActualizada = await CotizacionModel.obtenerCompleta(tenantId, id);
 
     logger.info('cotizacionController.confirmarFechas', 'Fechas confirmadas, borrador → pendiente', {
       id,
@@ -1160,16 +1187,17 @@ exports.confirmarFechas = async (req, res, next) => {
 // ============================================
 exports.asignarEvento = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { id } = req.params;
     const { evento_id } = req.body;
 
-    const cotizacion = await CotizacionModel.obtenerPorId(id);
+    const cotizacion = await CotizacionModel.obtenerPorId(tenantId, id);
     if (!cotizacion) {
       throw new AppError('Cotización no encontrada', 404);
     }
 
     if (evento_id) {
-      const evento = await EventoModel.obtenerPorId(evento_id);
+      const evento = await EventoModel.obtenerPorId(tenantId, evento_id);
       if (!evento) {
         throw new AppError('Evento no encontrado', 404);
       }
@@ -1178,9 +1206,9 @@ exports.asignarEvento = async (req, res, next) => {
       }
     }
 
-    await CotizacionModel.asignarEvento(id, evento_id);
+    await CotizacionModel.asignarEvento(tenantId, id, evento_id);
 
-    const cotizacionActualizada = await CotizacionModel.obtenerCompleta(id);
+    const cotizacionActualizada = await CotizacionModel.obtenerCompleta(tenantId, id);
 
     res.json({
       success: true,
@@ -1198,10 +1226,11 @@ exports.asignarEvento = async (req, res, next) => {
 // ============================================
 exports.actualizarCobrarDeposito = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { id } = req.params;
     const { cobrar_deposito } = req.body;
 
-    const cotizacion = await CotizacionModel.obtenerPorId(id);
+    const cotizacion = await CotizacionModel.obtenerPorId(tenantId, id);
     if (!cotizacion) {
       throw new AppError('Cotización no encontrada', 404);
     }
@@ -1214,9 +1243,9 @@ exports.actualizarCobrarDeposito = async (req, res, next) => {
       throw new AppError('Debe indicar si se cobra depósito (cobrar_deposito: true/false)', 400);
     }
 
-    await CotizacionModel.actualizarCobrarDeposito(id, cobrar_deposito);
+    await CotizacionModel.actualizarCobrarDeposito(tenantId, id, cobrar_deposito);
 
-    const cotizacionActualizada = await CotizacionModel.obtenerCompleta(id);
+    const cotizacionActualizada = await CotizacionModel.obtenerCompleta(tenantId, id);
 
     logger.info('cotizacionController.actualizarCobrarDeposito', 'Cobro de depósito actualizado', {
       id,
@@ -1244,10 +1273,11 @@ exports.actualizarCobrarDeposito = async (req, res, next) => {
  */
 exports.registrarSeguimiento = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { id } = req.params;
     const { notas } = req.body;
 
-    const cotizacion = await CotizacionModel.obtenerPorId(id);
+    const cotizacion = await CotizacionModel.obtenerPorId(tenantId, id);
     if (!cotizacion) {
       throw new AppError('Cotización no encontrada', 404);
     }
@@ -1256,7 +1286,7 @@ exports.registrarSeguimiento = async (req, res, next) => {
       throw new AppError('Solo se puede registrar seguimiento en cotizaciones pendientes o borradores', 400);
     }
 
-    const resultado = await CotizacionModel.registrarSeguimiento(id, notas || '');
+    const resultado = await CotizacionModel.registrarSeguimiento(tenantId, id, notas || '');
 
     logger.info('cotizacionController.registrarSeguimiento', `Seguimiento registrado para cotización #${id}`);
 
@@ -1277,9 +1307,10 @@ exports.registrarSeguimiento = async (req, res, next) => {
  */
 exports.obtenerSeguimiento = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { id } = req.params;
 
-    const seguimiento = await CotizacionModel.obtenerSeguimiento(id);
+    const seguimiento = await CotizacionModel.obtenerSeguimiento(tenantId, id);
     if (!seguimiento) {
       throw new AppError('Cotización no encontrada', 404);
     }

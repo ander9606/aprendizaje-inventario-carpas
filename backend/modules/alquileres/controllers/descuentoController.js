@@ -13,8 +13,9 @@ const AppError = require('../../../utils/AppError');
 // ============================================
 exports.obtenerTodos = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const incluirInactivos = req.query.incluir_inactivos === 'true';
-    const descuentos = await DescuentoModel.obtenerTodos(incluirInactivos);
+    const descuentos = await DescuentoModel.obtenerTodos(tenantId, incluirInactivos);
     res.json({
       success: true,
       data: descuentos,
@@ -30,8 +31,9 @@ exports.obtenerTodos = async (req, res, next) => {
 // ============================================
 exports.obtenerPorId = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { id } = req.params;
-    const descuento = await DescuentoModel.obtenerPorId(id);
+    const descuento = await DescuentoModel.obtenerPorId(tenantId, id);
 
     if (!descuento) {
       throw new AppError('Descuento no encontrado', 404);
@@ -51,6 +53,7 @@ exports.obtenerPorId = async (req, res, next) => {
 // ============================================
 exports.crear = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { nombre, descripcion, tipo, valor } = req.body;
 
     if (!nombre) {
@@ -65,8 +68,8 @@ exports.crear = async (req, res, next) => {
       throw new AppError('El valor debe ser un número positivo', 400);
     }
 
-    const resultado = await DescuentoModel.crear({ nombre, descripcion, tipo, valor });
-    const descuentoCreado = await DescuentoModel.obtenerPorId(resultado.insertId);
+    const resultado = await DescuentoModel.crear(tenantId, { nombre, descripcion, tipo, valor });
+    const descuentoCreado = await DescuentoModel.obtenerPorId(tenantId, resultado.insertId);
 
     res.status(201).json({
       success: true,
@@ -83,10 +86,11 @@ exports.crear = async (req, res, next) => {
 // ============================================
 exports.actualizar = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { id } = req.params;
     const { nombre, descripcion, tipo, valor, activo } = req.body;
 
-    const descuentoExistente = await DescuentoModel.obtenerPorId(id);
+    const descuentoExistente = await DescuentoModel.obtenerPorId(tenantId, id);
     if (!descuentoExistente) {
       throw new AppError('Descuento no encontrado', 404);
     }
@@ -95,7 +99,7 @@ exports.actualizar = async (req, res, next) => {
       throw new AppError('El tipo debe ser "porcentaje" o "fijo"', 400);
     }
 
-    await DescuentoModel.actualizar(id, {
+    await DescuentoModel.actualizar(tenantId, id, {
       nombre: nombre || descuentoExistente.nombre,
       descripcion: descripcion !== undefined ? descripcion : descuentoExistente.descripcion,
       tipo: tipo || descuentoExistente.tipo,
@@ -103,7 +107,7 @@ exports.actualizar = async (req, res, next) => {
       activo: activo !== undefined ? activo : descuentoExistente.activo
     });
 
-    const descuentoActualizado = await DescuentoModel.obtenerPorId(id);
+    const descuentoActualizado = await DescuentoModel.obtenerPorId(tenantId, id);
 
     res.json({
       success: true,
@@ -120,14 +124,15 @@ exports.actualizar = async (req, res, next) => {
 // ============================================
 exports.eliminar = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { id } = req.params;
 
-    const descuento = await DescuentoModel.obtenerPorId(id);
+    const descuento = await DescuentoModel.obtenerPorId(tenantId, id);
     if (!descuento) {
       throw new AppError('Descuento no encontrado', 404);
     }
 
-    await DescuentoModel.eliminar(id);
+    await DescuentoModel.eliminar(tenantId, id);
 
     res.json({
       success: true,
@@ -143,11 +148,12 @@ exports.eliminar = async (req, res, next) => {
 // ============================================
 exports.aplicarACotizacion = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { id } = req.params; // :id de la ruta /cotizaciones/:id/descuentos
     const { descuento_id, monto, es_porcentaje, notas } = req.body;
 
     // Verificar que la cotización existe
-    const cotizacion = await CotizacionModel.obtenerCompleta(id);
+    const cotizacion = await CotizacionModel.obtenerCompleta(tenantId, id);
     if (!cotizacion) {
       throw new AppError('Cotización no encontrada', 404);
     }
@@ -159,6 +165,7 @@ exports.aplicarACotizacion = async (req, res, next) => {
     if (descuento_id) {
       // Aplicar descuento predefinido
       resultado = await CotizacionDescuentoModel.agregarDescuentoPredefinido(
+        tenantId,
         id,
         descuento_id,
         baseCalculo,
@@ -168,6 +175,7 @@ exports.aplicarACotizacion = async (req, res, next) => {
       // Aplicar descuento manual
       const tipo = es_porcentaje ? 'porcentaje' : 'fijo';
       resultado = await CotizacionDescuentoModel.agregarDescuentoManual(
+        tenantId,
         id,
         monto,
         tipo,
@@ -179,7 +187,7 @@ exports.aplicarACotizacion = async (req, res, next) => {
     }
 
     // Obtener cotización actualizada
-    const cotizacionActualizada = await CotizacionModel.obtenerCompleta(id);
+    const cotizacionActualizada = await CotizacionModel.obtenerCompleta(tenantId, id);
 
     res.status(201).json({
       success: true,
@@ -196,14 +204,15 @@ exports.aplicarACotizacion = async (req, res, next) => {
 // ============================================
 exports.obtenerDeCotizacion = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { id } = req.params; // :id de la ruta /cotizaciones/:id/descuentos
 
-    const cotizacion = await CotizacionModel.obtenerPorId(id);
+    const cotizacion = await CotizacionModel.obtenerPorId(tenantId, id);
     if (!cotizacion) {
       throw new AppError('Cotización no encontrada', 404);
     }
 
-    const descuentos = await CotizacionDescuentoModel.obtenerPorCotizacion(id);
+    const descuentos = await CotizacionDescuentoModel.obtenerPorCotizacion(tenantId, id);
 
     res.json({
       success: true,
@@ -220,16 +229,17 @@ exports.obtenerDeCotizacion = async (req, res, next) => {
 // ============================================
 exports.eliminarDeCotizacion = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { id, descuentoAplicadoId } = req.params; // :id de la ruta /cotizaciones/:id/descuentos/:descuentoAplicadoId
 
-    const cotizacion = await CotizacionModel.obtenerPorId(id);
+    const cotizacion = await CotizacionModel.obtenerPorId(tenantId, id);
     if (!cotizacion) {
       throw new AppError('Cotización no encontrada', 404);
     }
 
-    await CotizacionDescuentoModel.eliminar(descuentoAplicadoId);
+    await CotizacionDescuentoModel.eliminar(tenantId, descuentoAplicadoId);
 
-    const cotizacionActualizada = await CotizacionModel.obtenerCompleta(id);
+    const cotizacionActualizada = await CotizacionModel.obtenerCompleta(tenantId, id);
 
     res.json({
       success: true,

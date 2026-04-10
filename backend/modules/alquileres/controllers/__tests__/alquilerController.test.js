@@ -24,7 +24,7 @@ const LoteModel = require('../../../inventario/models/LoteModel');
 const controller = require('../alquilerController');
 const AppError = require('../../../../utils/AppError');
 
-const mockReq = (o = {}) => ({ body: {}, params: {}, query: {}, usuario: null, ...o });
+const mockReq = (o = {}) => ({ body: {}, params: {}, query: {}, usuario: null, tenant: { id: 1, slug: 'test', nombre: 'Test' }, ...o });
 const mockRes = () => { const r = {}; r.status = jest.fn().mockReturnValue(r); r.json = jest.fn().mockReturnValue(r); return r; };
 const mockNext = () => jest.fn();
 
@@ -182,8 +182,8 @@ describe('marcarSalida', () => {
         AlquilerModel.obtenerCompleto.mockResolvedValue({ id: 1, estado: 'activo' });
         const res = mockRes(); const next = mockNext();
         await controller.marcarSalida(mockReq({ params: { id: '1' }, body: {} }), res, next);
-        expect(SerieModel.cambiarEstado).toHaveBeenCalledWith(10, 'alquilado', 'Bogotá', null);
-        expect(LoteModel.moverParaAlquiler).toHaveBeenCalledWith(20, 5, '1');
+        expect(SerieModel.cambiarEstado).toHaveBeenCalledWith(1, 10, 'alquilado', 'Bogotá', null);
+        expect(LoteModel.moverParaAlquiler).toHaveBeenCalledWith(1, 20, 5, '1');
         expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
     });
 
@@ -217,7 +217,7 @@ describe('registrarRetornoElemento', () => {
             params: { id: '1', elementoId: '5' },
             body: { estado_retorno: 'bueno' }
         }), res, next);
-        expect(SerieModel.cambiarEstado).toHaveBeenCalledWith(10, 'bueno', null, 3);
+        expect(SerieModel.cambiarEstado).toHaveBeenCalledWith(1, 10, 'bueno', null, 3);
         expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
     });
 

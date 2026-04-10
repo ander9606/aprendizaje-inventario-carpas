@@ -18,7 +18,8 @@ const logger = require('../../../utils/logger');
 // ============================================
 exports.obtenerTodos = async (req, res, next) => {
   try {
-    const alquileres = await AlquilerModel.obtenerTodos();
+    const tenantId = req.tenant.id;
+    const alquileres = await AlquilerModel.obtenerTodos(tenantId);
     res.json({
       success: true,
       data: alquileres,
@@ -34,6 +35,7 @@ exports.obtenerTodos = async (req, res, next) => {
 // ============================================
 exports.obtenerPorEstado = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { estado } = req.params;
     const estadosValidos = ['programado', 'activo', 'finalizado', 'cancelado'];
 
@@ -41,7 +43,7 @@ exports.obtenerPorEstado = async (req, res, next) => {
       throw new AppError(`Estado inválido. Valores permitidos: ${estadosValidos.join(', ')}`, 400);
     }
 
-    const alquileres = await AlquilerModel.obtenerPorEstado(estado);
+    const alquileres = await AlquilerModel.obtenerPorEstado(tenantId, estado);
     res.json({
       success: true,
       data: alquileres,
@@ -57,7 +59,8 @@ exports.obtenerPorEstado = async (req, res, next) => {
 // ============================================
 exports.obtenerActivos = async (req, res, next) => {
   try {
-    const alquileres = await AlquilerModel.obtenerActivos();
+    const tenantId = req.tenant.id;
+    const alquileres = await AlquilerModel.obtenerActivos(tenantId);
     res.json({
       success: true,
       data: alquileres,
@@ -73,7 +76,8 @@ exports.obtenerActivos = async (req, res, next) => {
 // ============================================
 exports.obtenerProgramados = async (req, res, next) => {
   try {
-    const alquileres = await AlquilerModel.obtenerProgramados();
+    const tenantId = req.tenant.id;
+    const alquileres = await AlquilerModel.obtenerProgramados(tenantId);
     res.json({
       success: true,
       data: alquileres,
@@ -89,8 +93,9 @@ exports.obtenerProgramados = async (req, res, next) => {
 // ============================================
 exports.obtenerPorId = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { id } = req.params;
-    const alquiler = await AlquilerModel.obtenerPorId(id);
+    const alquiler = await AlquilerModel.obtenerPorId(tenantId, id);
 
     if (!alquiler) {
       throw new AppError('Alquiler no encontrado', 404);
@@ -110,8 +115,9 @@ exports.obtenerPorId = async (req, res, next) => {
 // ============================================
 exports.obtenerCompleto = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { id } = req.params;
-    const alquiler = await AlquilerModel.obtenerCompleto(id);
+    const alquiler = await AlquilerModel.obtenerCompleto(tenantId, id);
 
     if (!alquiler) {
       throw new AppError('Alquiler no encontrado', 404);
@@ -131,14 +137,15 @@ exports.obtenerCompleto = async (req, res, next) => {
 // ============================================
 exports.obtenerElementos = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { id } = req.params;
 
-    const alquiler = await AlquilerModel.obtenerPorId(id);
+    const alquiler = await AlquilerModel.obtenerPorId(tenantId, id);
     if (!alquiler) {
       throw new AppError('Alquiler no encontrado', 404);
     }
 
-    const elementos = await AlquilerElementoModel.obtenerPorAlquiler(id);
+    const elementos = await AlquilerElementoModel.obtenerPorAlquiler(tenantId, id);
 
     res.json({
       success: true,
@@ -155,10 +162,11 @@ exports.obtenerElementos = async (req, res, next) => {
 // ============================================
 exports.asignarElementos = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { id } = req.params;
     const { elementos } = req.body;
 
-    const alquiler = await AlquilerModel.obtenerPorId(id);
+    const alquiler = await AlquilerModel.obtenerPorId(tenantId, id);
     if (!alquiler) {
       throw new AppError('Alquiler no encontrado', 404);
     }
@@ -174,14 +182,14 @@ exports.asignarElementos = async (req, res, next) => {
     // Validar que las series no estén en otro alquiler activo
     for (const elem of elementos) {
       if (elem.serie_id) {
-        const enAlquiler = await AlquilerElementoModel.serieEnAlquilerActivo(elem.serie_id);
+        const enAlquiler = await AlquilerElementoModel.serieEnAlquilerActivo(tenantId, elem.serie_id);
         if (enAlquiler) {
           throw new AppError(`La serie ${elem.serie_id} ya está en un alquiler activo`, 400);
         }
       }
     }
 
-    await AlquilerElementoModel.asignarMultiples(id, elementos);
+    await AlquilerElementoModel.asignarMultiples(tenantId, id, elementos);
 
     // TODO: Cambiar estado de series/lotes a 'alquilado'
     // Esto requiere integración con SerieModel y LoteModel
@@ -191,7 +199,7 @@ exports.asignarElementos = async (req, res, next) => {
       cantidad: elementos.length
     });
 
-    const alquilerActualizado = await AlquilerModel.obtenerCompleto(id);
+    const alquilerActualizado = await AlquilerModel.obtenerCompleto(tenantId, id);
 
     res.json({
       success: true,
@@ -210,10 +218,11 @@ exports.asignarElementos = async (req, res, next) => {
 // ============================================
 exports.cambiarElementoAsignado = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { id, asignacionId } = req.params;
     const { nueva_serie_id, nuevo_lote_id, nueva_cantidad_lote } = req.body;
 
-    const alquiler = await AlquilerModel.obtenerPorId(id);
+    const alquiler = await AlquilerModel.obtenerPorId(tenantId, id);
     if (!alquiler) {
       throw new AppError('Alquiler no encontrado', 404);
     }
@@ -222,7 +231,7 @@ exports.cambiarElementoAsignado = async (req, res, next) => {
       throw new AppError('Solo se pueden cambiar elementos en alquileres programados', 400);
     }
 
-    const asignacionActual = await AlquilerElementoModel.obtenerPorId(asignacionId);
+    const asignacionActual = await AlquilerElementoModel.obtenerPorId(tenantId, asignacionId);
     if (!asignacionActual || asignacionActual.alquiler_id !== parseInt(id)) {
       throw new AppError('Asignación no encontrada en este alquiler', 404);
     }
@@ -230,14 +239,14 @@ exports.cambiarElementoAsignado = async (req, res, next) => {
     // Si es cambio de serie
     if (nueva_serie_id) {
       // Verificar que la nueva serie no esté en otro alquiler
-      const enAlquiler = await AlquilerElementoModel.serieEnAlquilerActivo(nueva_serie_id);
+      const enAlquiler = await AlquilerElementoModel.serieEnAlquilerActivo(tenantId, nueva_serie_id);
       if (enAlquiler) {
         throw new AppError('La nueva serie ya está asignada a otro alquiler', 400);
       }
 
       // Eliminar asignación actual y crear nueva
-      await AlquilerElementoModel.eliminar(asignacionId);
-      await AlquilerElementoModel.asignarSerie({
+      await AlquilerElementoModel.eliminar(tenantId, asignacionId);
+      await AlquilerElementoModel.asignarSerie(tenantId, {
         alquiler_id: id,
         elemento_id: asignacionActual.elemento_id,
         serie_id: nueva_serie_id,
@@ -248,8 +257,8 @@ exports.cambiarElementoAsignado = async (req, res, next) => {
 
     // Si es cambio de lote
     if (nuevo_lote_id) {
-      await AlquilerElementoModel.eliminar(asignacionId);
-      await AlquilerElementoModel.asignarLote({
+      await AlquilerElementoModel.eliminar(tenantId, asignacionId);
+      await AlquilerElementoModel.asignarLote(tenantId, {
         alquiler_id: id,
         elemento_id: asignacionActual.elemento_id,
         lote_id: nuevo_lote_id,
@@ -266,7 +275,7 @@ exports.cambiarElementoAsignado = async (req, res, next) => {
       nuevoLote: nuevo_lote_id
     });
 
-    const alquilerActualizado = await AlquilerModel.obtenerCompleto(id);
+    const alquilerActualizado = await AlquilerModel.obtenerCompleto(tenantId, id);
 
     res.json({
       success: true,
@@ -284,10 +293,11 @@ exports.cambiarElementoAsignado = async (req, res, next) => {
 // ============================================
 exports.marcarSalida = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { id } = req.params;
     const { fecha_salida, notas_salida, elementos } = req.body;
 
-    const alquiler = await AlquilerModel.obtenerPorId(id);
+    const alquiler = await AlquilerModel.obtenerPorId(tenantId, id);
     if (!alquiler) {
       throw new AppError('Alquiler no encontrado', 404);
     }
@@ -298,18 +308,18 @@ exports.marcarSalida = async (req, res, next) => {
 
     // Si vienen elementos adicionales, asignarlos
     if (elementos && elementos.length > 0) {
-      await AlquilerElementoModel.asignarMultiples(id, elementos);
+      await AlquilerElementoModel.asignarMultiples(tenantId, id, elementos);
     }
 
     // Obtener elementos asignados al alquiler
-    const elementosAsignados = await AlquilerElementoModel.obtenerPorAlquiler(id);
+    const elementosAsignados = await AlquilerElementoModel.obtenerPorAlquiler(tenantId, id);
 
     if (elementosAsignados.length === 0) {
       throw new AppError('El alquiler no tiene elementos asignados', 400);
     }
 
     // Obtener ubicación del evento desde la cotización
-    const cotizacion = await CotizacionModel.obtenerPorId(alquiler.cotizacion_id);
+    const cotizacion = await CotizacionModel.obtenerPorId(tenantId, alquiler.cotizacion_id);
 
     // Cambiar estado de SERIES y LOTES a 'alquilado'
     let seriesActualizadas = 0;
@@ -319,6 +329,7 @@ exports.marcarSalida = async (req, res, next) => {
       if (elem.serie_id) {
         // SERIES: Cambiar estado a 'alquilado' con ubicación del evento
         await SerieModel.cambiarEstado(
+          tenantId,
           elem.serie_id,
           'alquilado',
           cotizacion.evento_ciudad || null,
@@ -330,18 +341,19 @@ exports.marcarSalida = async (req, res, next) => {
       if (elem.lote_id && elem.cantidad_lote) {
         // LOTES: Mover cantidad a estado 'alquilado'
         const loteAlquiladoId = await LoteModel.moverParaAlquiler(
+          tenantId,
           elem.lote_id,
           elem.cantidad_lote,
           id
         );
 
         // Guardar referencia al lote alquilado para el retorno
-        await AlquilerElementoModel.actualizarLoteAlquilado(elem.id, loteAlquiladoId);
+        await AlquilerElementoModel.actualizarLoteAlquilado(tenantId, elem.id, loteAlquiladoId);
         lotesMovidos++;
       }
     }
 
-    await AlquilerModel.marcarActivo(id, {
+    await AlquilerModel.marcarActivo(tenantId, id, {
       fecha_salida: fecha_salida || new Date(),
       notas_salida
     });
@@ -353,7 +365,7 @@ exports.marcarSalida = async (req, res, next) => {
       totalElementos: elementosAsignados.length
     });
 
-    const alquilerActualizado = await AlquilerModel.obtenerCompleto(id);
+    const alquilerActualizado = await AlquilerModel.obtenerCompleto(tenantId, id);
 
     res.json({
       success: true,
@@ -373,10 +385,11 @@ exports.marcarSalida = async (req, res, next) => {
 // ============================================
 exports.registrarRetornoElemento = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { id, elementoId } = req.params;
     const { estado_retorno, costo_dano, notas_retorno } = req.body;
 
-    const alquiler = await AlquilerModel.obtenerPorId(id);
+    const alquiler = await AlquilerModel.obtenerPorId(tenantId, id);
     if (!alquiler) {
       throw new AppError('Alquiler no encontrado', 404);
     }
@@ -391,12 +404,12 @@ exports.registrarRetornoElemento = async (req, res, next) => {
     }
 
     // Obtener la asignación antes de registrar retorno
-    const asignacion = await AlquilerElementoModel.obtenerPorId(elementoId);
+    const asignacion = await AlquilerElementoModel.obtenerPorId(tenantId, elementoId);
     if (!asignacion) {
       throw new AppError('Asignación no encontrada', 404);
     }
 
-    await AlquilerElementoModel.registrarRetorno(elementoId, {
+    await AlquilerElementoModel.registrarRetorno(tenantId, elementoId, {
       estado_retorno,
       costo_dano,
       notas_retorno
@@ -412,6 +425,7 @@ exports.registrarRetornoElemento = async (req, res, next) => {
       }
 
       await SerieModel.cambiarEstado(
+        tenantId,
         asignacion.serie_id,
         nuevoEstadoSerie,
         null,
@@ -428,6 +442,7 @@ exports.registrarRetornoElemento = async (req, res, next) => {
     // Restaurar cantidad de LOTES
     if (asignacion.lote_alquilado_id && asignacion.cantidad_lote) {
       await LoteModel.retornarDeAlquiler(
+        tenantId,
         asignacion.lote_alquilado_id,
         asignacion.cantidad_lote,
         estado_retorno,
@@ -443,9 +458,9 @@ exports.registrarRetornoElemento = async (req, res, next) => {
     }
 
     // Actualizar costo de daños del alquiler
-    await AlquilerModel.actualizarCostoDanos(id);
+    await AlquilerModel.actualizarCostoDanos(tenantId, id);
 
-    const alquilerActualizado = await AlquilerModel.obtenerCompleto(id);
+    const alquilerActualizado = await AlquilerModel.obtenerCompleto(tenantId, id);
 
     res.json({
       success: true,
@@ -462,10 +477,11 @@ exports.registrarRetornoElemento = async (req, res, next) => {
 // ============================================
 exports.marcarRetorno = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { id } = req.params;
     const { fecha_retorno_real, notas_retorno, retornos } = req.body;
 
-    const alquiler = await AlquilerModel.obtenerCompleto(id);
+    const alquiler = await AlquilerModel.obtenerCompleto(tenantId, id);
     if (!alquiler) {
       throw new AppError('Alquiler no encontrado', 404);
     }
@@ -477,7 +493,7 @@ exports.marcarRetorno = async (req, res, next) => {
     // Registrar retornos individuales si vienen
     if (retornos && retornos.length > 0) {
       for (const retorno of retornos) {
-        await AlquilerElementoModel.registrarRetorno(retorno.elemento_id, {
+        await AlquilerElementoModel.registrarRetorno(tenantId, retorno.elemento_id, {
           estado_retorno: retorno.estado_retorno,
           costo_dano: retorno.costo_dano,
           notas_retorno: retorno.notas_retorno
@@ -485,16 +501,16 @@ exports.marcarRetorno = async (req, res, next) => {
       }
     } else {
       // Si no vienen retornos específicos, marcar todos como 'bueno'
-      await AlquilerElementoModel.registrarRetornoMasivo(id, 'bueno');
+      await AlquilerElementoModel.registrarRetornoMasivo(tenantId, id, 'bueno');
     }
 
     // Actualizar costo de daños
-    await AlquilerModel.actualizarCostoDanos(id);
+    await AlquilerModel.actualizarCostoDanos(tenantId, id);
 
     // Obtener costo total de daños
-    const totalDanos = await AlquilerElementoModel.calcularTotalDanos(id);
+    const totalDanos = await AlquilerElementoModel.calcularTotalDanos(tenantId, id);
 
-    await AlquilerModel.marcarFinalizado(id, {
+    await AlquilerModel.marcarFinalizado(tenantId, id, {
       fecha_retorno_real: fecha_retorno_real || new Date(),
       costo_danos: totalDanos,
       notas_retorno
@@ -521,6 +537,7 @@ exports.marcarRetorno = async (req, res, next) => {
         else if (estadoRetornoElem === 'perdido') nuevoEstadoSerie = 'dañado';
 
         await SerieModel.cambiarEstado(
+          tenantId,
           elem.serie_id,
           nuevoEstadoSerie,
           null,
@@ -531,6 +548,7 @@ exports.marcarRetorno = async (req, res, next) => {
 
       if (elem.lote_alquilado_id && elem.cantidad_lote) {
         await LoteModel.retornarDeAlquiler(
+          tenantId,
           elem.lote_alquilado_id,
           elem.cantidad_lote,
           estadoRetornoElem,
@@ -554,7 +572,7 @@ exports.marcarRetorno = async (req, res, next) => {
       lotesRestaurados
     });
 
-    const alquilerActualizado = await AlquilerModel.obtenerCompleto(id);
+    const alquilerActualizado = await AlquilerModel.obtenerCompleto(tenantId, id);
 
     res.json({
       success: true,
@@ -574,10 +592,11 @@ exports.marcarRetorno = async (req, res, next) => {
 // ============================================
 exports.cancelar = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { id } = req.params;
     const { notas } = req.body;
 
-    const alquiler = await AlquilerModel.obtenerPorId(id);
+    const alquiler = await AlquilerModel.obtenerPorId(tenantId, id);
     if (!alquiler) {
       throw new AppError('Alquiler no encontrado', 404);
     }
@@ -591,10 +610,10 @@ exports.cancelar = async (req, res, next) => {
     }
 
     // Si tiene elementos asignados, liberarlos
-    await AlquilerElementoModel.eliminarPorAlquiler(id);
+    await AlquilerElementoModel.eliminarPorAlquiler(tenantId, id);
     // TODO: Restaurar estado de elementos a disponible
 
-    await AlquilerModel.cancelar(id, notas);
+    await AlquilerModel.cancelar(tenantId, id, notas);
 
     logger.info('alquilerController.cancelar', 'Alquiler cancelado', { id });
 
@@ -613,13 +632,14 @@ exports.cancelar = async (req, res, next) => {
 // ============================================
 exports.obtenerPorRangoFechas = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { fechaInicio, fechaFin } = req.query;
 
     if (!fechaInicio || !fechaFin) {
       throw new AppError('Se requieren fechaInicio y fechaFin', 400);
     }
 
-    const alquileres = await AlquilerModel.obtenerPorRangoFechas(fechaInicio, fechaFin);
+    const alquileres = await AlquilerModel.obtenerPorRangoFechas(tenantId, fechaInicio, fechaFin);
 
     res.json({
       success: true,
@@ -636,7 +656,8 @@ exports.obtenerPorRangoFechas = async (req, res, next) => {
 // ============================================
 exports.obtenerEstadisticas = async (req, res, next) => {
   try {
-    const estadisticas = await AlquilerModel.obtenerEstadisticas();
+    const tenantId = req.tenant.id;
+    const estadisticas = await AlquilerModel.obtenerEstadisticas(tenantId);
 
     res.json({
       success: true,
@@ -652,19 +673,20 @@ exports.obtenerEstadisticas = async (req, res, next) => {
 // ============================================
 exports.obtenerReportes = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { fechaInicio, fechaFin } = req.query;
 
     const [estadisticas, ingresosPorMes, topClientes, productosMasAlquilados, alquileresPorCiudad] = await Promise.all([
-      AlquilerModel.obtenerEstadisticas(fechaInicio, fechaFin),
-      AlquilerModel.obtenerIngresosPorMes(fechaInicio, fechaFin),
-      AlquilerModel.obtenerTopClientes(10, fechaInicio, fechaFin),
-      AlquilerModel.obtenerProductosMasAlquilados(10, fechaInicio, fechaFin),
-      AlquilerModel.obtenerAlquileresPorCiudad(fechaInicio, fechaFin),
+      AlquilerModel.obtenerEstadisticas(tenantId, fechaInicio, fechaFin),
+      AlquilerModel.obtenerIngresosPorMes(tenantId, fechaInicio, fechaFin),
+      AlquilerModel.obtenerTopClientes(tenantId, 10, fechaInicio, fechaFin),
+      AlquilerModel.obtenerProductosMasAlquilados(tenantId, 10, fechaInicio, fechaFin),
+      AlquilerModel.obtenerAlquileresPorCiudad(tenantId, fechaInicio, fechaFin),
     ]);
 
     // Estadísticas de cotizaciones (filtradas por fecha)
     const CotizacionModel = require('../models/CotizacionModel');
-    const cotizaciones = await CotizacionModel.obtenerTodas();
+    const cotizaciones = await CotizacionModel.obtenerTodas(tenantId);
     let cotizacionesFiltradas = cotizaciones;
     if (fechaInicio && fechaFin) {
       const inicio = new Date(fechaInicio);
@@ -716,6 +738,7 @@ exports.obtenerReportes = async (req, res, next) => {
  */
 exports.extenderFechaRetorno = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { id } = req.params;
     const { nueva_fecha_retorno, razon, costo_extension } = req.body;
 
@@ -723,7 +746,7 @@ exports.extenderFechaRetorno = async (req, res, next) => {
       throw new AppError('La nueva fecha de retorno es requerida', 400);
     }
 
-    const alquiler = await AlquilerModel.obtenerPorId(id);
+    const alquiler = await AlquilerModel.obtenerPorId(tenantId, id);
     if (!alquiler) {
       throw new AppError('Alquiler no encontrado', 404);
     }
@@ -739,7 +762,7 @@ exports.extenderFechaRetorno = async (req, res, next) => {
       throw new AppError('La nueva fecha debe ser posterior a la fecha de retorno actual', 400);
     }
 
-    const resultado = await AlquilerModel.extenderFechaRetorno(id, {
+    const resultado = await AlquilerModel.extenderFechaRetorno(tenantId, id, {
       nueva_fecha_retorno,
       razon,
       costo_extension: costo_extension || 0,
@@ -765,14 +788,15 @@ exports.extenderFechaRetorno = async (req, res, next) => {
  */
 exports.obtenerExtensiones = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { id } = req.params;
 
-    const alquiler = await AlquilerModel.obtenerPorId(id);
+    const alquiler = await AlquilerModel.obtenerPorId(tenantId, id);
     if (!alquiler) {
       throw new AppError('Alquiler no encontrado', 404);
     }
 
-    const extensiones = await AlquilerModel.obtenerExtensiones(id);
+    const extensiones = await AlquilerModel.obtenerExtensiones(tenantId, id);
 
     res.json({
       success: true,
@@ -791,13 +815,15 @@ exports.obtenerExtensiones = async (req, res, next) => {
  */
 exports.obtenerFotosAlquiler = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { id } = req.params;
 
-    const alquiler = await AlquilerModel.obtenerPorId(id);
+    const alquiler = await AlquilerModel.obtenerPorId(tenantId, id);
     if (!alquiler) {
       throw new AppError('Alquiler no encontrado', 404);
     }
 
+    // TODO: pasar tenantId cuando se migre operaciones (Fase 4.2)
     const resultado = await FotoOperacionModel.obtenerPorAlquiler(id);
 
     res.json({
@@ -816,13 +842,15 @@ exports.obtenerFotosAlquiler = async (req, res, next) => {
  */
 exports.obtenerNovedadesAlquiler = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { id } = req.params;
 
-    const alquiler = await AlquilerModel.obtenerPorId(id);
+    const alquiler = await AlquilerModel.obtenerPorId(tenantId, id);
     if (!alquiler) {
       throw new AppError('Alquiler no encontrado', 404);
     }
 
+    // TODO: pasar tenantId cuando se migre operaciones (Fase 4.2)
     const novedades = await NovedadModel.obtenerPorAlquiler(id);
 
     res.json({

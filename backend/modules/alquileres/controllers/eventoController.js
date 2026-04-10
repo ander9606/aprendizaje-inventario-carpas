@@ -16,7 +16,8 @@ const logger = require('../../../utils/logger');
 // ============================================
 exports.obtenerTodos = async (req, res, next) => {
   try {
-    const eventos = await EventoModel.obtenerTodos();
+    const tenantId = req.tenant.id;
+    const eventos = await EventoModel.obtenerTodos(tenantId);
     res.json({
       success: true,
       data: eventos,
@@ -32,15 +33,16 @@ exports.obtenerTodos = async (req, res, next) => {
 // ============================================
 exports.obtenerPorId = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { id } = req.params;
-    const evento = await EventoModel.obtenerPorId(id);
+    const evento = await EventoModel.obtenerPorId(tenantId, id);
 
     if (!evento) {
       throw new AppError('Evento no encontrado', 404);
     }
 
     // Enriquecer con información de si se pueden agregar cotizaciones
-    const puedeAgregar = await EventoModel.puedeAgregarCotizaciones(id);
+    const puedeAgregar = await EventoModel.puedeAgregarCotizaciones(tenantId, id);
     evento.puede_agregar_cotizaciones = puedeAgregar;
 
     res.json({
@@ -57,8 +59,9 @@ exports.obtenerPorId = async (req, res, next) => {
 // ============================================
 exports.obtenerPorCliente = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { clienteId } = req.params;
-    const eventos = await EventoModel.obtenerPorCliente(clienteId);
+    const eventos = await EventoModel.obtenerPorCliente(tenantId, clienteId);
 
     res.json({
       success: true,
@@ -75,6 +78,7 @@ exports.obtenerPorCliente = async (req, res, next) => {
 // ============================================
 exports.obtenerPorEstado = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { estado } = req.params;
     const estadosValidos = ['activo', 'completado', 'cancelado'];
 
@@ -82,7 +86,7 @@ exports.obtenerPorEstado = async (req, res, next) => {
       throw new AppError(`Estado inválido. Valores permitidos: ${estadosValidos.join(', ')}`, 400);
     }
 
-    const eventos = await EventoModel.obtenerPorEstado(estado);
+    const eventos = await EventoModel.obtenerPorEstado(tenantId, estado);
     res.json({
       success: true,
       data: eventos,
@@ -98,6 +102,7 @@ exports.obtenerPorEstado = async (req, res, next) => {
 // ============================================
 exports.crear = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { cliente_id, nombre, descripcion, fecha_inicio, fecha_fin, direccion, ciudad_id, notas } = req.body;
 
     // Validaciones
@@ -114,12 +119,12 @@ exports.crear = async (req, res, next) => {
     }
 
     // Verificar que el cliente existe
-    const cliente = await ClienteModel.obtenerPorId(cliente_id);
+    const cliente = await ClienteModel.obtenerPorId(tenantId, cliente_id);
     if (!cliente) {
       throw new AppError('Cliente no encontrado', 404);
     }
 
-    const resultado = await EventoModel.crear({
+    const resultado = await EventoModel.crear(tenantId, {
       cliente_id,
       nombre,
       descripcion,
@@ -130,7 +135,7 @@ exports.crear = async (req, res, next) => {
       notas
     });
 
-    const eventoCreado = await EventoModel.obtenerPorId(resultado.insertId);
+    const eventoCreado = await EventoModel.obtenerPorId(tenantId, resultado.insertId);
 
     res.status(201).json({
       success: true,
@@ -147,15 +152,16 @@ exports.crear = async (req, res, next) => {
 // ============================================
 exports.actualizar = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { id } = req.params;
     const { nombre, descripcion, fecha_inicio, fecha_fin, direccion, ciudad_id, notas, estado } = req.body;
 
-    const eventoExistente = await EventoModel.obtenerPorId(id);
+    const eventoExistente = await EventoModel.obtenerPorId(tenantId, id);
     if (!eventoExistente) {
       throw new AppError('Evento no encontrado', 404);
     }
 
-    await EventoModel.actualizar(id, {
+    await EventoModel.actualizar(tenantId, id, {
       nombre: nombre || eventoExistente.nombre,
       descripcion: descripcion !== undefined ? descripcion : eventoExistente.descripcion,
       fecha_inicio: fecha_inicio || eventoExistente.fecha_inicio,
@@ -166,7 +172,7 @@ exports.actualizar = async (req, res, next) => {
       estado
     });
 
-    const eventoActualizado = await EventoModel.obtenerPorId(id);
+    const eventoActualizado = await EventoModel.obtenerPorId(tenantId, id);
 
     res.json({
       success: true,
@@ -183,6 +189,7 @@ exports.actualizar = async (req, res, next) => {
 // ============================================
 exports.cambiarEstado = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { id } = req.params;
     const { estado } = req.body;
 
@@ -191,12 +198,12 @@ exports.cambiarEstado = async (req, res, next) => {
       throw new AppError(`Estado inválido. Valores permitidos: ${estadosValidos.join(', ')}`, 400);
     }
 
-    const evento = await EventoModel.obtenerPorId(id);
+    const evento = await EventoModel.obtenerPorId(tenantId, id);
     if (!evento) {
       throw new AppError('Evento no encontrado', 404);
     }
 
-    await EventoModel.cambiarEstado(id, estado);
+    await EventoModel.cambiarEstado(tenantId, id, estado);
 
     res.json({
       success: true,
@@ -212,20 +219,21 @@ exports.cambiarEstado = async (req, res, next) => {
 // ============================================
 exports.eliminar = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { id } = req.params;
 
-    const evento = await EventoModel.obtenerPorId(id);
+    const evento = await EventoModel.obtenerPorId(tenantId, id);
     if (!evento) {
       throw new AppError('Evento no encontrado', 404);
     }
 
     // Verificar si tiene cotizaciones
-    const tieneCotizaciones = await EventoModel.tieneCotizaciones(id);
+    const tieneCotizaciones = await EventoModel.tieneCotizaciones(tenantId, id);
     if (tieneCotizaciones) {
       throw new AppError('No se puede eliminar un evento con cotizaciones asociadas', 400);
     }
 
-    await EventoModel.eliminar(id);
+    await EventoModel.eliminar(tenantId, id);
 
     res.json({
       success: true,
@@ -241,14 +249,15 @@ exports.eliminar = async (req, res, next) => {
 // ============================================
 exports.obtenerCotizaciones = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { id } = req.params;
 
-    const evento = await EventoModel.obtenerPorId(id);
+    const evento = await EventoModel.obtenerPorId(tenantId, id);
     if (!evento) {
       throw new AppError('Evento no encontrado', 404);
     }
 
-    const cotizaciones = await EventoModel.obtenerCotizaciones(id);
+    const cotizaciones = await EventoModel.obtenerCotizaciones(tenantId, id);
 
     res.json({
       success: true,
@@ -265,9 +274,10 @@ exports.obtenerCotizaciones = async (req, res, next) => {
 // ============================================
 exports.puedeAgregarCotizacion = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { id } = req.params;
 
-    const resultado = await EventoModel.puedeAgregarCotizaciones(id);
+    const resultado = await EventoModel.puedeAgregarCotizaciones(tenantId, id);
 
     res.json({
       success: true,
@@ -285,6 +295,7 @@ exports.puedeAgregarCotizacion = async (req, res, next) => {
 // ============================================
 exports.repetir = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { id } = req.params;
     const { fecha_inicio, fecha_fin } = req.body;
 
@@ -293,13 +304,13 @@ exports.repetir = async (req, res, next) => {
     }
 
     // Obtener evento original
-    const eventoOriginal = await EventoModel.obtenerPorId(id);
+    const eventoOriginal = await EventoModel.obtenerPorId(tenantId, id);
     if (!eventoOriginal) {
       throw new AppError('Evento original no encontrado', 404);
     }
 
     // Crear nuevo evento con mismos datos pero nuevas fechas
-    const resultadoEvento = await EventoModel.crear({
+    const resultadoEvento = await EventoModel.crear(tenantId, {
       cliente_id: eventoOriginal.cliente_id,
       nombre: eventoOriginal.nombre,
       descripcion: eventoOriginal.descripcion,
@@ -314,7 +325,7 @@ exports.repetir = async (req, res, next) => {
 
     // Obtener productos de cotizaciones aprobadas del evento original
     // MySQL DECIMAL retorna strings, convertir a números para evitar NaN en cálculos
-    const productosOriginales = (await EventoModel.obtenerProductosAprobados(id)).map(p => ({
+    const productosOriginales = (await EventoModel.obtenerProductosAprobados(tenantId, id)).map(p => ({
       ...p,
       cantidad: parseInt(p.cantidad) || 1,
       precio_base: parseFloat(p.precio_base) || 0,
@@ -326,7 +337,7 @@ exports.repetir = async (req, res, next) => {
 
     if (productosOriginales.length > 0) {
       // Crear cotización para el nuevo evento
-      const resultadoCotizacion = await CotizacionModel.crear({
+      const resultadoCotizacion = await CotizacionModel.crear(tenantId, {
         cliente_id: eventoOriginal.cliente_id,
         evento_id: nuevoEventoId,
         fecha_evento: fecha_inicio,
@@ -345,13 +356,13 @@ exports.repetir = async (req, res, next) => {
       cotizacionId = resultadoCotizacion.insertId;
 
       // Agregar los mismos productos
-      await CotizacionProductoModel.agregarMultiples(cotizacionId, productosOriginales);
+      await CotizacionProductoModel.agregarMultiples(tenantId, cotizacionId, productosOriginales);
 
       // Recalcular totales
-      await CotizacionModel.recalcularTotales(cotizacionId);
+      await CotizacionModel.recalcularTotales(tenantId, cotizacionId);
     }
 
-    const nuevoEvento = await EventoModel.obtenerPorId(nuevoEventoId);
+    const nuevoEvento = await EventoModel.obtenerPorId(tenantId, nuevoEventoId);
 
     logger.info('eventoController.repetir', 'Evento repetido', {
       evento_original: id,
@@ -385,13 +396,15 @@ exports.repetir = async (req, res, next) => {
  */
 exports.obtenerNovedadesEvento = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { id } = req.params;
 
-    const evento = await EventoModel.obtenerPorId(id);
+    const evento = await EventoModel.obtenerPorId(tenantId, id);
     if (!evento) {
       throw new AppError('Evento no encontrado', 404);
     }
 
+    // TODO: pasar tenantId cuando se migre operaciones (Fase 4.2)
     const novedades = await NovedadModel.obtenerPorEvento(id);
 
     res.json({

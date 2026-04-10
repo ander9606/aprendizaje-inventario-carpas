@@ -27,10 +27,10 @@ class CotizacionModel {
   // ============================================
   // OBTENER CONFIGURACIÓN DINÁMICA
   // ============================================
-  static async obtenerConfiguracion() {
+  static async obtenerConfiguracion(tenantId) {
     try {
       const Config = getConfiguracionModel();
-      return await Config.obtenerValores([
+      return await Config.obtenerValores(tenantId, [
         'dias_gratis_montaje',
         'dias_gratis_desmontaje',
         'porcentaje_dias_extra',
@@ -54,7 +54,7 @@ class CotizacionModel {
   // ============================================
   // OBTENER TODAS
   // ============================================
-  static async obtenerTodas() {
+  static async obtenerTodas(tenantId) {
     const query = `
       SELECT
         cot.id,
@@ -79,21 +79,22 @@ class CotizacionModel {
         cot.valor_iva,
         cl.nombre AS cliente_nombre,
         cl.telefono AS cliente_telefono,
-        (SELECT COUNT(*) FROM cotizacion_productos WHERE cotizacion_id = cot.id) AS total_productos,
-        (SELECT a.id FROM alquileres a WHERE a.cotizacion_id = cot.id LIMIT 1) AS alquiler_id,
-        (SELECT a.estado FROM alquileres a WHERE a.cotizacion_id = cot.id LIMIT 1) AS alquiler_estado
+        (SELECT COUNT(*) FROM cotizacion_productos WHERE tenant_id = cot.tenant_id AND cotizacion_id = cot.id) AS total_productos,
+        (SELECT a.id FROM alquileres a WHERE a.tenant_id = cot.tenant_id AND a.cotizacion_id = cot.id LIMIT 1) AS alquiler_id,
+        (SELECT a.estado FROM alquileres a WHERE a.tenant_id = cot.tenant_id AND a.cotizacion_id = cot.id LIMIT 1) AS alquiler_estado
       FROM cotizaciones cot
-      INNER JOIN clientes cl ON cot.cliente_id = cl.id
+      INNER JOIN clientes cl ON cot.cliente_id = cl.id AND cl.tenant_id = ?
+      WHERE cot.tenant_id = ?
       ORDER BY cot.created_at DESC
     `;
-    const [rows] = await pool.query(query);
+    const [rows] = await pool.query(query, [tenantId, tenantId]);
     return rows;
   }
 
   // ============================================
   // OBTENER POR ESTADO
   // ============================================
-  static async obtenerPorEstado(estado) {
+  static async obtenerPorEstado(tenantId, estado) {
     const query = `
       SELECT
         cot.id,
@@ -105,20 +106,20 @@ class CotizacionModel {
         cot.fechas_confirmadas,
         cot.created_at,
         cl.nombre AS cliente_nombre,
-        (SELECT COUNT(*) FROM cotizacion_productos WHERE cotizacion_id = cot.id) AS total_productos
+        (SELECT COUNT(*) FROM cotizacion_productos WHERE tenant_id = cot.tenant_id AND cotizacion_id = cot.id) AS total_productos
       FROM cotizaciones cot
-      INNER JOIN clientes cl ON cot.cliente_id = cl.id
-      WHERE cot.estado = ?
+      INNER JOIN clientes cl ON cot.cliente_id = cl.id AND cl.tenant_id = ?
+      WHERE cot.tenant_id = ? AND cot.estado = ?
       ORDER BY COALESCE(cot.fecha_evento, cot.created_at) ASC
     `;
-    const [rows] = await pool.query(query, [estado]);
+    const [rows] = await pool.query(query, [tenantId, tenantId, estado]);
     return rows;
   }
 
   // ============================================
   // OBTENER POR ID
   // ============================================
-  static async obtenerPorId(id) {
+  static async obtenerPorId(tenantId, id) {
     const query = `
       SELECT
         cot.*,
@@ -128,21 +129,21 @@ class CotizacionModel {
         cl.direccion AS cliente_direccion,
         cl.tipo_documento AS cliente_tipo_documento,
         cl.numero_documento AS cliente_numero_documento,
-        (SELECT a.id FROM alquileres a WHERE a.cotizacion_id = cot.id LIMIT 1) AS alquiler_id,
-        (SELECT a.estado FROM alquileres a WHERE a.cotizacion_id = cot.id LIMIT 1) AS alquiler_estado
+        (SELECT a.id FROM alquileres a WHERE a.tenant_id = cot.tenant_id AND a.cotizacion_id = cot.id LIMIT 1) AS alquiler_id,
+        (SELECT a.estado FROM alquileres a WHERE a.tenant_id = cot.tenant_id AND a.cotizacion_id = cot.id LIMIT 1) AS alquiler_estado
       FROM cotizaciones cot
-      INNER JOIN clientes cl ON cot.cliente_id = cl.id
-      WHERE cot.id = ?
+      INNER JOIN clientes cl ON cot.cliente_id = cl.id AND cl.tenant_id = ?
+      WHERE cot.tenant_id = ? AND cot.id = ?
     `;
-    const [rows] = await pool.query(query, [id]);
+    const [rows] = await pool.query(query, [tenantId, tenantId, id]);
     return rows[0];
   }
 
   // ============================================
   // OBTENER COMPLETA (con productos, transporte y descuentos)
   // ============================================
-  static async obtenerCompleta(id) {
-    const cotizacion = await this.obtenerPorId(id);
+  static async obtenerCompleta(tenantId, id) {
+    const cotizacion = await this.obtenerPorId(tenantId, id);
     if (!cotizacion) return null;
 
     // Obtener productos (con recargos incluidos)
@@ -164,12 +165,12 @@ class CotizacionModel {
         cat.nombre AS categoria_nombre,
         cat.emoji AS categoria_emoji
       FROM cotizacion_productos cp
-      INNER JOIN elementos_compuestos ec ON cp.compuesto_id = ec.id
-      LEFT JOIN categorias_productos cat ON ec.categoria_id = cat.id
-      WHERE cp.cotizacion_id = ?
+      INNER JOIN elementos_compuestos ec ON cp.compuesto_id = ec.id AND ec.tenant_id = ?
+      LEFT JOIN categorias_productos cat ON ec.categoria_id = cat.id AND cat.tenant_id = ?
+      WHERE cp.tenant_id = ? AND cp.cotizacion_id = ?
       ORDER BY cp.id
     `;
-    const [productos] = await pool.query(queryProductos, [id]);
+    const [productos] = await pool.query(queryProductos, [tenantId, tenantId, tenantId, id]);
 
     // Obtener transporte
     const queryTransporte = `
@@ -183,11 +184,11 @@ class CotizacionModel {
         t.tipo_camion,
         c.nombre AS ciudad
       FROM cotizacion_transportes ct
-      INNER JOIN tarifas_transporte t ON ct.tarifa_id = t.id
-      LEFT JOIN ciudades c ON t.ciudad_id = c.id
-      WHERE ct.cotizacion_id = ?
+      INNER JOIN tarifas_transporte t ON ct.tarifa_id = t.id AND t.tenant_id = ?
+      LEFT JOIN ciudades c ON t.ciudad_id = c.id AND c.tenant_id = ?
+      WHERE ct.tenant_id = ? AND ct.cotizacion_id = ?
     `;
-    const [transporte] = await pool.query(queryTransporte, [id]);
+    const [transporte] = await pool.query(queryTransporte, [tenantId, tenantId, tenantId, id]);
 
     // Obtener descuentos aplicados
     const queryDescuentos = `
@@ -201,10 +202,10 @@ class CotizacionModel {
         d.nombre AS descuento_nombre,
         d.descripcion AS descuento_descripcion
       FROM cotizacion_descuentos cd
-      LEFT JOIN descuentos d ON cd.descuento_id = d.id
-      WHERE cd.cotizacion_id = ?
+      LEFT JOIN descuentos d ON cd.descuento_id = d.id AND d.tenant_id = ?
+      WHERE cd.tenant_id = ? AND cd.cotizacion_id = ?
     `;
-    const [descuentos] = await pool.query(queryDescuentos, [id]);
+    const [descuentos] = await pool.query(queryDescuentos, [tenantId, tenantId, id]);
 
     // Calcular totales (incluye recargos por adelanto/extensión)
     const subtotalProductos = productos.reduce((sum, p) => sum + parseFloat(p.subtotal) + parseFloat(p.total_recargos || 0), 0);
@@ -247,15 +248,15 @@ class CotizacionModel {
   // ============================================
   // CALCULAR DÍAS EXTRA (con configuración dinámica)
   // ============================================
-  static async calcularDiasExtra(fechaMontaje, fechaEvento, fechaDesmontaje, config = null) {
+  static async calcularDiasExtra(tenantId, fechaMontaje, fechaEvento, fechaDesmontaje, config = null) {
     // Si no hay fecha de evento, no se pueden calcular días extra (borrador)
     if (!fechaEvento) {
-      return { diasMontajeExtra: 0, diasDesmontajeExtra: 0, config: config || await this.obtenerConfiguracion() };
+      return { diasMontajeExtra: 0, diasDesmontajeExtra: 0, config: config || await this.obtenerConfiguracion(tenantId) };
     }
 
     // Obtener configuración si no se proporciona
     if (!config) {
-      config = await this.obtenerConfiguracion();
+      config = await this.obtenerConfiguracion(tenantId);
     }
 
     const montaje = new Date(fechaMontaje || fechaEvento);
@@ -279,14 +280,14 @@ class CotizacionModel {
   // ============================================
   // CREAR
   // ============================================
-  static async crear({
+  static async crear(tenantId, {
     cliente_id, fecha_montaje, fecha_evento, fecha_desmontaje, evento_nombre,
     evento_direccion, evento_ciudad, ubicacion_id, subtotal, descuento, total, vigencia_dias, notas,
     dias_montaje_extra, dias_desmontaje_extra, porcentaje_dias_extra,
     cobro_dias_extra, porcentaje_iva, valor_iva, evento_id, fechas_confirmadas
   }) {
     // Obtener configuración dinámica
-    const config = await this.obtenerConfiguracion();
+    const config = await this.obtenerConfiguracion(tenantId);
 
     // Determinar si es borrador (sin fechas confirmadas)
     const esBorrador = fechas_confirmadas === false || !fecha_evento;
@@ -295,6 +296,7 @@ class CotizacionModel {
     // Calcular días extra solo si hay fechas
     if (fecha_evento && (dias_montaje_extra === undefined || dias_desmontaje_extra === undefined)) {
       const calculados = await this.calcularDiasExtra(
+        tenantId,
         fecha_montaje || fecha_evento,
         fecha_evento,
         fecha_desmontaje || fecha_evento,
@@ -311,14 +313,15 @@ class CotizacionModel {
 
     const query = `
       INSERT INTO cotizaciones
-        (cliente_id, fecha_montaje, fecha_evento, fecha_desmontaje, evento_nombre,
+        (tenant_id, cliente_id, fecha_montaje, fecha_evento, fecha_desmontaje, evento_nombre,
          evento_direccion, ubicacion_id, evento_ciudad, subtotal, descuento, total, estado,
          fechas_confirmadas, vigencia_dias, notas,
          dias_montaje_extra, dias_desmontaje_extra, porcentaje_dias_extra,
          cobro_dias_extra, porcentaje_iva, valor_iva, evento_id)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     const [result] = await pool.query(query, [
+      tenantId,
       cliente_id,
       fecha_montaje || fecha_evento || null,
       fecha_evento || null,
@@ -348,7 +351,7 @@ class CotizacionModel {
   // ============================================
   // ACTUALIZAR
   // ============================================
-  static async actualizar(id, {
+  static async actualizar(tenantId, id, {
     fecha_montaje, fecha_evento, fecha_desmontaje, evento_nombre, evento_direccion,
     ubicacion_id, evento_ciudad, subtotal, descuento, total, vigencia_dias, notas,
     dias_montaje_extra, dias_desmontaje_extra, porcentaje_dias_extra,
@@ -357,6 +360,7 @@ class CotizacionModel {
     // Calcular días extra si las fechas cambian y existen
     if (fecha_evento && (dias_montaje_extra === undefined || dias_desmontaje_extra === undefined)) {
       const calculados = await this.calcularDiasExtra(
+        tenantId,
         fecha_montaje || fecha_evento,
         fecha_evento,
         fecha_desmontaje || fecha_evento
@@ -383,7 +387,7 @@ class CotizacionModel {
           cobro_dias_extra = COALESCE(?, cobro_dias_extra),
           porcentaje_iva = COALESCE(?, porcentaje_iva),
           valor_iva = COALESCE(?, valor_iva)
-      WHERE id = ?
+      WHERE tenant_id = ? AND id = ?
     `;
     const [result] = await pool.query(query, [
       fecha_montaje || fecha_evento || null,
@@ -405,6 +409,7 @@ class CotizacionModel {
       cobro_dias_extra,
       porcentaje_iva,
       valor_iva,
+      tenantId,
       id
     ]);
     return result;
@@ -413,7 +418,7 @@ class CotizacionModel {
   // ============================================
   // ACTUALIZAR TOTALES
   // ============================================
-  static async actualizarTotales(id, {
+  static async actualizarTotales(tenantId, id, {
     subtotal, descuento, total, cobro_dias_extra, valor_iva,
     subtotal_productos, subtotal_transporte, total_descuentos, base_gravable,
     valor_deposito
@@ -430,13 +435,14 @@ class CotizacionModel {
             total_descuentos = COALESCE(?, total_descuentos),
             base_gravable = COALESCE(?, base_gravable),
             valor_deposito = COALESCE(?, valor_deposito)
-        WHERE id = ?
+        WHERE tenant_id = ? AND id = ?
       `;
       const [result] = await pool.query(query, [
         subtotal, descuento || 0, total,
         cobro_dias_extra, valor_iva,
         subtotal_productos, subtotal_transporte, total_descuentos, base_gravable,
         valor_deposito,
+        tenantId,
         id
       ]);
       return result;
@@ -451,12 +457,13 @@ class CotizacionModel {
               subtotal_transporte = COALESCE(?, subtotal_transporte),
               total_descuentos = COALESCE(?, total_descuentos),
               base_gravable = COALESCE(?, base_gravable)
-          WHERE id = ?
+          WHERE tenant_id = ? AND id = ?
         `;
         const [result] = await pool.query(query, [
           subtotal, descuento || 0, total,
           cobro_dias_extra, valor_iva,
           subtotal_productos, subtotal_transporte, total_descuentos, base_gravable,
+          tenantId,
           id
         ]);
         return result;
@@ -468,31 +475,31 @@ class CotizacionModel {
   // ============================================
   // ACTUALIZAR ESTADO
   // ============================================
-  static async actualizarEstado(id, estado) {
-    const query = `UPDATE cotizaciones SET estado = ? WHERE id = ?`;
-    const [result] = await pool.query(query, [estado, id]);
+  static async actualizarEstado(tenantId, id, estado) {
+    const query = `UPDATE cotizaciones SET estado = ? WHERE tenant_id = ? AND id = ?`;
+    const [result] = await pool.query(query, [estado, tenantId, id]);
     return result;
   }
 
   // ============================================
   // ELIMINAR
   // ============================================
-  static async eliminar(id) {
+  static async eliminar(tenantId, id) {
     // Los productos y transporte se eliminan por CASCADE
-    const [result] = await pool.query('DELETE FROM cotizaciones WHERE id = ?', [id]);
+    const [result] = await pool.query('DELETE FROM cotizaciones WHERE tenant_id = ? AND id = ?', [tenantId, id]);
     return result;
   }
 
   // ============================================
   // OBTENER UBICACIONES USADAS POR CLIENTE
   // ============================================
-  static async obtenerUbicacionesPorCliente(clienteId) {
+  static async obtenerUbicacionesPorCliente(tenantId, clienteId) {
     const query = `
       SELECT evento_ciudad, evento_direccion, ubicacion_id
       FROM (
         SELECT evento_ciudad, evento_direccion, ubicacion_id, MAX(created_at) AS ultima_fecha
         FROM cotizaciones
-        WHERE cliente_id = ?
+        WHERE tenant_id = ? AND cliente_id = ?
           AND evento_direccion IS NOT NULL
           AND evento_direccion != ''
         GROUP BY evento_ciudad, evento_direccion, ubicacion_id
@@ -500,14 +507,14 @@ class CotizacionModel {
       ORDER BY ultima_fecha DESC
       LIMIT 10
     `;
-    const [rows] = await pool.query(query, [clienteId]);
+    const [rows] = await pool.query(query, [tenantId, clienteId]);
     return rows;
   }
 
   // ============================================
   // OBTENER POR CLIENTE
   // ============================================
-  static async obtenerPorCliente(clienteId) {
+  static async obtenerPorCliente(tenantId, clienteId) {
     const query = `
       SELECT
         cot.id,
@@ -516,22 +523,22 @@ class CotizacionModel {
         cot.total,
         cot.estado,
         cot.created_at,
-        (SELECT COUNT(*) FROM cotizacion_productos WHERE cotizacion_id = cot.id) AS total_productos
+        (SELECT COUNT(*) FROM cotizacion_productos WHERE tenant_id = cot.tenant_id AND cotizacion_id = cot.id) AS total_productos
       FROM cotizaciones cot
-      WHERE cot.cliente_id = ?
+      WHERE cot.tenant_id = ? AND cot.cliente_id = ?
       ORDER BY cot.created_at DESC
     `;
-    const [rows] = await pool.query(query, [clienteId]);
+    const [rows] = await pool.query(query, [tenantId, clienteId]);
     return rows;
   }
 
   // ============================================
   // VERIFICAR SI TIENE ALQUILER
   // ============================================
-  static async tieneAlquiler(id) {
+  static async tieneAlquiler(tenantId, id) {
     const [rows] = await pool.query(
-      'SELECT COUNT(*) AS total FROM alquileres WHERE cotizacion_id = ?',
-      [id]
+      'SELECT COUNT(*) AS total FROM alquileres WHERE tenant_id = ? AND cotizacion_id = ?',
+      [tenantId, id]
     );
     return rows[0].total > 0;
   }
@@ -539,37 +546,37 @@ class CotizacionModel {
   // ============================================
   // RECALCULAR TOTALES (con IVA y días extra)
   // ============================================
-  static async recalcularTotales(id) {
+  static async recalcularTotales(tenantId, id) {
     // Obtener subtotal de productos (incluye recargos por adelanto/extensión)
     const [productos] = await pool.query(
-      'SELECT COALESCE(SUM(subtotal + COALESCE(total_recargos, 0)), 0) AS subtotal FROM cotizacion_productos WHERE cotizacion_id = ?',
-      [id]
+      'SELECT COALESCE(SUM(subtotal + COALESCE(total_recargos, 0)), 0) AS subtotal FROM cotizacion_productos WHERE tenant_id = ? AND cotizacion_id = ?',
+      [tenantId, id]
     );
 
     // Obtener total de depósito (deposito × cantidad por cada producto)
     const [depositoData] = await pool.query(
-      'SELECT COALESCE(SUM(deposito * cantidad), 0) AS total_deposito FROM cotizacion_productos WHERE cotizacion_id = ?',
-      [id]
+      'SELECT COALESCE(SUM(deposito * cantidad), 0) AS total_deposito FROM cotizacion_productos WHERE tenant_id = ? AND cotizacion_id = ?',
+      [tenantId, id]
     );
 
     // Obtener subtotal de transporte
     const [transporte] = await pool.query(
-      'SELECT COALESCE(SUM(subtotal), 0) AS subtotal FROM cotizacion_transportes WHERE cotizacion_id = ?',
-      [id]
+      'SELECT COALESCE(SUM(subtotal), 0) AS subtotal FROM cotizacion_transportes WHERE tenant_id = ? AND cotizacion_id = ?',
+      [tenantId, id]
     );
 
     // Obtener datos actuales de la cotización
     const [cotizacionData] = await pool.query(
       `SELECT descuento, dias_montaje_extra, dias_desmontaje_extra,
               porcentaje_dias_extra, porcentaje_iva
-       FROM cotizaciones WHERE id = ?`,
-      [id]
+       FROM cotizaciones WHERE tenant_id = ? AND id = ?`,
+      [tenantId, id]
     );
 
     // Obtener total de descuentos aplicados (tabla pivote)
     const [descuentosAplicados] = await pool.query(
-      'SELECT COALESCE(SUM(monto_calculado), 0) AS total FROM cotizacion_descuentos WHERE cotizacion_id = ?',
-      [id]
+      'SELECT COALESCE(SUM(monto_calculado), 0) AS total FROM cotizacion_descuentos WHERE tenant_id = ? AND cotizacion_id = ?',
+      [tenantId, id]
     );
 
     const cot = cotizacionData[0];
@@ -600,7 +607,7 @@ class CotizacionModel {
     // Total final
     const total = baseGravable + valorIva;
 
-    await this.actualizarTotales(id, {
+    await this.actualizarTotales(tenantId, id, {
       subtotal,
       descuento: descuentoManual,
       total,
@@ -630,27 +637,28 @@ class CotizacionModel {
   // ============================================
   // ACTUALIZAR COBRO DE DEPÓSITO
   // ============================================
-  static async actualizarCobrarDeposito(id, cobrarDeposito) {
-    const query = `UPDATE cotizaciones SET cobrar_deposito = ? WHERE id = ?`;
-    const [result] = await pool.query(query, [cobrarDeposito ? 1 : 0, id]);
+  static async actualizarCobrarDeposito(tenantId, id, cobrarDeposito) {
+    const query = `UPDATE cotizaciones SET cobrar_deposito = ? WHERE tenant_id = ? AND id = ?`;
+    const [result] = await pool.query(query, [cobrarDeposito ? 1 : 0, tenantId, id]);
     return result;
   }
 
   // ============================================
   // ASIGNAR/DESVINCULAR EVENTO
   // ============================================
-  static async asignarEvento(id, eventoId) {
-    const query = `UPDATE cotizaciones SET evento_id = ? WHERE id = ?`;
-    const [result] = await pool.query(query, [eventoId || null, id]);
+  static async asignarEvento(tenantId, id, eventoId) {
+    const query = `UPDATE cotizaciones SET evento_id = ? WHERE tenant_id = ? AND id = ?`;
+    const [result] = await pool.query(query, [eventoId || null, tenantId, id]);
     return result;
   }
 
   // ============================================
   // CONFIRMAR FECHAS (borrador → pendiente)
   // ============================================
-  static async confirmarFechas(id, { fecha_montaje, fecha_evento, fecha_desmontaje }) {
+  static async confirmarFechas(tenantId, id, { fecha_montaje, fecha_evento, fecha_desmontaje }) {
     // Calcular días extra con las nuevas fechas
     const { diasMontajeExtra, diasDesmontajeExtra } = await this.calcularDiasExtra(
+      tenantId,
       fecha_montaje || fecha_evento,
       fecha_evento,
       fecha_desmontaje || fecha_evento
@@ -661,7 +669,7 @@ class CotizacionModel {
       SET fecha_montaje = ?, fecha_evento = ?, fecha_desmontaje = ?,
           fechas_confirmadas = 1, estado = 'pendiente',
           dias_montaje_extra = ?, dias_desmontaje_extra = ?
-      WHERE id = ?
+      WHERE tenant_id = ? AND id = ?
     `;
     const [result] = await pool.query(query, [
       fecha_montaje || fecha_evento,
@@ -669,11 +677,12 @@ class CotizacionModel {
       fecha_desmontaje || fecha_evento,
       diasMontajeExtra,
       diasDesmontajeExtra,
+      tenantId,
       id
     ]);
 
     // Recalcular totales con las nuevas fechas y días extra
-    await this.recalcularTotales(id);
+    await this.recalcularTotales(tenantId, id);
 
     return result;
   }
@@ -681,12 +690,12 @@ class CotizacionModel {
   // ============================================
   // DUPLICAR COTIZACIÓN
   // ============================================
-  static async duplicar(id) {
-    const original = await this.obtenerCompleta(id);
+  static async duplicar(tenantId, id) {
+    const original = await this.obtenerCompleta(tenantId, id);
     if (!original) return null;
 
     // Crear nueva cotización
-    const resultado = await this.crear({
+    const resultado = await this.crear(tenantId, {
       cliente_id: original.cliente_id,
       fecha_montaje: original.fecha_montaje,
       fecha_evento: original.fecha_evento,
@@ -708,10 +717,11 @@ class CotizacionModel {
     if (original.productos && original.productos.length > 0) {
       const queryProductos = `
         INSERT INTO cotizacion_productos
-          (cotizacion_id, compuesto_id, cantidad, precio_base, deposito, precio_adicionales, descuento_porcentaje, descuento_monto, subtotal, notas)
+          (tenant_id, cotizacion_id, compuesto_id, cantidad, precio_base, deposito, precio_adicionales, descuento_porcentaje, descuento_monto, subtotal, notas)
         VALUES ?
       `;
       const valoresProductos = original.productos.map(p => [
+        tenantId,
         nuevaCotizacionId,
         p.compuesto_id,
         p.cantidad,
@@ -730,10 +740,11 @@ class CotizacionModel {
     if (original.transporte && original.transporte.length > 0) {
       const queryTransporte = `
         INSERT INTO cotizacion_transportes
-          (cotizacion_id, tarifa_id, cantidad, precio_unitario, subtotal, notas)
+          (tenant_id, cotizacion_id, tarifa_id, cantidad, precio_unitario, subtotal, notas)
         VALUES ?
       `;
       const valoresTransporte = original.transporte.map(t => [
+        tenantId,
         nuevaCotizacionId,
         t.tarifa_id,
         t.cantidad,
@@ -754,17 +765,18 @@ class CotizacionModel {
   /**
    * Registrar seguimiento de una cotización.
    * Actualiza la fecha y notas de último seguimiento.
+   * @param {number} tenantId - ID del tenant
    * @param {number} id - ID de la cotización
    * @param {string} notas - Notas del seguimiento (qué se habló con el cliente)
    */
-  static async registrarSeguimiento(id, notas = '') {
+  static async registrarSeguimiento(tenantId, id, notas = '') {
     const query = `
       UPDATE cotizaciones
       SET ultimo_seguimiento = NOW(),
           notas_seguimiento = ?
-      WHERE id = ?
+      WHERE tenant_id = ? AND id = ?
     `;
-    const [result] = await pool.query(query, [notas, id]);
+    const [result] = await pool.query(query, [notas, tenantId, id]);
 
     if (result.affectedRows === 0) {
       throw new Error(`Cotización ${id} no encontrada`);
@@ -776,9 +788,10 @@ class CotizacionModel {
   /**
    * Obtener historial de seguimiento de una cotización.
    * Retorna los datos de seguimiento de la cotización.
+   * @param {number} tenantId - ID del tenant
    * @param {number} id - ID de la cotización
    */
-  static async obtenerSeguimiento(id) {
+  static async obtenerSeguimiento(tenantId, id) {
     const query = `
       SELECT
         id,
@@ -791,9 +804,9 @@ class CotizacionModel {
         DATE(DATE_ADD(created_at, INTERVAL vigencia_dias DAY)) AS fecha_vencimiento,
         DATEDIFF(DATE(DATE_ADD(created_at, INTERVAL vigencia_dias DAY)), CURDATE()) AS dias_para_vencer
       FROM cotizaciones
-      WHERE id = ?
+      WHERE tenant_id = ? AND id = ?
     `;
-    const [rows] = await pool.query(query, [id]);
+    const [rows] = await pool.query(query, [tenantId, id]);
     return rows[0] || null;
   }
 }

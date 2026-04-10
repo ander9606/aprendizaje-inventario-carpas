@@ -20,7 +20,7 @@ const NovedadModel = require('../../../operaciones/models/NovedadModel');
 const controller = require('../eventoController');
 const AppError = require('../../../../utils/AppError');
 
-const mockReq = (o = {}) => ({ body: {}, params: {}, query: {}, ...o });
+const mockReq = (o = {}) => ({ body: {}, params: {}, query: {}, tenant: { id: 1, slug: 'test', nombre: 'Test' }, ...o });
 const mockRes = () => { const r = {}; r.status = jest.fn().mockReturnValue(r); r.json = jest.fn().mockReturnValue(r); return r; };
 const mockNext = () => jest.fn();
 

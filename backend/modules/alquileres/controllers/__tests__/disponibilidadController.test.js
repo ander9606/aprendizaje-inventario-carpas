@@ -14,7 +14,7 @@ const CotizacionModel = require('../../models/CotizacionModel');
 const controller = require('../disponibilidadController');
 const AppError = require('../../../../utils/AppError');
 
-const mockReq = (o = {}) => ({ body: {}, params: {}, query: {}, ...o });
+const mockReq = (o = {}) => ({ body: {}, params: {}, query: {}, tenant: { id: 1, slug: 'test', nombre: 'Test' }, ...o });
 const mockRes = () => { const r = {}; r.status = jest.fn().mockReturnValue(r); r.json = jest.fn().mockReturnValue(r); return r; };
 const mockNext = () => jest.fn();
 
@@ -41,7 +41,7 @@ describe('verificarProductos', () => {
             body: { productos: [{ id: 1 }], fecha_montaje: '2026-04-01' }
         }), res, next);
         expect(DisponibilidadModel.verificarDisponibilidadProductos).toHaveBeenCalledWith(
-            [{ id: 1 }], '2026-04-01', '2026-04-01'
+            1, [{ id: 1 }], '2026-04-01', '2026-04-01'
         );
     });
 
@@ -84,7 +84,7 @@ describe('verificarCotizacion', () => {
             query: { fecha_inicio: '2026-05-01', fecha_fin: '2026-05-03' }
         }), res, next);
         expect(DisponibilidadModel.verificarDisponibilidadCotizacion).toHaveBeenCalledWith(
-            '1', '2026-05-01', '2026-05-03'
+            1, '1', '2026-05-01', '2026-05-03'
         );
     });
 
@@ -113,7 +113,7 @@ describe('obtenerCalendario', () => {
             query: { fecha_inicio: '2026-04-01', fecha_fin: '2026-04-30', elementos: '1,2,3' }
         }), res, next);
         expect(DisponibilidadModel.obtenerCalendarioOcupacion).toHaveBeenCalledWith(
-            '2026-04-01', '2026-04-30', [1, 2, 3]
+            1, '2026-04-01', '2026-04-30', [1, 2, 3]
         );
     });
 

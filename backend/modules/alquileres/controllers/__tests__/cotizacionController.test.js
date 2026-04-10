@@ -37,7 +37,7 @@ const ConfiguracionModel = require('../../../configuracion/models/ConfiguracionM
 const controller = require('../cotizacionController');
 const AppError = require('../../../../utils/AppError');
 
-const mockReq = (o = {}) => ({ body: {}, params: {}, query: {}, usuario: null, ...o });
+const mockReq = (o = {}) => ({ body: {}, params: {}, query: {}, usuario: null, tenant: { id: 1, slug: 'test', nombre: 'Test' }, ...o });
 const mockRes = () => { const r = {}; r.status = jest.fn().mockReturnValue(r); r.json = jest.fn().mockReturnValue(r); r.setHeader = jest.fn(); return r; };
 const mockNext = () => jest.fn();
 

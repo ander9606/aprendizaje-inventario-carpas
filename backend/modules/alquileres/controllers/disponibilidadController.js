@@ -13,6 +13,7 @@ const AppError = require('../../../utils/AppError');
 // ============================================
 exports.verificarProductos = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { productos, fecha_montaje, fecha_desmontaje } = req.body;
 
     if (!productos || productos.length === 0) {
@@ -27,6 +28,7 @@ exports.verificarProductos = async (req, res, next) => {
     const fechaFin = fecha_desmontaje || fecha_montaje;
 
     const disponibilidad = await DisponibilidadModel.verificarDisponibilidadProductos(
+      tenantId,
       productos,
       fechaInicio,
       fechaFin
@@ -47,12 +49,13 @@ exports.verificarProductos = async (req, res, next) => {
 // ============================================
 exports.verificarCotizacion = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { id } = req.params;
     const { fecha_inicio, fecha_fin } = req.query;
 
     // Obtener cotización para usar sus fechas si no se proporcionan
     const CotizacionModel = require('../models/CotizacionModel');
-    const cotizacion = await CotizacionModel.obtenerPorId(id);
+    const cotizacion = await CotizacionModel.obtenerPorId(tenantId, id);
 
     if (!cotizacion) {
       throw new AppError('Cotización no encontrada', 404);
@@ -62,6 +65,7 @@ exports.verificarCotizacion = async (req, res, next) => {
     const fechaFin = fecha_fin || cotizacion.fecha_desmontaje || cotizacion.fecha_evento;
 
     const disponibilidad = await DisponibilidadModel.verificarDisponibilidadCotizacion(
+      tenantId,
       id,
       fechaInicio,
       fechaFin
@@ -83,6 +87,7 @@ exports.verificarCotizacion = async (req, res, next) => {
 // ============================================
 exports.obtenerCalendario = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { fecha_inicio, fecha_fin, elementos } = req.query;
 
     if (!fecha_inicio || !fecha_fin) {
@@ -95,6 +100,7 @@ exports.obtenerCalendario = async (req, res, next) => {
     }
 
     const calendario = await DisponibilidadModel.obtenerCalendarioOcupacion(
+      tenantId,
       fecha_inicio,
       fecha_fin,
       elementoIds
@@ -116,13 +122,14 @@ exports.obtenerCalendario = async (req, res, next) => {
 // ============================================
 exports.descomponerProductos = async (req, res, next) => {
   try {
+    const tenantId = req.tenant.id;
     const { productos } = req.body;
 
     if (!productos || productos.length === 0) {
       throw new AppError('Debe enviar al menos un producto', 400);
     }
 
-    const elementos = await DisponibilidadModel.obtenerElementosDeProductos(productos);
+    const elementos = await DisponibilidadModel.obtenerElementosDeProductos(tenantId, productos);
 
     res.json({
       success: true,

@@ -16,7 +16,7 @@ const CotizacionModel = require('../../models/CotizacionModel');
 const controller = require('../descuentoController');
 const AppError = require('../../../../utils/AppError');
 
-const mockReq = (o = {}) => ({ body: {}, params: {}, query: {}, ...o });
+const mockReq = (o = {}) => ({ body: {}, params: {}, query: {}, tenant: { id: 1, slug: 'test', nombre: 'Test' }, ...o });
 const mockRes = () => { const r = {}; r.status = jest.fn().mockReturnValue(r); r.json = jest.fn().mockReturnValue(r); return r; };
 const mockNext = () => jest.fn();
 
@@ -27,7 +27,7 @@ describe('obtenerTodos', () => {
         DescuentoModel.obtenerTodos.mockResolvedValue([{ id: 1 }]);
         const res = mockRes(); const next = mockNext();
         await controller.obtenerTodos(mockReq({ query: {} }), res, next);
-        expect(DescuentoModel.obtenerTodos).toHaveBeenCalledWith(false);
+        expect(DescuentoModel.obtenerTodos).toHaveBeenCalledWith(1, false);
         expect(res.json).toHaveBeenCalledWith({ success: true, data: [{ id: 1 }], total: 1 });
     });
 
@@ -35,7 +35,7 @@ describe('obtenerTodos', () => {
         DescuentoModel.obtenerTodos.mockResolvedValue([]);
         const res = mockRes(); const next = mockNext();
         await controller.obtenerTodos(mockReq({ query: { incluir_inactivos: 'true' } }), res, next);
-        expect(DescuentoModel.obtenerTodos).toHaveBeenCalledWith(true);
+        expect(DescuentoModel.obtenerTodos).toHaveBeenCalledWith(1, true);
     });
 });
 
