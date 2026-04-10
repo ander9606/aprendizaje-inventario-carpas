@@ -11,7 +11,7 @@ class DisponibilidadModel {
   // OBTENER ELEMENTOS REQUERIDOS POR COTIZACIÓN
   // Calcula qué elementos y cantidades necesita una cotización
   // ============================================
-  static async obtenerElementosRequeridos(cotizacionId) {
+  static async obtenerElementosRequeridos(tenantId, cotizacionId) {
     const query = `
       SELECT
         cc.elemento_id,
@@ -19,15 +19,15 @@ class DisponibilidadModel {
         e.requiere_series,
         SUM(cc.cantidad * cp.cantidad) AS cantidad_requerida
       FROM cotizacion_productos cp
-      INNER JOIN compuesto_componentes cc ON cp.compuesto_id = cc.compuesto_id
-      INNER JOIN elementos e ON cc.elemento_id = e.id
-      WHERE cp.cotizacion_id = ?
+      INNER JOIN compuesto_componentes cc ON cp.compuesto_id = cc.compuesto_id AND cc.tenant_id = ?
+      INNER JOIN elementos e ON cc.elemento_id = e.id AND e.tenant_id = ?
+      WHERE cp.tenant_id = ? AND cp.cotizacion_id = ?
         AND cc.tipo IN ('fijo', 'alternativa')
         AND (cc.tipo = 'fijo' OR cc.es_default = TRUE)
       GROUP BY cc.elemento_id, e.nombre, e.requiere_series
       ORDER BY e.nombre
     `;
-    const [rows] = await pool.query(query, [cotizacionId]);
+    const [rows] = await pool.query(query, [tenantId, tenantId, tenantId, cotizacionId]);
     return rows;
   }
 
@@ -37,7 +37,7 @@ class DisponibilidadModel {
   // para cubrir elementos cuyo flag no coincida con la forma de registro.
   // Prioridad: series > lotes > cantidad en tabla elementos
   // ============================================
-  static async obtenerStockTotal(elementoId, requiereSeries) {
+  static async obtenerStockTotal(tenantId, elementoId, requiereSeries) {
     console.log(`📦 obtenerStockTotal(elementoId=${elementoId}, requiereSeries=${requiereSeries})`);
 
     // 1. Contar series utilizables (incluye 'alquilado' para evitar doble descuento;
@@ -45,8 +45,8 @@ class DisponibilidadModel {
     const [seriesResult] = await pool.query(`
       SELECT COUNT(*) AS total
       FROM series
-      WHERE id_elemento = ? AND estado NOT IN ('mantenimiento', 'dañado')
-    `, [elementoId]);
+      WHERE tenant_id = ? AND id_elemento = ? AND estado NOT IN ('mantenimiento', 'dañado')
+    `, [tenantId, elementoId]);
     const totalSeries = parseInt(seriesResult[0].total);
     console.log(`   📊 Series utilizables: ${totalSeries}`);
 
@@ -55,8 +55,8 @@ class DisponibilidadModel {
     const [lotesResult] = await pool.query(`
       SELECT COALESCE(SUM(cantidad), 0) AS total
       FROM lotes
-      WHERE elemento_id = ? AND estado IN ('bueno', 'alquilado')
-    `, [elementoId]);
+      WHERE tenant_id = ? AND elemento_id = ? AND estado IN ('bueno', 'alquilado')
+    `, [tenantId, elementoId]);
     const totalLotes = parseInt(lotesResult[0].total);
     console.log(`   📊 Lotes utilizables: ${totalLotes}`);
 
@@ -83,7 +83,7 @@ class DisponibilidadModel {
     }
 
     // Último recurso: usar cantidad de la tabla elementos
-    const cantidadElemento = await this.obtenerCantidadElemento(elementoId);
+    const cantidadElemento = await this.obtenerCantidadElemento(tenantId, elementoId);
     console.log(`   🔄 Fallback elementos.cantidad: ${cantidadElemento}`);
     return cantidadElemento;
   }
@@ -91,12 +91,12 @@ class DisponibilidadModel {
   // ============================================
   // OBTENER CANTIDAD DESDE TABLA ELEMENTOS (fallback)
   // ============================================
-  static async obtenerCantidadElemento(elementoId) {
+  static async obtenerCantidadElemento(tenantId, elementoId) {
     const [result] = await pool.query(`
       SELECT COALESCE(cantidad, 0) AS total, nombre
       FROM elementos
-      WHERE id = ?
-    `, [elementoId]);
+      WHERE tenant_id = ? AND id = ?
+    `, [tenantId, elementoId]);
     const cantidad = result.length > 0 ? parseInt(result[0].total) : 0;
     console.log(`   📋 elementos[${elementoId}] "${result[0]?.nombre || '?'}": cantidad = ${cantidad}`);
     return cantidad;
@@ -106,31 +106,31 @@ class DisponibilidadModel {
   // OBTENER CANTIDAD OCUPADA EN RANGO DE FECHAS
   // Suma AMBAS fuentes (series + lotes) para cubrir todos los casos
   // ============================================
-  static async obtenerCantidadOcupada(elementoId, requiereSeries, fechaInicio, fechaFin) {
+  static async obtenerCantidadOcupada(tenantId, elementoId, requiereSeries, fechaInicio, fechaFin) {
     // Contar series ocupadas en el rango
     const [seriesResult] = await pool.query(`
       SELECT COUNT(DISTINCT ae.serie_id) AS total
       FROM alquiler_elementos ae
-      INNER JOIN alquileres a ON ae.alquiler_id = a.id
-      WHERE ae.elemento_id = ?
+      INNER JOIN alquileres a ON ae.alquiler_id = a.id AND a.tenant_id = ?
+      WHERE ae.tenant_id = ? AND ae.elemento_id = ?
         AND ae.serie_id IS NOT NULL
         AND a.estado IN ('programado', 'activo')
         AND a.fecha_salida <= ?
         AND a.fecha_retorno_esperado >= ?
-    `, [elementoId, fechaFin, fechaInicio]);
+    `, [tenantId, tenantId, elementoId, fechaFin, fechaInicio]);
     const ocupadosSeries = parseInt(seriesResult[0].total);
 
     // Sumar cantidad de lotes ocupada en el rango
     const [lotesResult] = await pool.query(`
       SELECT COALESCE(SUM(ae.cantidad_lote), 0) AS total
       FROM alquiler_elementos ae
-      INNER JOIN alquileres a ON ae.alquiler_id = a.id
-      WHERE ae.elemento_id = ?
+      INNER JOIN alquileres a ON ae.alquiler_id = a.id AND a.tenant_id = ?
+      WHERE ae.tenant_id = ? AND ae.elemento_id = ?
         AND ae.lote_id IS NOT NULL
         AND a.estado IN ('programado', 'activo')
         AND a.fecha_salida <= ?
         AND a.fecha_retorno_esperado >= ?
-    `, [elementoId, fechaFin, fechaInicio]);
+    `, [tenantId, tenantId, elementoId, fechaFin, fechaInicio]);
     const ocupadosLotes = parseInt(lotesResult[0].total);
 
     // Un elemento usa series O lotes, no ambos. Retornar el que tenga datos.
@@ -143,8 +143,8 @@ class DisponibilidadModel {
   // VERIFICAR DISPONIBILIDAD PARA COTIZACIÓN
   // Retorna análisis completo de disponibilidad
   // ============================================
-  static async verificarDisponibilidadCotizacion(cotizacionId, fechaInicio, fechaFin) {
-    const elementosRequeridos = await this.obtenerElementosRequeridos(cotizacionId);
+  static async verificarDisponibilidadCotizacion(tenantId, cotizacionId, fechaInicio, fechaFin) {
+    const elementosRequeridos = await this.obtenerElementosRequeridos(tenantId, cotizacionId);
 
     const analisis = [];
     let hayProblemas = false;
@@ -152,8 +152,9 @@ class DisponibilidadModel {
     for (const elemento of elementosRequeridos) {
       const requiereSeries = elemento.requiere_series === 1 || elemento.requiere_series === true;
 
-      const stockTotal = await this.obtenerStockTotal(elemento.elemento_id, requiereSeries);
+      const stockTotal = await this.obtenerStockTotal(tenantId, elemento.elemento_id, requiereSeries);
       const ocupados = await this.obtenerCantidadOcupada(
+        tenantId,
         elemento.elemento_id,
         requiereSeries,
         fechaInicio,
@@ -198,7 +199,7 @@ class DisponibilidadModel {
   // OBTENER SERIES DISPONIBLES PARA ELEMENTO EN FECHAS
   // Solo para elementos con requiere_series = TRUE
   // ============================================
-  static async obtenerSeriesDisponibles(elementoId, fechaInicio, fechaFin, limite = null) {
+  static async obtenerSeriesDisponibles(tenantId, elementoId, fechaInicio, fechaFin, limite = null) {
     let query = `
       SELECT
         s.id,
@@ -207,14 +208,14 @@ class DisponibilidadModel {
         u.nombre AS ubicacion_nombre,
         u.id AS ubicacion_id
       FROM series s
-      LEFT JOIN ubicaciones u ON s.ubicacion_id = u.id
-      WHERE s.id_elemento = ?
+      LEFT JOIN ubicaciones u ON s.ubicacion_id = u.id AND u.tenant_id = ?
+      WHERE s.tenant_id = ? AND s.id_elemento = ?
         AND s.estado IN ('bueno')
         AND s.id NOT IN (
           SELECT ae.serie_id
           FROM alquiler_elementos ae
-          INNER JOIN alquileres a ON ae.alquiler_id = a.id
-          WHERE ae.serie_id IS NOT NULL
+          INNER JOIN alquileres a ON ae.alquiler_id = a.id AND a.tenant_id = ?
+          WHERE ae.tenant_id = ? AND ae.serie_id IS NOT NULL
             AND a.estado IN ('programado', 'activo')
               AND a.fecha_salida <= ?
               AND a.fecha_retorno_esperado >= ?
@@ -228,7 +229,7 @@ class DisponibilidadModel {
 
     // Nota: el subquery compara `a.fecha_salida <= ?` y `a.fecha_retorno_esperado >= ?`,
     // por lo que el orden correcto es (fechaFin, fechaInicio)
-    const [rows] = await pool.query(query, [elementoId, fechaFin, fechaInicio]);
+    const [rows] = await pool.query(query, [tenantId, tenantId, elementoId, tenantId, tenantId, fechaFin, fechaInicio]);
     return rows;
   }
 
@@ -236,7 +237,7 @@ class DisponibilidadModel {
   // OBTENER LOTES DISPONIBLES PARA ELEMENTO EN FECHAS
   // Solo para elementos con requiere_series = FALSE
   // ============================================
-  static async obtenerLotesDisponibles(elementoId, fechaInicio, fechaFin) {
+  static async obtenerLotesDisponibles(tenantId, elementoId, fechaInicio, fechaFin) {
     const query = `
       SELECT
         l.id,
@@ -248,21 +249,21 @@ class DisponibilidadModel {
         COALESCE(
           (SELECT SUM(ae.cantidad_lote)
            FROM alquiler_elementos ae
-           INNER JOIN alquileres a ON ae.alquiler_id = a.id
-           WHERE ae.lote_id = l.id
+           INNER JOIN alquileres a ON ae.alquiler_id = a.id AND a.tenant_id = ?
+           WHERE ae.tenant_id = ? AND ae.lote_id = l.id
              AND a.estado IN ('programado', 'activo')
                AND a.fecha_salida <= ?
                AND a.fecha_retorno_esperado >= ?
           ), 0
         ) AS cantidad_ocupada
       FROM lotes l
-      LEFT JOIN ubicaciones u ON l.ubicacion_id = u.id
-      WHERE l.elemento_id = ?
+      LEFT JOIN ubicaciones u ON l.ubicacion_id = u.id AND u.tenant_id = ?
+      WHERE l.tenant_id = ? AND l.elemento_id = ?
         AND l.estado IN ('bueno')
       HAVING (l.cantidad - cantidad_ocupada) > 0
       ORDER BY (l.cantidad - cantidad_ocupada) DESC
     `;
-    const [rows] = await pool.query(query, [fechaFin, fechaInicio, elementoId]);
+    const [rows] = await pool.query(query, [tenantId, tenantId, fechaFin, fechaInicio, tenantId, tenantId, elementoId]);
 
     return rows.map(lote => ({
       ...lote,
@@ -274,8 +275,8 @@ class DisponibilidadModel {
   // ASIGNAR ELEMENTOS AUTOMÁTICAMENTE
   // Selecciona series/lotes disponibles para cada elemento requerido
   // ============================================
-  static async asignarAutomaticamente(cotizacionId, fechaInicio, fechaFin) {
-    const elementosRequeridos = await this.obtenerElementosRequeridos(cotizacionId);
+  static async asignarAutomaticamente(tenantId, cotizacionId, fechaInicio, fechaFin) {
+    const elementosRequeridos = await this.obtenerElementosRequeridos(tenantId, cotizacionId);
     const asignaciones = [];
     const advertencias = [];
 
@@ -286,6 +287,7 @@ class DisponibilidadModel {
       if (requiereSeries) {
         // Asignar series específicas
         const seriesDisponibles = await this.obtenerSeriesDisponibles(
+          tenantId,
           elemento.elemento_id,
           fechaInicio,
           fechaFin,
@@ -316,6 +318,7 @@ class DisponibilidadModel {
       } else {
         // Asignar de lotes
         const lotesDisponibles = await this.obtenerLotesDisponibles(
+          tenantId,
           elemento.elemento_id,
           fechaInicio,
           fechaFin
@@ -365,14 +368,14 @@ class DisponibilidadModel {
   // VERIFICAR DISPONIBILIDAD PARA PRODUCTOS (SIN COTIZACIÓN)
   // Útil para verificar ANTES de guardar la cotización
   // ============================================
-  static async verificarDisponibilidadProductos(productos, fechaInicio, fechaFin) {
+  static async verificarDisponibilidadProductos(tenantId, productos, fechaInicio, fechaFin) {
     // productos = [{ compuesto_id, cantidad, configuracion }]
     console.log('\n🔍 ========== VERIFICAR DISPONIBILIDAD PRODUCTOS ==========');
     console.log(`📅 Rango: ${fechaInicio} a ${fechaFin}`);
     console.log('📦 Productos recibidos:', JSON.stringify(productos, null, 2));
 
     // Primero obtenemos los elementos requeridos de los productos
-    const elementosRequeridos = await this.obtenerElementosDeProductos(productos);
+    const elementosRequeridos = await this.obtenerElementosDeProductos(tenantId, productos);
     console.log(`📋 Elementos requeridos (${elementosRequeridos.length}):`,
       elementosRequeridos.map(e => `${e.elemento_nombre}(id=${e.elemento_id}, cant=${e.cantidad_requerida}, series=${e.requiere_series})`));
 
@@ -382,8 +385,9 @@ class DisponibilidadModel {
     for (const elemento of elementosRequeridos) {
       const requiereSeries = elemento.requiere_series === 1 || elemento.requiere_series === true;
 
-      const stockTotal = await this.obtenerStockTotal(elemento.elemento_id, requiereSeries);
+      const stockTotal = await this.obtenerStockTotal(tenantId, elemento.elemento_id, requiereSeries);
       const ocupados = await this.obtenerCantidadOcupada(
+        tenantId,
         elemento.elemento_id,
         requiereSeries,
         fechaInicio,
@@ -433,7 +437,7 @@ class DisponibilidadModel {
   // OBTENER ELEMENTOS DE PRODUCTOS (SIN COTIZACIÓN)
   // Calcula qué elementos necesitan los productos seleccionados
   // ============================================
-  static async obtenerElementosDeProductos(productos) {
+  static async obtenerElementosDeProductos(tenantId, productos) {
     // productos = [{ compuesto_id, cantidad, configuracion }]
     console.log('\n📦 obtenerElementosDeProductos - Procesando productos...');
 
@@ -461,11 +465,11 @@ class DisponibilidadModel {
           cc.grupo,
           cc.es_default
         FROM compuesto_componentes cc
-        INNER JOIN elementos e ON cc.elemento_id = e.id
-        WHERE cc.compuesto_id = ?
+        INNER JOIN elementos e ON cc.elemento_id = e.id AND e.tenant_id = ?
+        WHERE cc.tenant_id = ? AND cc.compuesto_id = ?
         ORDER BY cc.tipo, cc.grupo, cc.orden
       `;
-      const [componentes] = await pool.query(query, [compuestoId]);
+      const [componentes] = await pool.query(query, [tenantId, tenantId, compuestoId]);
       console.log(`   📋 Componentes encontrados: ${componentes.length}`);
 
       for (const comp of componentes) {
@@ -522,7 +526,7 @@ class DisponibilidadModel {
   // OBTENER CALENDARIO DE OCUPACIÓN
   // Retorna ocupaciones por elemento en un rango de fechas
   // ============================================
-  static async obtenerCalendarioOcupacion(fechaInicio, fechaFin, elementoIds = null) {
+  static async obtenerCalendarioOcupacion(tenantId, fechaInicio, fechaFin, elementoIds = null) {
     let query = `
       SELECT
         ae.elemento_id,
@@ -541,17 +545,18 @@ class DisponibilidadModel {
         ae.serie_id,
         s.numero_serie
       FROM alquiler_elementos ae
-      INNER JOIN alquileres a ON ae.alquiler_id = a.id
-      INNER JOIN elementos e ON ae.elemento_id = e.id
-      LEFT JOIN cotizaciones c ON a.cotizacion_id = c.id
-      LEFT JOIN clientes cl ON c.cliente_id = cl.id
-      LEFT JOIN series s ON ae.serie_id = s.id
-      WHERE a.estado IN ('programado', 'activo')
+      INNER JOIN alquileres a ON ae.alquiler_id = a.id AND a.tenant_id = ?
+      INNER JOIN elementos e ON ae.elemento_id = e.id AND e.tenant_id = ?
+      LEFT JOIN cotizaciones c ON a.cotizacion_id = c.id AND c.tenant_id = ?
+      LEFT JOIN clientes cl ON c.cliente_id = cl.id AND cl.tenant_id = ?
+      LEFT JOIN series s ON ae.serie_id = s.id AND s.tenant_id = ?
+      WHERE ae.tenant_id = ?
+        AND a.estado IN ('programado', 'activo')
         AND a.fecha_salida <= ?
         AND a.fecha_retorno_esperado >= ?
     `;
 
-    const params = [fechaFin, fechaInicio];
+    const params = [tenantId, tenantId, tenantId, tenantId, tenantId, tenantId, fechaFin, fechaInicio];
 
     if (elementoIds && elementoIds.length > 0) {
       query += ` AND ae.elemento_id IN (?)`;
