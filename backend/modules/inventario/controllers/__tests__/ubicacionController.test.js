@@ -21,6 +21,7 @@ const mockReq = (overrides = {}) => ({
     body: {},
     params: {},
     query: {},
+    tenant: { id: 1, slug: 'test', nombre: 'Test Tenant' },
     ...overrides
 });
 

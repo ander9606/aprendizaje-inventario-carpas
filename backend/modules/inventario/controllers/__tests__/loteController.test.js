@@ -34,6 +34,7 @@ const mockReq = (overrides = {}) => ({
     body: {},
     params: {},
     query: {},
+    tenant: { id: 1, slug: 'test', nombre: 'Test Tenant' },
     ...overrides
 });
 
@@ -255,8 +256,8 @@ describe('moverCantidad', () => {
 
         await controller.moverCantidad(req, res, next);
 
-        expect(LoteModel.sumarCantidad).toHaveBeenCalledWith(2, 20);
-        expect(LoteModel.restarCantidad).toHaveBeenCalledWith(1, 20);
+        expect(LoteModel.sumarCantidad).toHaveBeenCalledWith(1, 2, 20);
+        expect(LoteModel.restarCantidad).toHaveBeenCalledWith(1, 1, 20);
         expect(mockConnection.commit).toHaveBeenCalled();
         expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
     });
@@ -308,7 +309,7 @@ describe('moverCantidad', () => {
 
         await controller.moverCantidad(req, res, next);
 
-        expect(LoteModel.eliminar).toHaveBeenCalledWith(1);
+        expect(LoteModel.eliminar).toHaveBeenCalledWith(1, 1);
     });
 
     test('error si lote origen no existe', async () => {
@@ -378,7 +379,7 @@ describe('actualizar', () => {
 
         await controller.actualizar(req, res, next);
 
-        expect(LoteModel.actualizarCantidad).toHaveBeenCalledWith('1', 30);
+        expect(LoteModel.actualizarCantidad).toHaveBeenCalledWith(1, '1', 30);
         expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
     });
 
@@ -396,7 +397,7 @@ describe('actualizar', () => {
 
         await controller.actualizar(req, res, next);
 
-        expect(LoteModel.eliminar).toHaveBeenCalledWith('1');
+        expect(LoteModel.eliminar).toHaveBeenCalledWith(1, '1');
         expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
             lote_eliminado: true
         }));

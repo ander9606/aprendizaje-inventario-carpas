@@ -26,7 +26,7 @@ const CategoriaProductoModel = require('../../models/CategoriaProductoModel');
 const { deleteImageFile } = require('../../../../middleware/upload');
 const controller = require('../elementoCompuestoController');
 
-const mockReq = (o = {}) => ({ body: {}, params: {}, query: {}, ...o });
+const mockReq = (o = {}) => ({ body: {}, params: {}, query: {}, tenant: { id: 1, slug: 'test', nombre: 'Test Tenant' }, ...o });
 const mockRes = () => { const r = {}; r.status = jest.fn().mockReturnValue(r); r.json = jest.fn().mockReturnValue(r); return r; };
 const mockNext = () => jest.fn();
 
@@ -49,7 +49,7 @@ describe('obtenerPorCategoria', () => {
         ElementoCompuestoModel.obtenerPorCategoria.mockResolvedValue([{ id: 1 }]);
         const res = mockRes();
         await controller.obtenerPorCategoria(mockReq({ params: { categoriaId: '5' } }), res, mockNext());
-        expect(ElementoCompuestoModel.obtenerPorCategoria).toHaveBeenCalledWith('5');
+        expect(ElementoCompuestoModel.obtenerPorCategoria).toHaveBeenCalledWith(1, '5');
         expect(res.json).toHaveBeenCalledWith({ success: true, data: [{ id: 1 }], total: 1 });
     });
 });
@@ -147,7 +147,7 @@ describe('crear', () => {
                 componentes: [{ elemento_id: 10, cantidad: 4 }]
             }
         }), res, mockNext());
-        expect(CompuestoComponenteModel.agregarMultiples).toHaveBeenCalledWith(1, [{ elemento_id: 10, cantidad: 4 }]);
+        expect(CompuestoComponenteModel.agregarMultiples).toHaveBeenCalledWith(1, 1, [{ elemento_id: 10, cantidad: 4 }]);
         expect(res.status).toHaveBeenCalledWith(201);
     });
 
@@ -387,8 +387,8 @@ describe('actualizarComponentes', () => {
             params: { id: '1' },
             body: { componentes: [{ elemento_id: 10, cantidad: 2 }] }
         }), res, mockNext());
-        expect(CompuestoComponenteModel.eliminarPorCompuesto).toHaveBeenCalledWith('1');
-        expect(CompuestoComponenteModel.agregarMultiples).toHaveBeenCalledWith('1', [{ elemento_id: 10, cantidad: 2 }]);
+        expect(CompuestoComponenteModel.eliminarPorCompuesto).toHaveBeenCalledWith(1, '1');
+        expect(CompuestoComponenteModel.agregarMultiples).toHaveBeenCalledWith(1, '1', [{ elemento_id: 10, cantidad: 2 }]);
         expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
     });
 
@@ -428,7 +428,7 @@ describe('subirImagen', () => {
             params: { id: '1' },
             file: { filename: 'carpa.jpg' }
         }), res, mockNext());
-        expect(ElementoCompuestoModel.actualizarImagen).toHaveBeenCalledWith('1', '/uploads/productos/carpa.jpg');
+        expect(ElementoCompuestoModel.actualizarImagen).toHaveBeenCalledWith(1, '1', '/uploads/productos/carpa.jpg');
         expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
             success: true,
             data: { imagen: '/uploads/productos/carpa.jpg' }
@@ -474,7 +474,7 @@ describe('eliminarImagen', () => {
         const res = mockRes();
         await controller.eliminarImagen(mockReq({ params: { id: '1' } }), res, mockNext());
         expect(deleteImageFile).toHaveBeenCalledWith('/uploads/productos/carpa.jpg');
-        expect(ElementoCompuestoModel.actualizarImagen).toHaveBeenCalledWith('1', null);
+        expect(ElementoCompuestoModel.actualizarImagen).toHaveBeenCalledWith(1, '1', null);
         expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
     });
 
@@ -484,7 +484,7 @@ describe('eliminarImagen', () => {
         const res = mockRes();
         await controller.eliminarImagen(mockReq({ params: { id: '1' } }), res, mockNext());
         expect(deleteImageFile).not.toHaveBeenCalled();
-        expect(ElementoCompuestoModel.actualizarImagen).toHaveBeenCalledWith('1', null);
+        expect(ElementoCompuestoModel.actualizarImagen).toHaveBeenCalledWith(1, '1', null);
     });
 
     test('error 404 si elemento no existe', async () => {

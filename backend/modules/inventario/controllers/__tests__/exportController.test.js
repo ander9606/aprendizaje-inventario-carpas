@@ -6,7 +6,9 @@ jest.mock('../../../../config/database', () => ({
     pool: { query: jest.fn() }
 }));
 jest.mock('../../models/ExportModel');
-jest.mock('../../services/InventarioExcelService');
+jest.mock('../../services/InventarioExcelService', () => ({
+    generar: jest.fn()
+}));
 jest.mock('../../../../utils/logger', () => ({
     info: jest.fn(),
     warn: jest.fn(),
@@ -22,6 +24,7 @@ const mockReq = (overrides = {}) => ({
     body: {},
     params: {},
     query: {},
+    tenant: { id: 1, slug: 'test', nombre: 'Test Tenant' },
     ...overrides
 });
 
