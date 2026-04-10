@@ -10,7 +10,7 @@ class EventoModel {
   // ============================================
   // OBTENER TODOS
   // ============================================
-  static async obtenerTodos() {
+  static async obtenerTodos(tenantId) {
     const query = `
       SELECT
         e.id,
@@ -27,36 +27,37 @@ class EventoModel {
         c.nombre AS cliente_nombre,
         c.telefono AS cliente_telefono,
         ci.nombre AS ciudad_nombre,
-        (SELECT COUNT(*) FROM cotizaciones WHERE evento_id = e.id) AS total_cotizaciones,
-        (SELECT COALESCE(SUM(total), 0) FROM cotizaciones WHERE evento_id = e.id) AS total_valor,
+        (SELECT COUNT(*) FROM cotizaciones WHERE tenant_id = e.tenant_id AND evento_id = e.id) AS total_cotizaciones,
+        (SELECT COALESCE(SUM(total), 0) FROM cotizaciones WHERE tenant_id = e.tenant_id AND evento_id = e.id) AS total_valor,
         (SELECT COUNT(*) FROM cotizaciones cot
-          INNER JOIN alquileres a ON a.cotizacion_id = cot.id
-          WHERE cot.evento_id = e.id) AS total_alquileres,
+          INNER JOIN alquileres a ON a.cotizacion_id = cot.id AND a.tenant_id = cot.tenant_id
+          WHERE cot.tenant_id = e.tenant_id AND cot.evento_id = e.id) AS total_alquileres,
         (SELECT COUNT(*) FROM cotizaciones cot
-          INNER JOIN alquileres a ON a.cotizacion_id = cot.id
-          WHERE cot.evento_id = e.id AND a.estado = 'finalizado') AS alquileres_finalizados,
+          INNER JOIN alquileres a ON a.cotizacion_id = cot.id AND a.tenant_id = cot.tenant_id
+          WHERE cot.tenant_id = e.tenant_id AND cot.evento_id = e.id AND a.estado = 'finalizado') AS alquileres_finalizados,
         (SELECT COUNT(*) FROM cotizaciones cot
-          INNER JOIN alquileres a ON a.cotizacion_id = cot.id
-          WHERE cot.evento_id = e.id AND a.estado = 'activo') AS alquileres_activos,
+          INNER JOIN alquileres a ON a.cotizacion_id = cot.id AND a.tenant_id = cot.tenant_id
+          WHERE cot.tenant_id = e.tenant_id AND cot.evento_id = e.id AND a.estado = 'activo') AS alquileres_activos,
         (SELECT GROUP_CONCAT(CONCAT(ec.nombre, ' x', cp.cantidad) SEPARATOR ', ')
           FROM cotizacion_productos cp
-          INNER JOIN cotizaciones cot ON cp.cotizacion_id = cot.id
-          INNER JOIN elementos_compuestos ec ON cp.compuesto_id = ec.id
-          WHERE cot.evento_id = e.id AND cot.estado = 'aprobada'
+          INNER JOIN cotizaciones cot ON cp.cotizacion_id = cot.id AND cot.tenant_id = cp.tenant_id
+          INNER JOIN elementos_compuestos ec ON cp.compuesto_id = ec.id AND ec.tenant_id = cp.tenant_id
+          WHERE cp.tenant_id = e.tenant_id AND cot.evento_id = e.id AND cot.estado = 'aprobada'
         ) AS productos_resumen
       FROM eventos e
-      INNER JOIN clientes c ON e.cliente_id = c.id
-      LEFT JOIN ciudades ci ON e.ciudad_id = ci.id
+      INNER JOIN clientes c ON e.cliente_id = c.id AND c.tenant_id = ?
+      LEFT JOIN ciudades ci ON e.ciudad_id = ci.id AND ci.tenant_id = ?
+      WHERE e.tenant_id = ?
       ORDER BY e.fecha_inicio DESC
     `;
-    const [rows] = await pool.query(query);
+    const [rows] = await pool.query(query, [tenantId, tenantId, tenantId]);
     return rows;
   }
 
   // ============================================
   // OBTENER POR ID
   // ============================================
-  static async obtenerPorId(id) {
+  static async obtenerPorId(tenantId, id) {
     // Obtener evento con info básica
     const query = `
       SELECT
@@ -77,11 +78,11 @@ class EventoModel {
         c.email AS cliente_email,
         ci.nombre AS ciudad_nombre
       FROM eventos e
-      INNER JOIN clientes c ON e.cliente_id = c.id
-      LEFT JOIN ciudades ci ON e.ciudad_id = ci.id
-      WHERE e.id = ?
+      INNER JOIN clientes c ON e.cliente_id = c.id AND c.tenant_id = ?
+      LEFT JOIN ciudades ci ON e.ciudad_id = ci.id AND ci.tenant_id = ?
+      WHERE e.tenant_id = ? AND e.id = ?
     `;
-    const [rows] = await pool.query(query, [id]);
+    const [rows] = await pool.query(query, [tenantId, tenantId, tenantId, id]);
     const evento = rows[0];
 
     if (!evento) return null;
@@ -98,13 +99,13 @@ class EventoModel {
         DATE_FORMAT(cot.fecha_montaje, '%Y-%m-%d') AS fecha_montaje,
         DATE_FORMAT(cot.fecha_desmontaje, '%Y-%m-%d') AS fecha_desmontaje,
         cot.created_at,
-        (SELECT COUNT(*) FROM cotizacion_productos WHERE cotizacion_id = cot.id) AS total_productos,
-        (SELECT COUNT(*) FROM alquileres WHERE cotizacion_id = cot.id) AS tiene_alquiler
+        (SELECT COUNT(*) FROM cotizacion_productos WHERE tenant_id = ? AND cotizacion_id = cot.id) AS total_productos,
+        (SELECT COUNT(*) FROM alquileres WHERE tenant_id = ? AND cotizacion_id = cot.id) AS tiene_alquiler
       FROM cotizaciones cot
-      WHERE cot.evento_id = ?
+      WHERE cot.tenant_id = ? AND cot.evento_id = ?
       ORDER BY cot.created_at DESC
     `;
-    const [cotizaciones] = await pool.query(cotizacionesQuery, [id]);
+    const [cotizaciones] = await pool.query(cotizacionesQuery, [tenantId, tenantId, tenantId, id]);
 
     // Calcular resumen
     const resumen = {
@@ -124,7 +125,7 @@ class EventoModel {
   // ============================================
   // OBTENER POR CLIENTE
   // ============================================
-  static async obtenerPorCliente(clienteId) {
+  static async obtenerPorCliente(tenantId, clienteId) {
     const query = `
       SELECT
         e.id,
@@ -135,20 +136,20 @@ class EventoModel {
         ci.nombre AS ciudad_nombre,
         e.estado,
         e.created_at,
-        (SELECT COUNT(*) FROM cotizaciones WHERE evento_id = e.id) AS total_cotizaciones
+        (SELECT COUNT(*) FROM cotizaciones WHERE tenant_id = ? AND evento_id = e.id) AS total_cotizaciones
       FROM eventos e
-      LEFT JOIN ciudades ci ON e.ciudad_id = ci.id
-      WHERE e.cliente_id = ?
+      LEFT JOIN ciudades ci ON e.ciudad_id = ci.id AND ci.tenant_id = ?
+      WHERE e.tenant_id = ? AND e.cliente_id = ?
       ORDER BY e.fecha_inicio DESC
     `;
-    const [rows] = await pool.query(query, [clienteId]);
+    const [rows] = await pool.query(query, [tenantId, tenantId, tenantId, clienteId]);
     return rows;
   }
 
   // ============================================
   // OBTENER POR ESTADO
   // ============================================
-  static async obtenerPorEstado(estado) {
+  static async obtenerPorEstado(tenantId, estado) {
     const query = `
       SELECT
         e.id,
@@ -161,25 +162,26 @@ class EventoModel {
         e.estado,
         c.nombre AS cliente_nombre
       FROM eventos e
-      INNER JOIN clientes c ON e.cliente_id = c.id
-      LEFT JOIN ciudades ci ON e.ciudad_id = ci.id
-      WHERE e.estado = ?
+      INNER JOIN clientes c ON e.cliente_id = c.id AND c.tenant_id = ?
+      LEFT JOIN ciudades ci ON e.ciudad_id = ci.id AND ci.tenant_id = ?
+      WHERE e.tenant_id = ? AND e.estado = ?
       ORDER BY e.fecha_inicio ASC
     `;
-    const [rows] = await pool.query(query, [estado]);
+    const [rows] = await pool.query(query, [tenantId, tenantId, tenantId, estado]);
     return rows;
   }
 
   // ============================================
   // CREAR
   // ============================================
-  static async crear({ cliente_id, nombre, descripcion, fecha_inicio, fecha_fin, direccion, ciudad_id, notas }) {
+  static async crear(tenantId, { cliente_id, nombre, descripcion, fecha_inicio, fecha_fin, direccion, ciudad_id, notas }) {
     const query = `
       INSERT INTO eventos
-        (cliente_id, nombre, descripcion, fecha_inicio, fecha_fin, direccion, ciudad_id, notas)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        (tenant_id, cliente_id, nombre, descripcion, fecha_inicio, fecha_fin, direccion, ciudad_id, notas)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     const [result] = await pool.query(query, [
+      tenantId,
       cliente_id,
       nombre,
       descripcion || null,
@@ -195,12 +197,12 @@ class EventoModel {
   // ============================================
   // ACTUALIZAR
   // ============================================
-  static async actualizar(id, { nombre, descripcion, fecha_inicio, fecha_fin, direccion, ciudad_id, notas, estado }) {
+  static async actualizar(tenantId, id, { nombre, descripcion, fecha_inicio, fecha_fin, direccion, ciudad_id, notas, estado }) {
     const query = `
       UPDATE eventos
       SET nombre = ?, descripcion = ?, fecha_inicio = ?, fecha_fin = ?,
           direccion = ?, ciudad_id = ?, notas = ?, estado = COALESCE(?, estado)
-      WHERE id = ?
+      WHERE tenant_id = ? AND id = ?
     `;
     const [result] = await pool.query(query, [
       nombre,
@@ -211,6 +213,7 @@ class EventoModel {
       ciudad_id || null,
       notas || null,
       estado,
+      tenantId,
       id
     ]);
     return result;
@@ -219,24 +222,24 @@ class EventoModel {
   // ============================================
   // CAMBIAR ESTADO
   // ============================================
-  static async cambiarEstado(id, estado) {
-    const query = `UPDATE eventos SET estado = ? WHERE id = ?`;
-    const [result] = await pool.query(query, [estado, id]);
+  static async cambiarEstado(tenantId, id, estado) {
+    const query = `UPDATE eventos SET estado = ? WHERE tenant_id = ? AND id = ?`;
+    const [result] = await pool.query(query, [estado, tenantId, id]);
     return result;
   }
 
   // ============================================
   // ELIMINAR
   // ============================================
-  static async eliminar(id) {
-    const [result] = await pool.query('DELETE FROM eventos WHERE id = ?', [id]);
+  static async eliminar(tenantId, id) {
+    const [result] = await pool.query('DELETE FROM eventos WHERE tenant_id = ? AND id = ?', [tenantId, id]);
     return result;
   }
 
   // ============================================
   // OBTENER COTIZACIONES DEL EVENTO
   // ============================================
-  static async obtenerCotizaciones(eventoId) {
+  static async obtenerCotizaciones(tenantId, eventoId) {
     const query = `
       SELECT
         c.id,
@@ -244,22 +247,22 @@ class EventoModel {
         c.total,
         c.estado,
         c.created_at,
-        (SELECT COUNT(*) FROM cotizacion_productos WHERE cotizacion_id = c.id) AS total_productos
+        (SELECT COUNT(*) FROM cotizacion_productos WHERE tenant_id = ? AND cotizacion_id = c.id) AS total_productos
       FROM cotizaciones c
-      WHERE c.evento_id = ?
+      WHERE c.tenant_id = ? AND c.evento_id = ?
       ORDER BY c.created_at DESC
     `;
-    const [rows] = await pool.query(query, [eventoId]);
+    const [rows] = await pool.query(query, [tenantId, tenantId, eventoId]);
     return rows;
   }
 
   // ============================================
   // VERIFICAR SI TIENE COTIZACIONES
   // ============================================
-  static async tieneCotizaciones(id) {
+  static async tieneCotizaciones(tenantId, id) {
     const [rows] = await pool.query(
-      'SELECT COUNT(*) AS total FROM cotizaciones WHERE evento_id = ?',
-      [id]
+      'SELECT COUNT(*) AS total FROM cotizaciones WHERE tenant_id = ? AND evento_id = ?',
+      [tenantId, id]
     );
     return rows[0].total > 0;
   }
@@ -269,16 +272,16 @@ class EventoModel {
   // Retorna true si el evento tiene al menos una cotización aprobada
   // con alquiler y TODOS esos alquileres están finalizados o cancelados
   // ============================================
-  static async todosAlquileresFinalizados(eventoId) {
+  static async todosAlquileresFinalizados(tenantId, eventoId) {
     const query = `
       SELECT
         COUNT(a.id) AS total_alquileres,
         SUM(CASE WHEN a.estado IN ('finalizado', 'cancelado') THEN 1 ELSE 0 END) AS alquileres_terminados
       FROM cotizaciones c
-      INNER JOIN alquileres a ON a.cotizacion_id = c.id
-      WHERE c.evento_id = ?
+      INNER JOIN alquileres a ON a.cotizacion_id = c.id AND a.tenant_id = c.tenant_id
+      WHERE c.tenant_id = ? AND c.evento_id = ?
     `;
-    const [rows] = await pool.query(query, [eventoId]);
+    const [rows] = await pool.query(query, [tenantId, eventoId]);
     const { total_alquileres, alquileres_terminados } = rows[0];
 
     // Solo auto-finalizar si hay al menos un alquiler y todos terminaron
@@ -289,10 +292,10 @@ class EventoModel {
   // AUTO-FINALIZAR EVENTO SI TODOS LOS ALQUILERES TERMINARON
   // Llamado después de ejecutarRetorno en SincronizacionAlquilerService
   // ============================================
-  static async autoFinalizarSiCompleto(eventoId) {
+  static async autoFinalizarSiCompleto(tenantId, eventoId) {
     if (!eventoId) return { actualizado: false, motivo: 'Sin evento_id' };
 
-    const evento = await this.obtenerPorId(eventoId);
+    const evento = await this.obtenerPorId(tenantId, eventoId);
     if (!evento) return { actualizado: false, motivo: 'Evento no encontrado' };
 
     // Solo auto-finalizar si el evento está activo
@@ -300,9 +303,9 @@ class EventoModel {
       return { actualizado: false, motivo: `Evento en estado ${evento.estado}` };
     }
 
-    const todosFinalizados = await this.todosAlquileresFinalizados(eventoId);
+    const todosFinalizados = await this.todosAlquileresFinalizados(tenantId, eventoId);
     if (todosFinalizados) {
-      await this.cambiarEstado(eventoId, 'completado');
+      await this.cambiarEstado(tenantId, eventoId, 'completado');
       return { actualizado: true, estado_nuevo: 'completado' };
     }
 
@@ -313,15 +316,15 @@ class EventoModel {
   // OBTENER EVENTO_ID DESDE UN ALQUILER_ID
   // Busca: alquiler -> cotización -> evento
   // ============================================
-  static async obtenerEventoIdDesdeAlquiler(alquilerId) {
+  static async obtenerEventoIdDesdeAlquiler(tenantId, alquilerId) {
     const query = `
       SELECT c.evento_id
       FROM alquileres a
-      INNER JOIN cotizaciones c ON a.cotizacion_id = c.id
-      WHERE a.id = ?
+      INNER JOIN cotizaciones c ON a.cotizacion_id = c.id AND c.tenant_id = a.tenant_id
+      WHERE a.tenant_id = ? AND a.id = ?
         AND c.evento_id IS NOT NULL
     `;
-    const [rows] = await pool.query(query, [alquilerId]);
+    const [rows] = await pool.query(query, [tenantId, alquilerId]);
     return rows[0]?.evento_id || null;
   }
 
@@ -330,15 +333,15 @@ class EventoModel {
   // No se permite si el evento está completado/cancelado
   // o si la fecha_fin ya pasó
   // ============================================
-  static async puedeAgregarCotizaciones(eventoId) {
+  static async puedeAgregarCotizaciones(tenantId, eventoId) {
     const query = `
       SELECT
         e.estado,
         DATE_FORMAT(e.fecha_fin, '%Y-%m-%d') AS fecha_fin
       FROM eventos e
-      WHERE e.id = ?
+      WHERE e.tenant_id = ? AND e.id = ?
     `;
-    const [rows] = await pool.query(query, [eventoId]);
+    const [rows] = await pool.query(query, [tenantId, eventoId]);
     if (!rows.length) return { permitido: false, motivo: 'Evento no encontrado' };
 
     const evento = rows[0];
@@ -365,7 +368,7 @@ class EventoModel {
   // OBTENER PRODUCTOS DE COTIZACIONES APROBADAS
   // Retorna los productos para copiarlos a un nuevo evento
   // ============================================
-  static async obtenerProductosAprobados(eventoId) {
+  static async obtenerProductosAprobados(tenantId, eventoId) {
     const query = `
       SELECT
         cp.compuesto_id,
@@ -375,11 +378,11 @@ class EventoModel {
         cp.precio_adicionales,
         cp.notas
       FROM cotizacion_productos cp
-      INNER JOIN cotizaciones cot ON cp.cotizacion_id = cot.id
-      WHERE cot.evento_id = ? AND cot.estado = 'aprobada'
+      INNER JOIN cotizaciones cot ON cp.cotizacion_id = cot.id AND cot.tenant_id = cp.tenant_id
+      WHERE cp.tenant_id = ? AND cot.evento_id = ? AND cot.estado = 'aprobada'
       ORDER BY cp.id
     `;
-    const [rows] = await pool.query(query, [eventoId]);
+    const [rows] = await pool.query(query, [tenantId, eventoId]);
     return rows;
   }
 }

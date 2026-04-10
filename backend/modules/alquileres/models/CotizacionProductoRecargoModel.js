@@ -9,10 +9,11 @@ class CotizacionProductoRecargoModel {
 
     /**
      * Obtener recargos de un producto de cotización
+     * @param {number} tenantId
      * @param {number} cotizacionProductoId
      * @returns {Promise<Array>}
      */
-    static async obtenerPorProducto(cotizacionProductoId) {
+    static async obtenerPorProducto(tenantId, cotizacionProductoId) {
         const query = `
             SELECT
                 id,
@@ -26,34 +27,36 @@ class CotizacionProductoRecargoModel {
                 notas,
                 created_at
             FROM cotizacion_producto_recargos
-            WHERE cotizacion_producto_id = ?
+            WHERE tenant_id = ? AND cotizacion_producto_id = ?
             ORDER BY tipo ASC, created_at ASC
         `;
-        const [rows] = await pool.query(query, [cotizacionProductoId]);
+        const [rows] = await pool.query(query, [tenantId, cotizacionProductoId]);
         return rows;
     }
 
     /**
      * Obtener recargo por ID
+     * @param {number} tenantId
      * @param {number} id
      * @returns {Promise<Object|null>}
      */
-    static async obtenerPorId(id) {
-        const query = `SELECT * FROM cotizacion_producto_recargos WHERE id = ?`;
-        const [rows] = await pool.query(query, [id]);
+    static async obtenerPorId(tenantId, id) {
+        const query = `SELECT * FROM cotizacion_producto_recargos WHERE tenant_id = ? AND id = ?`;
+        const [rows] = await pool.query(query, [tenantId, id]);
         return rows.length > 0 ? rows[0] : null;
     }
 
     /**
      * Agregar recargo a un producto
+     * @param {number} tenantId
      * @param {Object} datos
      * @returns {Promise<Object>}
      */
-    static async agregar({ cotizacion_producto_id, tipo, dias, porcentaje, fecha_original, fecha_modificada, notas }) {
+    static async agregar(tenantId, { cotizacion_producto_id, tipo, dias, porcentaje, fecha_original, fecha_modificada, notas }) {
         // Obtener precio base del producto para calcular monto
         const [productos] = await pool.query(
-            'SELECT precio_base, cotizacion_id FROM cotizacion_productos WHERE id = ?',
-            [cotizacion_producto_id]
+            'SELECT precio_base, cotizacion_id FROM cotizacion_productos WHERE tenant_id = ? AND id = ?',
+            [tenantId, cotizacion_producto_id]
         );
 
         if (productos.length === 0) {
@@ -66,10 +69,11 @@ class CotizacionProductoRecargoModel {
 
         const query = `
             INSERT INTO cotizacion_producto_recargos
-                (cotizacion_producto_id, tipo, dias, porcentaje, monto_recargo, fecha_original, fecha_modificada, notas)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                (tenant_id, cotizacion_producto_id, tipo, dias, porcentaje, monto_recargo, fecha_original, fecha_modificada, notas)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         `;
         const [result] = await pool.query(query, [
+            tenantId,
             cotizacion_producto_id,
             tipo,
             dias,
@@ -81,7 +85,7 @@ class CotizacionProductoRecargoModel {
         ]);
 
         // Actualizar total_recargos en el producto
-        await this.recalcularTotalRecargos(cotizacion_producto_id);
+        await this.recalcularTotalRecargos(tenantId, cotizacion_producto_id);
 
         return {
             id: result.insertId,
@@ -99,19 +103,20 @@ class CotizacionProductoRecargoModel {
 
     /**
      * Actualizar un recargo existente
+     * @param {number} tenantId
      * @param {number} id
      * @param {Object} datos
      * @returns {Promise<Object|null>}
      */
-    static async actualizar(id, { dias, porcentaje, fecha_modificada, notas }) {
+    static async actualizar(tenantId, id, { dias, porcentaje, fecha_modificada, notas }) {
         // Obtener datos actuales del recargo
-        const recargo = await this.obtenerPorId(id);
+        const recargo = await this.obtenerPorId(tenantId, id);
         if (!recargo) return null;
 
         // Obtener precio base del producto
         const [productos] = await pool.query(
-            'SELECT precio_base FROM cotizacion_productos WHERE id = ?',
-            [recargo.cotizacion_producto_id]
+            'SELECT precio_base FROM cotizacion_productos WHERE tenant_id = ? AND id = ?',
+            [tenantId, recargo.cotizacion_producto_id]
         );
 
         if (productos.length === 0) {
@@ -124,12 +129,12 @@ class CotizacionProductoRecargoModel {
         const query = `
             UPDATE cotizacion_producto_recargos
             SET dias = ?, porcentaje = ?, monto_recargo = ?, fecha_modificada = ?, notas = ?
-            WHERE id = ?
+            WHERE tenant_id = ? AND id = ?
         `;
-        await pool.query(query, [dias, porcentaje, montoRecargo, fecha_modificada || null, notas || null, id]);
+        await pool.query(query, [dias, porcentaje, montoRecargo, fecha_modificada || null, notas || null, tenantId, id]);
 
         // Recalcular total de recargos del producto
-        await this.recalcularTotalRecargos(recargo.cotizacion_producto_id);
+        await this.recalcularTotalRecargos(tenantId, recargo.cotizacion_producto_id);
 
         return {
             ...recargo,
@@ -143,41 +148,43 @@ class CotizacionProductoRecargoModel {
 
     /**
      * Eliminar un recargo
+     * @param {number} tenantId
      * @param {number} id
      * @returns {Promise<Object>}
      */
-    static async eliminar(id) {
+    static async eliminar(tenantId, id) {
         // Obtener datos antes de eliminar
-        const recargo = await this.obtenerPorId(id);
+        const recargo = await this.obtenerPorId(tenantId, id);
         if (!recargo) {
             return { eliminado: false };
         }
 
         const cotizacionProductoId = recargo.cotizacion_producto_id;
 
-        await pool.query('DELETE FROM cotizacion_producto_recargos WHERE id = ?', [id]);
+        await pool.query('DELETE FROM cotizacion_producto_recargos WHERE tenant_id = ? AND id = ?', [tenantId, id]);
 
         // Recalcular total de recargos del producto
-        await this.recalcularTotalRecargos(cotizacionProductoId);
+        await this.recalcularTotalRecargos(tenantId, cotizacionProductoId);
 
         return { eliminado: true, cotizacion_producto_id: cotizacionProductoId };
     }
 
     /**
      * Eliminar todos los recargos de un producto
+     * @param {number} tenantId
      * @param {number} cotizacionProductoId
      * @returns {Promise<number>}
      */
-    static async eliminarTodosPorProducto(cotizacionProductoId) {
+    static async eliminarTodosPorProducto(tenantId, cotizacionProductoId) {
         const [result] = await pool.query(
-            'DELETE FROM cotizacion_producto_recargos WHERE cotizacion_producto_id = ?',
-            [cotizacionProductoId]
+            'DELETE FROM cotizacion_producto_recargos WHERE tenant_id = ? AND cotizacion_producto_id = ?',
+            [tenantId, cotizacionProductoId]
         );
 
         // Resetear total_recargos a 0
         await pool.query(
-            'UPDATE cotizacion_productos SET total_recargos = 0 WHERE id = ?',
-            [cotizacionProductoId]
+            'UPDATE cotizacion_productos SET total_recargos = 0 WHERE tenant_id = ? AND id = ?',
+            [tenantId, cotizacionProductoId]
         );
 
         return result.affectedRows;
@@ -185,23 +192,24 @@ class CotizacionProductoRecargoModel {
 
     /**
      * Recalcular el total de recargos de un producto
+     * @param {number} tenantId
      * @param {number} cotizacionProductoId
      * @returns {Promise<number>}
      */
-    static async recalcularTotalRecargos(cotizacionProductoId) {
+    static async recalcularTotalRecargos(tenantId, cotizacionProductoId) {
         // Calcular suma de todos los recargos
         const [resultado] = await pool.query(`
             SELECT COALESCE(SUM(monto_recargo), 0) AS total
             FROM cotizacion_producto_recargos
-            WHERE cotizacion_producto_id = ?
-        `, [cotizacionProductoId]);
+            WHERE tenant_id = ? AND cotizacion_producto_id = ?
+        `, [tenantId, cotizacionProductoId]);
 
         const totalRecargos = parseFloat(resultado[0].total);
 
         // Actualizar en cotizacion_productos
         await pool.query(
-            'UPDATE cotizacion_productos SET total_recargos = ? WHERE id = ?',
-            [totalRecargos, cotizacionProductoId]
+            'UPDATE cotizacion_productos SET total_recargos = ? WHERE tenant_id = ? AND id = ?',
+            [totalRecargos, tenantId, cotizacionProductoId]
         );
 
         return totalRecargos;
@@ -209,17 +217,18 @@ class CotizacionProductoRecargoModel {
 
     /**
      * Obtener la cotización ID a partir de un recargo
+     * @param {number} tenantId
      * @param {number} recargoId
      * @returns {Promise<number|null>}
      */
-    static async obtenerCotizacionId(recargoId) {
+    static async obtenerCotizacionId(tenantId, recargoId) {
         const query = `
             SELECT cp.cotizacion_id
             FROM cotizacion_producto_recargos cpr
-            INNER JOIN cotizacion_productos cp ON cpr.cotizacion_producto_id = cp.id
-            WHERE cpr.id = ?
+            INNER JOIN cotizacion_productos cp ON cpr.cotizacion_producto_id = cp.id AND cp.tenant_id = ?
+            WHERE cpr.tenant_id = ? AND cpr.id = ?
         `;
-        const [rows] = await pool.query(query, [recargoId]);
+        const [rows] = await pool.query(query, [tenantId, tenantId, recargoId]);
         return rows.length > 0 ? rows[0].cotizacion_id : null;
     }
 
@@ -237,38 +246,40 @@ class CotizacionProductoRecargoModel {
 
     /**
      * Obtener todos los recargos de una cotización
+     * @param {number} tenantId
      * @param {number} cotizacionId
      * @returns {Promise<Array>}
      */
-    static async obtenerPorCotizacion(cotizacionId) {
+    static async obtenerPorCotizacion(tenantId, cotizacionId) {
         const query = `
             SELECT
                 cpr.*,
                 cp.compuesto_id,
                 ec.nombre AS producto_nombre
             FROM cotizacion_producto_recargos cpr
-            INNER JOIN cotizacion_productos cp ON cpr.cotizacion_producto_id = cp.id
-            INNER JOIN elementos_compuestos ec ON cp.compuesto_id = ec.id
-            WHERE cp.cotizacion_id = ?
+            INNER JOIN cotizacion_productos cp ON cpr.cotizacion_producto_id = cp.id AND cp.tenant_id = ?
+            INNER JOIN elementos_compuestos ec ON cp.compuesto_id = ec.id AND ec.tenant_id = ?
+            WHERE cpr.tenant_id = ? AND cp.cotizacion_id = ?
             ORDER BY cpr.tipo ASC
         `;
-        const [rows] = await pool.query(query, [cotizacionId]);
+        const [rows] = await pool.query(query, [tenantId, tenantId, tenantId, cotizacionId]);
         return rows;
     }
 
     /**
      * Calcular total de recargos de una cotización
+     * @param {number} tenantId
      * @param {number} cotizacionId
      * @returns {Promise<number>}
      */
-    static async calcularTotalCotizacion(cotizacionId) {
+    static async calcularTotalCotizacion(tenantId, cotizacionId) {
         const query = `
             SELECT COALESCE(SUM(cpr.monto_recargo), 0) AS total
             FROM cotizacion_producto_recargos cpr
-            INNER JOIN cotizacion_productos cp ON cpr.cotizacion_producto_id = cp.id
-            WHERE cp.cotizacion_id = ?
+            INNER JOIN cotizacion_productos cp ON cpr.cotizacion_producto_id = cp.id AND cp.tenant_id = ?
+            WHERE cpr.tenant_id = ? AND cp.cotizacion_id = ?
         `;
-        const [rows] = await pool.query(query, [cotizacionId]);
+        const [rows] = await pool.query(query, [tenantId, tenantId, cotizacionId]);
         return parseFloat(rows[0].total);
     }
 }

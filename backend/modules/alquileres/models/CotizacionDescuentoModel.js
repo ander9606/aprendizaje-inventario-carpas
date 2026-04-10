@@ -11,7 +11,7 @@ class CotizacionDescuentoModel {
   // ============================================
   // OBTENER POR COTIZACIÓN
   // ============================================
-  static async obtenerPorCotizacion(cotizacionId) {
+  static async obtenerPorCotizacion(tenantId, cotizacionId) {
     const query = `
       SELECT
         cd.id,
@@ -25,22 +25,22 @@ class CotizacionDescuentoModel {
         d.nombre AS descuento_nombre,
         d.descripcion AS descuento_descripcion
       FROM cotizacion_descuentos cd
-      LEFT JOIN descuentos d ON cd.descuento_id = d.id
-      WHERE cd.cotizacion_id = ?
+      LEFT JOIN descuentos d ON cd.descuento_id = d.id AND d.tenant_id = ?
+      WHERE cd.tenant_id = ? AND cd.cotizacion_id = ?
       ORDER BY cd.created_at ASC
     `;
-    const [rows] = await pool.query(query, [cotizacionId]);
+    const [rows] = await pool.query(query, [tenantId, tenantId, cotizacionId]);
     return rows;
   }
 
   // ============================================
   // AGREGAR DESCUENTO PREDEFINIDO
   // ============================================
-  static async agregarDescuentoPredefinido(cotizacionId, descuentoId, baseCalculo, descripcion = null) {
+  static async agregarDescuentoPredefinido(tenantId, cotizacionId, descuentoId, baseCalculo, descripcion = null) {
     // Obtener info del descuento
     const [descuentoData] = await pool.query(
-      'SELECT tipo, valor FROM descuentos WHERE id = ? AND activo = TRUE',
-      [descuentoId]
+      'SELECT tipo, valor FROM descuentos WHERE tenant_id = ? AND id = ? AND activo = TRUE',
+      [tenantId, descuentoId]
     );
 
     if (!descuentoData[0]) {
@@ -56,10 +56,11 @@ class CotizacionDescuentoModel {
 
     const query = `
       INSERT INTO cotizacion_descuentos
-        (cotizacion_id, descuento_id, tipo, valor, monto_calculado, descripcion)
-      VALUES (?, ?, ?, ?, ?, ?)
+        (tenant_id, cotizacion_id, descuento_id, tipo, valor, monto_calculado, descripcion)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
     `;
     const [result] = await pool.query(query, [
+      tenantId,
       cotizacionId,
       descuentoId,
       tipo,
@@ -69,7 +70,7 @@ class CotizacionDescuentoModel {
     ]);
 
     // Recalcular totales
-    await CotizacionModel.recalcularTotales(cotizacionId);
+    await CotizacionModel.recalcularTotales(tenantId, cotizacionId);
 
     return result;
   }
@@ -77,7 +78,7 @@ class CotizacionDescuentoModel {
   // ============================================
   // AGREGAR DESCUENTO MANUAL
   // ============================================
-  static async agregarDescuentoManual(cotizacionId, valor, tipo, baseCalculo, descripcion = null) {
+  static async agregarDescuentoManual(tenantId, cotizacionId, valor, tipo, baseCalculo, descripcion = null) {
     const valorNum = parseFloat(valor);
     const montoCalculado = tipo === 'porcentaje'
       ? baseCalculo * (valorNum / 100)
@@ -85,10 +86,11 @@ class CotizacionDescuentoModel {
 
     const query = `
       INSERT INTO cotizacion_descuentos
-        (cotizacion_id, descuento_id, tipo, valor, monto_calculado, descripcion)
-      VALUES (?, NULL, ?, ?, ?, ?)
+        (tenant_id, cotizacion_id, descuento_id, tipo, valor, monto_calculado, descripcion)
+      VALUES (?, ?, NULL, ?, ?, ?, ?)
     `;
     const [result] = await pool.query(query, [
+      tenantId,
       cotizacionId,
       tipo,
       valorNum,
@@ -97,7 +99,7 @@ class CotizacionDescuentoModel {
     ]);
 
     // Recalcular totales
-    await CotizacionModel.recalcularTotales(cotizacionId);
+    await CotizacionModel.recalcularTotales(tenantId, cotizacionId);
 
     return result;
   }
@@ -105,11 +107,11 @@ class CotizacionDescuentoModel {
   // ============================================
   // ELIMINAR DESCUENTO
   // ============================================
-  static async eliminar(id) {
+  static async eliminar(tenantId, id) {
     // Obtener cotizacion_id antes de eliminar
     const [data] = await pool.query(
-      'SELECT cotizacion_id FROM cotizacion_descuentos WHERE id = ?',
-      [id]
+      'SELECT cotizacion_id FROM cotizacion_descuentos WHERE tenant_id = ? AND id = ?',
+      [tenantId, id]
     );
 
     if (!data[0]) {
@@ -119,12 +121,12 @@ class CotizacionDescuentoModel {
     const cotizacionId = data[0].cotizacion_id;
 
     const [result] = await pool.query(
-      'DELETE FROM cotizacion_descuentos WHERE id = ?',
-      [id]
+      'DELETE FROM cotizacion_descuentos WHERE tenant_id = ? AND id = ?',
+      [tenantId, id]
     );
 
     // Recalcular totales
-    await CotizacionModel.recalcularTotales(cotizacionId);
+    await CotizacionModel.recalcularTotales(tenantId, cotizacionId);
 
     return result;
   }
@@ -132,10 +134,10 @@ class CotizacionDescuentoModel {
   // ============================================
   // ELIMINAR TODOS DE UNA COTIZACIÓN
   // ============================================
-  static async eliminarTodosDeCotizacion(cotizacionId) {
+  static async eliminarTodosDeCotizacion(tenantId, cotizacionId) {
     const [result] = await pool.query(
-      'DELETE FROM cotizacion_descuentos WHERE cotizacion_id = ?',
-      [cotizacionId]
+      'DELETE FROM cotizacion_descuentos WHERE tenant_id = ? AND cotizacion_id = ?',
+      [tenantId, cotizacionId]
     );
 
     return result;
@@ -144,7 +146,7 @@ class CotizacionDescuentoModel {
   // ============================================
   // AGREGAR MÚLTIPLES DESCUENTOS (para crear/editar cotización)
   // ============================================
-  static async agregarMultiples(cotizacionId, descuentos, baseCalculo) {
+  static async agregarMultiples(tenantId, cotizacionId, descuentos, baseCalculo) {
     if (!descuentos || descuentos.length === 0) return [];
 
     const results = [];
@@ -156,10 +158,11 @@ class CotizacionDescuentoModel {
 
       const query = `
         INSERT INTO cotizacion_descuentos
-          (cotizacion_id, descuento_id, tipo, valor, monto_calculado, descripcion)
-        VALUES (?, ?, ?, ?, ?, ?)
+          (tenant_id, cotizacion_id, descuento_id, tipo, valor, monto_calculado, descripcion)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
       `;
       const [result] = await pool.query(query, [
+        tenantId,
         cotizacionId,
         descuento.descuento_id || null,
         descuento.tipo,
@@ -176,26 +179,26 @@ class CotizacionDescuentoModel {
   // ============================================
   // REEMPLAZAR DESCUENTOS (eliminar existentes y agregar nuevos)
   // ============================================
-  static async reemplazarDescuentos(cotizacionId, descuentos, baseCalculo) {
+  static async reemplazarDescuentos(tenantId, cotizacionId, descuentos, baseCalculo) {
     // Eliminar descuentos existentes
     await pool.query(
-      'DELETE FROM cotizacion_descuentos WHERE cotizacion_id = ?',
-      [cotizacionId]
+      'DELETE FROM cotizacion_descuentos WHERE tenant_id = ? AND cotizacion_id = ?',
+      [tenantId, cotizacionId]
     );
 
     // Agregar nuevos descuentos
     if (descuentos && descuentos.length > 0) {
-      await this.agregarMultiples(cotizacionId, descuentos, baseCalculo);
+      await this.agregarMultiples(tenantId, cotizacionId, descuentos, baseCalculo);
     }
   }
 
   // ============================================
   // OBTENER TOTAL DESCUENTOS
   // ============================================
-  static async obtenerTotalDescuentos(cotizacionId) {
+  static async obtenerTotalDescuentos(tenantId, cotizacionId) {
     const [result] = await pool.query(
-      'SELECT COALESCE(SUM(monto_calculado), 0) AS total FROM cotizacion_descuentos WHERE cotizacion_id = ?',
-      [cotizacionId]
+      'SELECT COALESCE(SUM(monto_calculado), 0) AS total FROM cotizacion_descuentos WHERE tenant_id = ? AND cotizacion_id = ?',
+      [tenantId, cotizacionId]
     );
     return parseFloat(result[0].total);
   }
