@@ -38,6 +38,38 @@ class TokenService {
     }
 
     /**
+     * Access token para super admin (sin tenant, con flag)
+     */
+    static generarAccessTokenSuperAdmin(superAdmin) {
+        const payload = {
+            id: superAdmin.id,
+            email: superAdmin.email,
+            nombre: superAdmin.nombre,
+            apellido: superAdmin.apellido,
+            es_super_admin: true,
+            tipo: 'access'
+        };
+        return jwt.sign(payload, JWT_SECRET, {
+            expiresIn: JWT_ACCESS_EXPIRES,
+            issuer: 'inventario-carpas-api'
+        });
+    }
+
+    static async generarRefreshTokenSuperAdmin(superAdmin) {
+        const tokenValue = crypto.randomBytes(64).toString('hex');
+        const diasExpiracion = parseInt(JWT_REFRESH_EXPIRES) || 7;
+        const expiraEn = new Date();
+        expiraEn.setDate(expiraEn.getDate() + diasExpiracion);
+
+        await pool.query(
+            `INSERT INTO refresh_tokens (tenant_id, empleado_id, super_admin_id, token, expires_at)
+             VALUES (NULL, NULL, ?, ?, ?)`,
+            [superAdmin.id, tokenValue, expiraEn]
+        );
+        return tokenValue;
+    }
+
+    /**
      * Generar Refresh Token (larga duración)
      * Se almacena en base de datos para poder revocarlo
      * @param {Object} empleado - Datos del empleado
@@ -96,6 +128,33 @@ class TokenService {
      * @throws {AppError} Si el token es inválido, expirado o revocado
      */
     static async verificarRefreshToken(token) {
+        // Primero buscar metadata del token
+        const [metaRows] = await pool.query(
+            `SELECT id as token_id, empleado_id, super_admin_id, expires_at, revoked
+             FROM refresh_tokens WHERE token = ?`,
+            [token]
+        );
+
+        if (metaRows.length === 0) {
+            throw new AppError('Refresh token no encontrado', 401);
+        }
+        const meta = metaRows[0];
+
+        // Rama super_admin
+        if (meta.super_admin_id) {
+            const [saRows] = await pool.query(
+                `SELECT id, nombre, apellido, email, estado FROM super_admins WHERE id = ?`,
+                [meta.super_admin_id]
+            );
+            if (saRows.length === 0) throw new AppError('Super admin no encontrado', 401);
+            const sa = saRows[0];
+            if (meta.revoked) throw new AppError('Refresh token ha sido revocado', 401);
+            if (new Date(meta.expires_at) < new Date()) throw new AppError('Refresh token expirado', 401);
+            if (sa.estado !== 'activo') throw new AppError('Cuenta desactivada', 401);
+            return { ...sa, es_super_admin: true, token_id: meta.token_id };
+        }
+
+        // Rama empleado
         const [rows] = await pool.query(`
             SELECT
                 rt.id as token_id,

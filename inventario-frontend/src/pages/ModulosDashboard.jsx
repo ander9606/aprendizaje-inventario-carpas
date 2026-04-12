@@ -83,7 +83,7 @@ export default function ModulosDashboard() {
     }
   ]
 
-  const esSuperAdmin = usuario?.rol === 'super_admin'
+  const esSuperAdmin = usuario?.es_super_admin === true || usuario?.rol === 'super_admin'
 
   const colorConfig = {
     blue: {

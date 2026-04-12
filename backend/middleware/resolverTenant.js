@@ -8,7 +8,8 @@ const CACHE_TTL = 5 * 60 * 1000; // 5 minutos
 // Rutas que no requieren resolución de tenant por header/subdominio
 // (usan req.usuario.tenant_id del JWT o buscan globalmente)
 const SKIP_PREFIXES = [
-    '/auth/'
+    '/auth/',
+    '/superadmin/'
 ];
 
 const resolverTenant = async (req, res, next) => {

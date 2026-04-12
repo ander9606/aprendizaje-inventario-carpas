@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const AuthModel = require('../models/AuthModel');
+const SuperAdminModel = require('../models/SuperAdminModel');
 const VerificacionEmailModel = require('../models/VerificacionEmailModel');
 const TokenService = require('../services/TokenService');
 const EmailService = require('../services/EmailService');
@@ -34,7 +35,56 @@ const login = async (req, res, next) => {
             throw new AppError('Email y contraseña son requeridos', 400);
         }
 
-        // Buscar empleado por email (cross-tenant si no hay tenant resuelto)
+        // 1. Intentar como super admin (tabla independiente)
+        const superAdmin = await SuperAdminModel.buscarPorEmail(email);
+        if (superAdmin) {
+            if (superAdmin.estado !== 'activo') {
+                throw new AppError('Cuenta de super admin desactivada', 403);
+            }
+            if (superAdmin.bloqueado_hasta && new Date(superAdmin.bloqueado_hasta) > new Date()) {
+                const min = Math.ceil((new Date(superAdmin.bloqueado_hasta) - new Date()) / 60000);
+                throw new AppError(`Cuenta bloqueada. Intente de nuevo en ${min} minutos`, 423);
+            }
+            const valido = await bcrypt.compare(password, superAdmin.password_hash);
+            if (!valido) {
+                const intentos = await SuperAdminModel.incrementarIntentosFallidos(superAdmin.id);
+                if (intentos >= MAX_INTENTOS_FALLIDOS) {
+                    const hasta = new Date();
+                    hasta.setMinutes(hasta.getMinutes() + MINUTOS_BLOQUEO);
+                    await SuperAdminModel.bloquearCuenta(superAdmin.id, hasta);
+                    throw new AppError(`Demasiados intentos. Cuenta bloqueada por ${MINUTOS_BLOQUEO} minutos`, 423);
+                }
+                throw new AppError('Credenciales inválidas', 401);
+            }
+            await SuperAdminModel.actualizarUltimoLogin(superAdmin.id);
+            const accessToken = TokenService.generarAccessTokenSuperAdmin(superAdmin);
+            const refreshToken = await TokenService.generarRefreshTokenSuperAdmin(superAdmin);
+            logger.info('auth', `Login super_admin: ${email}`);
+            return res.json({
+                success: true,
+                message: 'Login exitoso',
+                data: {
+                    usuario: {
+                        id: superAdmin.id,
+                        nombre: superAdmin.nombre,
+                        apellido: superAdmin.apellido,
+                        email: superAdmin.email,
+                        rol: 'super_admin',
+                        es_super_admin: true,
+                        permisos: null,
+                        tenant_id: null,
+                        tenant_slug: null
+                    },
+                    tokens: {
+                        accessToken,
+                        refreshToken,
+                        expiresIn: process.env.JWT_ACCESS_EXPIRES || '15m'
+                    }
+                }
+            });
+        }
+
+        // 2. Login normal de empleado (cross-tenant si no hay tenant resuelto)
         let empleado;
         if (tenantId) {
             empleado = await AuthModel.buscarPorEmail(tenantId, email);
@@ -241,6 +291,29 @@ const refresh = async (req, res, next) => {
  */
 const me = async (req, res, next) => {
     try {
+        // Super admin
+        if (req.usuario?.es_super_admin) {
+            const sa = await SuperAdminModel.obtenerPorId(req.usuario.id);
+            if (!sa) throw new AppError('Super admin no encontrado', 404);
+            return res.json({
+                success: true,
+                data: {
+                    id: sa.id,
+                    nombre: sa.nombre,
+                    apellido: sa.apellido,
+                    email: sa.email,
+                    telefono: sa.telefono,
+                    rol: 'super_admin',
+                    es_super_admin: true,
+                    permisos: null,
+                    ultimo_login: sa.ultimo_login,
+                    created_at: sa.created_at,
+                    tenant_id: null,
+                    tenant_slug: null
+                }
+            });
+        }
+
         const tenantId = req.tenant?.id || req.usuario?.tenant_id;
         const empleado = await AuthModel.obtenerPorId(tenantId, req.usuario.id);
 
@@ -261,7 +334,8 @@ const me = async (req, res, next) => {
                 ultimo_login: empleado.ultimo_login,
                 created_at: empleado.created_at,
                 tenant_id: empleado.tenant_id,
-                tenant_slug: empleado.tenant_slug
+                tenant_slug: empleado.tenant_slug,
+                es_super_admin: false
             }
         });
     } catch (error) {

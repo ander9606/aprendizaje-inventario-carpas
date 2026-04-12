@@ -34,13 +34,15 @@ const verificarToken = (req, res, next) => {
             nombre: decoded.nombre,
             apellido: decoded.apellido,
             rol_id: decoded.rol_id,
-            rol_nombre: decoded.rol_nombre,
+            rol_nombre: decoded.es_super_admin ? 'super_admin' : decoded.rol_nombre,
             permisos: decoded.permisos,
-            tenant_id: decoded.tenant_id
+            tenant_id: decoded.tenant_id,
+            es_super_admin: decoded.es_super_admin === true
         };
 
-        // Verificar que el token pertenece al tenant actual
-        if (req.tenant && decoded.tenant_id && decoded.tenant_id !== req.tenant.id) {
+        // Super admin: no valida tenant (global)
+        if (!req.usuario.es_super_admin &&
+            req.tenant && decoded.tenant_id && decoded.tenant_id !== req.tenant.id) {
             throw new AppError('Token no pertenece a este tenant', 403);
         }
 
@@ -81,9 +83,10 @@ const verificarTokenOpcional = (req, res, next) => {
                 nombre: decoded.nombre,
                 apellido: decoded.apellido,
                 rol_id: decoded.rol_id,
-                rol_nombre: decoded.rol_nombre,
+                rol_nombre: decoded.es_super_admin ? 'super_admin' : decoded.rol_nombre,
                 permisos: decoded.permisos,
-                tenant_id: decoded.tenant_id
+                tenant_id: decoded.tenant_id,
+                es_super_admin: decoded.es_super_admin === true
             };
         } catch (error) {
             req.usuario = null;
