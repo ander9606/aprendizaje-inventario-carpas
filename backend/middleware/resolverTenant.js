@@ -5,8 +5,21 @@ const AppError = require('../utils/AppError');
 const tenantCache = new Map();
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutos
 
+// Rutas que no requieren tenant (públicas o pre-auth)
+const SKIP_PATHS = [
+    '/auth/login',
+    '/auth/registro',
+    '/auth/refresh',
+    '/auth/verify-email'
+];
+
 const resolverTenant = async (req, res, next) => {
     try {
+        // Saltar rutas públicas de auth
+        if (SKIP_PATHS.some(path => req.path.startsWith(path))) {
+            return next();
+        }
+
         let slug;
 
         if (process.env.NODE_ENV === 'production') {
