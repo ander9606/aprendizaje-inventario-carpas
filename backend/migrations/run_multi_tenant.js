@@ -19,11 +19,11 @@ async function runMigration() {
     const sqlPath = path.join(__dirname, 'add_multi_tenant.sql');
     const sql = fs.readFileSync(sqlPath, 'utf8');
 
-    // Separar por punto y coma, filtrar vacíos y comentarios
+    // Separar por punto y coma, limpiar comentarios, filtrar vacíos
     const statements = sql
         .split(';')
-        .map(s => s.trim())
-        .filter(s => s.length > 0 && !s.startsWith('--'));
+        .map(s => s.split('\n').filter(line => !line.trim().startsWith('--')).join('\n').trim())
+        .filter(s => s.length > 0);
 
     console.log(`\n🚀 Ejecutando migración multi-tenant (${statements.length} statements)...\n`);
 
