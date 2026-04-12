@@ -2,9 +2,8 @@ const router = require('express').Router();
 const { verificarToken } = require('../auth/middleware/authMiddleware');
 const verificarSuperAdmin = require('./middleware/verificarSuperAdmin');
 
-// All superadmin routes require auth + super_admin role
-router.use(verificarToken);
-router.use(verificarSuperAdmin);
+// Middleware solo para rutas /superadmin/* (no afecta otras rutas)
+router.use('/superadmin', verificarToken, verificarSuperAdmin);
 
 router.use('/superadmin/dashboard', require('./routes/dashboard'));
 router.use('/superadmin/tenants', require('./routes/tenants'));
