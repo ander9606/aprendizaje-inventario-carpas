@@ -5,18 +5,16 @@ const AppError = require('../utils/AppError');
 const tenantCache = new Map();
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutos
 
-// Rutas que no requieren tenant (públicas o pre-auth)
-const SKIP_PATHS = [
-    '/auth/login',
-    '/auth/registro',
-    '/auth/refresh',
-    '/auth/verify-email'
+// Rutas que no requieren resolución de tenant por header/subdominio
+// (usan req.usuario.tenant_id del JWT o buscan globalmente)
+const SKIP_PREFIXES = [
+    '/auth/'
 ];
 
 const resolverTenant = async (req, res, next) => {
     try {
-        // Saltar rutas públicas de auth
-        if (SKIP_PATHS.some(path => req.path.startsWith(path))) {
+        // Saltar rutas de auth (usan tenant_id del JWT)
+        if (SKIP_PREFIXES.some(prefix => req.path.startsWith(prefix))) {
             return next();
         }
 
@@ -47,7 +45,7 @@ const resolverTenant = async (req, res, next) => {
 
         // Buscar en BD
         const [rows] = await pool.query(
-            'SELECT id, nombre, slug, estado, plan FROM tenants WHERE slug = ?',
+            'SELECT id, nombre, slug, estado, plan_id FROM tenants WHERE slug = ?',
             [slug]
         );
 
@@ -65,7 +63,7 @@ const resolverTenant = async (req, res, next) => {
             id: tenant.id,
             nombre: tenant.nombre,
             slug: tenant.slug,
-            plan: tenant.plan
+            plan_id: tenant.plan_id
         };
 
         // Guardar en cache
