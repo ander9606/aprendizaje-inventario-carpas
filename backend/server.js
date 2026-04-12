@@ -20,6 +20,7 @@ const clientesModule = require('./modules/clientes');
 const operacionesModule = require('./modules/operaciones');
 const configuracionModule = require('./modules/configuracion');
 const authModule = require('./modules/auth');
+const superadminModule = require('./modules/superadmin');
 
 const path = require('path');
 const fs = require('fs');
@@ -149,10 +150,19 @@ app.get('/', (req, res) => {
                 '/api/auth/refresh',
                 '/api/auth/me',
                 '/api/auth/password'
+            ],
+            superadmin: [
+                '/api/superadmin/dashboard',
+                '/api/superadmin/tenants',
+                '/api/superadmin/planes',
+                '/api/superadmin/pagos'
             ]
         }
     });
 });
+
+// Super admin routes — BEFORE resolverTenant (no tenant needed)
+app.use('/api', superadminModule);
 
 // Resolver tenant para todas las rutas de API
 app.use('/api', resolverTenant);
