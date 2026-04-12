@@ -70,6 +70,14 @@ const AlertasPage = lazy(() => import('./modules/configuracion/pages/AlertasPage
 // Perfil de usuario
 const PerfilPage = lazy(() => import('./modules/auth/pages/PerfilPage'))
 
+// Super Admin
+const SuperadminLayout = lazy(() => import('./modules/superadmin/components/SuperadminLayout'))
+const SuperadminDashboard = lazy(() => import('./modules/superadmin/pages/SuperadminDashboard'))
+const TenantsPage = lazy(() => import('./modules/superadmin/pages/TenantsPage'))
+const TenantDetallePage = lazy(() => import('./modules/superadmin/pages/TenantDetallePage'))
+const PlanesPage = lazy(() => import('./modules/superadmin/pages/PlanesPage'))
+const PagosPage = lazy(() => import('./modules/superadmin/pages/PagosPage'))
+
 // ============================================
 // LOADING FALLBACK
 // ============================================
@@ -249,6 +257,19 @@ function App() {
                     ============================================ */}
                 <Route element={<ProtectedRoute roles={['admin', 'gerente']} />}>
                     <Route path="/configuracion/empleados" element={<EmpleadosPage />} />
+                </Route>
+
+                {/* ============================================
+                    SUPER ADMIN (requiere rol super_admin)
+                    ============================================ */}
+                <Route element={<ProtectedRoute roles={['super_admin']} />}>
+                    <Route path="/superadmin" element={<SuperadminLayout />}>
+                        <Route index element={<SuperadminDashboard />} />
+                        <Route path="tenants" element={<TenantsPage />} />
+                        <Route path="tenants/:id" element={<TenantDetallePage />} />
+                        <Route path="planes" element={<PlanesPage />} />
+                        <Route path="pagos" element={<PagosPage />} />
+                    </Route>
                 </Route>
 
                 {/* ============================================

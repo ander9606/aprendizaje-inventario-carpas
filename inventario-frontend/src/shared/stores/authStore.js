@@ -216,13 +216,21 @@ const useAuthStore = create(
                 const { usuario } = get()
                 if (!usuario) return false
 
-                // Admin tiene todos los permisos
-                if (usuario.rol === 'admin') return true
+                // Admin y super_admin tienen todos los permisos
+                if (usuario.rol === 'admin' || usuario.rol === 'super_admin') return true
 
                 const permisos = usuario.permisos
                 if (!permisos || !permisos[modulo]) return false
 
                 return permisos[modulo][accion] === true
+            },
+
+            /**
+             * Verificar si es super admin
+             */
+            isSuperAdmin: () => {
+                const { usuario } = get()
+                return usuario?.rol === 'super_admin'
             }
         }),
         {

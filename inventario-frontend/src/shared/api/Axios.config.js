@@ -46,9 +46,25 @@ api.interceptors.request.use(
     (config) => {
         // Obtener token del store
         if (getAuthState) {
-            const { accessToken } = getAuthState()
+            const { accessToken, usuario } = getAuthState()
             if (accessToken) {
                 config.headers.Authorization = `Bearer ${accessToken}`
+            }
+
+            // Enviar X-Tenant-Slug (excepto para rutas de superadmin)
+            if (!config.url?.includes('/superadmin/')) {
+                // En producción: slug del subdominio; en dev: del store
+                const hostname = window.location.hostname
+                const parts = hostname.split('.')
+                let slug = null
+                if (parts.length >= 3 && parts[0] !== 'www') {
+                    slug = parts[0]
+                } else if (usuario?.tenant_slug) {
+                    slug = usuario.tenant_slug
+                }
+                if (slug) {
+                    config.headers['X-Tenant-Slug'] = slug
+                }
             }
         }
 

@@ -19,6 +19,7 @@ export default defineConfig({
       '@operaciones': path.resolve(__dirname, 'src/modules/operaciones'),
       '@calendario': path.resolve(__dirname, 'src/modules/calendario'),
       '@configuracion': path.resolve(__dirname, 'src/modules/configuracion'),
+      '@superadmin': path.resolve(__dirname, 'src/modules/superadmin'),
     }
   },
   server: {
