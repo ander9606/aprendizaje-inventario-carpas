@@ -80,19 +80,10 @@ export default function ModulosDashboard() {
       ruta: '/configuracion',
       estado: 'activo',
       tags: t('config.tags', { returnObjects: true })
-    },
-    // Super Admin — solo visible para super_admin
-    ...(usuario?.rol === 'super_admin' ? [{
-      id: 'superadmin',
-      nombre: 'Super Admin',
-      descripcion: 'Gestión de tenants, planes y pagos de la plataforma',
-      icon: Shield,
-      color: 'indigo',
-      ruta: '/superadmin',
-      estado: 'activo',
-      tags: ['Tenants', 'Planes', 'Pagos']
-    }] : [])
+    }
   ]
+
+  const esSuperAdmin = usuario?.rol === 'super_admin'
 
   const colorConfig = {
     blue: {
@@ -124,12 +115,6 @@ export default function ModulosDashboard() {
       iconBg: 'bg-slate-500',
       tag: 'bg-slate-100 text-slate-700',
       arrow: 'text-slate-500 group-hover:translate-x-1'
-    },
-    indigo: {
-      card: 'border-indigo-200/60 hover:border-indigo-400 hover:shadow-indigo-100/50',
-      iconBg: 'bg-indigo-600',
-      tag: 'bg-indigo-50 text-indigo-700',
-      arrow: 'text-indigo-500 group-hover:translate-x-1'
     }
   }
 
@@ -180,6 +165,30 @@ export default function ModulosDashboard() {
           {/* Usuario y logout */}
           {usuario && (
             <div className="flex items-center gap-2">
+              {/* Acceso Super Admin — solo super_admin */}
+              {esSuperAdmin && (
+                <button
+                  onClick={() => navigate('/superadmin')}
+                  className="hidden sm:flex items-center gap-2 px-3 py-2 mr-2 rounded-xl
+                             bg-indigo-50 text-indigo-700 hover:bg-indigo-100 active:bg-indigo-200
+                             border border-indigo-200/60 transition-colors"
+                  title="Super Admin"
+                >
+                  <Shield className="w-4 h-4" />
+                  <span className="text-sm font-medium">Super Admin</span>
+                </button>
+              )}
+              {esSuperAdmin && (
+                <button
+                  onClick={() => navigate('/superadmin')}
+                  className="sm:hidden w-10 h-10 flex items-center justify-center rounded-xl
+                             bg-indigo-50 text-indigo-700 hover:bg-indigo-100 active:bg-indigo-200
+                             border border-indigo-200/60 transition-colors"
+                  title="Super Admin"
+                >
+                  <Shield className="w-5 h-5" />
+                </button>
+              )}
               <div className="flex items-center gap-3 mr-1">
                 <div className="w-9 h-9 rounded-full bg-slate-900 flex items-center justify-center flex-shrink-0">
                   <span className="text-xs font-semibold text-white leading-none">
