@@ -43,6 +43,46 @@ class AuthModel {
     }
 
     /**
+     * Buscar empleado por email sin filtrar por tenant (login cross-tenant en dev)
+     */
+    static async buscarPorEmailGlobal(email) {
+        const [rows] = await pool.query(`
+            SELECT
+                e.id,
+                e.nombre,
+                e.apellido,
+                e.email,
+                e.password_hash,
+                e.telefono,
+                e.rol_id,
+                e.estado,
+                e.tenant_id,
+                e.intentos_fallidos,
+                e.bloqueado_hasta,
+                e.ultimo_login,
+                r.nombre as rol_nombre,
+                r.permisos,
+                t.slug as tenant_slug
+            FROM empleados e
+            LEFT JOIN roles r ON e.rol_id = r.id AND r.tenant_id = e.tenant_id
+            LEFT JOIN tenants t ON e.tenant_id = t.id
+            WHERE e.email = ? AND e.estado = 'activo'
+            LIMIT 1
+        `, [email]);
+
+        if (rows.length === 0) {
+            return null;
+        }
+
+        const empleado = rows[0];
+        if (empleado.permisos && typeof empleado.permisos === 'string') {
+            empleado.permisos = JSON.parse(empleado.permisos);
+        }
+
+        return empleado;
+    }
+
+    /**
      * Actualizar fecha de último login
      * @param {number} empleadoId
      */

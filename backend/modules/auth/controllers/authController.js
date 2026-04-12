@@ -26,7 +26,7 @@ const generarCodigo = () => {
  */
 const login = async (req, res, next) => {
     try {
-        const tenantId = req.tenant.id;
+        const tenantId = req.tenant?.id;
         const { email, password } = req.body;
 
         // Validar campos requeridos
@@ -34,8 +34,13 @@ const login = async (req, res, next) => {
             throw new AppError('Email y contraseña son requeridos', 400);
         }
 
-        // Buscar empleado por email
-        const empleado = await AuthModel.buscarPorEmail(tenantId, email);
+        // Buscar empleado por email (cross-tenant si no hay tenant resuelto)
+        let empleado;
+        if (tenantId) {
+            empleado = await AuthModel.buscarPorEmail(tenantId, email);
+        } else {
+            empleado = await AuthModel.buscarPorEmailGlobal(email);
+        }
 
         if (!empleado) {
             throw new AppError('Credenciales inválidas', 401);
@@ -61,18 +66,21 @@ const login = async (req, res, next) => {
             );
         }
 
+        // Usar tenant_id del empleado si no hay tenant resuelto (login cross-tenant)
+        const effectiveTenantId = tenantId || empleado.tenant_id;
+
         // Verificar contraseña
         const passwordValido = await bcrypt.compare(password, empleado.password_hash);
 
         if (!passwordValido) {
             // Incrementar intentos fallidos
-            const intentos = await AuthModel.incrementarIntentosFallidos(tenantId, empleado.id);
+            const intentos = await AuthModel.incrementarIntentosFallidos(effectiveTenantId, empleado.id);
 
             // Bloquear cuenta si excede límite
             if (intentos >= MAX_INTENTOS_FALLIDOS) {
                 const bloqueadoHasta = new Date();
                 bloqueadoHasta.setMinutes(bloqueadoHasta.getMinutes() + MINUTOS_BLOQUEO);
-                await AuthModel.bloquearCuenta(tenantId, empleado.id, bloqueadoHasta);
+                await AuthModel.bloquearCuenta(effectiveTenantId, empleado.id, bloqueadoHasta);
 
                 logger.warn('auth', `Cuenta bloqueada por exceso de intentos: ${email}`);
 
@@ -86,14 +94,14 @@ const login = async (req, res, next) => {
         }
 
         // Login exitoso - actualizar último login
-        await AuthModel.actualizarUltimoLogin(tenantId, empleado.id);
+        await AuthModel.actualizarUltimoLogin(effectiveTenantId, empleado.id);
 
         // Generar tokens
         const accessToken = TokenService.generarAccessToken(empleado);
         const refreshToken = await TokenService.generarRefreshToken(empleado);
 
         // Registrar en auditoría
-        await AuthModel.registrarAuditoria(tenantId, {
+        await AuthModel.registrarAuditoria(effectiveTenantId, {
             empleado_id: empleado.id,
             accion: 'LOGIN',
             ip_address: req.ip,
@@ -101,6 +109,14 @@ const login = async (req, res, next) => {
         });
 
         logger.info('auth', `Login exitoso: ${email}`);
+
+        // Obtener slug del tenant para el frontend
+        let tenantSlug = null;
+        if (empleado.tenant_slug) {
+            tenantSlug = empleado.tenant_slug;
+        } else if (req.tenant?.slug) {
+            tenantSlug = req.tenant.slug;
+        }
 
         res.json({
             success: true,
@@ -112,7 +128,9 @@ const login = async (req, res, next) => {
                     apellido: empleado.apellido,
                     email: empleado.email,
                     rol: empleado.rol_nombre,
-                    permisos: empleado.permisos
+                    permisos: empleado.permisos,
+                    tenant_id: empleado.tenant_id,
+                    tenant_slug: tenantSlug
                 },
                 tokens: {
                     accessToken,
@@ -132,7 +150,7 @@ const login = async (req, res, next) => {
  */
 const logout = async (req, res, next) => {
     try {
-        const tenantId = req.tenant.id;
+        const tenantId = req.tenant?.id || req.usuario?.tenant_id;
         const { refreshToken } = req.body;
 
         if (refreshToken) {
@@ -140,7 +158,7 @@ const logout = async (req, res, next) => {
         }
 
         // Registrar en auditoría si hay usuario autenticado
-        if (req.usuario) {
+        if (req.usuario && tenantId) {
             await AuthModel.registrarAuditoria(tenantId, {
                 empleado_id: req.usuario.id,
                 accion: 'LOGOUT',
@@ -166,7 +184,7 @@ const logout = async (req, res, next) => {
  */
 const logoutAll = async (req, res, next) => {
     try {
-        const tenantId = req.tenant.id;
+        const tenantId = req.tenant?.id || req.usuario?.tenant_id;
         await TokenService.revocarTodosTokensEmpleado(req.usuario.id);
 
         await AuthModel.registrarAuditoria(tenantId, {
@@ -223,7 +241,7 @@ const refresh = async (req, res, next) => {
  */
 const me = async (req, res, next) => {
     try {
-        const tenantId = req.tenant.id;
+        const tenantId = req.tenant?.id || req.usuario?.tenant_id;
         const empleado = await AuthModel.obtenerPorId(tenantId, req.usuario.id);
 
         if (!empleado) {
@@ -255,7 +273,7 @@ const me = async (req, res, next) => {
  */
 const actualizarPerfil = async (req, res, next) => {
     try {
-        const tenantId = req.tenant.id;
+        const tenantId = req.tenant?.id || req.usuario?.tenant_id;
         const { nombre, apellido, telefono } = req.body;
 
         if (!nombre && !apellido && telefono === undefined) {
@@ -312,7 +330,7 @@ const actualizarPerfil = async (req, res, next) => {
  */
 const cambiarPassword = async (req, res, next) => {
     try {
-        const tenantId = req.tenant.id;
+        const tenantId = req.tenant?.id || req.usuario?.tenant_id;
         const { passwordActual, passwordNuevo } = req.body;
 
         // Validar campos requeridos
@@ -391,7 +409,7 @@ const getSessions = async (req, res, next) => {
  */
 const obtenerHistorial = async (req, res, next) => {
     try {
-        const tenantId = req.tenant.id;
+        const tenantId = req.tenant?.id || req.usuario?.tenant_id;
         const page = parseInt(req.query.page) || 1;
         const limit = Math.min(parseInt(req.query.limit) || 20, 100);
         const offset = (page - 1) * limit;
@@ -424,7 +442,7 @@ const obtenerHistorial = async (req, res, next) => {
  */
 const registro = async (req, res, next) => {
     try {
-        const tenantId = req.tenant.id;
+        const tenantId = req.tenant?.id || req.usuario?.tenant_id;
         const { nombre, apellido, email, telefono, password, rol_solicitado_id } = req.body;
 
         // Validar campos requeridos
@@ -508,7 +526,7 @@ const registro = async (req, res, next) => {
  */
 const verificarEmail = async (req, res, next) => {
     try {
-        const tenantId = req.tenant.id;
+        const tenantId = req.tenant?.id || req.usuario?.tenant_id;
         const { email, codigo } = req.body;
 
         if (!email || !codigo) {
@@ -581,7 +599,7 @@ const verificarEmail = async (req, res, next) => {
  */
 const reenviarCodigo = async (req, res, next) => {
     try {
-        const tenantId = req.tenant.id;
+        const tenantId = req.tenant?.id || req.usuario?.tenant_id;
         const { email } = req.body;
 
         if (!email) {
@@ -648,7 +666,7 @@ const reenviarCodigo = async (req, res, next) => {
  */
 const getRolesRegistro = async (req, res, next) => {
     try {
-        const tenantId = req.tenant.id;
+        const tenantId = req.tenant?.id || req.usuario?.tenant_id;
         const roles = await AuthModel.obtenerRolesPublicos(tenantId);
 
         res.json({
