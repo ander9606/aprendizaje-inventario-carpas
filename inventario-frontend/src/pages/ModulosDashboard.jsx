@@ -12,7 +12,8 @@ import {
   ArrowRight,
   Settings,
   Truck,
-  LogOut
+  LogOut,
+  Shield
 } from 'lucide-react'
 import { useGetConfiguracionCompleta } from '@configuracion/hooks/useConfiguracion'
 import { useAuth } from '@auth/hooks/useAuth'
@@ -79,7 +80,18 @@ export default function ModulosDashboard() {
       ruta: '/configuracion',
       estado: 'activo',
       tags: t('config.tags', { returnObjects: true })
-    }
+    },
+    // Super Admin — solo visible para super_admin
+    ...(usuario?.rol === 'super_admin' ? [{
+      id: 'superadmin',
+      nombre: 'Super Admin',
+      descripcion: 'Gestión de tenants, planes y pagos de la plataforma',
+      icon: Shield,
+      color: 'indigo',
+      ruta: '/superadmin',
+      estado: 'activo',
+      tags: ['Tenants', 'Planes', 'Pagos']
+    }] : [])
   ]
 
   const colorConfig = {
@@ -112,6 +124,12 @@ export default function ModulosDashboard() {
       iconBg: 'bg-slate-500',
       tag: 'bg-slate-100 text-slate-700',
       arrow: 'text-slate-500 group-hover:translate-x-1'
+    },
+    indigo: {
+      card: 'border-indigo-200/60 hover:border-indigo-400 hover:shadow-indigo-100/50',
+      iconBg: 'bg-indigo-600',
+      tag: 'bg-indigo-50 text-indigo-700',
+      arrow: 'text-indigo-500 group-hover:translate-x-1'
     }
   }
 
