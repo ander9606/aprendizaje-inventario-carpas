@@ -25,7 +25,7 @@ class AuthModel {
                 r.nombre as rol_nombre,
                 r.permisos
             FROM empleados e
-            LEFT JOIN roles r ON e.rol_id = r.id AND r.tenant_id = ?
+            LEFT JOIN roles r ON e.rol_id = r.id AND (r.tenant_id = ? OR r.tenant_id IS NULL)
             WHERE e.email = ? AND e.tenant_id = ?
         `, [tenantId, email, tenantId]);
 
@@ -64,7 +64,7 @@ class AuthModel {
                 r.permisos,
                 t.slug as tenant_slug
             FROM empleados e
-            LEFT JOIN roles r ON e.rol_id = r.id AND r.tenant_id = e.tenant_id
+            LEFT JOIN roles r ON e.rol_id = r.id AND (r.tenant_id = e.tenant_id OR r.tenant_id IS NULL)
             LEFT JOIN tenants t ON e.tenant_id = t.id
             WHERE e.email = ? AND e.estado = 'activo'
             LIMIT 1
@@ -193,7 +193,7 @@ class AuthModel {
                 r.permisos,
                 t.slug as tenant_slug
             FROM empleados e
-            LEFT JOIN roles r ON e.rol_id = r.id AND r.tenant_id = ?
+            LEFT JOIN roles r ON e.rol_id = r.id AND (r.tenant_id = ? OR r.tenant_id IS NULL)
             LEFT JOIN tenants t ON e.tenant_id = t.id
             WHERE e.id = ? AND e.tenant_id = ?
         `, [tenantId, id, tenantId]);

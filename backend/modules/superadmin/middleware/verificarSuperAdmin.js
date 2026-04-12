@@ -10,7 +10,7 @@ const verificarSuperAdmin = (req, res, next) => {
             throw new AppError('No autenticado', 401);
         }
 
-        if (req.usuario.rol_nombre !== 'super_admin' || req.usuario.tenant_id !== 1) {
+        if (req.usuario.rol_nombre !== 'super_admin') {
             throw new AppError('Acceso denegado. Se requiere rol super_admin', 403);
         }
 
