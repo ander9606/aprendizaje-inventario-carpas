@@ -8,30 +8,32 @@ const { pool } = require('../../../config/database');
 const FotoOperacionModel = {
     /**
      * Crear registro de foto
+     * @param {number} tenantId
      * @param {Object} datos - { orden_id, etapa, imagen_url, notas, subido_por }
      */
-    async crear(datos) {
+    async crear(tenantId, datos) {
         const { orden_id, etapa, imagen_url, notas, subido_por } = datos;
         const [result] = await pool.query(
-            `INSERT INTO orden_trabajo_fotos (orden_id, etapa, imagen_url, notas, subido_por)
-             VALUES (?, ?, ?, ?, ?)`,
-            [orden_id, etapa, imagen_url, notas || null, subido_por || null]
+            `INSERT INTO orden_trabajo_fotos (tenant_id, orden_id, etapa, imagen_url, notas, subido_por)
+             VALUES (?, ?, ?, ?, ?, ?)`,
+            [tenantId, orden_id, etapa, imagen_url, notas || null, subido_por || null]
         );
         return { id: result.insertId, ...datos };
     },
 
     /**
      * Obtener fotos de una orden agrupadas por etapa
+     * @param {number} tenantId
      * @param {number} ordenId
      */
-    async obtenerPorOrden(ordenId) {
+    async obtenerPorOrden(tenantId, ordenId) {
         const [rows] = await pool.query(
             `SELECT f.*, e.nombre AS subido_por_nombre
              FROM orden_trabajo_fotos f
-             LEFT JOIN empleados e ON f.subido_por = e.id
-             WHERE f.orden_id = ?
+             LEFT JOIN empleados e ON f.subido_por = e.id AND e.tenant_id = ?
+             WHERE f.tenant_id = ? AND f.orden_id = ?
              ORDER BY f.etapa, f.created_at ASC`,
-            [ordenId]
+            [tenantId, tenantId, ordenId]
         );
 
         // Agrupar por etapa
@@ -48,17 +50,18 @@ const FotoOperacionModel = {
 
     /**
      * Obtener fotos de todas las órdenes de un alquiler
+     * @param {number} tenantId
      * @param {number} alquilerId
      */
-    async obtenerPorAlquiler(alquilerId) {
+    async obtenerPorAlquiler(tenantId, alquilerId) {
         const [rows] = await pool.query(
             `SELECT f.*, ot.tipo AS orden_tipo, e.nombre AS subido_por_nombre
              FROM orden_trabajo_fotos f
-             INNER JOIN ordenes_trabajo ot ON f.orden_id = ot.id
-             LEFT JOIN empleados e ON f.subido_por = e.id
-             WHERE ot.alquiler_id = ?
+             INNER JOIN ordenes_trabajo ot ON f.orden_id = ot.id AND ot.tenant_id = ?
+             LEFT JOIN empleados e ON f.subido_por = e.id AND e.tenant_id = ?
+             WHERE f.tenant_id = ? AND ot.alquiler_id = ?
              ORDER BY ot.tipo, f.etapa, f.created_at ASC`,
-            [alquilerId]
+            [tenantId, tenantId, tenantId, alquilerId]
         );
 
         // Agrupar por tipo de orden y etapa
@@ -79,27 +82,29 @@ const FotoOperacionModel = {
 
     /**
      * Eliminar una foto
+     * @param {number} tenantId
      * @param {number} id
      */
-    async eliminar(id) {
+    async eliminar(tenantId, id) {
         const [foto] = await pool.query(
-            'SELECT * FROM orden_trabajo_fotos WHERE id = ?',
-            [id]
+            'SELECT * FROM orden_trabajo_fotos WHERE tenant_id = ? AND id = ?',
+            [tenantId, id]
         );
         if (foto.length === 0) return null;
 
-        await pool.query('DELETE FROM orden_trabajo_fotos WHERE id = ?', [id]);
+        await pool.query('DELETE FROM orden_trabajo_fotos WHERE tenant_id = ? AND id = ?', [tenantId, id]);
         return foto[0];
     },
 
     /**
      * Obtener una foto por ID
+     * @param {number} tenantId
      * @param {number} id
      */
-    async obtenerPorId(id) {
+    async obtenerPorId(tenantId, id) {
         const [rows] = await pool.query(
-            'SELECT * FROM orden_trabajo_fotos WHERE id = ?',
-            [id]
+            'SELECT * FROM orden_trabajo_fotos WHERE tenant_id = ? AND id = ?',
+            [tenantId, id]
         );
         return rows[0] || null;
     }

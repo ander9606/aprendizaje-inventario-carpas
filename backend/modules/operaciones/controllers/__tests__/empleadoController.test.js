@@ -20,6 +20,7 @@ const controller = require('../empleadoController');
 
 const mockReq = (o = {}) => ({
     body: {}, params: {}, query: {},
+    tenant: { id: 1, slug: 'test', nombre: 'Test Tenant' },
     usuario: { id: 1, email: 'admin@test.com' },
     ip: '127.0.0.1',
     get: jest.fn().mockReturnValue('test-agent'),
@@ -79,7 +80,7 @@ describe('create', () => {
             body: { nombre: 'Juan', apellido: 'P', email: 'new@test.com', password: '12345678', rol_id: 1 }
         }), res, mockNext());
         expect(res.status).toHaveBeenCalledWith(201);
-        expect(EmpleadoModel.crear).toHaveBeenCalledWith(expect.objectContaining({
+        expect(EmpleadoModel.crear).toHaveBeenCalledWith(1, expect.objectContaining({
             password_hash: 'hashed_pw'
         }));
     });
@@ -237,7 +238,7 @@ describe('getDisponiblesCampo', () => {
         EmpleadoModel.obtenerDisponiblesCampo.mockResolvedValue([]);
         const res = mockRes();
         await controller.getDisponiblesCampo(mockReq({ query: { fecha: '2025-01-01' } }), res, mockNext());
-        expect(EmpleadoModel.obtenerDisponiblesCampo).toHaveBeenCalledWith(expect.any(Date));
+        expect(EmpleadoModel.obtenerDisponiblesCampo).toHaveBeenCalledWith(1, expect.any(Date));
     });
 });
 

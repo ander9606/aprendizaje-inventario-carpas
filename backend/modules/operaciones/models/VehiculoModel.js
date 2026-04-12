@@ -4,10 +4,11 @@ const AppError = require('../../../utils/AppError');
 class VehiculoModel {
     /**
      * Obtener todos los vehículos con paginación y filtros
+     * @param {number} tenantId
      * @param {Object} options - Opciones de filtrado
      * @returns {Promise<Object>} Lista de vehículos y total
      */
-    static async obtenerTodos(options = {}) {
+    static async obtenerTodos(tenantId, options = {}) {
         const {
             page = 1,
             limit = 20,
@@ -20,8 +21,8 @@ class VehiculoModel {
         } = options;
 
         const offset = (page - 1) * limit;
-        const params = [];
-        let whereClause = 'WHERE 1=1';
+        const params = [tenantId];
+        let whereClause = 'WHERE v.tenant_id = ?';
 
         // Filtro por búsqueda (placa, marca, modelo)
         if (buscar) {
@@ -93,10 +94,11 @@ class VehiculoModel {
 
     /**
      * Obtener vehículo por ID con historial
+     * @param {number} tenantId
      * @param {number} id
      * @returns {Promise<Object|null>}
      */
-    static async obtenerPorId(id) {
+    static async obtenerPorId(tenantId, id) {
         const [rows] = await pool.query(`
             SELECT
                 v.id,
@@ -114,8 +116,8 @@ class VehiculoModel {
                 v.created_at,
                 v.updated_at
             FROM vehiculos v
-            WHERE v.id = ?
-        `, [id]);
+            WHERE v.tenant_id = ? AND v.id = ?
+        `, [tenantId, id]);
 
         if (rows.length === 0) {
             return null;
@@ -136,11 +138,11 @@ class VehiculoModel {
                 e.nombre as conductor_nombre,
                 e.apellido as conductor_apellido
             FROM vehiculo_uso_log u
-            LEFT JOIN empleados e ON u.conductor_id = e.id
-            WHERE u.vehiculo_id = ?
+            LEFT JOIN empleados e ON u.conductor_id = e.id AND e.tenant_id = ?
+            WHERE u.tenant_id = ? AND u.vehiculo_id = ?
             ORDER BY u.fecha_uso DESC
             LIMIT 10
-        `, [id]);
+        `, [tenantId, tenantId, id]);
 
         // Obtener próximos mantenimientos
         const [mantenimientos] = await pool.query(`
@@ -154,10 +156,10 @@ class VehiculoModel {
                 m.descripcion,
                 m.estado
             FROM vehiculo_mantenimientos m
-            WHERE m.vehiculo_id = ?
+            WHERE m.tenant_id = ? AND m.vehiculo_id = ?
             ORDER BY m.fecha_programada DESC
             LIMIT 5
-        `, [id]);
+        `, [tenantId, id]);
 
         vehiculo.ultimosUsos = usos;
         vehiculo.mantenimientos = mantenimientos;
@@ -167,10 +169,11 @@ class VehiculoModel {
 
     /**
      * Crear nuevo vehículo
+     * @param {number} tenantId
      * @param {Object} datos
      * @returns {Promise<Object>}
      */
-    static async crear(datos) {
+    static async crear(tenantId, datos) {
         const {
             placa,
             marca,
@@ -186,8 +189,8 @@ class VehiculoModel {
 
         // Verificar si la placa ya existe
         const [existente] = await pool.query(
-            'SELECT id FROM vehiculos WHERE placa = ?',
-            [placa]
+            'SELECT id FROM vehiculos WHERE tenant_id = ? AND placa = ?',
+            [tenantId, placa]
         );
 
         if (existente.length > 0) {
@@ -196,9 +199,10 @@ class VehiculoModel {
 
         const [result] = await pool.query(`
             INSERT INTO vehiculos
-            (placa, marca, modelo, anio, tipo, capacidad_carga, estado, kilometraje_actual, proximo_mantenimiento, notas)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (tenant_id, placa, marca, modelo, anio, tipo, capacidad_carga, estado, kilometraje_actual, proximo_mantenimiento, notas)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, [
+            tenantId,
             placa,
             marca,
             modelo,
@@ -211,17 +215,18 @@ class VehiculoModel {
             notas || null
         ]);
 
-        return this.obtenerPorId(result.insertId);
+        return this.obtenerPorId(tenantId, result.insertId);
     }
 
     /**
      * Actualizar vehículo
+     * @param {number} tenantId
      * @param {number} id
      * @param {Object} datos
      * @returns {Promise<Object>}
      */
-    static async actualizar(id, datos) {
-        const vehiculo = await this.obtenerPorId(id);
+    static async actualizar(tenantId, id, datos) {
+        const vehiculo = await this.obtenerPorId(tenantId, id);
         if (!vehiculo) {
             throw new AppError('Vehículo no encontrado', 404);
         }
@@ -243,8 +248,8 @@ class VehiculoModel {
         // Verificar si la nueva placa ya existe
         if (placa && placa !== vehiculo.placa) {
             const [existente] = await pool.query(
-                'SELECT id FROM vehiculos WHERE placa = ? AND id != ?',
-                [placa, id]
+                'SELECT id FROM vehiculos WHERE tenant_id = ? AND placa = ? AND id != ?',
+                [tenantId, placa, id]
             );
 
             if (existente.length > 0) {
@@ -272,39 +277,41 @@ class VehiculoModel {
             throw new AppError('No hay datos para actualizar', 400);
         }
 
-        valores.push(id);
+        valores.push(tenantId, id);
 
         await pool.query(`
             UPDATE vehiculos
             SET ${campos.join(', ')}
-            WHERE id = ?
+            WHERE tenant_id = ? AND id = ?
         `, valores);
 
-        return this.obtenerPorId(id);
+        return this.obtenerPorId(tenantId, id);
     }
 
     /**
      * Eliminar (desactivar) vehículo
+     * @param {number} tenantId
      * @param {number} id
      * @returns {Promise<boolean>}
      */
-    static async eliminar(id) {
-        const vehiculo = await this.obtenerPorId(id);
+    static async eliminar(tenantId, id) {
+        const vehiculo = await this.obtenerPorId(tenantId, id);
         if (!vehiculo) {
             throw new AppError('Vehículo no encontrado', 404);
         }
 
-        await pool.query('UPDATE vehiculos SET activo = FALSE WHERE id = ?', [id]);
+        await pool.query('UPDATE vehiculos SET activo = FALSE WHERE tenant_id = ? AND id = ?', [tenantId, id]);
 
         return true;
     }
 
     /**
      * Obtener vehículos disponibles en una fecha específica
+     * @param {number} tenantId
      * @param {Date} fecha
      * @returns {Promise<Array>}
      */
-    static async obtenerDisponibles(fecha = null) {
+    static async obtenerDisponibles(tenantId, fecha = null) {
         // Si no se especifica fecha, obtener todos los disponibles y activos
         let query = `
             SELECT
@@ -316,11 +323,12 @@ class VehiculoModel {
                 v.capacidad_carga,
                 v.estado
             FROM vehiculos v
-            WHERE v.activo = TRUE
+            WHERE v.tenant_id = ?
+              AND v.activo = TRUE
               AND v.estado = 'disponible'
         `;
 
-        const params = [];
+        const params = [tenantId];
 
         // Si se especifica fecha, excluir vehículos asignados a órdenes ese día
         if (fecha) {
@@ -328,12 +336,13 @@ class VehiculoModel {
               AND v.id NOT IN (
                   SELECT DISTINCT ot.vehiculo_id
                   FROM ordenes_trabajo ot
-                  WHERE ot.vehiculo_id IS NOT NULL
+                  WHERE ot.tenant_id = ?
+                    AND ot.vehiculo_id IS NOT NULL
                     AND DATE(ot.fecha_programada) = DATE(?)
                     AND ot.estado NOT IN ('completado', 'cancelado')
               )
             `;
-            params.push(fecha);
+            params.push(tenantId, fecha);
         }
 
         query += ' ORDER BY v.placa ASC';
@@ -345,12 +354,13 @@ class VehiculoModel {
 
     /**
      * Registrar uso de vehículo
+     * @param {number} tenantId
      * @param {number} vehiculoId
      * @param {Object} datos
      * @returns {Promise<Object>}
      */
-    static async registrarUso(vehiculoId, datos) {
-        const vehiculo = await this.obtenerPorId(vehiculoId);
+    static async registrarUso(tenantId, vehiculoId, datos) {
+        const vehiculo = await this.obtenerPorId(tenantId, vehiculoId);
         if (!vehiculo) {
             throw new AppError('Vehículo no encontrado', 404);
         }
@@ -367,9 +377,10 @@ class VehiculoModel {
 
         const [result] = await pool.query(`
             INSERT INTO vehiculo_uso_log
-            (vehiculo_id, conductor_id, fecha_uso, kilometraje_inicio, kilometraje_fin, destino, proposito, notas)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            (tenant_id, vehiculo_id, conductor_id, fecha_uso, kilometraje_inicio, kilometraje_fin, destino, proposito, notas)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, [
+            tenantId,
             vehiculoId,
             conductor_id || null,
             fecha_uso || new Date(),
@@ -383,23 +394,24 @@ class VehiculoModel {
         // Actualizar kilometraje del vehículo si se proporcionó
         if (kilometraje_fin && kilometraje_fin > vehiculo.kilometraje_actual) {
             await pool.query(
-                'UPDATE vehiculos SET kilometraje_actual = ? WHERE id = ?',
-                [kilometraje_fin, vehiculoId]
+                'UPDATE vehiculos SET kilometraje_actual = ? WHERE tenant_id = ? AND id = ?',
+                [kilometraje_fin, tenantId, vehiculoId]
             );
         }
 
-        const [uso] = await pool.query('SELECT * FROM vehiculo_uso_log WHERE id = ?', [result.insertId]);
+        const [uso] = await pool.query('SELECT * FROM vehiculo_uso_log WHERE tenant_id = ? AND id = ?', [tenantId, result.insertId]);
         return uso[0];
     }
 
     /**
      * Registrar mantenimiento de vehículo
+     * @param {number} tenantId
      * @param {number} vehiculoId
      * @param {Object} datos
      * @returns {Promise<Object>}
      */
-    static async registrarMantenimiento(vehiculoId, datos) {
-        const vehiculo = await this.obtenerPorId(vehiculoId);
+    static async registrarMantenimiento(tenantId, vehiculoId, datos) {
+        const vehiculo = await this.obtenerPorId(tenantId, vehiculoId);
         if (!vehiculo) {
             throw new AppError('Vehículo no encontrado', 404);
         }
@@ -416,9 +428,10 @@ class VehiculoModel {
 
         const [result] = await pool.query(`
             INSERT INTO vehiculo_mantenimientos
-            (vehiculo_id, tipo, fecha_programada, fecha_realizada, kilometraje, costo, descripcion, estado)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            (tenant_id, vehiculo_id, tipo, fecha_programada, fecha_realizada, kilometraje, costo, descripcion, estado)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, [
+            tenantId,
             vehiculoId,
             tipo,
             fecha_programada,
@@ -432,14 +445,14 @@ class VehiculoModel {
         // Si el mantenimiento fue realizado, actualizar estado del vehículo
         if (fecha_realizada) {
             await pool.query(
-                "UPDATE vehiculos SET estado = 'disponible' WHERE id = ?",
-                [vehiculoId]
+                "UPDATE vehiculos SET estado = 'disponible' WHERE tenant_id = ? AND id = ?",
+                [tenantId, vehiculoId]
             );
         }
 
         const [mantenimiento] = await pool.query(
-            'SELECT * FROM vehiculo_mantenimientos WHERE id = ?',
-            [result.insertId]
+            'SELECT * FROM vehiculo_mantenimientos WHERE tenant_id = ? AND id = ?',
+            [tenantId, result.insertId]
         );
 
         return mantenimiento[0];
@@ -447,14 +460,15 @@ class VehiculoModel {
 
     /**
      * Actualizar mantenimiento
+     * @param {number} tenantId
      * @param {number} mantenimientoId
      * @param {Object} datos
      * @returns {Promise<Object>}
      */
-    static async actualizarMantenimiento(mantenimientoId, datos) {
+    static async actualizarMantenimiento(tenantId, mantenimientoId, datos) {
         const [existente] = await pool.query(
-            'SELECT * FROM vehiculo_mantenimientos WHERE id = ?',
-            [mantenimientoId]
+            'SELECT * FROM vehiculo_mantenimientos WHERE tenant_id = ? AND id = ?',
+            [tenantId, mantenimientoId]
         );
 
         if (existente.length === 0) {
@@ -475,25 +489,25 @@ class VehiculoModel {
             throw new AppError('No hay datos para actualizar', 400);
         }
 
-        valores.push(mantenimientoId);
+        valores.push(tenantId, mantenimientoId);
 
         await pool.query(`
             UPDATE vehiculo_mantenimientos
             SET ${campos.join(', ')}
-            WHERE id = ?
+            WHERE tenant_id = ? AND id = ?
         `, valores);
 
         // Si se completó el mantenimiento, poner vehículo disponible
         if (estado === 'completado' || fecha_realizada) {
             await pool.query(
-                "UPDATE vehiculos SET estado = 'disponible' WHERE id = ?",
-                [existente[0].vehiculo_id]
+                "UPDATE vehiculos SET estado = 'disponible' WHERE tenant_id = ? AND id = ?",
+                [tenantId, existente[0].vehiculo_id]
             );
         }
 
         const [mantenimiento] = await pool.query(
-            'SELECT * FROM vehiculo_mantenimientos WHERE id = ?',
-            [mantenimientoId]
+            'SELECT * FROM vehiculo_mantenimientos WHERE tenant_id = ? AND id = ?',
+            [tenantId, mantenimientoId]
         );
 
         return mantenimiento[0];
@@ -501,9 +515,10 @@ class VehiculoModel {
 
     /**
      * Obtener estadísticas de vehículos
+     * @param {number} tenantId
      * @returns {Promise<Object>}
      */
-    static async obtenerEstadisticas() {
+    static async obtenerEstadisticas(tenantId) {
         const [stats] = await pool.query(`
             SELECT
                 COUNT(*) as total,
@@ -512,16 +527,17 @@ class VehiculoModel {
                 SUM(CASE WHEN estado = 'en_uso' AND activo = TRUE THEN 1 ELSE 0 END) as en_uso,
                 SUM(CASE WHEN estado = 'mantenimiento' AND activo = TRUE THEN 1 ELSE 0 END) as en_mantenimiento
             FROM vehiculos
-        `);
+            WHERE tenant_id = ?
+        `, [tenantId]);
 
         const [porTipo] = await pool.query(`
             SELECT
                 tipo,
                 COUNT(*) as cantidad
             FROM vehiculos
-            WHERE activo = TRUE
+            WHERE tenant_id = ? AND activo = TRUE
             GROUP BY tipo
-        `);
+        `, [tenantId]);
 
         const [proximosMantenimientos] = await pool.query(`
             SELECT
@@ -531,12 +547,13 @@ class VehiculoModel {
                 v.modelo,
                 v.proximo_mantenimiento
             FROM vehiculos v
-            WHERE v.activo = TRUE
+            WHERE v.tenant_id = ?
+              AND v.activo = TRUE
               AND v.proximo_mantenimiento IS NOT NULL
               AND v.proximo_mantenimiento <= DATE_ADD(CURDATE(), INTERVAL 30 DAY)
             ORDER BY v.proximo_mantenimiento ASC
             LIMIT 5
-        `);
+        `, [tenantId]);
 
         return {
             ...stats[0],

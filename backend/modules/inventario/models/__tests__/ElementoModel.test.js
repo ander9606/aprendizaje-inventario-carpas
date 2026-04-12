@@ -15,6 +15,8 @@ jest.mock('../../../../config/database', () => ({
 const ElementoModel = require('../ElementoModel');
 const { pool } = require('../../../../config/database');
 
+const T = 1; // tenantId
+
 afterEach(() => jest.clearAllMocks());
 
 // ============================================
@@ -27,11 +29,10 @@ describe('obtenerTodos', () => {
         ];
         pool.query.mockResolvedValue([mockRows]);
 
-        const result = await ElementoModel.obtenerTodos();
+        const result = await ElementoModel.obtenerTodos(T);
 
         expect(result).toEqual(mockRows);
         const sql = pool.query.mock.calls[0][0];
-        // Verifica que hace JOIN con categorías, materiales y unidades
         expect(sql).toContain('LEFT JOIN categorias c');
         expect(sql).toContain('LEFT JOIN materiales m');
         expect(sql).toContain('LEFT JOIN unidades u');
@@ -46,29 +47,29 @@ describe('obtenerPorId', () => {
         const mock = { id: 5, nombre: 'Mesa plegable' };
         pool.query.mockResolvedValue([[mock]]);
 
-        const result = await ElementoModel.obtenerPorId(5);
+        const result = await ElementoModel.obtenerPorId(T, 5);
 
         expect(result).toEqual(mock);
-        expect(pool.query).toHaveBeenCalledWith(expect.stringContaining('WHERE e.id = ?'), [5]);
+        expect(pool.query).toHaveBeenCalledWith(expect.stringContaining('WHERE e.id = ?'), [5, T]);
     });
 
     test('retorna null si no existe', async () => {
         pool.query.mockResolvedValue([[]]);
 
-        const result = await ElementoModel.obtenerPorId(999);
+        const result = await ElementoModel.obtenerPorId(T, 999);
 
         expect(result).toBeNull();
     });
 });
 
 // ============================================
-// crear: INSERT con 13 campos parametrizados
+// crear: INSERT con 14 campos parametrizados (including tenant_id)
 // ============================================
 describe('crear', () => {
     test('ejecuta INSERT y retorna insertId', async () => {
         pool.query.mockResolvedValue([{ insertId: 100 }]);
 
-        const id = await ElementoModel.crear({
+        const id = await ElementoModel.crear(T, {
             nombre: 'Silla plástica',
             descripcion: 'Silla blanca plegable',
             cantidad: 50,
@@ -89,14 +90,14 @@ describe('crear', () => {
             expect.stringContaining('INSERT INTO elementos'),
             expect.any(Array)
         );
-        // Verifica que pasa 13 valores (uno por cada campo)
-        expect(pool.query.mock.calls[0][1]).toHaveLength(13);
+        // 14 valores: tenantId + 13 campos
+        expect(pool.query.mock.calls[0][1]).toHaveLength(14);
     });
 
     test('convierte campos opcionales vacíos a null', async () => {
         pool.query.mockResolvedValue([{ insertId: 101 }]);
 
-        await ElementoModel.crear({
+        await ElementoModel.crear(T, {
             nombre: 'Test',
             descripcion: '',
             cantidad: undefined,
@@ -113,41 +114,43 @@ describe('crear', () => {
         });
 
         const params = pool.query.mock.calls[0][1];
-        expect(params[1]).toBeNull();  // descripcion vacía → null
-        expect(params[4]).toBeNull();  // costo_adquisicion vacío → null
-        expect(params[5]).toBeNull();  // precio_unitario vacío → null
-        expect(params[7]).toBeNull();  // categoria_id vacío → null
+        // params[0] = tenantId, params[1] = nombre, params[2] = descripcion...
+        expect(params[0]).toBe(T);        // tenantId
+        expect(params[2]).toBeNull();     // descripcion vacía → null
+        expect(params[5]).toBeNull();     // costo_adquisicion vacío → null
+        expect(params[6]).toBeNull();     // precio_unitario vacío → null
+        expect(params[8]).toBeNull();     // categoria_id vacío → null
     });
 
     test('requiere_series acepta true, 1 y "1"', async () => {
         pool.query.mockResolvedValue([{ insertId: 1 }]);
 
         // Con true
-        await ElementoModel.crear({ nombre: 'A', requiere_series: true });
-        expect(pool.query.mock.calls[0][1][6]).toBe(true);
+        await ElementoModel.crear(T, { nombre: 'A', requiere_series: true });
+        expect(pool.query.mock.calls[0][1][7]).toBe(true);
 
         // Con 1
-        await ElementoModel.crear({ nombre: 'B', requiere_series: 1 });
-        expect(pool.query.mock.calls[1][1][6]).toBe(true);
+        await ElementoModel.crear(T, { nombre: 'B', requiere_series: 1 });
+        expect(pool.query.mock.calls[1][1][7]).toBe(true);
 
         // Con '1'
-        await ElementoModel.crear({ nombre: 'C', requiere_series: '1' });
-        expect(pool.query.mock.calls[2][1][6]).toBe(true);
+        await ElementoModel.crear(T, { nombre: 'C', requiere_series: '1' });
+        expect(pool.query.mock.calls[2][1][7]).toBe(true);
 
         // Con false
-        await ElementoModel.crear({ nombre: 'D', requiere_series: false });
-        expect(pool.query.mock.calls[3][1][6]).toBe(false);
+        await ElementoModel.crear(T, { nombre: 'D', requiere_series: false });
+        expect(pool.query.mock.calls[3][1][7]).toBe(false);
     });
 });
 
 // ============================================
-// actualizar: UPDATE con WHERE id = ?
+// actualizar: UPDATE con WHERE id = ? AND tenant_id = ?
 // ============================================
 describe('actualizar', () => {
     test('ejecuta UPDATE y retorna affectedRows', async () => {
         pool.query.mockResolvedValue([{ affectedRows: 1 }]);
 
-        const rows = await ElementoModel.actualizar(5, {
+        const rows = await ElementoModel.actualizar(T, 5, {
             nombre: 'Silla editada',
             descripcion: 'Descripción nueva',
             cantidad: 30,
@@ -167,32 +170,33 @@ describe('actualizar', () => {
         const sql = pool.query.mock.calls[0][0];
         expect(sql).toContain('UPDATE elementos');
         expect(sql).toContain('WHERE id = ?');
-        // El último parámetro debe ser el ID
+        // Last two params: id and tenantId
         const params = pool.query.mock.calls[0][1];
-        expect(params[params.length - 1]).toBe(5);
+        expect(params[params.length - 2]).toBe(5);
+        expect(params[params.length - 1]).toBe(T);
     });
 });
 
 // ============================================
-// eliminar: DELETE con WHERE id = ?
+// eliminar: DELETE con WHERE id = ? AND tenant_id = ?
 // ============================================
 describe('eliminar', () => {
     test('ejecuta DELETE y retorna affectedRows', async () => {
         pool.query.mockResolvedValue([{ affectedRows: 1 }]);
 
-        const rows = await ElementoModel.eliminar(5);
+        const rows = await ElementoModel.eliminar(T, 5);
 
         expect(rows).toBe(1);
         expect(pool.query).toHaveBeenCalledWith(
-            'DELETE FROM elementos WHERE id = ?',
-            [5]
+            'DELETE FROM elementos WHERE id = ? AND tenant_id = ?',
+            [5, T]
         );
     });
 
     test('retorna 0 si el ID no existía', async () => {
         pool.query.mockResolvedValue([{ affectedRows: 0 }]);
 
-        const rows = await ElementoModel.eliminar(999);
+        const rows = await ElementoModel.eliminar(T, 999);
 
         expect(rows).toBe(0);
     });
@@ -205,48 +209,45 @@ describe('obtenerConPaginacion', () => {
     test('aplica LIMIT y OFFSET como números', async () => {
         pool.query.mockResolvedValue([[]]);
 
-        await ElementoModel.obtenerConPaginacion({ limit: 10, offset: 20 });
+        await ElementoModel.obtenerConPaginacion(T, { limit: 10, offset: 20 });
 
         const params = pool.query.mock.calls[0][1];
-        // Los dos últimos params son limit y offset como Number
         expect(params[params.length - 2]).toBe(10);
         expect(params[params.length - 1]).toBe(20);
     });
 
-    test('agrega WHERE LIKE cuando hay búsqueda', async () => {
+    test('agrega AND LIKE cuando hay búsqueda', async () => {
         pool.query.mockResolvedValue([[]]);
 
-        await ElementoModel.obtenerConPaginacion({ limit: 20, offset: 0, search: 'carpa' });
+        await ElementoModel.obtenerConPaginacion(T, { limit: 20, offset: 0, search: 'carpa' });
 
         const sql = pool.query.mock.calls[0][0];
-        expect(sql).toContain('WHERE e.nombre LIKE ?');
-        expect(pool.query.mock.calls[0][1][0]).toBe('%carpa%');
+        expect(sql).toContain('AND e.nombre LIKE ?');
     });
 
     test('usa campo mapeado para sortBy, previene SQL injection', async () => {
         pool.query.mockResolvedValue([[]]);
 
-        await ElementoModel.obtenerConPaginacion({
+        await ElementoModel.obtenerConPaginacion(T, {
             limit: 20, offset: 0,
-            sortBy: 'DROP TABLE', // intento de inyección
+            sortBy: 'DROP TABLE',
             order: 'ASC'
         });
 
         const sql = pool.query.mock.calls[0][0];
-        // Debe usar 'e.nombre' como fallback (campo por defecto)
         expect(sql).toContain('ORDER BY e.nombre ASC');
     });
 
     test('valida que order solo sea ASC o DESC', async () => {
         pool.query.mockResolvedValue([[]]);
 
-        await ElementoModel.obtenerConPaginacion({
+        await ElementoModel.obtenerConPaginacion(T, {
             limit: 20, offset: 0,
             order: 'INVALID; DROP TABLE--'
         });
 
         const sql = pool.query.mock.calls[0][0];
-        expect(sql).toContain('ASC'); // fallback a ASC
+        expect(sql).toContain('ASC');
         expect(sql).not.toContain('INVALID');
     });
 });
@@ -258,7 +259,7 @@ describe('contarTodos', () => {
     test('retorna total sin filtro', async () => {
         pool.query.mockResolvedValue([[{ total: 150 }]]);
 
-        const result = await ElementoModel.contarTodos();
+        const result = await ElementoModel.contarTodos(T);
 
         expect(result).toBe(150);
     });
@@ -266,9 +267,9 @@ describe('contarTodos', () => {
     test('filtra por búsqueda', async () => {
         pool.query.mockResolvedValue([[{ total: 5 }]]);
 
-        await ElementoModel.contarTodos('silla');
+        await ElementoModel.contarTodos(T, 'silla');
 
-        expect(pool.query.mock.calls[0][1]).toEqual(['%silla%']);
+        expect(pool.query.mock.calls[0][1]).toEqual([T, '%silla%']);
     });
 });
 
@@ -279,7 +280,7 @@ describe('existe', () => {
     test('retorna true si encuentra el ID', async () => {
         pool.query.mockResolvedValue([[{ id: 5 }]]);
 
-        const result = await ElementoModel.existe(5);
+        const result = await ElementoModel.existe(T, 5);
 
         expect(result).toBe(true);
     });
@@ -287,7 +288,7 @@ describe('existe', () => {
     test('retorna false si no lo encuentra', async () => {
         pool.query.mockResolvedValue([[]]);
 
-        const result = await ElementoModel.existe(999);
+        const result = await ElementoModel.existe(T, 999);
 
         expect(result).toBe(false);
     });
@@ -300,12 +301,12 @@ describe('buscarPorNombre', () => {
     test('busca con LIKE y parámetro seguro', async () => {
         pool.query.mockResolvedValue([[{ id: 1, nombre: 'Carpa 3x3' }]]);
 
-        const result = await ElementoModel.buscarPorNombre('carpa');
+        const result = await ElementoModel.buscarPorNombre(T, 'carpa');
 
         expect(result).toHaveLength(1);
         expect(pool.query).toHaveBeenCalledWith(
             expect.stringContaining('WHERE e.nombre LIKE ?'),
-            ['%carpa%']
+            ['%carpa%', T]
         );
     });
 });
@@ -317,12 +318,12 @@ describe('contarPorCategoria', () => {
     test('retorna cantidad de elementos en una categoría', async () => {
         pool.query.mockResolvedValue([[{ total: 12 }]]);
 
-        const result = await ElementoModel.contarPorCategoria(3);
+        const result = await ElementoModel.contarPorCategoria(T, 3);
 
         expect(result).toBe(12);
         expect(pool.query).toHaveBeenCalledWith(
             expect.stringContaining('WHERE categoria_id = ?'),
-            [3]
+            [3, T]
         );
     });
 });
@@ -334,12 +335,12 @@ describe('actualizarImagen', () => {
     test('actualiza solo el campo imagen', async () => {
         pool.query.mockResolvedValue([{ affectedRows: 1 }]);
 
-        const rows = await ElementoModel.actualizarImagen(5, '/uploads/carpa.jpg');
+        const rows = await ElementoModel.actualizarImagen(T, 5, '/uploads/carpa.jpg');
 
         expect(rows).toBe(1);
         expect(pool.query).toHaveBeenCalledWith(
-            'UPDATE elementos SET imagen = ? WHERE id = ?',
-            ['/uploads/carpa.jpg', 5]
+            'UPDATE elementos SET imagen = ? WHERE id = ? AND tenant_id = ?',
+            ['/uploads/carpa.jpg', 5, T]
         );
     });
 });
@@ -351,19 +352,17 @@ describe('obtenerPorCategoria', () => {
     test('busca en la categoría directa Y en subcategorías con subquery', async () => {
         const mockRows = [
             { id: 1, nombre: 'Carpa 3x3', categoria_id: 2 },
-            { id: 2, nombre: 'Carpa 6x6', categoria_id: 5 } // subcategoría
+            { id: 2, nombre: 'Carpa 6x6', categoria_id: 5 }
         ];
         pool.query.mockResolvedValue([mockRows]);
 
-        const result = await ElementoModel.obtenerPorCategoria(2);
+        const result = await ElementoModel.obtenerPorCategoria(T, 2);
 
         expect(result).toHaveLength(2);
         const sql = pool.query.mock.calls[0][0];
-        // Verifica que busca tanto en la categoría como en subcategorías
         expect(sql).toContain('e.categoria_id = ?');
         expect(sql).toContain('SELECT id FROM categorias WHERE padre_id = ?');
-        // Pasa el categoriaId dos veces (para el OR)
-        expect(pool.query.mock.calls[0][1]).toEqual([2, 2]);
+        expect(pool.query.mock.calls[0][1]).toEqual([T, 2, 2, T]);
     });
 });
 
@@ -375,12 +374,10 @@ describe('obtenerPorSubcategoriaConInfo', () => {
         const mockElementos = [{ id: 1, nombre: 'Carpa 3x3' }];
         const mockSubcat = { id: 5, nombre: 'Carpas pequeñas', padre_id: 2 };
 
-        // Primera query: elementos
         pool.query.mockResolvedValueOnce([mockElementos]);
-        // Segunda query: info de la subcategoría
         pool.query.mockResolvedValueOnce([[mockSubcat]]);
 
-        const result = await ElementoModel.obtenerPorSubcategoriaConInfo(5);
+        const result = await ElementoModel.obtenerPorSubcategoriaConInfo(T, 5);
 
         expect(result.elementos).toEqual(mockElementos);
         expect(result.subcategoria).toEqual(mockSubcat);
@@ -391,7 +388,7 @@ describe('obtenerPorSubcategoriaConInfo', () => {
         pool.query.mockResolvedValueOnce([[]]);
         pool.query.mockResolvedValueOnce([[]]);
 
-        const result = await ElementoModel.obtenerPorSubcategoriaConInfo(999);
+        const result = await ElementoModel.obtenerPorSubcategoriaConInfo(T, 999);
 
         expect(result.elementos).toEqual([]);
         expect(result.subcategoria).toBeNull();
@@ -405,12 +402,11 @@ describe('obtenerDirectosPorCategoria', () => {
     test('filtra SOLO por categoria_id directa (sin subquery IN)', async () => {
         pool.query.mockResolvedValue([[{ id: 1, nombre: 'Silla' }]]);
 
-        const result = await ElementoModel.obtenerDirectosPorCategoria(3);
+        const result = await ElementoModel.obtenerDirectosPorCategoria(T, 3);
 
         expect(result).toHaveLength(1);
         const sql = pool.query.mock.calls[0][0];
         expect(sql).toContain('WHERE e.categoria_id = ?');
-        // NO debe tener subquery de subcategorías
         expect(sql).not.toContain('padre_id');
     });
 });
@@ -425,7 +421,7 @@ describe('obtenerConSeries', () => {
         ];
         pool.query.mockResolvedValue([mockRows]);
 
-        const result = await ElementoModel.obtenerConSeries();
+        const result = await ElementoModel.obtenerConSeries(T);
 
         expect(result).toEqual(mockRows);
         const sql = pool.query.mock.calls[0][0];
@@ -442,7 +438,7 @@ describe('obtenerSinSeries', () => {
     test('filtra por requiere_series = FALSE', async () => {
         pool.query.mockResolvedValue([[{ id: 10, nombre: 'Tornillo', cantidad: 500 }]]);
 
-        const result = await ElementoModel.obtenerSinSeries();
+        const result = await ElementoModel.obtenerSinSeries(T);
 
         expect(result).toHaveLength(1);
         const sql = pool.query.mock.calls[0][0];
@@ -460,11 +456,10 @@ describe('obtenerConStockBajo', () => {
         ];
         pool.query.mockResolvedValue([mockRows]);
 
-        const result = await ElementoModel.obtenerConStockBajo();
+        const result = await ElementoModel.obtenerConStockBajo(T);
 
         expect(result).toEqual(mockRows);
         const sql = pool.query.mock.calls[0][0];
-        // Verifica la lógica CASE (series vs lotes)
         expect(sql).toContain('WHEN e.requiere_series = TRUE');
         expect(sql).toContain('HAVING stock_disponible < e.stock_minimo');
         expect(sql).toContain('WHERE e.stock_minimo > 0');
@@ -476,7 +471,6 @@ describe('obtenerConStockBajo', () => {
 // ============================================
 describe('obtenerEstadisticasGenerales', () => {
     test('ejecuta 3 queries y combina resultados', async () => {
-        // Query 1: estadísticas principales
         pool.query.mockResolvedValueOnce([[{
             total_elementos: 50,
             elementos_con_series: 20,
@@ -484,18 +478,16 @@ describe('obtenerEstadisticasGenerales', () => {
             valor_total: 5000000,
             valor_precio_unitario: 8000000
         }]]);
-        // Query 2: COUNT series
         pool.query.mockResolvedValueOnce([[{ total: 150 }]]);
-        // Query 3: SUM lotes
         pool.query.mockResolvedValueOnce([[{ total: 800 }]]);
 
-        const result = await ElementoModel.obtenerEstadisticasGenerales();
+        const result = await ElementoModel.obtenerEstadisticasGenerales(T);
 
         expect(pool.query).toHaveBeenCalledTimes(3);
         expect(result.total_elementos).toBe(50);
         expect(result.total_series).toBe(150);
         expect(result.total_unidades_lotes).toBe(800);
-        expect(result.total_unidades).toBe(950); // 150 + 800
+        expect(result.total_unidades).toBe(950);
     });
 });
 
@@ -504,27 +496,22 @@ describe('obtenerEstadisticasGenerales', () => {
 // ============================================
 describe('obtenerDistribucionPorEstado', () => {
     test('combina estados de series y lotes en un solo mapa', async () => {
-        // Series por estado
         pool.query.mockResolvedValueOnce([[
             { estado: 'bueno', cantidad: 10 },
             { estado: 'dañado', cantidad: 3 }
         ]]);
-        // Lotes por estado
         pool.query.mockResolvedValueOnce([[
             { estado: 'bueno', cantidad: 50 },
             { estado: 'alquilado', cantidad: 20 }
         ]]);
 
-        const result = await ElementoModel.obtenerDistribucionPorEstado();
+        const result = await ElementoModel.obtenerDistribucionPorEstado(T);
 
         expect(pool.query).toHaveBeenCalledTimes(2);
-        // bueno: 10 (series) + 50 (lotes) = 60
         const bueno = result.find(r => r.estado === 'bueno');
         expect(bueno.cantidad).toBe(60);
-        // dañado: solo series
         const danado = result.find(r => r.estado === 'dañado');
         expect(danado.cantidad).toBe(3);
-        // alquilado: solo lotes
         const alquilado = result.find(r => r.estado === 'alquilado');
         expect(alquilado.cantidad).toBe(20);
     });
@@ -540,21 +527,21 @@ describe('obtenerTopCategorias', () => {
             { categoria: 'Sillas', total_elementos: 8, cantidad_total: 100 }
         ]]);
 
-        const result = await ElementoModel.obtenerTopCategorias(5);
+        const result = await ElementoModel.obtenerTopCategorias(T, 5);
 
         expect(result).toHaveLength(2);
         const sql = pool.query.mock.calls[0][0];
         expect(sql).toContain('ORDER BY cantidad_total DESC');
         expect(sql).toContain('LIMIT ?');
-        expect(pool.query.mock.calls[0][1]).toEqual([5]);
+        expect(pool.query.mock.calls[0][1]).toEqual([T, T, T, T, T, 5]);
     });
 
     test('usa limit por defecto de 10', async () => {
         pool.query.mockResolvedValue([[]]);
 
-        await ElementoModel.obtenerTopCategorias();
+        await ElementoModel.obtenerTopCategorias(T);
 
-        expect(pool.query.mock.calls[0][1]).toEqual([10]);
+        expect(pool.query.mock.calls[0][1]).toEqual([T, T, T, T, T, 10]);
     });
 });
 
@@ -568,7 +555,7 @@ describe('obtenerDistribucionPorUbicacion', () => {
             { ubicacion: 'Bodega Norte', series: 10, lotes: 80, total: 90 }
         ]]);
 
-        const result = await ElementoModel.obtenerDistribucionPorUbicacion();
+        const result = await ElementoModel.obtenerDistribucionPorUbicacion(T);
 
         expect(result).toHaveLength(2);
         const sql = pool.query.mock.calls[0][0];
@@ -586,16 +573,14 @@ describe('propagación de errores de base de datos', () => {
 
     test('obtenerTodos propaga error de conexión', async () => {
         pool.query.mockRejectedValue(dbError);
-
-        await expect(ElementoModel.obtenerTodos()).rejects.toThrow('Connection lost');
+        await expect(ElementoModel.obtenerTodos(T)).rejects.toThrow('Connection lost');
     });
 
     test('crear propaga error de constraint (FK inválida)', async () => {
         const fkError = new Error('Cannot add or update a child row: a foreign key constraint fails');
         fkError.code = 'ER_NO_REFERENCED_ROW_2';
         pool.query.mockRejectedValue(fkError);
-
-        await expect(ElementoModel.crear({ nombre: 'Test', categoria_id: 9999 }))
+        await expect(ElementoModel.crear(T, { nombre: 'Test', categoria_id: 9999 }))
             .rejects.toThrow('foreign key constraint');
     });
 
@@ -603,18 +588,14 @@ describe('propagación de errores de base de datos', () => {
         const dupError = new Error("Duplicate entry 'Carpa 3x3' for key 'nombre'");
         dupError.code = 'ER_DUP_ENTRY';
         pool.query.mockRejectedValue(dupError);
-
-        await expect(ElementoModel.actualizar(1, { nombre: 'Carpa 3x3' }))
+        await expect(ElementoModel.actualizar(T, 1, { nombre: 'Carpa 3x3' }))
             .rejects.toThrow('Duplicate entry');
     });
 
     test('obtenerEstadisticasGenerales propaga error si falla a mitad de las queries', async () => {
-        // Primera query funciona
         pool.query.mockResolvedValueOnce([[{ total_elementos: 50 }]]);
-        // Segunda query falla
         pool.query.mockRejectedValueOnce(dbError);
-
-        await expect(ElementoModel.obtenerEstadisticasGenerales())
+        await expect(ElementoModel.obtenerEstadisticasGenerales(T))
             .rejects.toThrow('Connection lost');
     });
 });

@@ -24,6 +24,7 @@ const controller = require('../novedadController');
 
 const mockReq = (o = {}) => ({
     body: {}, params: {}, query: {},
+    tenant: { id: 1, slug: 'test', nombre: 'Test Tenant' },
     usuario: { id: 1, email: 'admin@test.com' },
     ...o
 });
@@ -48,7 +49,7 @@ describe('crearNovedad', () => {
             body: { tipo_novedad: 'daño', descripcion: 'Elemento roto' }
         }), res, next);
         expect(res.status).toHaveBeenCalledWith(201);
-        expect(NovedadModel.crear).toHaveBeenCalledWith(expect.objectContaining({
+        expect(NovedadModel.crear).toHaveBeenCalledWith(1, expect.objectContaining({
             orden_id: 5,
             tipo_novedad: 'daño',
             descripcion: 'Elemento roto',
@@ -64,7 +65,7 @@ describe('crearNovedad', () => {
             body: { tipo_novedad: 'daño', descripcion: 'Roto' },
             file: { filename: 'foto.jpg' }
         }), res, next);
-        expect(NovedadModel.crear).toHaveBeenCalledWith(expect.objectContaining({
+        expect(NovedadModel.crear).toHaveBeenCalledWith(1, expect.objectContaining({
             imagen_url: '/uploads/operaciones/foto.jpg'
         }));
     });
@@ -119,7 +120,7 @@ describe('obtenerNovedadesOrden', () => {
         NovedadModel.obtenerPorOrden.mockResolvedValue([{ id: 1 }]);
         const res = mockRes();
         await controller.obtenerNovedadesOrden(mockReq({ params: { id: '5' } }), res, mockNext());
-        expect(NovedadModel.obtenerPorOrden).toHaveBeenCalledWith(5);
+        expect(NovedadModel.obtenerPorOrden).toHaveBeenCalledWith(1, 5);
         expect(res.json).toHaveBeenCalledWith({ success: true, data: [{ id: 1 }] });
     });
 });
@@ -136,7 +137,7 @@ describe('resolverNovedad', () => {
             body: { resolucion: 'Se reemplazó el elemento' }
         }), res, mockNext());
         expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
-        expect(NovedadModel.resolver).toHaveBeenCalledWith(1, {
+        expect(NovedadModel.resolver).toHaveBeenCalledWith(1, 1, {
             resolucion: 'Se reemplazó el elemento',
             resuelta_por: 1
         });

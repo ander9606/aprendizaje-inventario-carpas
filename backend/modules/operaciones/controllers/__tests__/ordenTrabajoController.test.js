@@ -54,6 +54,7 @@ const controller = require('../ordenTrabajoController');
 
 const mockReq = (o = {}) => ({
     body: {}, params: {}, query: {},
+    tenant: { id: 1, slug: 'test', nombre: 'Test Tenant' },
     usuario: { id: 1, email: 'admin@test.com', rol_nombre: 'admin' },
     ip: '127.0.0.1',
     get: jest.fn().mockReturnValue('test-agent'),
@@ -493,7 +494,7 @@ describe('reportarIncidencia', () => {
             params: { id: '1', elemId: '5' },
             body: { tipo: 'daño', descripcion: 'Grave', severidad: 'alta' }
         }), res, mockNext());
-        expect(AlertaModel.crear).toHaveBeenCalledWith(expect.objectContaining({
+        expect(AlertaModel.crear).toHaveBeenCalledWith(1, expect.objectContaining({
             tipo: 'incidencia',
             severidad: 'alta'
         }));
@@ -508,7 +509,7 @@ describe('reportarIncidencia', () => {
             params: { id: '1', elemId: '5' },
             body: { tipo: 'daño', descripcion: 'Destruido', severidad: 'critica' }
         }), res, mockNext());
-        expect(AlertaModel.crear).toHaveBeenCalledWith(expect.objectContaining({
+        expect(AlertaModel.crear).toHaveBeenCalledWith(1, expect.objectContaining({
             severidad: 'critica'
         }));
     });

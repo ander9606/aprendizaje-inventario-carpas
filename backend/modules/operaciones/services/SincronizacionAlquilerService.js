@@ -115,6 +115,7 @@ class SincronizacionAlquilerService {
    *       - Si usa lotes: busca lotes con cantidad_disponible > 0
    * 3. Retorna estructura jerárquica con disponibilidad
    *
+   * @param {number} tenantId - ID del tenant
    * @param {number} ordenId - ID de la orden de trabajo
    * @returns {Promise<Object>} Objeto con:
    *   - orden: {Object} Datos básicos de la orden
@@ -143,7 +144,7 @@ class SincronizacionAlquilerService {
    *   }]
    * }
    */
-  static async obtenerElementosDisponibles(ordenId) {
+  static async obtenerElementosDisponibles(tenantId, ordenId) {
     logger.info(`[SincronizacionAlquilerService] Obteniendo elementos disponibles para orden ${ordenId}`);
 
     // -----------------------------------------------------------------------
@@ -159,10 +160,10 @@ class SincronizacionAlquilerService {
         a.estado AS alquiler_estado,
         cot.evento_nombre
       FROM ordenes_trabajo ot
-      INNER JOIN alquileres a ON ot.alquiler_id = a.id
-      INNER JOIN cotizaciones cot ON a.cotizacion_id = cot.id
-      WHERE ot.id = ?
-    `, [ordenId]);
+      INNER JOIN alquileres a ON ot.alquiler_id = a.id AND a.tenant_id = ?
+      INNER JOIN cotizaciones cot ON a.cotizacion_id = cot.id AND cot.tenant_id = ?
+      WHERE ot.tenant_id = ? AND ot.id = ?
+    `, [tenantId, tenantId, tenantId, ordenId]);
 
     if (!ordenRows.length) {
       logger.warn(`[SincronizacionAlquilerService] Orden ${ordenId} no encontrada`);
@@ -183,10 +184,10 @@ class SincronizacionAlquilerService {
         ec.nombre AS producto_nombre,
         ec.codigo AS producto_codigo
       FROM cotizacion_productos cp
-      INNER JOIN elementos_compuestos ec ON cp.compuesto_id = ec.id
-      WHERE cp.cotizacion_id = ?
+      INNER JOIN elementos_compuestos ec ON cp.compuesto_id = ec.id AND ec.tenant_id = ?
+      WHERE cp.tenant_id = ? AND cp.cotizacion_id = ?
       ORDER BY ec.nombre
-    `, [orden.cotizacion_id]);
+    `, [tenantId, tenantId, orden.cotizacion_id]);
 
     logger.debug(`[SincronizacionAlquilerService] Productos en cotización: ${productos.length}`);
 
@@ -207,10 +208,10 @@ class SincronizacionAlquilerService {
           e.codigo AS elemento_codigo,
           e.requiere_series
         FROM elemento_compuesto_componentes ecc
-        INNER JOIN elementos e ON ecc.elemento_id = e.id
-        WHERE ecc.compuesto_id = ?
+        INNER JOIN elementos e ON ecc.elemento_id = e.id AND e.tenant_id = ?
+        WHERE ecc.tenant_id = ? AND ecc.compuesto_id = ?
         ORDER BY e.nombre
-      `, [producto.cantidad_requerida, producto.compuesto_id]);
+      `, [producto.cantidad_requerida, tenantId, tenantId, producto.compuesto_id]);
 
       const componentesConDisponibilidad = [];
 
@@ -231,11 +232,12 @@ class SincronizacionAlquilerService {
               u.nombre AS ubicacion,
               u.id AS ubicacion_id
             FROM series s
-            LEFT JOIN ubicaciones u ON s.ubicacion_id = u.id
-            WHERE s.id_elemento = ?
+            LEFT JOIN ubicaciones u ON s.ubicacion_id = u.id AND u.tenant_id = ?
+            WHERE s.tenant_id = ?
+              AND s.id_elemento = ?
               AND s.estado = ?
             ORDER BY u.nombre, s.numero_serie
-          `, [componente.elemento_id, ESTADOS_SERIE.BUENO]);
+          `, [tenantId, tenantId, componente.elemento_id, ESTADOS_SERIE.BUENO]);
 
           disponibles = series.map(s => ({
             tipo: 'serie',
@@ -261,12 +263,13 @@ class SincronizacionAlquilerService {
               u.nombre AS ubicacion,
               u.id AS ubicacion_id
             FROM lotes l
-            LEFT JOIN ubicaciones u ON l.ubicacion_id = u.id
-            WHERE l.elemento_id = ?
+            LEFT JOIN ubicaciones u ON l.ubicacion_id = u.id AND u.tenant_id = ?
+            WHERE l.tenant_id = ?
+              AND l.elemento_id = ?
               AND l.estado IN ('bueno')
               AND l.cantidad > 0
             ORDER BY l.cantidad DESC
-          `, [componente.elemento_id]);
+          `, [tenantId, tenantId, componente.elemento_id]);
 
           disponibles = lotes.map(l => ({
             tipo: 'lote',
@@ -322,6 +325,7 @@ class SincronizacionAlquilerService {
    * Este método NO modifica el inventario todavía. Solo registra qué elementos
    * se van a usar. La modificación del inventario ocurre en `ejecutarSalida()`.
    *
+   * @param {number} tenantId - ID del tenant
    * @param {number} ordenId - ID de la orden de trabajo
    * @param {Array<Object>} elementos - Array de elementos a asignar:
    *   - elemento_id: {number} ID del elemento base
@@ -340,13 +344,13 @@ class SincronizacionAlquilerService {
    * @throws {AppError} 400 si una serie/lote no está disponible
    *
    * @example
-   * await SincronizacionAlquilerService.asignarElementosAOrden(1, [
+   * await SincronizacionAlquilerService.asignarElementosAOrden(tenantId, 1, [
    *   { elemento_id: 15, serie_id: 101, cantidad: 1 },
    *   { elemento_id: 15, serie_id: 102, cantidad: 1 },
    *   { elemento_id: 20, lote_id: 50, cantidad: 100 }
    * ]);
    */
-  static async asignarElementosAOrden(ordenId, elementos) {
+  static async asignarElementosAOrden(tenantId, ordenId, elementos) {
     logger.info(`[SincronizacionAlquilerService] Iniciando asignación de ${elementos.length} elementos a orden ${ordenId}`);
 
     // Obtener conexión para transacción
@@ -362,9 +366,9 @@ class SincronizacionAlquilerService {
       const [ordenRows] = await connection.query(`
         SELECT id, alquiler_id, tipo, estado
         FROM ordenes_trabajo
-        WHERE id = ?
+        WHERE tenant_id = ? AND id = ?
         FOR UPDATE
-      `, [ordenId]);
+      `, [tenantId, ordenId]);
 
       if (!ordenRows.length) {
         throw new AppError('Orden de trabajo no encontrada', 404);
@@ -391,8 +395,8 @@ class SincronizacionAlquilerService {
       // PASO 2: Limpiar asignaciones previas (permite reasignación)
       // ---------------------------------------------------------------------
       const [deleteResult] = await connection.query(
-        'DELETE FROM orden_trabajo_elementos WHERE orden_id = ?',
-        [ordenId]
+        'DELETE FROM orden_trabajo_elementos WHERE tenant_id = ? AND orden_id = ?',
+        [tenantId, ordenId]
       );
 
       if (deleteResult.affectedRows > 0) {
@@ -412,9 +416,9 @@ class SincronizacionAlquilerService {
           const [serieRows] = await connection.query(`
             SELECT id, numero_serie, estado
             FROM series
-            WHERE id = ?
+            WHERE tenant_id = ? AND id = ?
             FOR UPDATE
-          `, [elem.serie_id]);
+          `, [tenantId, elem.serie_id]);
 
           if (!serieRows.length) {
             throw new AppError(`Serie con ID ${elem.serie_id} no encontrada`, 404);
@@ -440,9 +444,9 @@ class SincronizacionAlquilerService {
           const [loteRows] = await connection.query(`
             SELECT id, lote_numero, cantidad
             FROM lotes
-            WHERE id = ?
+            WHERE tenant_id = ? AND id = ?
             FOR UPDATE
-          `, [elem.lote_id]);
+          `, [tenantId, elem.lote_id]);
 
           if (!loteRows.length) {
             throw new AppError(`Lote con ID ${elem.lote_id} no encontrado`, 404);
@@ -465,9 +469,10 @@ class SincronizacionAlquilerService {
         // -------------------------------------------------------------------
         await connection.query(`
           INSERT INTO orden_trabajo_elementos
-          (orden_id, elemento_id, serie_id, lote_id, cantidad, estado)
-          VALUES (?, ?, ?, ?, ?, 'pendiente')
+          (tenant_id, orden_id, elemento_id, serie_id, lote_id, cantidad, estado)
+          VALUES (?, ?, ?, ?, ?, ?, 'pendiente')
         `, [
+          tenantId,
           ordenId,
           elem.elemento_id,
           elem.serie_id || null,
@@ -484,8 +489,8 @@ class SincronizacionAlquilerService {
       await connection.query(`
         UPDATE ordenes_trabajo
         SET estado = ?
-        WHERE id = ?
-      `, [ESTADOS_ORDEN.EN_PREPARACION, ordenId]);
+        WHERE tenant_id = ? AND id = ?
+      `, [ESTADOS_ORDEN.EN_PREPARACION, tenantId, ordenId]);
 
       // ---------------------------------------------------------------------
       // COMMIT: Confirmar transacción
@@ -544,6 +549,7 @@ class SincronizacionAlquilerService {
    * Toda la operación es transaccional. Si falla cualquier paso,
    * se revierte TODO y el sistema queda en el estado anterior.
    *
+   * @param {number} tenantId - ID del tenant
    * @param {number} ordenId - ID de la orden de montaje
    * @param {Object} datos - Datos adicionales (reservado para uso futuro)
    *   - notas_salida: {string} Notas opcionales sobre la salida
@@ -561,12 +567,12 @@ class SincronizacionAlquilerService {
    * @throws {AppError} 400 si no hay elementos asignados
    *
    * @example
-   * const resultado = await SincronizacionAlquilerService.ejecutarSalida(1, {
+   * const resultado = await SincronizacionAlquilerService.ejecutarSalida(tenantId, 1, {
    *   notas_salida: 'Salida autorizada por Juan Pérez'
    * });
    * // resultado.alquiler_id -> ID del alquiler ahora activo
    */
-  static async ejecutarSalida(ordenId, datos = {}) {
+  static async ejecutarSalida(tenantId, ordenId, datos = {}) {
     logger.info(`[SincronizacionAlquilerService] ========== INICIANDO EJECUTAR SALIDA ==========`);
     logger.info(`[SincronizacionAlquilerService] Orden ID: ${ordenId}`);
 
@@ -588,10 +594,10 @@ class SincronizacionAlquilerService {
           a.estado AS alquiler_estado,
           a.cotizacion_id
         FROM ordenes_trabajo ot
-        INNER JOIN alquileres a ON ot.alquiler_id = a.id
-        WHERE ot.id = ?
+        INNER JOIN alquileres a ON ot.alquiler_id = a.id AND a.tenant_id = ?
+        WHERE ot.tenant_id = ? AND ot.id = ?
         FOR UPDATE
-      `, [ordenId]);
+      `, [tenantId, tenantId, ordenId]);
 
       if (!ordenRows.length) {
         throw new AppError('Orden de trabajo no encontrada', 404);
@@ -633,9 +639,9 @@ class SincronizacionAlquilerService {
           ote.cantidad,
           e.nombre AS elemento_nombre
         FROM orden_trabajo_elementos ote
-        INNER JOIN elementos e ON ote.elemento_id = e.id
-        WHERE ote.orden_id = ?
-      `, [ordenId]);
+        INNER JOIN elementos e ON ote.elemento_id = e.id AND e.tenant_id = ?
+        WHERE ote.tenant_id = ? AND ote.orden_id = ?
+      `, [tenantId, tenantId, ordenId]);
 
       if (!elementosOrden.length) {
         throw new AppError(
@@ -652,8 +658,8 @@ class SincronizacionAlquilerService {
       // Esto permite reintentar salidas que fallaron parcialmente
       // ---------------------------------------------------------------------
       const [deleteResult] = await connection.query(
-        'DELETE FROM alquiler_elementos WHERE alquiler_id = ?',
-        [alquilerId]
+        'DELETE FROM alquiler_elementos WHERE tenant_id = ? AND alquiler_id = ?',
+        [tenantId, alquilerId]
       );
 
       if (deleteResult.affectedRows > 0) {
@@ -698,14 +704,14 @@ class SincronizacionAlquilerService {
 
         if (serieId) {
           const [serieInfo] = await connection.query(
-            'SELECT ubicacion_id FROM series WHERE id = ?',
-            [serieId]
+            'SELECT ubicacion_id FROM series WHERE tenant_id = ? AND id = ?',
+            [tenantId, serieId]
           );
           ubicacionOriginalId = serieInfo[0]?.ubicacion_id;
         } else if (loteId) {
           const [loteInfo] = await connection.query(
-            'SELECT ubicacion_id FROM lotes WHERE id = ?',
-            [loteId]
+            'SELECT ubicacion_id FROM lotes WHERE tenant_id = ? AND id = ?',
+            [tenantId, loteId]
           );
           ubicacionOriginalId = loteInfo[0]?.ubicacion_id;
         }
@@ -715,10 +721,11 @@ class SincronizacionAlquilerService {
         // -----------------------------------------------------------------
         await connection.query(`
           INSERT INTO alquiler_elementos
-          (alquiler_id, elemento_id, serie_id, lote_id, cantidad_lote,
+          (tenant_id, alquiler_id, elemento_id, serie_id, lote_id, cantidad_lote,
            estado_salida, ubicacion_original_id, fecha_asignacion)
-          VALUES (?, ?, ?, ?, ?, 'bueno', ?, NOW())
+          VALUES (?, ?, ?, ?, ?, ?, 'bueno', ?, NOW())
         `, [
+          tenantId,
           alquilerId,
           elem.elemento_id,
           serieId,
@@ -735,13 +742,13 @@ class SincronizacionAlquilerService {
             UPDATE series
             SET estado = ?,
                 ubicacion_id = NULL
-            WHERE id = ?
-          `, [ESTADOS_SERIE.ALQUILADO, serieId]);
+            WHERE tenant_id = ? AND id = ?
+          `, [ESTADOS_SERIE.ALQUILADO, tenantId, serieId]);
 
           // Obtener número de serie para log
           const [serieData] = await connection.query(
-            'SELECT numero_serie FROM series WHERE id = ?',
-            [serieId]
+            'SELECT numero_serie FROM series WHERE tenant_id = ? AND id = ?',
+            [tenantId, serieId]
           );
 
           resumen.series_actualizadas.push({
@@ -761,13 +768,13 @@ class SincronizacionAlquilerService {
           await connection.query(`
             UPDATE lotes
             SET cantidad = cantidad - ?
-            WHERE id = ?
-          `, [elem.cantidad, loteId]);
+            WHERE tenant_id = ? AND id = ?
+          `, [elem.cantidad, tenantId, loteId]);
 
           // Obtener info del lote para log
           const [loteData] = await connection.query(
-            'SELECT lote_numero, cantidad FROM lotes WHERE id = ?',
-            [loteId]
+            'SELECT lote_numero, cantidad FROM lotes WHERE tenant_id = ? AND id = ?',
+            [tenantId, loteId]
           );
 
           resumen.lotes_actualizados.push({
@@ -790,8 +797,8 @@ class SincronizacionAlquilerService {
           UPDATE orden_trabajo_elementos
           SET estado = 'cargado',
               verificado_salida = TRUE
-          WHERE id = ?
-        `, [elem.id]);
+          WHERE tenant_id = ? AND id = ?
+        `, [tenantId, elem.id]);
       }
 
       // ---------------------------------------------------------------------
@@ -800,8 +807,8 @@ class SincronizacionAlquilerService {
       await connection.query(`
         UPDATE ordenes_trabajo
         SET estado = ?
-        WHERE id = ?
-      `, [ESTADOS_ORDEN.EN_RUTA, ordenId]);
+        WHERE tenant_id = ? AND id = ?
+      `, [ESTADOS_ORDEN.EN_RUTA, tenantId, ordenId]);
 
       logger.info(`[SincronizacionAlquilerService] Orden ${ordenId} → estado: ${ESTADOS_ORDEN.EN_RUTA}`);
 
@@ -812,8 +819,8 @@ class SincronizacionAlquilerService {
         UPDATE alquileres
         SET estado = ?,
             fecha_salida = NOW()
-        WHERE id = ?
-      `, [ESTADOS_ALQUILER.ACTIVO, alquilerId]);
+        WHERE tenant_id = ? AND id = ?
+      `, [ESTADOS_ALQUILER.ACTIVO, tenantId, alquilerId]);
 
       logger.info(`[SincronizacionAlquilerService] Alquiler ${alquilerId} → estado: ${ESTADOS_ALQUILER.ACTIVO}`);
 
@@ -886,6 +893,7 @@ class SincronizacionAlquilerService {
    * | perdido        | estado="dañado"           | NO se restaura cantidad  |
    * |                | ubicacion=NULL            |                          |
    *
+   * @param {number} tenantId - ID del tenant
    * @param {number} ordenId - ID de la orden de desmontaje
    * @param {Array<Object>} retornos - Array con estado de cada elemento:
    *   - alquiler_elemento_id: {number} ID del registro en alquiler_elementos
@@ -909,12 +917,12 @@ class SincronizacionAlquilerService {
    * @throws {AppError} 404 si un elemento no pertenece al alquiler
    *
    * @example
-   * const resultado = await SincronizacionAlquilerService.ejecutarRetorno(5, [
+   * const resultado = await SincronizacionAlquilerService.ejecutarRetorno(tenantId, 5, [
    *   { alquiler_elemento_id: 10, estado_retorno: 'bueno', costo_dano: 0, notas: '' },
    *   { alquiler_elemento_id: 11, estado_retorno: 'dañado', costo_dano: 50000, notas: 'Rasgadura' }
    * ]);
    */
-  static async ejecutarRetorno(ordenId, retornos) {
+  static async ejecutarRetorno(tenantId, ordenId, retornos) {
     logger.info(`[SincronizacionAlquilerService] ========== INICIANDO EJECUTAR RETORNO ==========`);
     logger.info(`[SincronizacionAlquilerService] Orden ID: ${ordenId}`);
     logger.info(`[SincronizacionAlquilerService] Elementos a procesar: ${retornos.length}`);
@@ -937,10 +945,10 @@ class SincronizacionAlquilerService {
           a.estado AS alquiler_estado,
           a.deposito_cobrado
         FROM ordenes_trabajo ot
-        INNER JOIN alquileres a ON ot.alquiler_id = a.id
-        WHERE ot.id = ?
+        INNER JOIN alquileres a ON ot.alquiler_id = a.id AND a.tenant_id = ?
+        WHERE ot.tenant_id = ? AND ot.id = ?
         FOR UPDATE
-      `, [ordenId]);
+      `, [tenantId, tenantId, ordenId]);
 
       if (!ordenRows.length) {
         throw new AppError('Orden de trabajo no encontrada', 404);
@@ -1014,10 +1022,10 @@ class SincronizacionAlquilerService {
             ae.*,
             e.nombre AS elemento_nombre
           FROM alquiler_elementos ae
-          INNER JOIN elementos e ON ae.elemento_id = e.id
-          WHERE ae.id = ? AND ae.alquiler_id = ?
+          INNER JOIN elementos e ON ae.elemento_id = e.id AND e.tenant_id = ?
+          WHERE ae.tenant_id = ? AND ae.id = ? AND ae.alquiler_id = ?
           FOR UPDATE
-        `, [alquiler_elemento_id, alquilerId]);
+        `, [tenantId, tenantId, alquiler_elemento_id, alquilerId]);
 
         if (!elementoRows.length) {
           throw new AppError(
@@ -1043,8 +1051,8 @@ class SincronizacionAlquilerService {
               costo_dano = ?,
               notas_retorno = ?,
               fecha_retorno = NOW()
-          WHERE id = ?
-        `, [estado_retorno, costoDanoNumerico, notas || null, alquiler_elemento_id]);
+          WHERE tenant_id = ? AND id = ?
+        `, [estado_retorno, costoDanoNumerico, notas || null, tenantId, alquiler_elemento_id]);
 
         // Acumular daños
         totalDanos += costoDanoNumerico;
@@ -1085,13 +1093,13 @@ class SincronizacionAlquilerService {
             UPDATE series
             SET estado = ?,
                 ubicacion_id = ?
-            WHERE id = ?
-          `, [nuevoEstado, nuevaUbicacion, elem.serie_id]);
+            WHERE tenant_id = ? AND id = ?
+          `, [nuevoEstado, nuevaUbicacion, tenantId, elem.serie_id]);
 
           // Obtener info para log
           const [serieData] = await connection.query(
-            'SELECT numero_serie FROM series WHERE id = ?',
-            [elem.serie_id]
+            'SELECT numero_serie FROM series WHERE tenant_id = ? AND id = ?',
+            [tenantId, elem.serie_id]
           );
 
           resumen.series_restauradas.push({
@@ -1117,13 +1125,13 @@ class SincronizacionAlquilerService {
             await connection.query(`
               UPDATE lotes
               SET cantidad = cantidad + ?
-              WHERE id = ?
-            `, [elem.cantidad_lote, elem.lote_id]);
+              WHERE tenant_id = ? AND id = ?
+            `, [elem.cantidad_lote, tenantId, elem.lote_id]);
 
             // Obtener info para log
             const [loteData] = await connection.query(
-              'SELECT lote_numero, cantidad FROM lotes WHERE id = ?',
-              [elem.lote_id]
+              'SELECT lote_numero, cantidad FROM lotes WHERE tenant_id = ? AND id = ?',
+              [tenantId, elem.lote_id]
             );
 
             resumen.lotes_restaurados.push({
@@ -1153,8 +1161,8 @@ class SincronizacionAlquilerService {
       await connection.query(`
         UPDATE ordenes_trabajo
         SET estado = ?
-        WHERE id = ?
-      `, [ESTADOS_ORDEN.COMPLETADO, ordenId]);
+        WHERE tenant_id = ? AND id = ?
+      `, [ESTADOS_ORDEN.COMPLETADO, tenantId, ordenId]);
 
       logger.info(`[SincronizacionAlquilerService] Orden ${ordenId} → estado: ${ESTADOS_ORDEN.COMPLETADO}`);
 
@@ -1166,8 +1174,8 @@ class SincronizacionAlquilerService {
         SET estado = ?,
             fecha_retorno_real = NOW(),
             costo_danos = ?
-        WHERE id = ?
-      `, [ESTADOS_ALQUILER.FINALIZADO, totalDanos, alquilerId]);
+        WHERE tenant_id = ? AND id = ?
+      `, [ESTADOS_ALQUILER.FINALIZADO, totalDanos, tenantId, alquilerId]);
 
       logger.info(`[SincronizacionAlquilerService] Alquiler ${alquilerId} → estado: ${ESTADOS_ALQUILER.FINALIZADO}`);
 
@@ -1193,9 +1201,9 @@ class SincronizacionAlquilerService {
       // PASO 5: Auto-finalizar evento si todos sus alquileres terminaron
       // -----------------------------------------------------------------
       try {
-        const eventoId = await EventoModel.obtenerEventoIdDesdeAlquiler(alquilerId);
+        const eventoId = await EventoModel.obtenerEventoIdDesdeAlquiler(tenantId, alquilerId);
         if (eventoId) {
-          const resultadoEvento = await EventoModel.autoFinalizarSiCompleto(eventoId);
+          const resultadoEvento = await EventoModel.autoFinalizarSiCompleto(tenantId, eventoId);
           if (resultadoEvento.actualizado) {
             logger.info(
               `[SincronizacionAlquilerService] Evento ${eventoId} auto-finalizado: ` +
@@ -1243,10 +1251,11 @@ class SincronizacionAlquilerService {
    * - Auditoría de datos
    * - Validación antes de operaciones críticas
    *
+   * @param {number} tenantId - ID del tenant
    * @param {number} alquilerId - ID del alquiler a verificar
    * @returns {Promise<Object>} Reporte de consistencia
    */
-  static async verificarConsistencia(alquilerId) {
+  static async verificarConsistencia(tenantId, alquilerId) {
     logger.info(`[SincronizacionAlquilerService] Verificando consistencia del alquiler ${alquilerId}`);
 
     const [alquiler] = await pool.query(`
@@ -1255,9 +1264,9 @@ class SincronizacionAlquilerService {
         cot.evento_nombre,
         cot.id AS cotizacion_id
       FROM alquileres a
-      INNER JOIN cotizaciones cot ON a.cotizacion_id = cot.id
-      WHERE a.id = ?
-    `, [alquilerId]);
+      INNER JOIN cotizaciones cot ON a.cotizacion_id = cot.id AND cot.tenant_id = ?
+      WHERE a.tenant_id = ? AND a.id = ?
+    `, [tenantId, tenantId, alquilerId]);
 
     if (!alquiler.length) {
       throw new AppError('Alquiler no encontrado', 404);
@@ -1267,24 +1276,24 @@ class SincronizacionAlquilerService {
     const [ordenes] = await pool.query(`
       SELECT id, tipo, estado
       FROM ordenes_trabajo
-      WHERE alquiler_id = ?
-    `, [alquilerId]);
+      WHERE tenant_id = ? AND alquiler_id = ?
+    `, [tenantId, alquilerId]);
 
     // Obtener elementos del alquiler
     const [elementosAlquiler] = await pool.query(`
       SELECT COUNT(*) as total,
              SUM(CASE WHEN estado_retorno IS NOT NULL THEN 1 ELSE 0 END) as retornados
       FROM alquiler_elementos
-      WHERE alquiler_id = ?
-    `, [alquilerId]);
+      WHERE tenant_id = ? AND alquiler_id = ?
+    `, [tenantId, alquilerId]);
 
     // Obtener elementos de las órdenes
     const [elementosOrdenes] = await pool.query(`
       SELECT COUNT(*) as total
       FROM orden_trabajo_elementos ote
-      INNER JOIN ordenes_trabajo ot ON ote.orden_id = ot.id
-      WHERE ot.alquiler_id = ?
-    `, [alquilerId]);
+      INNER JOIN ordenes_trabajo ot ON ote.orden_id = ot.id AND ot.tenant_id = ?
+      WHERE ote.tenant_id = ? AND ot.alquiler_id = ?
+    `, [tenantId, tenantId, alquilerId]);
 
     const reporte = {
       alquiler: alquiler[0],
@@ -1338,6 +1347,7 @@ class SincronizacionAlquilerService {
    * | desmontaje  | completado         | → finalizado                       |
    * | cualquiera  | cancelado          | → cancelado (si ambas canceladas)  |
    *
+   * @param {number} tenantId - ID del tenant
    * @param {number} ordenId - ID de la orden que cambió de estado
    * @param {string} nuevoEstado - Nuevo estado de la orden
    * @param {string} estadoAnterior - Estado anterior de la orden (opcional)
@@ -1351,9 +1361,9 @@ class SincronizacionAlquilerService {
    *
    * @example
    * // Cuando orden de montaje pasa a en_ruta
-   * await SincronizacionAlquilerService.sincronizarEstadoAlquiler(5, 'en_ruta', 'en_preparacion');
+   * await SincronizacionAlquilerService.sincronizarEstadoAlquiler(tenantId, 5, 'en_ruta', 'en_preparacion');
    */
-  static async sincronizarEstadoAlquiler(ordenId, nuevoEstado, estadoAnterior = null) {
+  static async sincronizarEstadoAlquiler(tenantId, ordenId, nuevoEstado, estadoAnterior = null) {
     logger.info(`[SincronizacionAlquilerService] ========== SINCRONIZANDO ESTADO ALQUILER ==========`);
     logger.info(`[SincronizacionAlquilerService] Orden: ${ordenId}, Nuevo estado: ${nuevoEstado}`);
 
@@ -1366,9 +1376,9 @@ class SincronizacionAlquilerService {
         ot.alquiler_id,
         a.estado AS alquiler_estado
       FROM ordenes_trabajo ot
-      LEFT JOIN alquileres a ON ot.alquiler_id = a.id
-      WHERE ot.id = ?
-    `, [ordenId]);
+      LEFT JOIN alquileres a ON ot.alquiler_id = a.id AND a.tenant_id = ?
+      WHERE ot.tenant_id = ? AND ot.id = ?
+    `, [tenantId, tenantId, ordenId]);
 
     if (!ordenRows.length) {
       logger.warn(`[SincronizacionAlquilerService] Orden ${ordenId} no encontrada`);
@@ -1420,8 +1430,8 @@ class SincronizacionAlquilerService {
       const [otrasOrdenes] = await pool.query(`
         SELECT id, tipo, estado
         FROM ordenes_trabajo
-        WHERE alquiler_id = ? AND id != ?
-      `, [alquilerId, ordenId]);
+        WHERE tenant_id = ? AND alquiler_id = ? AND id != ?
+      `, [tenantId, alquilerId, ordenId]);
 
       // Si la otra orden también está cancelada (o no existe), cancelar alquiler
       const otraOrden = otrasOrdenes[0];
@@ -1440,8 +1450,8 @@ class SincronizacionAlquilerService {
       await pool.query(`
         UPDATE alquileres
         SET estado = ?
-        WHERE id = ?
-      `, [nuevoEstadoAlquiler, alquilerId]);
+        WHERE tenant_id = ? AND id = ?
+      `, [nuevoEstadoAlquiler, tenantId, alquilerId]);
 
       logger.info(`[SincronizacionAlquilerService] Alquiler ${alquilerId}: ${alquilerEstadoActual} → ${nuevoEstadoAlquiler}`);
       logger.info(`[SincronizacionAlquilerService] Motivo: ${mensaje}`);
@@ -1474,7 +1484,7 @@ class SincronizacionAlquilerService {
    * @param {number} alquilerId - ID del alquiler
    * @returns {Promise<Object>} Estado de sincronización
    */
-  static async obtenerEstadoSincronizacion(alquilerId) {
+  static async obtenerEstadoSincronizacion(tenantId, alquilerId) {
     const [resultado] = await pool.query(`
       SELECT
         a.id AS alquiler_id,
@@ -1486,13 +1496,13 @@ class SincronizacionAlquilerService {
           ORDER BY ot.tipo
           SEPARATOR ', '
         ) AS ordenes_estados,
-        (SELECT COUNT(*) FROM alquiler_elementos WHERE alquiler_id = a.id) AS total_elementos,
-        (SELECT COUNT(*) FROM alquiler_elementos WHERE alquiler_id = a.id AND estado_retorno IS NOT NULL) AS elementos_retornados
+        (SELECT COUNT(*) FROM alquiler_elementos WHERE tenant_id = ? AND alquiler_id = a.id) AS total_elementos,
+        (SELECT COUNT(*) FROM alquiler_elementos WHERE tenant_id = ? AND alquiler_id = a.id AND estado_retorno IS NOT NULL) AS elementos_retornados
       FROM alquileres a
-      LEFT JOIN ordenes_trabajo ot ON ot.alquiler_id = a.id
-      WHERE a.id = ?
+      LEFT JOIN ordenes_trabajo ot ON ot.alquiler_id = a.id AND ot.tenant_id = ?
+      WHERE a.tenant_id = ? AND a.id = ?
       GROUP BY a.id
-    `, [alquilerId]);
+    `, [tenantId, tenantId, tenantId, tenantId, alquilerId]);
 
     if (!resultado.length) {
       return null;
@@ -1538,11 +1548,11 @@ class SincronizacionAlquilerService {
    *
    * @returns {Promise<Object>} Resumen de alertas procesadas
    */
-  static async verificarAlertasDisponibilidad() {
+  static async verificarAlertasDisponibilidad(tenantId) {
     logger.info('[SincronizacionAlquilerService] Verificando alertas de disponibilidad pendientes...');
 
     try {
-      const alertasPendientes = await AlertaModel.obtenerAlertasDisponibilidadPendientes();
+      const alertasPendientes = await AlertaModel.obtenerAlertasDisponibilidadPendientes(tenantId);
 
       if (alertasPendientes.length === 0) {
         logger.info('[SincronizacionAlquilerService] No hay alertas de disponibilidad pendientes');
@@ -1564,6 +1574,7 @@ class SincronizacionAlquilerService {
 
           // Verificar disponibilidad actual para la cotización en el rango de fechas
           const disponibilidad = await DisponibilidadModel.verificarDisponibilidadCotizacion(
+            tenantId,
             cotizacion_id,
             fecha_salida,
             fecha_retorno_esperado
@@ -1576,13 +1587,14 @@ class SincronizacionAlquilerService {
             );
 
             // Auto-resolver la alerta de conflicto
-            await AlertaModel.resolver(alerta.id, {
+            await AlertaModel.resolver(tenantId, alerta.id, {
               notas_resolucion: 'Resuelta automáticamente: el inventario requerido volvió a estar disponible tras retorno de elementos.',
               estado: 'resuelta'
             });
 
             // Crear alerta de notificación: stock disponible
             await AlertaModel.crearAlertaStockDisponible(
+              tenantId,
               alerta.orden_id,
               alerta.evento_nombre,
               alerta.cliente_nombre

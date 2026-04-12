@@ -33,10 +33,11 @@ class OrdenTrabajoModel {
     /**
      * Obtener todas las órdenes de trabajo con filtros
      * Optimizado: Usa JOINs con conteos agregados en lugar de subconsultas correlacionadas
+     * @param {number} tenantId
      * @param {Object} filtros
      * @returns {Promise<Object>}
      */
-    static async obtenerTodas(filtros = {}) {
+    static async obtenerTodas(tenantId, filtros = {}) {
         const {
             page = 1,
             limit = 20,
@@ -55,7 +56,8 @@ class OrdenTrabajoModel {
 
         const offset = (page - 1) * limit;
         const params = [];
-        let whereClause = 'WHERE 1=1';
+        let whereClause = 'WHERE ot.tenant_id = ?';
+        params.push(tenantId);
 
         // Búsqueda de texto: cliente, evento, producto, notas, ciudad
         if (buscar) {
@@ -68,11 +70,11 @@ class OrdenTrabajoModel {
                 OR cot.evento_ciudad LIKE ?
                 OR EXISTS (
                     SELECT 1 FROM cotizacion_productos cp2
-                    INNER JOIN elementos_compuestos ec2 ON cp2.compuesto_id = ec2.id
-                    WHERE cp2.cotizacion_id = cot.id AND ec2.nombre LIKE ?
+                    INNER JOIN elementos_compuestos ec2 ON cp2.compuesto_id = ec2.id AND ec2.tenant_id = ?
+                    WHERE cp2.cotizacion_id = cot.id AND cp2.tenant_id = ? AND ec2.nombre LIKE ?
                 )
             )`;
-            params.push(termino, termino, termino, termino, termino, termino);
+            params.push(termino, termino, termino, termino, termino, tenantId, tenantId, termino);
         }
 
         if (tipo) {
@@ -105,12 +107,13 @@ class OrdenTrabajoModel {
         }
 
         if (empleado_id) {
-            whereClause += ` AND EXISTS (SELECT 1 FROM orden_trabajo_equipo ote WHERE ote.orden_id = ot.id AND ote.empleado_id = ?)`;
-            params.push(empleado_id);
+            whereClause += ` AND EXISTS (SELECT 1 FROM orden_trabajo_equipo ote WHERE ote.orden_id = ot.id AND ote.tenant_id = ? AND ote.empleado_id = ?)`;
+            params.push(tenantId, empleado_id);
         }
 
         if (filtros.sin_responsable) {
-            whereClause += ` AND NOT EXISTS (SELECT 1 FROM orden_trabajo_equipo ote WHERE ote.orden_id = ot.id)`;
+            whereClause += ` AND NOT EXISTS (SELECT 1 FROM orden_trabajo_equipo ote WHERE ote.orden_id = ot.id AND ote.tenant_id = ?)`;
+            params.push(tenantId);
         }
 
         if (vehiculo_id) {
@@ -155,44 +158,48 @@ class OrdenTrabajoModel {
                 resp.nombre_responsable,
                 prod_nombres.nombres_productos
             FROM ordenes_trabajo ot
-            LEFT JOIN alquileres a ON ot.alquiler_id = a.id
-            LEFT JOIN cotizaciones cot ON a.cotizacion_id = cot.id
-            LEFT JOIN clientes c ON cot.cliente_id = c.id
-            LEFT JOIN vehiculos v ON ot.vehiculo_id = v.id
+            LEFT JOIN alquileres a ON ot.alquiler_id = a.id AND a.tenant_id = ?
+            LEFT JOIN cotizaciones cot ON a.cotizacion_id = cot.id AND cot.tenant_id = ?
+            LEFT JOIN clientes c ON cot.cliente_id = c.id AND c.tenant_id = ?
+            LEFT JOIN vehiculos v ON ot.vehiculo_id = v.id AND v.tenant_id = ?
             LEFT JOIN (
                 SELECT orden_id, COUNT(*) as total
                 FROM orden_trabajo_elementos
+                WHERE tenant_id = ?
                 GROUP BY orden_id
             ) elem_count ON elem_count.orden_id = ot.id
             LEFT JOIN (
                 SELECT orden_id, COUNT(*) as total
                 FROM orden_trabajo_equipo
+                WHERE tenant_id = ?
                 GROUP BY orden_id
             ) equipo_count ON equipo_count.orden_id = ot.id
             LEFT JOIN (
                 SELECT cotizacion_id, COUNT(*) as total
                 FROM cotizacion_productos
+                WHERE tenant_id = ?
                 GROUP BY cotizacion_id
             ) prod_count ON prod_count.cotizacion_id = cot.id
             LEFT JOIN (
                 SELECT ote.orden_id,
                        MIN(CONCAT(e.nombre, ' ', e.apellido)) as nombre_responsable
                 FROM orden_trabajo_equipo ote
-                INNER JOIN empleados e ON ote.empleado_id = e.id
-                WHERE ote.rol_en_orden = 'responsable'
+                INNER JOIN empleados e ON ote.empleado_id = e.id AND e.tenant_id = ?
+                WHERE ote.rol_en_orden = 'responsable' AND ote.tenant_id = ?
                 GROUP BY ote.orden_id
             ) resp ON resp.orden_id = ot.id
             LEFT JOIN (
                 SELECT cp.cotizacion_id,
                        GROUP_CONCAT(ec.nombre SEPARATOR ', ') as nombres_productos
                 FROM cotizacion_productos cp
-                INNER JOIN elementos_compuestos ec ON cp.compuesto_id = ec.id
+                INNER JOIN elementos_compuestos ec ON cp.compuesto_id = ec.id AND ec.tenant_id = ?
+                WHERE cp.tenant_id = ?
                 GROUP BY cp.cotizacion_id
             ) prod_nombres ON prod_nombres.cotizacion_id = cot.id
             ${whereClause}
             ORDER BY ot.${ordenarCampo} ${ordenarDireccion}
             LIMIT ? OFFSET ?
-        `, [...params, limit, offset]);
+        `, [tenantId, tenantId, tenantId, tenantId, tenantId, tenantId, tenantId, tenantId, tenantId, tenantId, tenantId, ...params, limit, offset]);
 
         const [countResult] = await pool.query(`
             SELECT COUNT(*) as total
@@ -212,10 +219,11 @@ class OrdenTrabajoModel {
     /**
      * Obtener orden de trabajo por ID con detalle completo
      * Optimizado: Incluye info completa de cotización y reduce queries
+     * @param {number} tenantId
      * @param {number} id
      * @returns {Promise<Object|null>}
      */
-    static async obtenerPorId(id) {
+    static async obtenerPorId(tenantId, id) {
         // Query principal con toda la info de cotización
         const [rows] = await pool.query(`
             SELECT
@@ -248,12 +256,12 @@ class OrdenTrabajoModel {
                 v.marca as vehiculo_marca,
                 v.modelo as vehiculo_modelo
             FROM ordenes_trabajo ot
-            LEFT JOIN alquileres a ON ot.alquiler_id = a.id
-            LEFT JOIN cotizaciones cot ON a.cotizacion_id = cot.id
-            LEFT JOIN clientes c ON cot.cliente_id = c.id
-            LEFT JOIN vehiculos v ON ot.vehiculo_id = v.id
-            WHERE ot.id = ?
-        `, [id]);
+            LEFT JOIN alquileres a ON ot.alquiler_id = a.id AND a.tenant_id = ?
+            LEFT JOIN cotizaciones cot ON a.cotizacion_id = cot.id AND cot.tenant_id = ?
+            LEFT JOIN clientes c ON cot.cliente_id = c.id AND c.tenant_id = ?
+            LEFT JOIN vehiculos v ON ot.vehiculo_id = v.id AND v.tenant_id = ?
+            WHERE ot.tenant_id = ? AND ot.id = ?
+        `, [tenantId, tenantId, tenantId, tenantId, tenantId, id]);
 
         if (rows.length === 0) {
             return null;
@@ -274,10 +282,10 @@ class OrdenTrabajoModel {
                     e.telefono,
                     r.nombre as rol_empleado
                 FROM orden_trabajo_equipo ote
-                INNER JOIN empleados e ON ote.empleado_id = e.id
-                LEFT JOIN roles r ON e.rol_id = r.id
-                WHERE ote.orden_id = ?
-            `, [id]),
+                INNER JOIN empleados e ON ote.empleado_id = e.id AND e.tenant_id = ?
+                LEFT JOIN roles r ON e.rol_id = r.id AND r.tenant_id = ?
+                WHERE ote.tenant_id = ? AND ote.orden_id = ?
+            `, [tenantId, tenantId, tenantId, id]),
             // Elementos de la orden
             pool.query(`
                 SELECT
@@ -294,11 +302,11 @@ class OrdenTrabajoModel {
                     s.numero_serie,
                     l.lote_numero
                 FROM orden_trabajo_elementos ote
-                INNER JOIN elementos el ON ote.elemento_id = el.id
-                LEFT JOIN series s ON ote.serie_id = s.id
-                LEFT JOIN lotes l ON ote.lote_id = l.id
-                WHERE ote.orden_id = ?
-            `, [id]),
+                INNER JOIN elementos el ON ote.elemento_id = el.id AND el.tenant_id = ?
+                LEFT JOIN series s ON ote.serie_id = s.id AND s.tenant_id = ?
+                LEFT JOIN lotes l ON ote.lote_id = l.id AND l.tenant_id = ?
+                WHERE ote.tenant_id = ? AND ote.orden_id = ?
+            `, [tenantId, tenantId, tenantId, tenantId, id]),
             // Historial de cambios de fecha
             pool.query(`
                 SELECT
@@ -311,10 +319,10 @@ class OrdenTrabajoModel {
                     e.nombre as aprobador_nombre,
                     e.apellido as aprobador_apellido
                 FROM orden_trabajo_cambios_fecha otc
-                LEFT JOIN empleados e ON otc.aprobado_por = e.id
-                WHERE otc.orden_id = ?
+                LEFT JOIN empleados e ON otc.aprobado_por = e.id AND e.tenant_id = ?
+                WHERE otc.tenant_id = ? AND otc.orden_id = ?
                 ORDER BY otc.created_at DESC
-            `, [id])
+            `, [tenantId, tenantId, id])
         ]);
 
         orden.equipo = equipoResult[0];
@@ -324,8 +332,8 @@ class OrdenTrabajoModel {
         // Si es desmontaje, incluir estado del montaje relacionado
         if (orden.tipo === 'desmontaje' && orden.alquiler_id) {
             const [montajeRows] = await pool.query(
-                `SELECT id, estado FROM ordenes_trabajo WHERE alquiler_id = ? AND tipo = 'montaje' AND estado != 'cancelado' LIMIT 1`,
-                [orden.alquiler_id]
+                `SELECT id, estado FROM ordenes_trabajo WHERE tenant_id = ? AND alquiler_id = ? AND tipo = 'montaje' AND estado != 'cancelado' LIMIT 1`,
+                [tenantId, orden.alquiler_id]
             );
             if (montajeRows.length > 0) {
                 orden.montaje_id = montajeRows[0].id;
@@ -339,11 +347,12 @@ class OrdenTrabajoModel {
     /**
      * Obtener orden completa con toda la información de cotización
      * Incluye: productos, transporte, elementos asignados del alquiler
+     * @param {number} tenantId
      * @param {number} id
      * @returns {Promise<Object|null>}
      */
-    static async obtenerOrdenCompleta(id) {
-        const orden = await this.obtenerPorId(id);
+    static async obtenerOrdenCompleta(tenantId, id) {
+        const orden = await this.obtenerPorId(tenantId, id);
         if (!orden) return null;
 
         // Si no hay cotización asociada, retornar solo la orden básica
@@ -378,11 +387,11 @@ class OrdenTrabajoModel {
                     cat.nombre as categoria_nombre,
                     cat.emoji as categoria_emoji
                 FROM cotizacion_productos cp
-                INNER JOIN elementos_compuestos ec ON cp.compuesto_id = ec.id
-                LEFT JOIN categorias_productos cat ON ec.categoria_id = cat.id
-                WHERE cp.cotizacion_id = ?
+                INNER JOIN elementos_compuestos ec ON cp.compuesto_id = ec.id AND ec.tenant_id = ?
+                LEFT JOIN categorias_productos cat ON ec.categoria_id = cat.id AND cat.tenant_id = ?
+                WHERE cp.tenant_id = ? AND cp.cotizacion_id = ?
                 ORDER BY cat.nombre, ec.nombre
-            `, [orden.cotizacion_id]),
+            `, [tenantId, tenantId, tenantId, orden.cotizacion_id]),
             // Transporte de la cotización
             pool.query(`
                 SELECT
@@ -395,10 +404,10 @@ class OrdenTrabajoModel {
                     t.tipo_camion,
                     c.nombre as ciudad
                 FROM cotizacion_transportes ct
-                INNER JOIN tarifas_transporte t ON ct.tarifa_id = t.id
-                LEFT JOIN ciudades c ON t.ciudad_id = c.id
-                WHERE ct.cotizacion_id = ?
-            `, [orden.cotizacion_id]),
+                INNER JOIN tarifas_transporte t ON ct.tarifa_id = t.id AND t.tenant_id = ?
+                LEFT JOIN ciudades c ON t.ciudad_id = c.id AND c.tenant_id = ?
+                WHERE ct.tenant_id = ? AND ct.cotizacion_id = ?
+            `, [tenantId, tenantId, tenantId, orden.cotizacion_id]),
             // Elementos asignados al alquiler (después de ejecutar salida)
             orden.alquiler_id ? pool.query(`
                 SELECT
@@ -416,12 +425,12 @@ class OrdenTrabajoModel {
                     s.numero_serie as serie_codigo,
                     l.lote_numero as lote_codigo
                 FROM alquiler_elementos ae
-                INNER JOIN elementos e ON ae.elemento_id = e.id
-                LEFT JOIN series s ON ae.serie_id = s.id
-                LEFT JOIN lotes l ON ae.lote_id = l.id
-                WHERE ae.alquiler_id = ?
+                INNER JOIN elementos e ON ae.elemento_id = e.id AND e.tenant_id = ?
+                LEFT JOIN series s ON ae.serie_id = s.id AND s.tenant_id = ?
+                LEFT JOIN lotes l ON ae.lote_id = l.id AND l.tenant_id = ?
+                WHERE ae.tenant_id = ? AND ae.alquiler_id = ?
                 ORDER BY e.nombre
-            `, [orden.alquiler_id]) : Promise.resolve([[]]),
+            `, [tenantId, tenantId, tenantId, tenantId, orden.alquiler_id]) : Promise.resolve([[]]),
             // Elementos asignados a la orden (antes de ejecutar salida)
             pool.query(`
                 SELECT
@@ -436,20 +445,20 @@ class OrdenTrabajoModel {
                     s.numero_serie as serie_codigo,
                     l.lote_numero as lote_codigo
                 FROM orden_trabajo_elementos ote
-                INNER JOIN elementos e ON ote.elemento_id = e.id
-                LEFT JOIN series s ON ote.serie_id = s.id
-                LEFT JOIN lotes l ON ote.lote_id = l.id
-                WHERE ote.orden_id = ?
+                INNER JOIN elementos e ON ote.elemento_id = e.id AND e.tenant_id = ?
+                LEFT JOIN series s ON ote.serie_id = s.id AND s.tenant_id = ?
+                LEFT JOIN lotes l ON ote.lote_id = l.id AND l.tenant_id = ?
+                WHERE ote.tenant_id = ? AND ote.orden_id = ?
                 ORDER BY e.nombre
-            `, [id]),
+            `, [tenantId, tenantId, tenantId, tenantId, id]),
             // Mapa de elemento_id → compuesto_id para vincular elementos con productos
             orden.cotizacion_id ? pool.query(`
                 SELECT DISTINCT cc.elemento_id, cc.compuesto_id
                 FROM compuesto_componentes cc
-                WHERE cc.compuesto_id IN (
-                    SELECT cp.compuesto_id FROM cotizacion_productos cp WHERE cp.cotizacion_id = ?
+                WHERE cc.tenant_id = ? AND cc.compuesto_id IN (
+                    SELECT cp.compuesto_id FROM cotizacion_productos cp WHERE cp.tenant_id = ? AND cp.cotizacion_id = ?
                 )
-            `, [orden.cotizacion_id]) : Promise.resolve([[]])
+            `, [tenantId, tenantId, orden.cotizacion_id]) : Promise.resolve([[]])
         ]);
 
         // Calcular resúmenes
@@ -514,7 +523,7 @@ class OrdenTrabajoModel {
      * @param {number} alquilerId
      * @returns {Promise<Array>}
      */
-    static async obtenerPorAlquiler(alquilerId) {
+    static async obtenerPorAlquiler(tenantId, alquilerId) {
         const [rows] = await pool.query(`
             SELECT
                 ot.id,
@@ -528,15 +537,16 @@ class OrdenTrabajoModel {
                 v.marca as vehiculo_marca,
                 COALESCE(equipo_count.total, 0) as total_equipo
             FROM ordenes_trabajo ot
-            LEFT JOIN vehiculos v ON ot.vehiculo_id = v.id
+            LEFT JOIN vehiculos v ON ot.vehiculo_id = v.id AND v.tenant_id = ?
             LEFT JOIN (
                 SELECT orden_id, COUNT(*) as total
                 FROM orden_trabajo_equipo
+                WHERE tenant_id = ?
                 GROUP BY orden_id
             ) equipo_count ON equipo_count.orden_id = ot.id
-            WHERE ot.alquiler_id = ?
+            WHERE ot.tenant_id = ? AND ot.alquiler_id = ?
             ORDER BY ot.fecha_programada ASC
-        `, [alquilerId]);
+        `, [tenantId, tenantId, tenantId, alquilerId]);
 
         return rows;
     }
@@ -546,7 +556,7 @@ class OrdenTrabajoModel {
      * @param {Object} datos
      * @returns {Promise<Object>}
      */
-    static async crear(datos) {
+    static async crear(tenantId, datos) {
         const {
             alquiler_id,
             tipo,
@@ -564,9 +574,10 @@ class OrdenTrabajoModel {
 
         const [result] = await pool.query(`
             INSERT INTO ordenes_trabajo
-            (alquiler_id, tipo, estado, fecha_programada, direccion_evento, ciudad_evento, notas, prioridad, vehiculo_id, creado_por)
-            VALUES (?, ?, 'pendiente', ?, ?, ?, ?, ?, ?, ?)
+            (tenant_id, alquiler_id, tipo, estado, fecha_programada, direccion_evento, ciudad_evento, notas, prioridad, vehiculo_id, creado_por)
+            VALUES (?, ?, ?, 'pendiente', ?, ?, ?, ?, ?, ?, ?)
         `, [
+            tenantId,
             alquiler_id || null,
             tipo,
             fecha_programada,
@@ -578,7 +589,7 @@ class OrdenTrabajoModel {
             creado_por || null
         ]);
 
-        return this.obtenerPorId(result.insertId);
+        return this.obtenerPorId(tenantId, result.insertId);
     }
 
     /**
@@ -611,8 +622,8 @@ class OrdenTrabajoModel {
      * @param {Object} datos
      * @returns {Promise<Object>}
      */
-    static async actualizar(id, datos) {
-        const orden = await this.obtenerPorId(id);
+    static async actualizar(tenantId, id, datos) {
+        const orden = await this.obtenerPorId(tenantId, id);
         if (!orden) {
             throw new AppError('Orden de trabajo no encontrada', 404);
         }
@@ -635,15 +646,15 @@ class OrdenTrabajoModel {
             return orden;
         }
 
-        valores.push(id);
+        valores.push(tenantId, id);
 
         await pool.query(`
             UPDATE ordenes_trabajo
             SET ${campos.join(', ')}
-            WHERE id = ?
+            WHERE tenant_id = ? AND id = ?
         `, valores);
 
-        return this.obtenerPorId(id);
+        return this.obtenerPorId(tenantId, id);
     }
 
     /**
@@ -654,8 +665,8 @@ class OrdenTrabajoModel {
      * @param {number} aprobadoPor
      * @returns {Promise<Object>}
      */
-    static async cambiarFecha(id, nuevaFecha, motivo, aprobadoPor = null) {
-        const orden = await this.obtenerPorId(id);
+    static async cambiarFecha(tenantId, id, nuevaFecha, motivo, aprobadoPor = null) {
+        const orden = await this.obtenerPorId(tenantId, id);
         if (!orden) {
             throw new AppError('Orden de trabajo no encontrada', 404);
         }
@@ -663,18 +674,18 @@ class OrdenTrabajoModel {
         // Registrar el cambio
         await pool.query(`
             INSERT INTO orden_trabajo_cambios_fecha
-            (orden_id, fecha_anterior, fecha_nueva, motivo, aprobado_por)
-            VALUES (?, ?, ?, ?, ?)
-        `, [id, orden.fecha_programada, nuevaFecha, motivo, aprobadoPor]);
+            (tenant_id, orden_id, fecha_anterior, fecha_nueva, motivo, aprobado_por)
+            VALUES (?, ?, ?, ?, ?, ?)
+        `, [tenantId, id, orden.fecha_programada, nuevaFecha, motivo, aprobadoPor]);
 
         // Actualizar la fecha
         await pool.query(`
             UPDATE ordenes_trabajo
             SET fecha_programada = ?
-            WHERE id = ?
-        `, [nuevaFecha, id]);
+            WHERE tenant_id = ? AND id = ?
+        `, [nuevaFecha, tenantId, id]);
 
-        return this.obtenerPorId(id);
+        return this.obtenerPorId(tenantId, id);
     }
 
     /**
@@ -683,7 +694,7 @@ class OrdenTrabajoModel {
      * @param {string} estado
      * @returns {Promise<Object>}
      */
-    static async cambiarEstado(id, estado) {
+    static async cambiarEstado(tenantId, id, estado) {
         // Asegurar que el ENUM de la BD incluye los nuevos estados
         await this._ensureEstadosEnum();
 
@@ -693,7 +704,7 @@ class OrdenTrabajoModel {
             throw new AppError(`Estado inválido. Valores permitidos: ${estadosValidos.join(', ')}`, 400);
         }
 
-        const orden = await this.obtenerPorId(id);
+        const orden = await this.obtenerPorId(tenantId, id);
         if (!orden) {
             throw new AppError('Orden de trabajo no encontrada', 404);
         }
@@ -701,10 +712,10 @@ class OrdenTrabajoModel {
         await pool.query(`
             UPDATE ordenes_trabajo
             SET estado = ?
-            WHERE id = ?
-        `, [estado, id]);
+            WHERE tenant_id = ? AND id = ?
+        `, [estado, tenantId, id]);
 
-        return this.obtenerPorId(id);
+        return this.obtenerPorId(tenantId, id);
     }
 
     /**
@@ -713,8 +724,8 @@ class OrdenTrabajoModel {
      * @param {Array} empleados - [{empleado_id, rol_en_orden}]
      * @returns {Promise<Array>}
      */
-    static async asignarEquipo(ordenId, empleados) {
-        const orden = await this.obtenerPorId(ordenId);
+    static async asignarEquipo(tenantId, ordenId, empleados) {
+        const orden = await this.obtenerPorId(tenantId, ordenId);
         if (!orden) {
             throw new AppError('Orden de trabajo no encontrada', 404);
         }
@@ -726,8 +737,8 @@ class OrdenTrabajoModel {
         for (const id of actualesIds) {
             if (!nuevosIds.has(id)) {
                 await pool.query(
-                    'DELETE FROM orden_trabajo_equipo WHERE orden_id = ? AND empleado_id = ?',
-                    [ordenId, id]
+                    'DELETE FROM orden_trabajo_equipo WHERE tenant_id = ? AND orden_id = ? AND empleado_id = ?',
+                    [tenantId, ordenId, id]
                 );
             }
         }
@@ -735,13 +746,13 @@ class OrdenTrabajoModel {
         // Insertar o actualizar los de la nueva lista
         for (const emp of empleados) {
             await pool.query(`
-                INSERT INTO orden_trabajo_equipo (orden_id, empleado_id, rol_en_orden)
-                VALUES (?, ?, ?)
+                INSERT INTO orden_trabajo_equipo (tenant_id, orden_id, empleado_id, rol_en_orden)
+                VALUES (?, ?, ?, ?)
                 ON DUPLICATE KEY UPDATE rol_en_orden = VALUES(rol_en_orden)
-            `, [ordenId, emp.empleado_id, emp.rol_en_orden || 'operario']);
+            `, [tenantId, ordenId, emp.empleado_id, emp.rol_en_orden || 'operario']);
         }
 
-        const ordenActualizada = await this.obtenerPorId(ordenId);
+        const ordenActualizada = await this.obtenerPorId(tenantId, ordenId);
         return ordenActualizada.equipo;
     }
 
@@ -752,18 +763,18 @@ class OrdenTrabajoModel {
      * @param {string} rolEnOrden
      * @returns {Promise<Array>}
      */
-    static async agregarResponsable(ordenId, empleadoId, rolEnOrden = 'responsable') {
-        const orden = await this.obtenerPorId(ordenId);
+    static async agregarResponsable(tenantId, ordenId, empleadoId, rolEnOrden = 'responsable') {
+        const orden = await this.obtenerPorId(tenantId, ordenId);
         if (!orden) {
             throw new AppError('Orden de trabajo no encontrada', 404);
         }
 
         await pool.query(`
-            INSERT INTO orden_trabajo_equipo (orden_id, empleado_id, rol_en_orden)
-            VALUES (?, ?, ?)
-        `, [ordenId, empleadoId, rolEnOrden]);
+            INSERT INTO orden_trabajo_equipo (tenant_id, orden_id, empleado_id, rol_en_orden)
+            VALUES (?, ?, ?, ?)
+        `, [tenantId, ordenId, empleadoId, rolEnOrden]);
 
-        const ordenActualizada = await this.obtenerPorId(ordenId);
+        const ordenActualizada = await this.obtenerPorId(tenantId, ordenId);
         return ordenActualizada.equipo;
     }
 
@@ -773,17 +784,17 @@ class OrdenTrabajoModel {
      * @param {number} empleadoId
      * @returns {Promise<Array>}
      */
-    static async removerResponsable(ordenId, empleadoId) {
+    static async removerResponsable(tenantId, ordenId, empleadoId) {
         const [result] = await pool.query(
-            'DELETE FROM orden_trabajo_equipo WHERE orden_id = ? AND empleado_id = ?',
-            [ordenId, empleadoId]
+            'DELETE FROM orden_trabajo_equipo WHERE tenant_id = ? AND orden_id = ? AND empleado_id = ?',
+            [tenantId, ordenId, empleadoId]
         );
 
         if (result.affectedRows === 0) {
             throw new AppError('El empleado no está asignado a esta orden', 404);
         }
 
-        const ordenActualizada = await this.obtenerPorId(ordenId);
+        const ordenActualizada = await this.obtenerPorId(tenantId, ordenId);
         return ordenActualizada.equipo;
     }
 
@@ -795,10 +806,10 @@ class OrdenTrabajoModel {
      * @param {string} motivoRechazo - Obligatorio si rechaza
      * @returns {Promise<Object>}
      */
-    static async responderAsignacion(ordenId, empleadoId, respuesta, motivoRechazo = null) {
+    static async responderAsignacion(tenantId, ordenId, empleadoId, respuesta, motivoRechazo = null) {
         const [asignacion] = await pool.query(
-            'SELECT * FROM orden_trabajo_equipo WHERE orden_id = ? AND empleado_id = ?',
-            [ordenId, empleadoId]
+            'SELECT * FROM orden_trabajo_equipo WHERE tenant_id = ? AND orden_id = ? AND empleado_id = ?',
+            [tenantId, ordenId, empleadoId]
         );
 
         if (asignacion.length === 0) {
@@ -818,18 +829,18 @@ class OrdenTrabajoModel {
             SET estado_asignacion = ?,
                 motivo_rechazo = ?,
                 fecha_respuesta = CURRENT_TIMESTAMP
-            WHERE orden_id = ? AND empleado_id = ?
-        `, [respuesta, motivoRechazo, ordenId, empleadoId]);
+            WHERE tenant_id = ? AND orden_id = ? AND empleado_id = ?
+        `, [respuesta, motivoRechazo, tenantId, ordenId, empleadoId]);
 
         // Si rechazó, eliminar de la orden
         if (respuesta === 'rechazada') {
             await pool.query(
-                'DELETE FROM orden_trabajo_equipo WHERE orden_id = ? AND empleado_id = ?',
-                [ordenId, empleadoId]
+                'DELETE FROM orden_trabajo_equipo WHERE tenant_id = ? AND orden_id = ? AND empleado_id = ?',
+                [tenantId, ordenId, empleadoId]
             );
         }
 
-        return this.obtenerPorId(ordenId);
+        return this.obtenerPorId(tenantId, ordenId);
     }
 
     /**
@@ -838,8 +849,8 @@ class OrdenTrabajoModel {
      * @param {number} vehiculoId
      * @returns {Promise<Object>}
      */
-    static async asignarVehiculo(ordenId, vehiculoId) {
-        const orden = await this.obtenerPorId(ordenId);
+    static async asignarVehiculo(tenantId, ordenId, vehiculoId) {
+        const orden = await this.obtenerPorId(tenantId, ordenId);
         if (!orden) {
             throw new AppError('Orden de trabajo no encontrada', 404);
         }
@@ -847,10 +858,10 @@ class OrdenTrabajoModel {
         await pool.query(`
             UPDATE ordenes_trabajo
             SET vehiculo_id = ?
-            WHERE id = ?
-        `, [vehiculoId, ordenId]);
+            WHERE tenant_id = ? AND id = ?
+        `, [vehiculoId, tenantId, ordenId]);
 
-        return this.obtenerPorId(ordenId);
+        return this.obtenerPorId(tenantId, ordenId);
     }
 
     /**
@@ -860,17 +871,18 @@ class OrdenTrabajoModel {
      * @param {Date} hasta
      * @returns {Promise<Array>}
      */
-    static async obtenerCalendario(desde, hasta, { empleadoId = null, sinResponsable = false } = {}) {
-        const params = [desde, hasta];
+    static async obtenerCalendario(tenantId, desde, hasta, { empleadoId = null, sinResponsable = false } = {}) {
+        const params = [tenantId, tenantId, tenantId, tenantId, tenantId, tenantId, tenantId, desde, hasta];
         let filtroExtra = '';
 
         if (empleadoId && !sinResponsable) {
-            filtroExtra += ` AND EXISTS (SELECT 1 FROM orden_trabajo_equipo ote2 WHERE ote2.orden_id = ot.id AND ote2.empleado_id = ?)`;
-            params.push(empleadoId);
+            filtroExtra += ` AND EXISTS (SELECT 1 FROM orden_trabajo_equipo ote2 WHERE ote2.tenant_id = ? AND ote2.orden_id = ot.id AND ote2.empleado_id = ?)`;
+            params.push(tenantId, empleadoId);
         }
 
         if (sinResponsable) {
-            filtroExtra += ` AND NOT EXISTS (SELECT 1 FROM orden_trabajo_equipo ote2 WHERE ote2.orden_id = ot.id)`;
+            filtroExtra += ` AND NOT EXISTS (SELECT 1 FROM orden_trabajo_equipo ote2 WHERE ote2.tenant_id = ? AND ote2.orden_id = ot.id)`;
+            params.push(tenantId);
         }
 
         const [rows] = await pool.query(`
@@ -896,20 +908,22 @@ class OrdenTrabajoModel {
                 equipo_agg.equipo_nombres,
                 equipo_agg.total_equipo
             FROM ordenes_trabajo ot
-            LEFT JOIN alquileres a ON ot.alquiler_id = a.id
-            LEFT JOIN cotizaciones cot ON a.cotizacion_id = cot.id
-            LEFT JOIN clientes c ON cot.cliente_id = c.id
-            LEFT JOIN vehiculos v ON ot.vehiculo_id = v.id
+            LEFT JOIN alquileres a ON ot.alquiler_id = a.id AND a.tenant_id = ?
+            LEFT JOIN cotizaciones cot ON a.cotizacion_id = cot.id AND cot.tenant_id = ?
+            LEFT JOIN clientes c ON cot.cliente_id = c.id AND c.tenant_id = ?
+            LEFT JOIN vehiculos v ON ot.vehiculo_id = v.id AND v.tenant_id = ?
             LEFT JOIN (
                 SELECT
                     ote.orden_id,
                     GROUP_CONCAT(CONCAT(e.nombre, ' ', e.apellido) SEPARATOR ', ') as equipo_nombres,
                     COUNT(*) as total_equipo
                 FROM orden_trabajo_equipo ote
-                INNER JOIN empleados e ON ote.empleado_id = e.id
+                INNER JOIN empleados e ON ote.empleado_id = e.id AND e.tenant_id = ?
+                WHERE ote.tenant_id = ?
                 GROUP BY ote.orden_id
             ) equipo_agg ON equipo_agg.orden_id = ot.id
-            WHERE ot.fecha_programada >= ?
+            WHERE ot.tenant_id = ?
+              AND ot.fecha_programada >= ?
               AND ot.fecha_programada < DATE_ADD(?, INTERVAL 1 DAY)
               AND ot.estado != 'cancelado'
               ${filtroExtra}
@@ -925,7 +939,7 @@ class OrdenTrabajoModel {
      * @param {Object} datos
      * @returns {Promise<Object>}
      */
-    static async crearDesdeAlquiler(alquilerId, datos) {
+    static async crearDesdeAlquiler(tenantId, alquilerId, datos) {
         const { montaje, desmontaje, elementos, creado_por } = datos;
 
         // Obtener información del alquiler y cotización para dirección/ciudad
@@ -934,15 +948,15 @@ class OrdenTrabajoModel {
                 cot.evento_direccion,
                 cot.evento_ciudad
             FROM alquileres a
-            LEFT JOIN cotizaciones cot ON a.cotizacion_id = cot.id
-            WHERE a.id = ?
-        `, [alquilerId]);
+            LEFT JOIN cotizaciones cot ON a.cotizacion_id = cot.id AND cot.tenant_id = ?
+            WHERE a.tenant_id = ? AND a.id = ?
+        `, [tenantId, tenantId, alquilerId]);
 
         const direccionEvento = alquilerInfo[0]?.evento_direccion || null;
         const ciudadEvento = alquilerInfo[0]?.evento_ciudad || null;
 
         // Crear orden de montaje
-        const ordenMontaje = await this.crear({
+        const ordenMontaje = await this.crear(tenantId, {
             alquiler_id: alquilerId,
             tipo: 'montaje',
             fecha_programada: montaje.fecha,
@@ -954,7 +968,7 @@ class OrdenTrabajoModel {
         });
 
         // Crear orden de desmontaje
-        const ordenDesmontaje = await this.crear({
+        const ordenDesmontaje = await this.crear(tenantId, {
             alquiler_id: alquilerId,
             tipo: 'desmontaje',
             fecha_programada: desmontaje.fecha,
@@ -971,9 +985,10 @@ class OrdenTrabajoModel {
                 // Agregar a montaje
                 await pool.query(`
                     INSERT INTO orden_trabajo_elementos
-                    (orden_id, elemento_id, serie_id, lote_id, cantidad, estado)
-                    VALUES (?, ?, ?, ?, ?, 'pendiente')
+                    (tenant_id, orden_id, elemento_id, serie_id, lote_id, cantidad, estado)
+                    VALUES (?, ?, ?, ?, ?, ?, 'pendiente')
                 `, [
+                    tenantId,
                     ordenMontaje.id,
                     elem.elemento_id,
                     elem.serie_id || null,
@@ -984,9 +999,10 @@ class OrdenTrabajoModel {
                 // Agregar a desmontaje
                 await pool.query(`
                     INSERT INTO orden_trabajo_elementos
-                    (orden_id, elemento_id, serie_id, lote_id, cantidad, estado)
-                    VALUES (?, ?, ?, ?, ?, 'pendiente')
+                    (tenant_id, orden_id, elemento_id, serie_id, lote_id, cantidad, estado)
+                    VALUES (?, ?, ?, ?, ?, ?, 'pendiente')
                 `, [
+                    tenantId,
                     ordenDesmontaje.id,
                     elem.elemento_id,
                     elem.serie_id || null,
@@ -998,14 +1014,14 @@ class OrdenTrabajoModel {
             // Actualizar estado de orden de montaje a "en_preparacion"
             // ya que los elementos fueron asignados automáticamente
             await pool.query(
-                'UPDATE ordenes_trabajo SET estado = ? WHERE id = ?',
-                ['en_preparacion', ordenMontaje.id]
+                'UPDATE ordenes_trabajo SET estado = ? WHERE tenant_id = ? AND id = ?',
+                ['en_preparacion', tenantId, ordenMontaje.id]
             );
         }
 
         return {
-            montaje: await this.obtenerPorId(ordenMontaje.id),
-            desmontaje: await this.obtenerPorId(ordenDesmontaje.id)
+            montaje: await this.obtenerPorId(tenantId, ordenMontaje.id),
+            desmontaje: await this.obtenerPorId(tenantId, ordenDesmontaje.id)
         };
     }
 
@@ -1020,8 +1036,8 @@ class OrdenTrabajoModel {
      * @param {number} ordenId
      * @returns {Promise<Object>}
      */
-    static async generarInventarioCliente(ordenId) {
-        const orden = await this.obtenerOrdenCompleta(ordenId);
+    static async generarInventarioCliente(tenantId, ordenId) {
+        const orden = await this.obtenerOrdenCompleta(tenantId, ordenId);
         if (!orden) {
             throw new AppError('Orden de trabajo no encontrada', 404);
         }
@@ -1047,10 +1063,10 @@ class OrdenTrabajoModel {
                     cc.es_default,
                     e.nombre as elemento_nombre
                 FROM compuesto_componentes cc
-                INNER JOIN elementos e ON cc.elemento_id = e.id
-                WHERE cc.compuesto_id = ?
+                INNER JOIN elementos e ON cc.elemento_id = e.id AND e.tenant_id = ?
+                WHERE cc.tenant_id = ? AND cc.compuesto_id = ?
                 ORDER BY cc.orden ASC, e.nombre ASC
-            `, [producto.compuesto_id]);
+            `, [tenantId, tenantId, producto.compuesto_id]);
 
             // Vincular cada componente con los elementos físicos asignados
             const componentesConEstado = componentesResult.map(comp => {
@@ -1086,8 +1102,8 @@ class OrdenTrabajoModel {
         let fechaDesmontaje = orden.fecha_desmontaje || null;
         if (orden.alquiler_id) {
             const [desmontajeRows] = await pool.query(
-                `SELECT fecha_programada FROM ordenes_trabajo WHERE alquiler_id = ? AND tipo = 'desmontaje' AND estado != 'cancelado' LIMIT 1`,
-                [orden.alquiler_id]
+                `SELECT fecha_programada FROM ordenes_trabajo WHERE tenant_id = ? AND alquiler_id = ? AND tipo = 'desmontaje' AND estado != 'cancelado' LIMIT 1`,
+                [tenantId, orden.alquiler_id]
             );
             if (desmontajeRows.length > 0) {
                 fechaDesmontaje = desmontajeRows[0].fecha_programada;
@@ -1133,22 +1149,22 @@ class OrdenTrabajoModel {
      * @param {string} estadoNuevo
      * @param {number|null} cambiadoPor - ID del empleado
      */
-    static async registrarCambioEstado(ordenId, estadoAnterior, estadoNuevo, cambiadoPor = null) {
+    static async registrarCambioEstado(tenantId, ordenId, estadoAnterior, estadoNuevo, cambiadoPor = null) {
         try {
             await pool.query(`
                 INSERT INTO orden_trabajo_historial_estados
-                (orden_id, estado_anterior, estado_nuevo, cambiado_por)
-                VALUES (?, ?, ?, ?)
-            `, [ordenId, estadoAnterior || null, estadoNuevo, cambiadoPor]);
+                (tenant_id, orden_id, estado_anterior, estado_nuevo, cambiado_por)
+                VALUES (?, ?, ?, ?, ?)
+            `, [tenantId, ordenId, estadoAnterior || null, estadoNuevo, cambiadoPor]);
         } catch (error) {
             if (error.code === 'ER_NO_SUCH_TABLE') {
                 // Auto-crear tabla y reintentar
                 await this._crearTablaHistorialEstados();
                 await pool.query(`
                     INSERT INTO orden_trabajo_historial_estados
-                    (orden_id, estado_anterior, estado_nuevo, cambiado_por)
-                    VALUES (?, ?, ?, ?)
-                `, [ordenId, estadoAnterior || null, estadoNuevo, cambiadoPor]);
+                    (tenant_id, orden_id, estado_anterior, estado_nuevo, cambiado_por)
+                    VALUES (?, ?, ?, ?, ?)
+                `, [tenantId, ordenId, estadoAnterior || null, estadoNuevo, cambiadoPor]);
                 return;
             }
             throw error;
@@ -1162,13 +1178,15 @@ class OrdenTrabajoModel {
         await pool.query(`
             CREATE TABLE IF NOT EXISTS orden_trabajo_historial_estados (
                 id INT PRIMARY KEY AUTO_INCREMENT,
+                tenant_id INT NOT NULL DEFAULT 1,
                 orden_id INT NOT NULL,
                 estado_anterior VARCHAR(30),
                 estado_nuevo VARCHAR(30) NOT NULL,
                 cambiado_por INT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (orden_id) REFERENCES ordenes_trabajo(id) ON DELETE CASCADE,
-                FOREIGN KEY (cambiado_por) REFERENCES empleados(id) ON DELETE SET NULL
+                FOREIGN KEY (cambiado_por) REFERENCES empleados(id) ON DELETE SET NULL,
+                INDEX idx_historial_tenant (tenant_id)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         `);
         // Crear índices ignorando si ya existen
@@ -1182,7 +1200,7 @@ class OrdenTrabajoModel {
      * @param {number} ordenId
      * @returns {Promise<Array>}
      */
-    static async obtenerHistorialEstados(ordenId) {
+    static async obtenerHistorialEstados(tenantId, ordenId) {
         try {
             const [rows] = await pool.query(`
                 SELECT
@@ -1193,10 +1211,10 @@ class OrdenTrabajoModel {
                     e.nombre as cambiado_por_nombre,
                     e.apellido as cambiado_por_apellido
                 FROM orden_trabajo_historial_estados h
-                LEFT JOIN empleados e ON h.cambiado_por = e.id
-                WHERE h.orden_id = ?
+                LEFT JOIN empleados e ON h.cambiado_por = e.id AND e.tenant_id = ?
+                WHERE h.tenant_id = ? AND h.orden_id = ?
                 ORDER BY h.created_at ASC
-            `, [ordenId]);
+            `, [tenantId, tenantId, ordenId]);
 
             return rows;
         } catch (error) {
@@ -1215,8 +1233,8 @@ class OrdenTrabajoModel {
      * @param {number} ordenId
      * @returns {Promise<Object>}
      */
-    static async calcularDuraciones(ordenId) {
-        const historial = await this.obtenerHistorialEstados(ordenId);
+    static async calcularDuraciones(tenantId, ordenId) {
+        const historial = await this.obtenerHistorialEstados(tenantId, ordenId);
 
         if (historial.length === 0) {
             return { historial: [], duraciones: null };
@@ -1269,12 +1287,12 @@ class OrdenTrabajoModel {
      * @param {Date} hasta
      * @returns {Promise<Object>}
      */
-    static async obtenerEstadisticas(desde = null, hasta = null) {
-        let whereClause = '';
-        const params = [];
+    static async obtenerEstadisticas(tenantId, desde = null, hasta = null) {
+        let whereClause = 'WHERE tenant_id = ?';
+        const params = [tenantId];
 
         if (desde && hasta) {
-            whereClause = 'WHERE DATE(fecha_programada) BETWEEN ? AND ?';
+            whereClause += ' AND DATE(fecha_programada) BETWEEN ? AND ?';
             params.push(desde, hasta);
         }
 
@@ -1298,19 +1316,20 @@ class OrdenTrabajoModel {
                 COUNT(*) as total,
                 SUM(CASE WHEN estado NOT IN ('completado', 'cancelado') THEN 1 ELSE 0 END) as pendientes
             FROM ordenes_trabajo
-            WHERE DATE(fecha_programada) = CURDATE()
-        `);
+            WHERE tenant_id = ? AND DATE(fecha_programada) = CURDATE()
+        `, [tenantId]);
 
         // Próximas órdenes sin responsable asignado
         const [sinResponsable] = await pool.query(`
             SELECT COUNT(*) as total
             FROM ordenes_trabajo ot
-            WHERE ot.estado IN ('pendiente', 'confirmado')
+            WHERE ot.tenant_id = ?
+              AND ot.estado IN ('pendiente', 'confirmado')
               AND ot.fecha_programada >= CURDATE()
               AND NOT EXISTS (
-                  SELECT 1 FROM orden_trabajo_equipo WHERE orden_id = ot.id
+                  SELECT 1 FROM orden_trabajo_equipo WHERE tenant_id = ? AND orden_id = ot.id
               )
-        `);
+        `, [tenantId, tenantId]);
 
         return {
             ...stats[0],

@@ -19,6 +19,7 @@ const crearNovedad = async (req, res, next) => {
                 throw new AppError(err.message || 'Error al subir imagen', 400);
             }
 
+            const tenantId = req.tenant.id;
             const { id } = req.params;
             const { tipo_novedad, descripcion, producto_id, elemento_orden_id, cantidad_afectada } = req.body;
 
@@ -34,7 +35,7 @@ const crearNovedad = async (req, res, next) => {
                 ? `/uploads/operaciones/${req.file.filename}`
                 : null;
 
-            const novedad = await NovedadModel.crear({
+            const novedad = await NovedadModel.crear(tenantId, {
                 orden_id: parseInt(id),
                 tipo_novedad,
                 descripcion: descripcion.trim(),
@@ -64,8 +65,9 @@ const crearNovedad = async (req, res, next) => {
  */
 const obtenerNovedadesOrden = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { id } = req.params;
-        const novedades = await NovedadModel.obtenerPorOrden(parseInt(id));
+        const novedades = await NovedadModel.obtenerPorOrden(tenantId, parseInt(id));
 
         res.json({
             success: true,
@@ -82,6 +84,7 @@ const obtenerNovedadesOrden = async (req, res, next) => {
  */
 const resolverNovedad = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { id } = req.params;
         const { resolucion } = req.body;
 
@@ -89,7 +92,7 @@ const resolverNovedad = async (req, res, next) => {
             throw new AppError('La resolución es requerida', 400);
         }
 
-        const novedad = await NovedadModel.resolver(parseInt(id), {
+        const novedad = await NovedadModel.resolver(tenantId, parseInt(id), {
             resolucion: resolucion.trim(),
             resuelta_por: req.usuario.id
         });
@@ -116,7 +119,8 @@ const resolverNovedad = async (req, res, next) => {
  */
 const obtenerNovedadesPendientes = async (req, res, next) => {
     try {
-        const novedades = await NovedadModel.obtenerPendientes();
+        const tenantId = req.tenant.id;
+        const novedades = await NovedadModel.obtenerPendientes(tenantId);
 
         res.json({
             success: true,

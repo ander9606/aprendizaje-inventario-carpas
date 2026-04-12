@@ -20,7 +20,7 @@ const controller = require('../configuracionController');
 
 jest.mock('fs');
 
-const mockReq = (o = {}) => ({ body: {}, params: {}, query: {}, ...o });
+const mockReq = (o = {}) => ({ body: {}, params: {}, query: {}, tenant: { id: 1, slug: 'test', nombre: 'Test Tenant' }, ...o });
 const mockRes = () => { const r = {}; r.status = jest.fn().mockReturnValue(r); r.json = jest.fn().mockReturnValue(r); return r; };
 const mockNext = () => jest.fn();
 
@@ -172,7 +172,7 @@ describe('eliminarLogo', () => {
         const res = mockRes();
         await controller.eliminarLogo(mockReq(), res, mockNext());
         expect(fs.unlinkSync).toHaveBeenCalled();
-        expect(ConfiguracionModel.actualizarValor).toHaveBeenCalledWith('empresa_logo', '');
+        expect(ConfiguracionModel.actualizarValor).toHaveBeenCalledWith(1, 'empresa_logo', '');
         expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
     });
 

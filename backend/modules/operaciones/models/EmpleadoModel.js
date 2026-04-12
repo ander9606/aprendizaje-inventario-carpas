@@ -63,21 +63,21 @@ class EmpleadoModel {
                 r.nombre as rol_nombre,
                 rs.nombre as rol_solicitado_nombre
             FROM empleados e
-            LEFT JOIN roles r ON e.rol_id = r.id
-            LEFT JOIN roles rs ON e.rol_solicitado_id = rs.id
+            LEFT JOIN roles r ON e.rol_id = r.id AND r.tenant_id = ?
+            LEFT JOIN roles rs ON e.rol_solicitado_id = rs.id AND rs.tenant_id = ?
             ${whereClause}
             ORDER BY e.${ordenarCampo} ${ordenarDireccion}
             LIMIT ? OFFSET ?
-        `, [...params, limit, offset]);
+        `, [tenantId, tenantId, ...params, limit, offset]);
 
         // Contar total
         const [countResult] = await pool.query(`
             SELECT COUNT(*) as total
             FROM empleados e
-            LEFT JOIN roles r ON e.rol_id = r.id
-            LEFT JOIN roles rs ON e.rol_solicitado_id = rs.id
+            LEFT JOIN roles r ON e.rol_id = r.id AND r.tenant_id = ?
+            LEFT JOIN roles rs ON e.rol_solicitado_id = rs.id AND rs.tenant_id = ?
             ${whereClause}
-        `, params);
+        `, [tenantId, tenantId, ...params]);
 
         return {
             empleados: rows,
@@ -116,10 +116,10 @@ class EmpleadoModel {
                 r.permisos,
                 rs.nombre as rol_solicitado_nombre
             FROM empleados e
-            LEFT JOIN roles r ON e.rol_id = r.id
-            LEFT JOIN roles rs ON e.rol_solicitado_id = rs.id
+            LEFT JOIN roles r ON e.rol_id = r.id AND r.tenant_id = ?
+            LEFT JOIN roles rs ON e.rol_solicitado_id = rs.id AND rs.tenant_id = ?
             WHERE e.id = ? AND e.tenant_id = ?
-        `, [id, tenantId]);
+        `, [tenantId, tenantId, id, tenantId]);
 
         if (rows.length === 0) {
             return null;
@@ -153,7 +153,7 @@ class EmpleadoModel {
         }
 
         // Verificar que el rol existe
-        const [rol] = await pool.query('SELECT id FROM roles WHERE id = ?', [rol_id]);
+        const [rol] = await pool.query('SELECT id FROM roles WHERE id = ? AND tenant_id = ?', [rol_id, tenantId]);
         if (rol.length === 0) {
             throw new AppError('El rol especificado no existe', 400);
         }
@@ -196,7 +196,7 @@ class EmpleadoModel {
 
         // Verificar que el rol existe (si cambió)
         if (rol_id && rol_id !== empleadoExistente.rol_id) {
-            const [rol] = await pool.query('SELECT id FROM roles WHERE id = ?', [rol_id]);
+            const [rol] = await pool.query('SELECT id FROM roles WHERE id = ? AND tenant_id = ?', [rol_id, tenantId]);
             if (rol.length === 0) {
                 throw new AppError('El rol especificado no existe', 400);
             }
@@ -298,10 +298,10 @@ class EmpleadoModel {
                 e.estado,
                 r.nombre as rol_nombre
             FROM empleados e
-            INNER JOIN roles r ON e.rol_id = r.id
+            INNER JOIN roles r ON e.rol_id = r.id AND r.tenant_id = ?
             WHERE e.rol_id = ? AND e.estado = 'activo' AND e.tenant_id = ?
             ORDER BY e.nombre ASC
-        `, [rolId, tenantId]);
+        `, [tenantId, rolId, tenantId]);
 
         return rows;
     }
@@ -324,12 +324,12 @@ class EmpleadoModel {
                 e.telefono,
                 r.nombre as rol_nombre
             FROM empleados e
-            INNER JOIN roles r ON e.rol_id = r.id
+            INNER JOIN roles r ON e.rol_id = r.id AND r.tenant_id = ?
             WHERE e.estado = 'activo'
               AND r.nombre IN ('operaciones', 'bodega')
               AND e.tenant_id = ?
             ORDER BY e.nombre ASC
-        `, [tenantId]);
+        `, [tenantId, tenantId]);
 
         // TODO: Si se proporciona fecha, filtrar por disponibilidad
         // (no asignados a otras órdenes en esa fecha)
@@ -367,8 +367,9 @@ class EmpleadoModel {
         const [rows] = await pool.query(`
             SELECT id, nombre, descripcion, permisos
             FROM roles
+            WHERE tenant_id = ?
             ORDER BY id ASC
-        `);
+        `, [tenantId]);
 
         return rows.map(rol => ({
             ...rol,
@@ -399,9 +400,10 @@ class EmpleadoModel {
                 COUNT(e.id) as cantidad
             FROM roles r
             LEFT JOIN empleados e ON r.id = e.rol_id AND e.estado = 'activo' AND e.tenant_id = ?
+            WHERE r.tenant_id = ?
             GROUP BY r.id, r.nombre
             ORDER BY r.id
-        `, [tenantId]);
+        `, [tenantId, tenantId]);
 
         return {
             ...stats[0],
@@ -425,7 +427,7 @@ class EmpleadoModel {
         }
 
         // Verificar que el rol existe
-        const [rol] = await pool.query('SELECT id FROM roles WHERE id = ?', [rolId]);
+        const [rol] = await pool.query('SELECT id FROM roles WHERE id = ? AND tenant_id = ?', [rolId, tenantId]);
         if (rol.length === 0) {
             throw new AppError('El rol especificado no existe', 400);
         }

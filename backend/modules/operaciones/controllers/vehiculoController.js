@@ -9,6 +9,7 @@ const logger = require('../../../utils/logger');
  */
 const getAll = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const {
             page = 1,
             limit = 20,
@@ -20,7 +21,7 @@ const getAll = async (req, res, next) => {
             direccion
         } = req.query;
 
-        const resultado = await VehiculoModel.obtenerTodos({
+        const resultado = await VehiculoModel.obtenerTodos(tenantId, {
             page: parseInt(page),
             limit: parseInt(limit),
             buscar,
@@ -52,9 +53,10 @@ const getAll = async (req, res, next) => {
  */
 const getById = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { id } = req.params;
 
-        const vehiculo = await VehiculoModel.obtenerPorId(parseInt(id));
+        const vehiculo = await VehiculoModel.obtenerPorId(tenantId, parseInt(id));
 
         if (!vehiculo) {
             throw new AppError('Vehículo no encontrado', 404);
@@ -75,6 +77,7 @@ const getById = async (req, res, next) => {
  */
 const create = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const {
             placa,
             marca,
@@ -98,7 +101,7 @@ const create = async (req, res, next) => {
             throw new AppError(`Tipo inválido. Valores permitidos: ${tiposValidos.join(', ')}`, 400);
         }
 
-        const vehiculo = await VehiculoModel.crear({
+        const vehiculo = await VehiculoModel.crear(tenantId, {
             placa: placa.toUpperCase(),
             marca,
             modelo,
@@ -112,7 +115,7 @@ const create = async (req, res, next) => {
         });
 
         // Registrar en auditoría
-        await AuthModel.registrarAuditoria({
+        await AuthModel.registrarAuditoria(tenantId, {
             empleado_id: req.usuario.id,
             accion: 'CREAR_VEHICULO',
             tabla_afectada: 'vehiculos',
@@ -140,6 +143,7 @@ const create = async (req, res, next) => {
  */
 const update = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { id } = req.params;
         const datos = req.body;
 
@@ -164,15 +168,15 @@ const update = async (req, res, next) => {
             datos.placa = datos.placa.toUpperCase();
         }
 
-        const vehiculoAnterior = await VehiculoModel.obtenerPorId(parseInt(id));
+        const vehiculoAnterior = await VehiculoModel.obtenerPorId(tenantId, parseInt(id));
         if (!vehiculoAnterior) {
             throw new AppError('Vehículo no encontrado', 404);
         }
 
-        const vehiculo = await VehiculoModel.actualizar(parseInt(id), datos);
+        const vehiculo = await VehiculoModel.actualizar(tenantId, parseInt(id), datos);
 
         // Registrar en auditoría
-        await AuthModel.registrarAuditoria({
+        await AuthModel.registrarAuditoria(tenantId, {
             empleado_id: req.usuario.id,
             accion: 'ACTUALIZAR_VEHICULO',
             tabla_afectada: 'vehiculos',
@@ -204,17 +208,18 @@ const update = async (req, res, next) => {
  */
 const remove = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { id } = req.params;
 
-        const vehiculo = await VehiculoModel.obtenerPorId(parseInt(id));
+        const vehiculo = await VehiculoModel.obtenerPorId(tenantId, parseInt(id));
         if (!vehiculo) {
             throw new AppError('Vehículo no encontrado', 404);
         }
 
-        await VehiculoModel.eliminar(parseInt(id));
+        await VehiculoModel.eliminar(tenantId, parseInt(id));
 
         // Registrar en auditoría
-        await AuthModel.registrarAuditoria({
+        await AuthModel.registrarAuditoria(tenantId, {
             empleado_id: req.usuario.id,
             accion: 'DESACTIVAR_VEHICULO',
             tabla_afectada: 'vehiculos',
@@ -240,9 +245,11 @@ const remove = async (req, res, next) => {
  */
 const getDisponibles = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { fecha } = req.query;
 
         const vehiculos = await VehiculoModel.obtenerDisponibles(
+            tenantId,
             fecha ? new Date(fecha) : null
         );
 
@@ -261,6 +268,7 @@ const getDisponibles = async (req, res, next) => {
  */
 const registrarUso = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { id } = req.params;
         const {
             conductor_id,
@@ -272,7 +280,7 @@ const registrarUso = async (req, res, next) => {
             notas
         } = req.body;
 
-        const uso = await VehiculoModel.registrarUso(parseInt(id), {
+        const uso = await VehiculoModel.registrarUso(tenantId, parseInt(id), {
             conductor_id: conductor_id || req.usuario.id,
             fecha_uso,
             kilometraje_inicio,
@@ -300,6 +308,7 @@ const registrarUso = async (req, res, next) => {
  */
 const registrarMantenimiento = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { id } = req.params;
         const {
             tipo,
@@ -320,7 +329,7 @@ const registrarMantenimiento = async (req, res, next) => {
             throw new AppError(`Tipo inválido. Valores permitidos: ${tiposMantenimiento.join(', ')}`, 400);
         }
 
-        const mantenimiento = await VehiculoModel.registrarMantenimiento(parseInt(id), {
+        const mantenimiento = await VehiculoModel.registrarMantenimiento(tenantId, parseInt(id), {
             tipo,
             fecha_programada,
             fecha_realizada,
@@ -331,7 +340,7 @@ const registrarMantenimiento = async (req, res, next) => {
         });
 
         // Registrar en auditoría
-        await AuthModel.registrarAuditoria({
+        await AuthModel.registrarAuditoria(tenantId, {
             empleado_id: req.usuario.id,
             accion: 'PROGRAMAR_MANTENIMIENTO',
             tabla_afectada: 'vehiculo_mantenimientos',
@@ -359,13 +368,14 @@ const registrarMantenimiento = async (req, res, next) => {
  */
 const actualizarMantenimiento = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { id } = req.params;
         const datos = req.body;
 
-        const mantenimiento = await VehiculoModel.actualizarMantenimiento(parseInt(id), datos);
+        const mantenimiento = await VehiculoModel.actualizarMantenimiento(tenantId, parseInt(id), datos);
 
         // Registrar en auditoría
-        await AuthModel.registrarAuditoria({
+        await AuthModel.registrarAuditoria(tenantId, {
             empleado_id: req.usuario.id,
             accion: 'ACTUALIZAR_MANTENIMIENTO',
             tabla_afectada: 'vehiculo_mantenimientos',
@@ -393,7 +403,8 @@ const actualizarMantenimiento = async (req, res, next) => {
  */
 const getEstadisticas = async (req, res, next) => {
     try {
-        const estadisticas = await VehiculoModel.obtenerEstadisticas();
+        const tenantId = req.tenant.id;
+        const estadisticas = await VehiculoModel.obtenerEstadisticas(tenantId);
 
         res.json({
             success: true,

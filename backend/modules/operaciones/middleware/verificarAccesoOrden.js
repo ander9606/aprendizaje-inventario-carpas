@@ -17,10 +17,12 @@ const verificarAccesoOrden = async (req, res, next) => {
         const ordenId = parseInt(req.params.id);
         if (!ordenId) return next();
 
+        const tenantId = req.tenant.id;
+
         // Verificar si el empleado está asignado a esta orden
         const [rows] = await pool.query(
-            'SELECT 1 FROM orden_trabajo_equipo WHERE orden_id = ? AND empleado_id = ? AND estado_asignacion = ?',
-            [ordenId, req.usuario.id, 'aceptada']
+            'SELECT 1 FROM orden_trabajo_equipo WHERE tenant_id = ? AND orden_id = ? AND empleado_id = ? AND estado_asignacion = ?',
+            [tenantId, ordenId, req.usuario.id, 'aceptada']
         );
 
         if (rows.length === 0) {

@@ -24,6 +24,7 @@ const fs = require('fs');
  */
 const getOrdenes = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const esAdminOGerente = ['admin', 'gerente'].includes(req.usuario.rol_nombre);
 
         const filtros = {
@@ -48,7 +49,7 @@ const getOrdenes = async (req, res, next) => {
             filtros.empleado_id = req.usuario.id;
         }
 
-        const resultado = await OrdenTrabajoModel.obtenerTodas(filtros);
+        const resultado = await OrdenTrabajoModel.obtenerTodas(tenantId, filtros);
 
         res.json({
             success: true,
@@ -71,7 +72,8 @@ const getOrdenes = async (req, res, next) => {
  */
 const getOrdenById = async (req, res, next) => {
     try {
-        const orden = await OrdenTrabajoModel.obtenerPorId(parseInt(req.params.id));
+        const tenantId = req.tenant.id;
+        const orden = await OrdenTrabajoModel.obtenerPorId(tenantId, parseInt(req.params.id));
 
         if (!orden) {
             throw new AppError('Orden de trabajo no encontrada', 404);
@@ -93,7 +95,8 @@ const getOrdenById = async (req, res, next) => {
  */
 const getOrdenCompleta = async (req, res, next) => {
     try {
-        const orden = await OrdenTrabajoModel.obtenerOrdenCompleta(parseInt(req.params.id));
+        const tenantId = req.tenant.id;
+        const orden = await OrdenTrabajoModel.obtenerOrdenCompleta(tenantId, parseInt(req.params.id));
 
         if (!orden) {
             throw new AppError('Orden de trabajo no encontrada', 404);
@@ -114,7 +117,8 @@ const getOrdenCompleta = async (req, res, next) => {
  */
 const getOrdenesPorAlquiler = async (req, res, next) => {
     try {
-        const ordenes = await OrdenTrabajoModel.obtenerPorAlquiler(parseInt(req.params.id));
+        const tenantId = req.tenant.id;
+        const ordenes = await OrdenTrabajoModel.obtenerPorAlquiler(tenantId, parseInt(req.params.id));
 
         res.json({
             success: true,
@@ -131,12 +135,13 @@ const getOrdenesPorAlquiler = async (req, res, next) => {
  */
 const updateOrden = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { id } = req.params;
         const datos = req.body;
 
-        const orden = await OrdenTrabajoModel.actualizar(parseInt(id), datos);
+        const orden = await OrdenTrabajoModel.actualizar(tenantId, parseInt(id), datos);
 
-        await AuthModel.registrarAuditoria({
+        await AuthModel.registrarAuditoria(tenantId, {
             empleado_id: req.usuario.id,
             accion: 'ACTUALIZAR_ORDEN',
             tabla_afectada: 'ordenes_trabajo',
@@ -164,6 +169,7 @@ const updateOrden = async (req, res, next) => {
  */
 const cambiarFechaOrden = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { id } = req.params;
         const { fecha, motivo, forzar = false } = req.body;
 
@@ -176,13 +182,13 @@ const cambiarFechaOrden = async (req, res, next) => {
         }
 
         // Validar el cambio de fecha
-        const validacion = await ValidadorFechasService.validarCambioFecha(parseInt(id), fecha);
+        const validacion = await ValidadorFechasService.validarCambioFecha(tenantId, parseInt(id), fecha);
 
         // Si hay conflictos críticos y no se está forzando
         if (validacion.severidad === 'critico' && !forzar) {
             // Crear alerta para aprobación
             if (validacion.conflictos.length > 0) {
-                await AlertaModel.crearAlertaDisponibilidad(parseInt(id), validacion.conflictos);
+                await AlertaModel.crearAlertaDisponibilidad(tenantId, parseInt(id), validacion.conflictos);
             }
 
             return res.status(409).json({
@@ -197,13 +203,14 @@ const cambiarFechaOrden = async (req, res, next) => {
 
         // Proceder con el cambio
         const orden = await OrdenTrabajoModel.cambiarFecha(
+            tenantId,
             parseInt(id),
             fecha,
             motivo,
             forzar ? req.usuario.id : null
         );
 
-        await AuthModel.registrarAuditoria({
+        await AuthModel.registrarAuditoria(tenantId, {
             empleado_id: req.usuario.id,
             accion: 'CAMBIAR_FECHA_ORDEN',
             tabla_afectada: 'ordenes_trabajo',
@@ -235,6 +242,7 @@ const cambiarFechaOrden = async (req, res, next) => {
  */
 const cambiarEstadoOrden = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { id } = req.params;
         const { estado } = req.body;
 
@@ -242,7 +250,7 @@ const cambiarEstadoOrden = async (req, res, next) => {
             throw new AppError('El estado es requerido', 400);
         }
 
-        const ordenAnterior = await OrdenTrabajoModel.obtenerPorId(parseInt(id));
+        const ordenAnterior = await OrdenTrabajoModel.obtenerPorId(tenantId, parseInt(id));
         if (!ordenAnterior) {
             throw new AppError('Orden no encontrada', 404);
         }
@@ -262,7 +270,7 @@ const cambiarEstadoOrden = async (req, res, next) => {
 
         // Validar: para pasar de en_proceso a en_retorno, el checklist de recogida debe estar completo
         if (ordenAnterior.tipo === 'desmontaje' && estado === 'en_retorno') {
-            const checklistData = await OrdenElementoModel.obtenerChecklistOrden(parseInt(id));
+            const checklistData = await OrdenElementoModel.obtenerChecklistOrden(tenantId, parseInt(id));
             if (checklistData.totalElementos > 0 && checklistData.verificadosRecogida < checklistData.totalElementos) {
                 throw new AppError(
                     `Debes completar el Checklist de Recogida antes de iniciar el retorno (${checklistData.verificadosRecogida}/${checklistData.totalElementos} verificados)`,
@@ -273,7 +281,7 @@ const cambiarEstadoOrden = async (req, res, next) => {
 
         // Validar: para pasar de descargue a completado, el checklist en bodega debe estar completo
         if (ordenAnterior.tipo === 'desmontaje' && estado === 'completado') {
-            const checklistData = await OrdenElementoModel.obtenerChecklistOrden(parseInt(id));
+            const checklistData = await OrdenElementoModel.obtenerChecklistOrden(tenantId, parseInt(id));
             if (checklistData.totalElementos > 0 && checklistData.verificadosBodega < checklistData.totalElementos) {
                 throw new AppError(
                     `Debes completar el Checklist en Bodega antes de finalizar (${checklistData.verificadosBodega}/${checklistData.totalElementos} verificados)`,
@@ -300,11 +308,11 @@ const cambiarEstadoOrden = async (req, res, next) => {
             }
         }
 
-        const orden = await OrdenTrabajoModel.cambiarEstado(parseInt(id), estado);
+        const orden = await OrdenTrabajoModel.cambiarEstado(tenantId, parseInt(id), estado);
 
         // Registrar en historial de estados para conteo de tiempos
         await OrdenTrabajoModel.registrarCambioEstado(
-            parseInt(id), estadoAnterior, estado, req.usuario.id
+            tenantId, parseInt(id), estadoAnterior, estado, req.usuario.id
         );
 
         // ========================================
@@ -314,6 +322,7 @@ const cambiarEstadoOrden = async (req, res, next) => {
         let sincronizacion = null;
         if (ordenAnterior.alquiler_id) {
             sincronizacion = await SincronizacionAlquilerService.sincronizarEstadoAlquiler(
+                tenantId,
                 parseInt(id),
                 estado,
                 estadoAnterior
@@ -324,7 +333,7 @@ const cambiarEstadoOrden = async (req, res, next) => {
             }
         }
 
-        await AuthModel.registrarAuditoria({
+        await AuthModel.registrarAuditoria(tenantId, {
             empleado_id: req.usuario.id,
             accion: 'CAMBIAR_ESTADO_ORDEN',
             tabla_afectada: 'ordenes_trabajo',
@@ -354,6 +363,7 @@ const cambiarEstadoOrden = async (req, res, next) => {
  */
 const asignarEquipo = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { id } = req.params;
         const { empleados } = req.body;
 
@@ -364,10 +374,10 @@ const asignarEquipo = async (req, res, next) => {
         const ordenId = parseInt(id);
 
         // Obtener equipo actual para detectar nuevos asignados
-        const ordenAntes = await OrdenTrabajoModel.obtenerPorId(ordenId);
+        const ordenAntes = await OrdenTrabajoModel.obtenerPorId(tenantId, ordenId);
         const idsActuales = new Set((ordenAntes?.equipo || []).map(e => e.empleado_id || e.id));
 
-        const equipo = await OrdenTrabajoModel.asignarEquipo(ordenId, empleados);
+        const equipo = await OrdenTrabajoModel.asignarEquipo(tenantId, ordenId, empleados);
 
         // Crear alertas para los nuevos asignados
         const nuevosEmpleados = empleados.filter(e => !idsActuales.has(e.empleado_id));
@@ -383,7 +393,7 @@ const asignarEquipo = async (req, res, next) => {
             const info = cotInfo[0] || {};
 
             for (const emp of nuevosEmpleados) {
-                await AlertaModel.crearAlertaAsignacion(ordenId, emp.empleado_id, {
+                await AlertaModel.crearAlertaAsignacion(tenantId, ordenId, emp.empleado_id, {
                     ordenTipo: info.orden_tipo || 'operación',
                     eventoNombre: info.evento_nombre,
                     fechaProgramada: info.fecha_programada ? new Date(info.fecha_programada).toLocaleDateString('es-CO') : 'sin fecha',
@@ -392,7 +402,7 @@ const asignarEquipo = async (req, res, next) => {
             }
         }
 
-        await AuthModel.registrarAuditoria({
+        await AuthModel.registrarAuditoria(tenantId, {
             empleado_id: req.usuario.id,
             accion: 'ASIGNAR_EQUIPO_ORDEN',
             tabla_afectada: 'orden_trabajo_equipo',
@@ -420,10 +430,11 @@ const asignarEquipo = async (req, res, next) => {
  */
 const autoAsignarse = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const ordenId = parseInt(req.params.id);
         const empleadoId = req.usuario.id;
 
-        const equipo = await OrdenTrabajoModel.agregarResponsable(ordenId, empleadoId, 'responsable');
+        const equipo = await OrdenTrabajoModel.agregarResponsable(tenantId, ordenId, empleadoId, 'responsable');
 
         // Auto-asignación se acepta automáticamente
         await pool.query(`
@@ -432,7 +443,7 @@ const autoAsignarse = async (req, res, next) => {
             WHERE orden_id = ? AND empleado_id = ?
         `, [ordenId, empleadoId]);
 
-        await AuthModel.registrarAuditoria({
+        await AuthModel.registrarAuditoria(tenantId, {
             empleado_id: empleadoId,
             accion: 'AUTO_ASIGNAR_ORDEN',
             tabla_afectada: 'orden_trabajo_equipo',
@@ -462,6 +473,7 @@ const autoAsignarse = async (req, res, next) => {
  */
 const responderAsignacion = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const ordenId = parseInt(req.params.id);
         const empleadoId = req.usuario.id;
         const { respuesta, motivo } = req.body;
@@ -471,29 +483,29 @@ const responderAsignacion = async (req, res, next) => {
         }
 
         const orden = await OrdenTrabajoModel.responderAsignacion(
-            ordenId, empleadoId, respuesta, motivo
+            tenantId, ordenId, empleadoId, respuesta, motivo
         );
 
         // Si rechazó, crear alerta para admin/gerente y resolver la alerta de asignación
         if (respuesta === 'rechazada') {
             const empleadoNombre = `${req.usuario.nombre || ''} ${req.usuario.apellido || ''}`.trim() || req.usuario.email;
-            await AlertaModel.crearAlertaRechazoAsignacion(ordenId, empleadoNombre, motivo);
+            await AlertaModel.crearAlertaRechazoAsignacion(tenantId, ordenId, empleadoNombre, motivo);
         }
 
         // Resolver la alerta de asignación original
-        const alertasEmpleado = await AlertaModel.obtenerPorDestinatario(empleadoId);
+        const alertasEmpleado = await AlertaModel.obtenerPorDestinatario(tenantId, empleadoId);
         const alertaAsignacion = alertasEmpleado.find(
             a => a.orden_id === ordenId && a.tipo === 'asignacion'
         );
         if (alertaAsignacion) {
-            await AlertaModel.resolver(alertaAsignacion.id, {
+            await AlertaModel.resolver(tenantId, alertaAsignacion.id, {
                 resuelta_por: empleadoId,
                 notas_resolucion: respuesta === 'aceptada' ? 'Asignación aceptada' : `Rechazada: ${motivo}`,
                 estado: 'resuelta'
             });
         }
 
-        await AuthModel.registrarAuditoria({
+        await AuthModel.registrarAuditoria(tenantId, {
             empleado_id: empleadoId,
             accion: respuesta === 'aceptada' ? 'ACEPTAR_ASIGNACION' : 'RECHAZAR_ASIGNACION',
             tabla_afectada: 'orden_trabajo_equipo',
@@ -525,7 +537,8 @@ const responderAsignacion = async (req, res, next) => {
  */
 const getMisAlertas = async (req, res, next) => {
     try {
-        const alertas = await AlertaModel.obtenerPorDestinatario(req.usuario.id);
+        const tenantId = req.tenant.id;
+        const alertas = await AlertaModel.obtenerPorDestinatario(tenantId, req.usuario.id);
 
         res.json({
             success: true,
@@ -543,6 +556,7 @@ const getMisAlertas = async (req, res, next) => {
  */
 const asignarVehiculo = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { id } = req.params;
         const { vehiculo_id } = req.body;
 
@@ -550,9 +564,9 @@ const asignarVehiculo = async (req, res, next) => {
             throw new AppError('Debe proporcionar el ID del vehículo', 400);
         }
 
-        const orden = await OrdenTrabajoModel.asignarVehiculo(parseInt(id), vehiculo_id);
+        const orden = await OrdenTrabajoModel.asignarVehiculo(tenantId, parseInt(id), vehiculo_id);
 
-        await AuthModel.registrarAuditoria({
+        await AuthModel.registrarAuditoria(tenantId, {
             empleado_id: req.usuario.id,
             accion: 'ASIGNAR_VEHICULO_ORDEN',
             tabla_afectada: 'ordenes_trabajo',
@@ -580,6 +594,7 @@ const asignarVehiculo = async (req, res, next) => {
  */
 const getCalendario = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { desde, hasta } = req.query;
 
         if (!desde || !hasta) {
@@ -594,7 +609,7 @@ const getCalendario = async (req, res, next) => {
             opciones.sinResponsable = true;
         }
 
-        const ordenes = await OrdenTrabajoModel.obtenerCalendario(desde, hasta, opciones);
+        const ordenes = await OrdenTrabajoModel.obtenerCalendario(tenantId, desde, hasta, opciones);
 
         res.json({
             success: true,
@@ -611,9 +626,10 @@ const getCalendario = async (req, res, next) => {
  */
 const getEstadisticas = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { desde, hasta } = req.query;
 
-        const estadisticas = await OrdenTrabajoModel.obtenerEstadisticas(desde, hasta);
+        const estadisticas = await OrdenTrabajoModel.obtenerEstadisticas(tenantId, desde, hasta);
 
         res.json({
             success: true,
@@ -634,7 +650,8 @@ const getEstadisticas = async (req, res, next) => {
  */
 const getElementosOrden = async (req, res, next) => {
     try {
-        const elementos = await OrdenElementoModel.obtenerPorOrden(parseInt(req.params.id));
+        const tenantId = req.tenant.id;
+        const elementos = await OrdenElementoModel.obtenerPorOrden(tenantId, parseInt(req.params.id));
 
         res.json({
             success: true,
@@ -651,6 +668,7 @@ const getElementosOrden = async (req, res, next) => {
  */
 const cambiarEstadoElemento = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { elemId } = req.params;
         const { estado } = req.body;
 
@@ -658,7 +676,7 @@ const cambiarEstadoElemento = async (req, res, next) => {
             throw new AppError('El estado es requerido', 400);
         }
 
-        const elemento = await OrdenElementoModel.cambiarEstado(parseInt(elemId), estado);
+        const elemento = await OrdenElementoModel.cambiarEstado(tenantId, parseInt(elemId), estado);
 
         logger.info('operaciones', `Estado de elemento ${elemId} cambiado a ${estado} por ${req.usuario.email}`);
 
@@ -679,6 +697,7 @@ const cambiarEstadoElemento = async (req, res, next) => {
  */
 const cambiarEstadoElementosMasivo = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { id } = req.params;
         const { elemento_ids, estado } = req.body;
 
@@ -691,6 +710,7 @@ const cambiarEstadoElementosMasivo = async (req, res, next) => {
         }
 
         const resultado = await OrdenElementoModel.cambiarEstadoMasivo(
+            tenantId,
             parseInt(id),
             elemento_ids.map(eId => parseInt(eId)),
             estado
@@ -714,6 +734,7 @@ const cambiarEstadoElementosMasivo = async (req, res, next) => {
  */
 const reportarIncidencia = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { elemId } = req.params;
         const { tipo, descripcion, severidad } = req.body;
 
@@ -721,7 +742,7 @@ const reportarIncidencia = async (req, res, next) => {
             throw new AppError('Tipo y descripción son requeridos', 400);
         }
 
-        const incidencia = await OrdenElementoModel.registrarIncidencia(parseInt(elemId), {
+        const incidencia = await OrdenElementoModel.registrarIncidencia(tenantId, parseInt(elemId), {
             tipo,
             descripcion,
             severidad,
@@ -730,8 +751,8 @@ const reportarIncidencia = async (req, res, next) => {
 
         // Crear alerta si es severidad alta o crítica
         if (severidad === 'alta' || severidad === 'critica') {
-            const elemento = await OrdenElementoModel.obtenerPorId(parseInt(elemId));
-            await AlertaModel.crear({
+            const elemento = await OrdenElementoModel.obtenerPorId(tenantId, parseInt(elemId));
+            await AlertaModel.crear(tenantId, {
                 orden_id: elemento.orden_id,
                 tipo: 'incidencia',
                 severidad: severidad === 'critica' ? 'critica' : 'alta',
@@ -759,6 +780,7 @@ const reportarIncidencia = async (req, res, next) => {
  */
 const subirFotoElemento = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { elemId } = req.params;
         const { url_foto, tipo, descripcion } = req.body;
 
@@ -766,7 +788,7 @@ const subirFotoElemento = async (req, res, next) => {
             throw new AppError('La URL de la foto es requerida', 400);
         }
 
-        const foto = await OrdenElementoModel.subirFoto(parseInt(elemId), {
+        const foto = await OrdenElementoModel.subirFoto(tenantId, parseInt(elemId), {
             url_foto,
             tipo,
             descripcion,
@@ -793,6 +815,7 @@ const subirFotoElemento = async (req, res, next) => {
  */
 const getAlertas = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const filtros = {
             page: parseInt(req.query.page) || 1,
             limit: parseInt(req.query.limit) || 20,
@@ -804,7 +827,7 @@ const getAlertas = async (req, res, next) => {
             direccion: req.query.direccion
         };
 
-        const resultado = await AlertaModel.obtenerTodas(filtros);
+        const resultado = await AlertaModel.obtenerTodas(tenantId, filtros);
 
         res.json({
             success: true,
@@ -827,7 +850,8 @@ const getAlertas = async (req, res, next) => {
  */
 const getAlertasPendientes = async (req, res, next) => {
     try {
-        const alertas = await AlertaModel.obtenerPendientes();
+        const tenantId = req.tenant.id;
+        const alertas = await AlertaModel.obtenerPendientes(tenantId);
 
         res.json({
             success: true,
@@ -844,7 +868,8 @@ const getAlertasPendientes = async (req, res, next) => {
  */
 const getResumenAlertas = async (req, res, next) => {
     try {
-        const resumen = await AlertaModel.obtenerResumen();
+        const tenantId = req.tenant.id;
+        const resumen = await AlertaModel.obtenerResumen(tenantId);
 
         res.json({
             success: true,
@@ -861,16 +886,17 @@ const getResumenAlertas = async (req, res, next) => {
  */
 const resolverAlerta = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { id } = req.params;
         const { notas_resolucion, estado = 'resuelta' } = req.body;
 
-        const alerta = await AlertaModel.resolver(parseInt(id), {
+        const alerta = await AlertaModel.resolver(tenantId, parseInt(id), {
             resuelta_por: req.usuario.id,
             notas_resolucion,
             estado
         });
 
-        await AuthModel.registrarAuditoria({
+        await AuthModel.registrarAuditoria(tenantId, {
             empleado_id: req.usuario.id,
             accion: 'RESOLVER_ALERTA',
             tabla_afectada: 'alertas_operaciones',
@@ -898,13 +924,14 @@ const resolverAlerta = async (req, res, next) => {
  */
 const crearAlerta = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { orden_id, tipo, severidad, titulo, mensaje } = req.body;
 
         if (!tipo || !titulo || !mensaje) {
             throw new AppError('Se requiere tipo, titulo y mensaje', 400);
         }
 
-        const alerta = await AlertaModel.crear({
+        const alerta = await AlertaModel.crear(tenantId, {
             orden_id: orden_id || null,
             tipo,
             severidad: severidad || 'alta',
@@ -934,13 +961,14 @@ const crearAlerta = async (req, res, next) => {
  */
 const validarCambioFecha = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { orden_id, fecha } = req.body;
 
         if (!orden_id || !fecha) {
             throw new AppError('orden_id y fecha son requeridos', 400);
         }
 
-        const validacion = await ValidadorFechasService.validarCambioFecha(orden_id, fecha);
+        const validacion = await ValidadorFechasService.validarCambioFecha(tenantId, orden_id, fecha);
 
         res.json({
             success: true,
@@ -957,6 +985,7 @@ const validarCambioFecha = async (req, res, next) => {
  */
 const crearOrdenManual = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const {
             tipo,
             fecha_programada,
@@ -983,7 +1012,7 @@ const crearOrdenManual = async (req, res, next) => {
         }
 
         // Crear la orden
-        const orden = await OrdenTrabajoModel.crear({
+        const orden = await OrdenTrabajoModel.crear(tenantId, {
             alquiler_id: null, // Orden manual sin alquiler
             tipo,
             fecha_programada,
@@ -999,9 +1028,10 @@ const crearOrdenManual = async (req, res, next) => {
             for (const elem of elementos) {
                 await pool.query(`
                     INSERT INTO orden_trabajo_elementos
-                    (orden_id, elemento_id, serie_id, lote_id, cantidad, estado)
-                    VALUES (?, ?, ?, ?, ?, 'pendiente')
+                    (tenant_id, orden_id, elemento_id, serie_id, lote_id, cantidad, estado)
+                    VALUES (?, ?, ?, ?, ?, ?, 'pendiente')
                 `, [
+                    tenantId,
                     orden.id,
                     elem.elemento_id,
                     elem.serie_id || null,
@@ -1011,7 +1041,7 @@ const crearOrdenManual = async (req, res, next) => {
             }
         }
 
-        await AuthModel.registrarAuditoria({
+        await AuthModel.registrarAuditoria(tenantId, {
             empleado_id: req.usuario.id,
             accion: 'CREAR_ORDEN_MANUAL',
             tabla_afectada: 'ordenes_trabajo',
@@ -1024,7 +1054,7 @@ const crearOrdenManual = async (req, res, next) => {
         logger.info('operaciones', `Orden manual ${orden.id} creada por ${req.usuario.email}`);
 
         // Obtener la orden completa con elementos
-        const ordenCompleta = await OrdenTrabajoModel.obtenerPorId(orden.id);
+        const ordenCompleta = await OrdenTrabajoModel.obtenerPorId(tenantId, orden.id);
 
         res.status(201).json({
             success: true,
@@ -1046,8 +1076,9 @@ const crearOrdenManual = async (req, res, next) => {
  */
 const getElementosDisponibles = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { id } = req.params;
-        const resultado = await SincronizacionAlquilerService.obtenerElementosDisponibles(parseInt(id));
+        const resultado = await SincronizacionAlquilerService.obtenerElementosDisponibles(tenantId, parseInt(id));
 
         res.json({
             success: true,
@@ -1064,6 +1095,7 @@ const getElementosDisponibles = async (req, res, next) => {
  */
 const prepararElementos = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { id } = req.params;
         const { elementos } = req.body;
 
@@ -1072,6 +1104,7 @@ const prepararElementos = async (req, res, next) => {
         }
 
         const resultado = await SincronizacionAlquilerService.asignarElementosAOrden(
+            tenantId,
             parseInt(id),
             elementos
         );
@@ -1094,21 +1127,23 @@ const prepararElementos = async (req, res, next) => {
  */
 const ejecutarSalida = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { id } = req.params;
         const datos = req.body;
 
         // Obtener estado anterior para historial
-        const ordenAntes = await OrdenTrabajoModel.obtenerPorId(parseInt(id));
+        const ordenAntes = await OrdenTrabajoModel.obtenerPorId(tenantId, parseInt(id));
         const estadoAnterior = ordenAntes?.estado;
 
         const resultado = await SincronizacionAlquilerService.ejecutarSalida(
+            tenantId,
             parseInt(id),
             datos
         );
 
         // Registrar transición de estado (salida → en_ruta)
         await OrdenTrabajoModel.registrarCambioEstado(
-            parseInt(id), estadoAnterior, 'en_ruta', req.usuario.id
+            tenantId, parseInt(id), estadoAnterior, 'en_ruta', req.usuario.id
         );
 
         logger.info('operaciones', `Salida ejecutada - Orden ${id} por ${req.usuario.email}`);
@@ -1129,6 +1164,7 @@ const ejecutarSalida = async (req, res, next) => {
  */
 const ejecutarRetorno = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { id } = req.params;
         const { retornos } = req.body;
 
@@ -1137,12 +1173,12 @@ const ejecutarRetorno = async (req, res, next) => {
         }
 
         // Obtener estado anterior para historial
-        const ordenAntes = await OrdenTrabajoModel.obtenerPorId(parseInt(id));
+        const ordenAntes = await OrdenTrabajoModel.obtenerPorId(tenantId, parseInt(id));
         const estadoAnterior = ordenAntes?.estado;
 
         // Validar que el checklist en bodega esté completo antes de ejecutar retorno
         if (ordenAntes?.tipo === 'desmontaje') {
-            const checklistData = await OrdenElementoModel.obtenerChecklistOrden(parseInt(id));
+            const checklistData = await OrdenElementoModel.obtenerChecklistOrden(tenantId, parseInt(id));
             if (checklistData.totalElementos > 0 && checklistData.verificadosBodega < checklistData.totalElementos) {
                 throw new AppError(
                     `Debes completar el Checklist en Bodega antes de ejecutar el retorno (${checklistData.verificadosBodega}/${checklistData.totalElementos} verificados)`,
@@ -1152,20 +1188,21 @@ const ejecutarRetorno = async (req, res, next) => {
         }
 
         const resultado = await SincronizacionAlquilerService.ejecutarRetorno(
+            tenantId,
             parseInt(id),
             retornos
         );
 
         // Registrar transición de estado (retorno → completado)
         await OrdenTrabajoModel.registrarCambioEstado(
-            parseInt(id), estadoAnterior, 'completado', req.usuario.id
+            tenantId, parseInt(id), estadoAnterior, 'completado', req.usuario.id
         );
 
         logger.info('operaciones', `Retorno ejecutado - Orden ${id} por ${req.usuario.email}`);
 
         // Verificar si el retorno de inventario resuelve alertas de disponibilidad pendientes
         // Se ejecuta en background para no retrasar la respuesta al operador
-        SincronizacionAlquilerService.verificarAlertasDisponibilidad()
+        SincronizacionAlquilerService.verificarAlertasDisponibilidad(tenantId)
             .then(verificacion => {
                 if (verificacion.resueltas > 0) {
                     logger.info('operaciones', `Post-retorno: ${verificacion.resueltas} alerta(s) de disponibilidad resueltas`);
@@ -1191,8 +1228,9 @@ const ejecutarRetorno = async (req, res, next) => {
  */
 const getEstadoSincronizacion = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { id } = req.params;
-        const estado = await SincronizacionAlquilerService.obtenerEstadoSincronizacion(parseInt(id));
+        const estado = await SincronizacionAlquilerService.obtenerEstadoSincronizacion(tenantId, parseInt(id));
 
         if (!estado) {
             throw new AppError('Alquiler no encontrado', 404);
@@ -1213,8 +1251,9 @@ const getEstadoSincronizacion = async (req, res, next) => {
  */
 const verificarConsistencia = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { id } = req.params;
-        const reporte = await SincronizacionAlquilerService.verificarConsistencia(parseInt(id));
+        const reporte = await SincronizacionAlquilerService.verificarConsistencia(tenantId, parseInt(id));
 
         res.json({
             success: true,
@@ -1231,8 +1270,9 @@ const verificarConsistencia = async (req, res, next) => {
  */
 const getAlertasPorOrden = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { id } = req.params;
-        const alertas = await AlertaModel.obtenerPorOrden(parseInt(id));
+        const alertas = await AlertaModel.obtenerPorOrden(tenantId, parseInt(id));
 
         res.json({
             success: true,
@@ -1253,8 +1293,9 @@ const getAlertasPorOrden = async (req, res, next) => {
  */
 const getInventarioCliente = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { id } = req.params;
-        const inventario = await OrdenTrabajoModel.generarInventarioCliente(parseInt(id));
+        const inventario = await OrdenTrabajoModel.generarInventarioCliente(tenantId, parseInt(id));
 
         res.json({
             success: true,
@@ -1275,8 +1316,9 @@ const getInventarioCliente = async (req, res, next) => {
  */
 const getDuracionesOrden = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { id } = req.params;
-        const resultado = await OrdenTrabajoModel.calcularDuraciones(parseInt(id));
+        const resultado = await OrdenTrabajoModel.calcularDuraciones(tenantId, parseInt(id));
 
         res.json({
             success: true,
@@ -1297,8 +1339,9 @@ const getDuracionesOrden = async (req, res, next) => {
  */
 const getChecklistOrden = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { id } = req.params;
-        const checklist = await OrdenElementoModel.obtenerChecklistOrden(parseInt(id));
+        const checklist = await OrdenElementoModel.obtenerChecklistOrden(tenantId, parseInt(id));
 
         res.json({
             success: true,
@@ -1315,6 +1358,7 @@ const getChecklistOrden = async (req, res, next) => {
  */
 const verificarElementoCargue = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { id, elemId } = req.params;
         const { verificado, notas } = req.body;
 
@@ -1323,6 +1367,7 @@ const verificarElementoCargue = async (req, res, next) => {
         }
 
         const elemento = await OrdenElementoModel.toggleVerificacionCargue(
+            tenantId,
             parseInt(elemId),
             verificado,
             notas || null
@@ -1346,6 +1391,7 @@ const verificarElementoCargue = async (req, res, next) => {
  */
 const verificarElementoDescargue = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { id, elemId } = req.params;
         const { verificado, notas } = req.body;
 
@@ -1354,6 +1400,7 @@ const verificarElementoDescargue = async (req, res, next) => {
         }
 
         const elemento = await OrdenElementoModel.toggleVerificacionDescargue(
+            tenantId,
             parseInt(elemId),
             verificado,
             notas || null
@@ -1377,6 +1424,7 @@ const verificarElementoDescargue = async (req, res, next) => {
  */
 const verificarElementoBodega = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { id, elemId } = req.params;
         const { verificado, notas } = req.body;
 
@@ -1385,6 +1433,7 @@ const verificarElementoBodega = async (req, res, next) => {
         }
 
         const elemento = await OrdenElementoModel.toggleVerificacionBodega(
+            tenantId,
             parseInt(elemId),
             verificado,
             notas || null
@@ -1393,7 +1442,7 @@ const verificarElementoBodega = async (req, res, next) => {
         // Sincronizar estado_retorno en alquiler_elementos
         try {
             await AlquilerElementoModel.sincronizarEstadoRetornoDesdeBodega(
-                parseInt(elemId), verificado, elemento.marcado_dano || false
+                tenantId, parseInt(elemId), verificado, elemento.marcado_dano || false
             );
         } catch (syncError) {
             logger.warn('operaciones', `Error sincronizando estado_retorno para elemento ${elemId}: ${syncError.message}`);
@@ -1426,6 +1475,7 @@ const subirFotoOrden = async (req, res, next) => {
                 throw new AppError(err.message || 'Error al subir imagen', 400);
             }
 
+            const tenantId = req.tenant.id;
             const { id } = req.params;
             const { etapa, notas } = req.body;
 
@@ -1439,7 +1489,7 @@ const subirFotoOrden = async (req, res, next) => {
 
             const imagen_url = `/uploads/operaciones/${req.file.filename}`;
 
-            const foto = await FotoOperacionModel.crear({
+            const foto = await FotoOperacionModel.crear(tenantId, {
                 orden_id: parseInt(id),
                 etapa,
                 imagen_url,
@@ -1466,8 +1516,9 @@ const subirFotoOrden = async (req, res, next) => {
  */
 const obtenerFotosOrden = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { id } = req.params;
-        const resultado = await FotoOperacionModel.obtenerPorOrden(parseInt(id));
+        const resultado = await FotoOperacionModel.obtenerPorOrden(tenantId, parseInt(id));
 
         res.json({
             success: true,
@@ -1484,8 +1535,9 @@ const obtenerFotosOrden = async (req, res, next) => {
  */
 const eliminarFotoOrden = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { fotoId } = req.params;
-        const foto = await FotoOperacionModel.eliminar(parseInt(fotoId));
+        const foto = await FotoOperacionModel.eliminar(tenantId, parseInt(fotoId));
 
         if (!foto) {
             throw new AppError('Foto no encontrada', 404);
@@ -1515,6 +1567,7 @@ const eliminarFotoOrden = async (req, res, next) => {
  */
 const guardarFirmaCliente = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { id } = req.params;
         const { firma, nombre } = req.body;
 
@@ -1543,8 +1596,8 @@ const guardarFirmaCliente = async (req, res, next) => {
         await pool.query(
             `UPDATE ordenes_trabajo
              SET firma_cliente_url = ?, firma_cliente_fecha = NOW(), firma_cliente_nombre = ?
-             WHERE id = ?`,
-            [firma_url, nombre.trim(), parseInt(id)]
+             WHERE tenant_id = ? AND id = ?`,
+            [firma_url, nombre.trim(), tenantId, parseInt(id)]
         );
 
         logger.info('operaciones', `Firma cliente guardada para orden ${id} por ${req.usuario.email}`);
@@ -1569,11 +1622,12 @@ const guardarFirmaCliente = async (req, res, next) => {
  */
 const obtenerFirmaCliente = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { id } = req.params;
         const [rows] = await pool.query(
             `SELECT firma_cliente_url, firma_cliente_fecha, firma_cliente_nombre
-             FROM ordenes_trabajo WHERE id = ?`,
-            [parseInt(id)]
+             FROM ordenes_trabajo WHERE tenant_id = ? AND id = ?`,
+            [tenantId, parseInt(id)]
         );
 
         if (rows.length === 0) {
@@ -1595,6 +1649,7 @@ const obtenerFirmaCliente = async (req, res, next) => {
  */
 const completarMantenimiento = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { id } = req.params;
         const { resultados } = req.body;
 
@@ -1602,7 +1657,7 @@ const completarMantenimiento = async (req, res, next) => {
             throw new AppError('Debe proporcionar los resultados de mantenimiento de los elementos', 400);
         }
 
-        const orden = await OrdenTrabajoModel.obtenerPorId(parseInt(id));
+        const orden = await OrdenTrabajoModel.obtenerPorId(tenantId, parseInt(id));
         if (!orden) {
             throw new AppError('Orden no encontrada', 404);
         }
@@ -1624,7 +1679,7 @@ const completarMantenimiento = async (req, res, next) => {
             }
 
             // Obtener datos del elemento en la orden
-            const elemento = await OrdenElementoModel.obtenerPorId(parseInt(elemento_orden_id));
+            const elemento = await OrdenElementoModel.obtenerPorId(tenantId, parseInt(elemento_orden_id));
             if (!elemento || elemento.orden_id !== parseInt(id)) {
                 throw new AppError(`Elemento ${elemento_orden_id} no encontrado en esta orden`, 400);
             }
@@ -1634,15 +1689,15 @@ const completarMantenimiento = async (req, res, next) => {
 
                 // Series: cambiar estado a 'bueno'
                 if (elemento.serie_id) {
-                    await SerieModel.cambiarEstado(elemento.serie_id, 'bueno', null, null);
+                    await SerieModel.cambiarEstado(tenantId, elemento.serie_id, 'bueno', null, null);
                     logger.info('operaciones', `Serie ${elemento.numero_serie || elemento.serie_id} → bueno (reparada, orden ${id})`);
                 }
 
                 // Lotes: restaurar cantidad al lote
                 if (elemento.lote_id) {
                     await pool.query(`
-                        UPDATE lotes SET cantidad = cantidad + ? WHERE id = ?
-                    `, [elemento.cantidad || 1, elemento.lote_id]);
+                        UPDATE lotes SET cantidad = cantidad + ? WHERE tenant_id = ? AND id = ?
+                    `, [elemento.cantidad || 1, tenantId, elemento.lote_id]);
                     logger.info('operaciones', `Lote ${elemento.lote_numero || elemento.lote_id}: +${elemento.cantidad || 1} restauradas (reparado, orden ${id})`);
                 }
             } else {
@@ -1650,7 +1705,7 @@ const completarMantenimiento = async (req, res, next) => {
 
                 // Series: cambiar estado a 'dañado'
                 if (elemento.serie_id) {
-                    await SerieModel.cambiarEstado(elemento.serie_id, 'dañado', null, null);
+                    await SerieModel.cambiarEstado(tenantId, elemento.serie_id, 'dañado', null, null);
                     logger.info('operaciones', `Serie ${elemento.numero_serie || elemento.serie_id} → dañado (no reparable, orden ${id})`);
                 }
 
@@ -1662,17 +1717,17 @@ const completarMantenimiento = async (req, res, next) => {
 
             // Actualizar estado del elemento en la orden
             await pool.query(`
-                UPDATE orden_trabajo_elementos SET estado = ? WHERE id = ?
-            `, [reparado ? 'verificado' : 'con_problema', parseInt(elemento_orden_id)]);
+                UPDATE orden_trabajo_elementos SET estado = ? WHERE tenant_id = ? AND id = ?
+            `, [reparado ? 'verificado' : 'con_problema', tenantId, parseInt(elemento_orden_id)]);
         }
 
         // Cambiar estado de la orden a completado
-        await OrdenTrabajoModel.cambiarEstado(parseInt(id), 'completado');
+        await OrdenTrabajoModel.cambiarEstado(tenantId, parseInt(id), 'completado');
         await OrdenTrabajoModel.registrarCambioEstado(
-            parseInt(id), estadoAnterior, 'completado', req.usuario.id
+            tenantId, parseInt(id), estadoAnterior, 'completado', req.usuario.id
         );
 
-        await AuthModel.registrarAuditoria({
+        await AuthModel.registrarAuditoria(tenantId, {
             empleado_id: req.usuario.id,
             accion: 'COMPLETAR_MANTENIMIENTO',
             tabla_afectada: 'ordenes_trabajo',
@@ -1700,6 +1755,7 @@ const completarMantenimiento = async (req, res, next) => {
  */
 const marcarDanoElemento = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { id, elemId } = req.params;
         const { marcado_dano, descripcion_dano, cantidad_danada } = req.body;
 
@@ -1712,7 +1768,7 @@ const marcarDanoElemento = async (req, res, next) => {
         }
 
         // Verificar que la orden es de tipo desmontaje (recogida/bodega)
-        const orden = await OrdenTrabajoModel.obtenerPorId(parseInt(id));
+        const orden = await OrdenTrabajoModel.obtenerPorId(tenantId, parseInt(id));
         if (!orden) {
             throw new AppError('Orden no encontrada', 404);
         }
@@ -1721,6 +1777,7 @@ const marcarDanoElemento = async (req, res, next) => {
         }
 
         const elemento = await OrdenElementoModel.marcarDano(
+            tenantId,
             parseInt(elemId),
             marcado_dano,
             descripcion_dano?.trim() || null,
@@ -1731,7 +1788,7 @@ const marcarDanoElemento = async (req, res, next) => {
         if (elemento.verificado_bodega) {
             try {
                 await AlquilerElementoModel.sincronizarEstadoRetornoDesdeBodega(
-                    parseInt(elemId), true, marcado_dano
+                    tenantId, parseInt(elemId), true, marcado_dano
                 );
             } catch (syncError) {
                 logger.warn('operaciones', `Error sincronizando estado_retorno para elemento ${elemId}: ${syncError.message}`);
@@ -1756,21 +1813,22 @@ const marcarDanoElemento = async (req, res, next) => {
  */
 const generarOrdenMantenimiento = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { id } = req.params;
 
-        const orden = await OrdenTrabajoModel.obtenerPorId(parseInt(id));
+        const orden = await OrdenTrabajoModel.obtenerPorId(tenantId, parseInt(id));
         if (!orden) {
             throw new AppError('Orden no encontrada', 404);
         }
 
         // Obtener elementos marcados con daño
-        const elementosDanados = await OrdenElementoModel.obtenerElementosConDano(parseInt(id));
+        const elementosDanados = await OrdenElementoModel.obtenerElementosConDano(tenantId, parseInt(id));
         if (elementosDanados.length === 0) {
             throw new AppError('No hay elementos marcados con daño en esta orden', 400);
         }
 
         // Crear orden de mantenimiento
-        const ordenMantenimiento = await OrdenTrabajoModel.crear({
+        const ordenMantenimiento = await OrdenTrabajoModel.crear(tenantId, {
             alquiler_id: null,
             tipo: 'mantenimiento',
             fecha_programada: new Date().toISOString().split('T')[0],
@@ -1788,9 +1846,10 @@ const generarOrdenMantenimiento = async (req, res, next) => {
 
             await pool.query(`
                 INSERT INTO orden_trabajo_elementos
-                (orden_id, elemento_id, serie_id, lote_id, cantidad, estado, notas)
-                VALUES (?, ?, ?, ?, ?, 'pendiente', ?)
+                (tenant_id, orden_id, elemento_id, serie_id, lote_id, cantidad, estado, notas)
+                VALUES (?, ?, ?, ?, ?, ?, 'pendiente', ?)
             `, [
+                tenantId,
                 ordenMantenimiento.id,
                 elem.elemento_id,
                 elem.serie_id || null,
@@ -1801,20 +1860,20 @@ const generarOrdenMantenimiento = async (req, res, next) => {
 
             // Cambiar estado de serie a 'mantenimiento'
             if (elem.serie_id) {
-                await SerieModel.cambiarEstado(elem.serie_id, 'mantenimiento', null, null);
+                await SerieModel.cambiarEstado(tenantId, elem.serie_id, 'mantenimiento', null, null);
                 logger.info('operaciones', `Serie ${elem.serie_codigo || elem.serie_id} → mantenimiento (orden mant. ${ordenMantenimiento.id})`);
             }
 
             // Para lotes, reducir la cantidad disponible del lote
             if (elem.lote_id) {
                 await pool.query(`
-                    UPDATE lotes SET cantidad = GREATEST(0, cantidad - ?) WHERE id = ?
-                `, [cantidadMantenimiento, elem.lote_id]);
+                    UPDATE lotes SET cantidad = GREATEST(0, cantidad - ?) WHERE tenant_id = ? AND id = ?
+                `, [cantidadMantenimiento, tenantId, elem.lote_id]);
                 logger.info('operaciones', `Lote ${elem.lote_codigo || elem.lote_id}: ${cantidadMantenimiento} unidades a mantenimiento (orden mant. ${ordenMantenimiento.id})`);
             }
         }
 
-        await AuthModel.registrarAuditoria({
+        await AuthModel.registrarAuditoria(tenantId, {
             empleado_id: req.usuario.id,
             accion: 'GENERAR_ORDEN_MANTENIMIENTO',
             tabla_afectada: 'ordenes_trabajo',
@@ -1829,7 +1888,7 @@ const generarOrdenMantenimiento = async (req, res, next) => {
 
         logger.info('operaciones', `Orden mantenimiento ${ordenMantenimiento.id} generada desde orden ${id} con ${elementosDanados.length} elementos por ${req.usuario.email}`);
 
-        const ordenCompleta = await OrdenTrabajoModel.obtenerPorId(ordenMantenimiento.id);
+        const ordenCompleta = await OrdenTrabajoModel.obtenerPorId(tenantId, ordenMantenimiento.id);
 
         res.status(201).json({
             success: true,

@@ -9,11 +9,12 @@ const AppError = require('../../../utils/AppError');
 class ValidadorFechasService {
     /**
      * Validar cambio de fecha de una orden
+     * @param {number} tenantId
      * @param {number} ordenId
      * @param {Date} nuevaFecha
      * @returns {Promise<Object>} Resultado de validación
      */
-    static async validarCambioFecha(ordenId, nuevaFecha) {
+    static async validarCambioFecha(tenantId, ordenId, nuevaFecha) {
         // Obtener datos de la orden
         const [ordenRows] = await pool.query(`
             SELECT
@@ -23,8 +24,8 @@ class ValidadorFechasService {
                 ot.fecha_programada as fecha_actual,
                 ot.vehiculo_id
             FROM ordenes_trabajo ot
-            WHERE ot.id = ?
-        `, [ordenId]);
+            WHERE ot.tenant_id = ? AND ot.id = ?
+        `, [tenantId, ordenId]);
 
         if (ordenRows.length === 0) {
             throw new AppError('Orden de trabajo no encontrada', 404);
@@ -33,7 +34,7 @@ class ValidadorFechasService {
         const orden = ordenRows[0];
 
         // Obtener elementos de la orden
-        const elementos = await this.obtenerElementosOrden(ordenId);
+        const elementos = await this.obtenerElementosOrden(tenantId, ordenId);
 
         const resultado = {
             ordenId,
@@ -47,6 +48,7 @@ class ValidadorFechasService {
 
         // 1. Verificar disponibilidad de elementos
         const conflictosElementos = await this.verificarDisponibilidadElementos(
+            tenantId,
             elementos,
             nuevaFecha
         );
@@ -56,7 +58,7 @@ class ValidadorFechasService {
         }
 
         // 2. Verificar disponibilidad del equipo
-        const conflictosEquipo = await this.verificarDisponibilidadEquipo(ordenId, nuevaFecha);
+        const conflictosEquipo = await this.verificarDisponibilidadEquipo(tenantId, ordenId, nuevaFecha);
         if (conflictosEquipo.length > 0) {
             resultado.advertencias.push(...conflictosEquipo);
         }
@@ -64,6 +66,7 @@ class ValidadorFechasService {
         // 3. Verificar disponibilidad del vehículo
         if (orden.vehiculo_id) {
             const conflictoVehiculo = await this.verificarDisponibilidadVehiculo(
+                tenantId,
                 orden.vehiculo_id,
                 nuevaFecha,
                 ordenId
@@ -74,7 +77,7 @@ class ValidadorFechasService {
         }
 
         // 4. Verificar si la nueva fecha afecta a la orden relacionada (montaje/desmontaje)
-        const conflictoOrdenRelacionada = await this.verificarOrdenRelacionada(orden, nuevaFecha);
+        const conflictoOrdenRelacionada = await this.verificarOrdenRelacionada(tenantId, orden, nuevaFecha);
         if (conflictoOrdenRelacionada) {
             resultado.advertencias.push(conflictoOrdenRelacionada);
         }
@@ -88,10 +91,11 @@ class ValidadorFechasService {
 
     /**
      * Obtener elementos de una orden
+     * @param {number} tenantId
      * @param {number} ordenId
      * @returns {Promise<Array>}
      */
-    static async obtenerElementosOrden(ordenId) {
+    static async obtenerElementosOrden(tenantId, ordenId) {
         const [rows] = await pool.query(`
             SELECT
                 ote.id,
@@ -102,26 +106,28 @@ class ValidadorFechasService {
                 el.nombre as elemento_nombre,
                 el.codigo as elemento_codigo
             FROM orden_trabajo_elementos ote
-            INNER JOIN elementos el ON ote.elemento_id = el.id
-            WHERE ote.orden_id = ?
-        `, [ordenId]);
+            INNER JOIN elementos el ON ote.elemento_id = el.id AND el.tenant_id = ?
+            WHERE ote.tenant_id = ? AND ote.orden_id = ?
+        `, [tenantId, tenantId, ordenId]);
 
         return rows;
     }
 
     /**
      * Verificar disponibilidad de elementos usando DisponibilidadModel
+     * @param {number} tenantId
      * @param {Array} elementos
      * @param {Date} fecha
      * @returns {Promise<Array>}
      */
-    static async verificarDisponibilidadElementos(elementos, fecha) {
+    static async verificarDisponibilidadElementos(tenantId, elementos, fecha) {
         const conflictos = [];
 
         for (const elem of elementos) {
             try {
                 // Usar el método existente de DisponibilidadModel
                 const disponibles = await DisponibilidadModel.obtenerSeriesDisponibles(
+                    tenantId,
                     elem.elemento_id,
                     fecha,
                     fecha
@@ -145,8 +151,8 @@ class ValidadorFechasService {
                 } else if (elem.cantidad > 0) {
                     // Para lotes o cantidades
                     const lotesDisponibles = await DisponibilidadModel.obtenerLotesDisponibles(
+                        tenantId,
                         elem.elemento_id,
-                        elem.cantidad,
                         fecha,
                         fecha
                     );
@@ -185,11 +191,12 @@ class ValidadorFechasService {
 
     /**
      * Verificar disponibilidad del equipo asignado
+     * @param {number} tenantId
      * @param {number} ordenId
      * @param {Date} fecha
      * @returns {Promise<Array>}
      */
-    static async verificarDisponibilidadEquipo(ordenId, fecha) {
+    static async verificarDisponibilidadEquipo(tenantId, ordenId, fecha) {
         const advertencias = [];
 
         // Obtener equipo actual de la orden
@@ -199,9 +206,9 @@ class ValidadorFechasService {
                 e.nombre,
                 e.apellido
             FROM orden_trabajo_equipo ote
-            INNER JOIN empleados e ON ote.empleado_id = e.id
-            WHERE ote.orden_id = ?
-        `, [ordenId]);
+            INNER JOIN empleados e ON ote.empleado_id = e.id AND e.tenant_id = ?
+            WHERE ote.tenant_id = ? AND ote.orden_id = ?
+        `, [tenantId, tenantId, ordenId]);
 
         for (const miembro of equipo) {
             // Verificar si el empleado tiene otras órdenes ese día
@@ -212,14 +219,15 @@ class ValidadorFechasService {
                     ot.fecha_programada,
                     cot.evento_nombre as nombre_evento
                 FROM ordenes_trabajo ot
-                INNER JOIN orden_trabajo_equipo ote ON ot.id = ote.orden_id
-                LEFT JOIN alquileres a ON ot.alquiler_id = a.id
-                LEFT JOIN cotizaciones cot ON a.cotizacion_id = cot.id
-                WHERE ote.empleado_id = ?
+                INNER JOIN orden_trabajo_equipo ote ON ot.id = ote.orden_id AND ote.tenant_id = ?
+                LEFT JOIN alquileres a ON ot.alquiler_id = a.id AND a.tenant_id = ?
+                LEFT JOIN cotizaciones cot ON a.cotizacion_id = cot.id AND cot.tenant_id = ?
+                WHERE ot.tenant_id = ?
+                  AND ote.empleado_id = ?
                   AND DATE(ot.fecha_programada) = DATE(?)
                   AND ot.id != ?
                   AND ot.estado NOT IN ('completado', 'cancelado')
-            `, [miembro.empleado_id, fecha, ordenId]);
+            `, [tenantId, tenantId, tenantId, tenantId, miembro.empleado_id, fecha, ordenId]);
 
             if (otrasOrdenes.length > 0) {
                 advertencias.push({
@@ -242,12 +250,13 @@ class ValidadorFechasService {
 
     /**
      * Verificar disponibilidad del vehículo
+     * @param {number} tenantId
      * @param {number} vehiculoId
      * @param {Date} fecha
      * @param {number} ordenIdExcluir
      * @returns {Promise<Object|null>}
      */
-    static async verificarDisponibilidadVehiculo(vehiculoId, fecha, ordenIdExcluir) {
+    static async verificarDisponibilidadVehiculo(tenantId, vehiculoId, fecha, ordenIdExcluir) {
         const [otrasOrdenes] = await pool.query(`
             SELECT
                 ot.id,
@@ -256,14 +265,15 @@ class ValidadorFechasService {
                 cot.evento_nombre as nombre_evento,
                 v.placa
             FROM ordenes_trabajo ot
-            LEFT JOIN alquileres a ON ot.alquiler_id = a.id
-            LEFT JOIN cotizaciones cot ON a.cotizacion_id = cot.id
-            LEFT JOIN vehiculos v ON ot.vehiculo_id = v.id
-            WHERE ot.vehiculo_id = ?
+            LEFT JOIN alquileres a ON ot.alquiler_id = a.id AND a.tenant_id = ?
+            LEFT JOIN cotizaciones cot ON a.cotizacion_id = cot.id AND cot.tenant_id = ?
+            LEFT JOIN vehiculos v ON ot.vehiculo_id = v.id AND v.tenant_id = ?
+            WHERE ot.tenant_id = ?
+              AND ot.vehiculo_id = ?
               AND DATE(ot.fecha_programada) = DATE(?)
               AND ot.id != ?
               AND ot.estado NOT IN ('completado', 'cancelado')
-        `, [vehiculoId, fecha, ordenIdExcluir]);
+        `, [tenantId, tenantId, tenantId, tenantId, vehiculoId, fecha, ordenIdExcluir]);
 
         if (otrasOrdenes.length > 0) {
             return {
@@ -285,21 +295,23 @@ class ValidadorFechasService {
 
     /**
      * Verificar si el cambio afecta a la orden relacionada
+     * @param {number} tenantId
      * @param {Object} orden
      * @param {Date} nuevaFecha
      * @returns {Promise<Object|null>}
      */
-    static async verificarOrdenRelacionada(orden, nuevaFecha) {
+    static async verificarOrdenRelacionada(tenantId, orden, nuevaFecha) {
         // Buscar la orden complementaria (si es montaje, buscar desmontaje y viceversa)
         const tipoComplementario = orden.tipo === 'montaje' ? 'desmontaje' : 'montaje';
 
         const [ordenRelacionada] = await pool.query(`
             SELECT id, tipo, fecha_programada
             FROM ordenes_trabajo
-            WHERE alquiler_id = ?
+            WHERE tenant_id = ?
+              AND alquiler_id = ?
               AND tipo = ?
               AND estado NOT IN ('cancelado')
-        `, [orden.alquiler_id, tipoComplementario]);
+        `, [tenantId, orden.alquiler_id, tipoComplementario]);
 
         if (ordenRelacionada.length > 0) {
             const relacionada = ordenRelacionada[0];
@@ -368,17 +380,19 @@ class ValidadorFechasService {
 
     /**
      * Detectar conflictos generales para un rango de fechas
+     * @param {number} tenantId
      * @param {Array} elementoIds
      * @param {Date} fechaInicio
      * @param {Date} fechaFin
      * @returns {Promise<Array>}
      */
-    static async detectarConflictos(elementoIds, fechaInicio, fechaFin) {
+    static async detectarConflictos(tenantId, elementoIds, fechaInicio, fechaFin) {
         const conflictos = [];
 
         for (const elementoId of elementoIds) {
             try {
                 const disponibles = await DisponibilidadModel.obtenerSeriesDisponibles(
+                    tenantId,
                     elementoId,
                     fechaInicio,
                     fechaFin
@@ -389,11 +403,11 @@ class ValidadorFechasService {
                     SELECT
                         el.nombre,
                         el.codigo,
-                        (SELECT COUNT(*) FROM series WHERE elemento_id = el.id AND estado = 'bueno') as total_series,
-                        (SELECT SUM(cantidad) FROM lotes WHERE elemento_id = el.id AND estado = 'bueno') as total_lotes
+                        (SELECT COUNT(*) FROM series WHERE tenant_id = ? AND elemento_id = el.id AND estado = 'bueno') as total_series,
+                        (SELECT SUM(cantidad) FROM lotes WHERE tenant_id = ? AND elemento_id = el.id AND estado = 'bueno') as total_lotes
                     FROM elementos el
-                    WHERE el.id = ?
-                `, [elementoId]);
+                    WHERE el.tenant_id = ? AND el.id = ?
+                `, [tenantId, tenantId, tenantId, elementoId]);
 
                 if (elemento.length > 0) {
                     const totalDisponible = (elemento[0].total_series || 0) + (elemento[0].total_lotes || 0);

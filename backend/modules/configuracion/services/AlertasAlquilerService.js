@@ -73,7 +73,7 @@ class AlertasAlquilerService {
    * @param {boolean} opciones.solo_criticas - Si true, solo retorna críticas
    * @returns {Promise<Array>} Lista de alertas ordenadas por severidad
    */
-  static async obtenerTodasLasAlertas(opciones = {}) {
+  static async obtenerTodasLasAlertas(tenantId, opciones = {}) {
     logger.info('[AlertasAlquilerService] Obteniendo todas las alertas...');
 
     const alertas = [];
@@ -82,16 +82,16 @@ class AlertasAlquilerService {
     // Obtener alertas ignoradas por el usuario
     let alertasIgnoradas = [];
     if (usuario_id) {
-      alertasIgnoradas = await this.obtenerAlertasIgnoradas(usuario_id);
+      alertasIgnoradas = await this.obtenerAlertasIgnoradas(tenantId, usuario_id);
     }
 
     // -----------------------------------------------------------------
     // ALERTAS CRÍTICAS
     // -----------------------------------------------------------------
-    const retornosVencidos = await this.getAlertasRetornoVencido();
-    const ordenesMontajeVencidas = await this.getAlertasOrdenesMontajeVencidas();
-    const ordenesDesmontajeVencidas = await this.getAlertasOrdenesDesmontajeVencidas();
-    const alquileresNoIniciados = await this.getAlertasAlquilerNoIniciado();
+    const retornosVencidos = await this.getAlertasRetornoVencido(tenantId);
+    const ordenesMontajeVencidas = await this.getAlertasOrdenesMontajeVencidas(tenantId);
+    const ordenesDesmontajeVencidas = await this.getAlertasOrdenesDesmontajeVencidas(tenantId);
+    const alquileresNoIniciados = await this.getAlertasAlquilerNoIniciado(tenantId);
 
     alertas.push(...retornosVencidos);
     alertas.push(...ordenesMontajeVencidas);
@@ -101,9 +101,9 @@ class AlertasAlquilerService {
     // -----------------------------------------------------------------
     // ALERTAS DE COTIZACIONES (seguimiento)
     // -----------------------------------------------------------------
-    const configSeguimiento = await this.obtenerConfigSeguimiento();
+    const configSeguimiento = await this.obtenerConfigSeguimiento(tenantId);
     if (configSeguimiento.habilitar_seguimiento_cotizaciones) {
-      const cotizacionesVencidas = await this.getAlertasCotizacionVencida();
+      const cotizacionesVencidas = await this.getAlertasCotizacionVencida(tenantId);
       alertas.push(...cotizacionesVencidas);
     }
 
@@ -111,9 +111,9 @@ class AlertasAlquilerService {
     // ALERTAS DE ADVERTENCIA (solo si no se piden solo críticas)
     // -----------------------------------------------------------------
     if (!solo_criticas) {
-      const retornosProximos = await this.getAlertasRetornoProximo(CONFIG.DIAS_ADVERTENCIA_RETORNO);
-      const salidasProximas = await this.getAlertasSalidaProxima(CONFIG.DIAS_ADVERTENCIA_SALIDA);
-      const desmontajesProximos = await this.getAlertasDesmontajeProximo(CONFIG.DIAS_ADVERTENCIA_SALIDA);
+      const retornosProximos = await this.getAlertasRetornoProximo(tenantId, CONFIG.DIAS_ADVERTENCIA_RETORNO);
+      const salidasProximas = await this.getAlertasSalidaProxima(tenantId, CONFIG.DIAS_ADVERTENCIA_SALIDA);
+      const desmontajesProximos = await this.getAlertasDesmontajeProximo(tenantId, CONFIG.DIAS_ADVERTENCIA_SALIDA);
 
       alertas.push(...retornosProximos);
       alertas.push(...salidasProximas);
@@ -122,12 +122,15 @@ class AlertasAlquilerService {
       // Cotizaciones por vencer, borradores antiguos y sin seguimiento
       if (configSeguimiento.habilitar_seguimiento_cotizaciones) {
         const cotizacionesPorVencer = await this.getAlertasCotizacionPorVencer(
+          tenantId,
           configSeguimiento.dias_advertencia_vencimiento_cotizacion
         );
         const borradoresAntiguos = await this.getAlertasBorradorAntiguo(
+          tenantId,
           configSeguimiento.dias_seguimiento_borrador
         );
         const sinSeguimiento = await this.getAlertasCotizacionSinSeguimiento(
+          tenantId,
           configSeguimiento.dias_seguimiento_pendiente
         );
 
@@ -167,7 +170,7 @@ class AlertasAlquilerService {
    * Obtiene alquileres con retorno vencido.
    * Condición: estado='activo' AND fecha_retorno_esperado < HOY
    */
-  static async getAlertasRetornoVencido() {
+  static async getAlertasRetornoVencido(tenantId) {
     const query = `
       SELECT
         a.id,
@@ -178,14 +181,15 @@ class AlertasAlquilerService {
         cl.telefono AS cliente_telefono,
         DATEDIFF(CURDATE(), a.fecha_retorno_esperado) AS dias_vencido
       FROM alquileres a
-      INNER JOIN cotizaciones cot ON a.cotizacion_id = cot.id
-      INNER JOIN clientes cl ON cot.cliente_id = cl.id
-      WHERE a.estado = 'activo'
+      INNER JOIN cotizaciones cot ON a.cotizacion_id = cot.id AND cot.tenant_id = ?
+      INNER JOIN clientes cl ON cot.cliente_id = cl.id AND cl.tenant_id = ?
+      WHERE a.tenant_id = ?
+        AND a.estado = 'activo'
         AND DATE(a.fecha_retorno_esperado) < CURDATE()
       ORDER BY a.fecha_retorno_esperado ASC
     `;
 
-    const [rows] = await pool.query(query);
+    const [rows] = await pool.query(query, [tenantId, tenantId, tenantId]);
 
     return rows.map(row => ({
       tipo: TIPOS_ALERTA.RETORNO_VENCIDO,
@@ -214,7 +218,7 @@ class AlertasAlquilerService {
    * Obtiene órdenes de montaje pasadas sin ejecutar.
    * Condición: tipo='montaje' AND fecha < HOY AND estado NOT IN ('completado','cancelado','en_ruta')
    */
-  static async getAlertasOrdenesMontajeVencidas() {
+  static async getAlertasOrdenesMontajeVencidas(tenantId) {
     const query = `
       SELECT
         ot.id,
@@ -226,16 +230,17 @@ class AlertasAlquilerService {
         cl.nombre AS cliente_nombre,
         DATEDIFF(CURDATE(), DATE(ot.fecha_programada)) AS dias_vencido
       FROM ordenes_trabajo ot
-      INNER JOIN alquileres a ON ot.alquiler_id = a.id
-      INNER JOIN cotizaciones cot ON a.cotizacion_id = cot.id
-      INNER JOIN clientes cl ON cot.cliente_id = cl.id
-      WHERE ot.tipo = 'montaje'
+      INNER JOIN alquileres a ON ot.alquiler_id = a.id AND a.tenant_id = ?
+      INNER JOIN cotizaciones cot ON a.cotizacion_id = cot.id AND cot.tenant_id = ?
+      INNER JOIN clientes cl ON cot.cliente_id = cl.id AND cl.tenant_id = ?
+      WHERE ot.tenant_id = ?
+        AND ot.tipo = 'montaje'
         AND DATE(ot.fecha_programada) < CURDATE()
         AND ot.estado NOT IN ('completado', 'cancelado', 'en_ruta', 'en_sitio', 'en_proceso')
       ORDER BY ot.fecha_programada ASC
     `;
 
-    const [rows] = await pool.query(query);
+    const [rows] = await pool.query(query, [tenantId, tenantId, tenantId, tenantId]);
 
     return rows.map(row => ({
       tipo: TIPOS_ALERTA.ORDEN_MONTAJE_VENCIDA,
@@ -264,7 +269,7 @@ class AlertasAlquilerService {
    * Obtiene órdenes de desmontaje pasadas sin completar.
    * Condición: tipo='desmontaje' AND fecha < HOY AND estado NOT IN ('completado','cancelado')
    */
-  static async getAlertasOrdenesDesmontajeVencidas() {
+  static async getAlertasOrdenesDesmontajeVencidas(tenantId) {
     const query = `
       SELECT
         ot.id,
@@ -275,16 +280,17 @@ class AlertasAlquilerService {
         cl.nombre AS cliente_nombre,
         DATEDIFF(CURDATE(), DATE(ot.fecha_programada)) AS dias_vencido
       FROM ordenes_trabajo ot
-      INNER JOIN alquileres a ON ot.alquiler_id = a.id
-      INNER JOIN cotizaciones cot ON a.cotizacion_id = cot.id
-      INNER JOIN clientes cl ON cot.cliente_id = cl.id
-      WHERE ot.tipo = 'desmontaje'
+      INNER JOIN alquileres a ON ot.alquiler_id = a.id AND a.tenant_id = ?
+      INNER JOIN cotizaciones cot ON a.cotizacion_id = cot.id AND cot.tenant_id = ?
+      INNER JOIN clientes cl ON cot.cliente_id = cl.id AND cl.tenant_id = ?
+      WHERE ot.tenant_id = ?
+        AND ot.tipo = 'desmontaje'
         AND DATE(ot.fecha_programada) < CURDATE()
         AND ot.estado NOT IN ('completado', 'cancelado')
       ORDER BY ot.fecha_programada ASC
     `;
 
-    const [rows] = await pool.query(query);
+    const [rows] = await pool.query(query, [tenantId, tenantId, tenantId, tenantId]);
 
     return rows.map(row => ({
       tipo: TIPOS_ALERTA.ORDEN_DESMONTAJE_VENCIDA,
@@ -313,7 +319,7 @@ class AlertasAlquilerService {
    * Obtiene alquileres que siguen programados pero su fecha de inicio ya pasó.
    * Condición: estado='programado' AND fecha de orden_montaje < HOY
    */
-  static async getAlertasAlquilerNoIniciado() {
+  static async getAlertasAlquilerNoIniciado(tenantId) {
     const query = `
       SELECT
         a.id,
@@ -325,16 +331,17 @@ class AlertasAlquilerService {
         ot.fecha_programada AS fecha_montaje_programada,
         DATEDIFF(CURDATE(), DATE(ot.fecha_programada)) AS dias_sin_iniciar
       FROM alquileres a
-      INNER JOIN cotizaciones cot ON a.cotizacion_id = cot.id
-      INNER JOIN clientes cl ON cot.cliente_id = cl.id
-      LEFT JOIN ordenes_trabajo ot ON ot.alquiler_id = a.id AND ot.tipo = 'montaje'
-      WHERE a.estado = 'programado'
+      INNER JOIN cotizaciones cot ON a.cotizacion_id = cot.id AND cot.tenant_id = ?
+      INNER JOIN clientes cl ON cot.cliente_id = cl.id AND cl.tenant_id = ?
+      LEFT JOIN ordenes_trabajo ot ON ot.alquiler_id = a.id AND ot.tipo = 'montaje' AND ot.tenant_id = ?
+      WHERE a.tenant_id = ?
+        AND a.estado = 'programado'
         AND ot.fecha_programada IS NOT NULL
         AND DATE(ot.fecha_programada) < CURDATE()
       ORDER BY ot.fecha_programada ASC
     `;
 
-    const [rows] = await pool.query(query);
+    const [rows] = await pool.query(query, [tenantId, tenantId, tenantId, tenantId]);
 
     return rows.map(row => ({
       tipo: TIPOS_ALERTA.ALQUILER_NO_INICIADO,
@@ -366,7 +373,7 @@ class AlertasAlquilerService {
    * Obtiene alquileres con retorno próximo (dentro de N días).
    * @param {number} dias - Días de anticipación
    */
-  static async getAlertasRetornoProximo(dias = 2) {
+  static async getAlertasRetornoProximo(tenantId, dias = 2) {
     const query = `
       SELECT
         a.id,
@@ -375,14 +382,15 @@ class AlertasAlquilerService {
         cl.nombre AS cliente_nombre,
         DATEDIFF(a.fecha_retorno_esperado, CURDATE()) AS dias_restantes
       FROM alquileres a
-      INNER JOIN cotizaciones cot ON a.cotizacion_id = cot.id
-      INNER JOIN clientes cl ON cot.cliente_id = cl.id
-      WHERE a.estado = 'activo'
+      INNER JOIN cotizaciones cot ON a.cotizacion_id = cot.id AND cot.tenant_id = ?
+      INNER JOIN clientes cl ON cot.cliente_id = cl.id AND cl.tenant_id = ?
+      WHERE a.tenant_id = ?
+        AND a.estado = 'activo'
         AND DATE(a.fecha_retorno_esperado) BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL ? DAY)
       ORDER BY a.fecha_retorno_esperado ASC
     `;
 
-    const [rows] = await pool.query(query, [dias]);
+    const [rows] = await pool.query(query, [tenantId, tenantId, tenantId, dias]);
 
     return rows.map(row => ({
       tipo: TIPOS_ALERTA.RETORNO_PROXIMO,
@@ -408,7 +416,7 @@ class AlertasAlquilerService {
    * Obtiene órdenes de montaje próximas (dentro de N días).
    * @param {number} dias - Días de anticipación
    */
-  static async getAlertasSalidaProxima(dias = 1) {
+  static async getAlertasSalidaProxima(tenantId, dias = 1) {
     const query = `
       SELECT
         ot.id,
@@ -419,16 +427,17 @@ class AlertasAlquilerService {
         cl.nombre AS cliente_nombre,
         DATEDIFF(DATE(ot.fecha_programada), CURDATE()) AS dias_restantes
       FROM ordenes_trabajo ot
-      INNER JOIN alquileres a ON ot.alquiler_id = a.id
-      INNER JOIN cotizaciones cot ON a.cotizacion_id = cot.id
-      INNER JOIN clientes cl ON cot.cliente_id = cl.id
-      WHERE ot.tipo = 'montaje'
+      INNER JOIN alquileres a ON ot.alquiler_id = a.id AND a.tenant_id = ?
+      INNER JOIN cotizaciones cot ON a.cotizacion_id = cot.id AND cot.tenant_id = ?
+      INNER JOIN clientes cl ON cot.cliente_id = cl.id AND cl.tenant_id = ?
+      WHERE ot.tenant_id = ?
+        AND ot.tipo = 'montaje'
         AND DATE(ot.fecha_programada) BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL ? DAY)
         AND ot.estado NOT IN ('completado', 'cancelado', 'en_ruta', 'en_sitio', 'en_proceso')
       ORDER BY ot.fecha_programada ASC
     `;
 
-    const [rows] = await pool.query(query, [dias]);
+    const [rows] = await pool.query(query, [tenantId, tenantId, tenantId, tenantId, dias]);
 
     return rows.map(row => {
       const esHoy = row.dias_restantes === 0;
@@ -461,7 +470,7 @@ class AlertasAlquilerService {
    * Obtiene órdenes de desmontaje próximas (dentro de N días).
    * @param {number} dias - Días de anticipación
    */
-  static async getAlertasDesmontajeProximo(dias = 1) {
+  static async getAlertasDesmontajeProximo(tenantId, dias = 1) {
     const query = `
       SELECT
         ot.id,
@@ -472,16 +481,17 @@ class AlertasAlquilerService {
         cl.nombre AS cliente_nombre,
         DATEDIFF(DATE(ot.fecha_programada), CURDATE()) AS dias_restantes
       FROM ordenes_trabajo ot
-      INNER JOIN alquileres a ON ot.alquiler_id = a.id
-      INNER JOIN cotizaciones cot ON a.cotizacion_id = cot.id
-      INNER JOIN clientes cl ON cot.cliente_id = cl.id
-      WHERE ot.tipo = 'desmontaje'
+      INNER JOIN alquileres a ON ot.alquiler_id = a.id AND a.tenant_id = ?
+      INNER JOIN cotizaciones cot ON a.cotizacion_id = cot.id AND cot.tenant_id = ?
+      INNER JOIN clientes cl ON cot.cliente_id = cl.id AND cl.tenant_id = ?
+      WHERE ot.tenant_id = ?
+        AND ot.tipo = 'desmontaje'
         AND DATE(ot.fecha_programada) BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL ? DAY)
         AND ot.estado NOT IN ('completado', 'cancelado')
       ORDER BY ot.fecha_programada ASC
     `;
 
-    const [rows] = await pool.query(query, [dias]);
+    const [rows] = await pool.query(query, [tenantId, tenantId, tenantId, tenantId, dias]);
 
     return rows.map(row => {
       const esHoy = row.dias_restantes === 0;
@@ -518,19 +528,19 @@ class AlertasAlquilerService {
    * Obtiene la configuración de seguimiento desde la BD.
    * @returns {Promise<Object>} Configuración con valores o defaults
    */
-  static async obtenerConfigSeguimiento() {
+  static async obtenerConfigSeguimiento(tenantId) {
     try {
       const query = `
         SELECT clave, valor, tipo
         FROM configuracion_alquileres
-        WHERE clave IN (
+        WHERE tenant_id = ? AND clave IN (
           'dias_advertencia_vencimiento_cotizacion',
           'dias_seguimiento_borrador',
           'dias_seguimiento_pendiente',
           'habilitar_seguimiento_cotizaciones'
         )
       `;
-      const [rows] = await pool.query(query);
+      const [rows] = await pool.query(query, [tenantId]);
 
       const config = {
         dias_advertencia_vencimiento_cotizacion: 3,
@@ -565,7 +575,7 @@ class AlertasAlquilerService {
    * Cotizaciones pendientes cuya vigencia ya venció.
    * Condición: estado='pendiente' AND (created_at + vigencia_dias) < HOY
    */
-  static async getAlertasCotizacionVencida() {
+  static async getAlertasCotizacionVencida(tenantId) {
     const query = `
       SELECT
         cot.id,
@@ -578,13 +588,14 @@ class AlertasAlquilerService {
         cl.telefono AS cliente_telefono,
         DATEDIFF(CURDATE(), DATE(DATE_ADD(cot.created_at, INTERVAL cot.vigencia_dias DAY))) AS dias_vencida
       FROM cotizaciones cot
-      INNER JOIN clientes cl ON cot.cliente_id = cl.id
-      WHERE cot.estado = 'pendiente'
+      INNER JOIN clientes cl ON cot.cliente_id = cl.id AND cl.tenant_id = ?
+      WHERE cot.tenant_id = ?
+        AND cot.estado = 'pendiente'
         AND DATE(DATE_ADD(cot.created_at, INTERVAL cot.vigencia_dias DAY)) < CURDATE()
       ORDER BY cot.created_at ASC
     `;
 
-    const [rows] = await pool.query(query);
+    const [rows] = await pool.query(query, [tenantId, tenantId]);
 
     return rows.map(row => ({
       tipo: TIPOS_ALERTA.COTIZACION_VENCIDA,
@@ -616,7 +627,7 @@ class AlertasAlquilerService {
    * Condición: estado='pendiente' AND vigencia expira dentro de N días
    * @param {number} diasAnticipacion - Días antes del vencimiento para alertar
    */
-  static async getAlertasCotizacionPorVencer(diasAnticipacion = 3) {
+  static async getAlertasCotizacionPorVencer(tenantId, diasAnticipacion = 3) {
     const query = `
       SELECT
         cot.id,
@@ -629,13 +640,14 @@ class AlertasAlquilerService {
         cl.telefono AS cliente_telefono,
         DATEDIFF(DATE(DATE_ADD(cot.created_at, INTERVAL cot.vigencia_dias DAY)), CURDATE()) AS dias_restantes
       FROM cotizaciones cot
-      INNER JOIN clientes cl ON cot.cliente_id = cl.id
-      WHERE cot.estado = 'pendiente'
+      INNER JOIN clientes cl ON cot.cliente_id = cl.id AND cl.tenant_id = ?
+      WHERE cot.tenant_id = ?
+        AND cot.estado = 'pendiente'
         AND DATE(DATE_ADD(cot.created_at, INTERVAL cot.vigencia_dias DAY)) BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL ? DAY)
       ORDER BY dias_restantes ASC
     `;
 
-    const [rows] = await pool.query(query, [diasAnticipacion]);
+    const [rows] = await pool.query(query, [tenantId, tenantId, diasAnticipacion]);
 
     return rows.map(row => ({
       tipo: TIPOS_ALERTA.COTIZACION_POR_VENCER,
@@ -670,7 +682,7 @@ class AlertasAlquilerService {
    * Condición: estado='borrador' AND (ultimo_seguimiento o created_at) > N días
    * @param {number} diasSinActividad - Días sin actividad para alertar
    */
-  static async getAlertasBorradorAntiguo(diasSinActividad = 7) {
+  static async getAlertasBorradorAntiguo(tenantId, diasSinActividad = 7) {
     const query = `
       SELECT
         cot.id,
@@ -683,13 +695,14 @@ class AlertasAlquilerService {
         cl.telefono AS cliente_telefono,
         DATEDIFF(CURDATE(), DATE(COALESCE(cot.ultimo_seguimiento, cot.updated_at, cot.created_at))) AS dias_sin_actividad
       FROM cotizaciones cot
-      INNER JOIN clientes cl ON cot.cliente_id = cl.id
-      WHERE cot.estado = 'borrador'
+      INNER JOIN clientes cl ON cot.cliente_id = cl.id AND cl.tenant_id = ?
+      WHERE cot.tenant_id = ?
+        AND cot.estado = 'borrador'
         AND DATEDIFF(CURDATE(), DATE(COALESCE(cot.ultimo_seguimiento, cot.updated_at, cot.created_at))) >= ?
       ORDER BY dias_sin_actividad DESC
     `;
 
-    const [rows] = await pool.query(query, [diasSinActividad]);
+    const [rows] = await pool.query(query, [tenantId, tenantId, diasSinActividad]);
 
     return rows.map(row => ({
       tipo: TIPOS_ALERTA.BORRADOR_ANTIGUO,
@@ -720,7 +733,7 @@ class AlertasAlquilerService {
    * Condición: estado='pendiente' AND no se ha contactado al cliente en N días
    * @param {number} diasSinSeguimiento - Días sin seguimiento para alertar
    */
-  static async getAlertasCotizacionSinSeguimiento(diasSinSeguimiento = 5) {
+  static async getAlertasCotizacionSinSeguimiento(tenantId, diasSinSeguimiento = 5) {
     const query = `
       SELECT
         cot.id,
@@ -734,15 +747,16 @@ class AlertasAlquilerService {
         DATEDIFF(CURDATE(), DATE(COALESCE(cot.ultimo_seguimiento, cot.created_at))) AS dias_sin_seguimiento,
         DATEDIFF(DATE(DATE_ADD(cot.created_at, INTERVAL cot.vigencia_dias DAY)), CURDATE()) AS dias_para_vencer
       FROM cotizaciones cot
-      INNER JOIN clientes cl ON cot.cliente_id = cl.id
-      WHERE cot.estado = 'pendiente'
+      INNER JOIN clientes cl ON cot.cliente_id = cl.id AND cl.tenant_id = ?
+      WHERE cot.tenant_id = ?
+        AND cot.estado = 'pendiente'
         AND DATEDIFF(CURDATE(), DATE(COALESCE(cot.ultimo_seguimiento, cot.created_at))) >= ?
         -- Excluir las que ya están vencidas (esas tienen su propia alerta)
         AND DATE(DATE_ADD(cot.created_at, INTERVAL cot.vigencia_dias DAY)) >= CURDATE()
       ORDER BY dias_sin_seguimiento DESC
     `;
 
-    const [rows] = await pool.query(query, [diasSinSeguimiento]);
+    const [rows] = await pool.query(query, [tenantId, tenantId, diasSinSeguimiento]);
 
     return rows.map(row => ({
       tipo: TIPOS_ALERTA.COTIZACION_SIN_SEGUIMIENTO,
@@ -777,8 +791,8 @@ class AlertasAlquilerService {
    * Obtiene un resumen con conteo de alertas por severidad y tipo.
    * @param {number} usuario_id - ID del usuario para excluir ignoradas
    */
-  static async obtenerResumen(usuario_id = null) {
-    const alertas = await this.obtenerTodasLasAlertas({ usuario_id });
+  static async obtenerResumen(tenantId, usuario_id = null) {
+    const alertas = await this.obtenerTodasLasAlertas(tenantId, { usuario_id });
 
     const resumen = {
       total: alertas.length,
@@ -810,19 +824,19 @@ class AlertasAlquilerService {
    * @param {number} usuario_id - ID del usuario
    * @param {number} dias - Días a ignorar (0 = hasta mañana)
    */
-  static async ignorarAlerta(tipo, referencia_id, usuario_id, dias = 1) {
+  static async ignorarAlerta(tenantId, tipo, referencia_id, usuario_id, dias = 1) {
     const fechaIgnorarHasta = new Date();
     fechaIgnorarHasta.setDate(fechaIgnorarHasta.getDate() + dias);
 
     const query = `
-      INSERT INTO alertas_alquiler_vistas (tipo, referencia_id, usuario_id, ignorar_hasta, created_at)
-      VALUES (?, ?, ?, ?, NOW())
+      INSERT INTO alertas_alquiler_vistas (tenant_id, tipo, referencia_id, usuario_id, ignorar_hasta, created_at)
+      VALUES (?, ?, ?, ?, ?, NOW())
       ON DUPLICATE KEY UPDATE
         ignorar_hasta = VALUES(ignorar_hasta),
         created_at = NOW()
     `;
 
-    await pool.query(query, [tipo, referencia_id, usuario_id, fechaIgnorarHasta]);
+    await pool.query(query, [tenantId, tipo, referencia_id, usuario_id, fechaIgnorarHasta]);
 
     logger.info(`[AlertasAlquilerService] Alerta ${tipo}:${referencia_id} ignorada por ${dias} días por usuario ${usuario_id}`);
 
@@ -833,28 +847,29 @@ class AlertasAlquilerService {
    * Obtiene las alertas ignoradas por un usuario (que aún no expiraron).
    * @param {number} usuario_id - ID del usuario
    */
-  static async obtenerAlertasIgnoradas(usuario_id) {
+  static async obtenerAlertasIgnoradas(tenantId, usuario_id) {
     const query = `
       SELECT tipo, referencia_id
       FROM alertas_alquiler_vistas
-      WHERE usuario_id = ?
+      WHERE tenant_id = ?
+        AND usuario_id = ?
         AND ignorar_hasta > NOW()
     `;
 
-    const [rows] = await pool.query(query, [usuario_id]);
+    const [rows] = await pool.query(query, [tenantId, usuario_id]);
     return rows.map(r => `${r.tipo}_${r.referencia_id}`);
   }
 
   /**
    * Limpia las alertas ignoradas que ya expiraron.
    */
-  static async limpiarAlertasExpiradas() {
+  static async limpiarAlertasExpiradas(tenantId) {
     const query = `
       DELETE FROM alertas_alquiler_vistas
-      WHERE ignorar_hasta < NOW()
+      WHERE tenant_id = ? AND ignorar_hasta < NOW()
     `;
 
-    const [result] = await pool.query(query);
+    const [result] = await pool.query(query, [tenantId]);
     logger.info(`[AlertasAlquilerService] Limpieza: ${result.affectedRows} alertas expiradas eliminadas`);
     return result.affectedRows;
   }

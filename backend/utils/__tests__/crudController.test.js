@@ -10,7 +10,7 @@ jest.mock('../logger', () => ({
 const createCrudController = require('../crudController');
 const AppError = require('../AppError');
 
-const mockReq = (o = {}) => ({ body: {}, params: {}, query: {}, ...o });
+const mockReq = (o = {}) => ({ body: {}, params: {}, query: {}, tenant: { id: 1, slug: 'test', nombre: 'Test Tenant' }, ...o });
 const mockRes = () => { const r = {}; r.status = jest.fn().mockReturnValue(r); r.json = jest.fn().mockReturnValue(r); return r; };
 const mockNext = () => jest.fn();
 
@@ -110,7 +110,7 @@ describe('crear', () => {
         MockModel.obtenerPorId.mockResolvedValue({ id: 1 });
         await crudWithValidation.crear(mockReq({ body: { nombre: 'raw' } }), mockRes(), mockNext());
         expect(validateBody).toHaveBeenCalledWith({ nombre: 'raw' });
-        expect(MockModel.crear).toHaveBeenCalledWith({ nombre: 'Limpio' });
+        expect(MockModel.crear).toHaveBeenCalledWith(1, { nombre: 'Limpio' });
     });
 
     test('ejecuta checkDuplicate si se proporciona', async () => {

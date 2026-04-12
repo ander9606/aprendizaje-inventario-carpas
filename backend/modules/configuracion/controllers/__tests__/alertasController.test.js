@@ -16,6 +16,7 @@ const controller = require('../alertasController');
 
 const mockReq = (o = {}) => ({
     body: {}, params: {}, query: {},
+    tenant: { id: 1, slug: 'test', nombre: 'Test Tenant' },
     usuario: { id: 1, email: 'admin@test.com' },
     ...o
 });
@@ -35,7 +36,7 @@ describe('getAlertas', () => {
     test('pasa solo_criticas como boolean', async () => {
         AlertasAlquilerService.obtenerTodasLasAlertas.mockResolvedValue([]);
         await controller.getAlertas(mockReq({ query: { solo_criticas: 'true' } }), mockRes(), mockNext());
-        expect(AlertasAlquilerService.obtenerTodasLasAlertas).toHaveBeenCalledWith({
+        expect(AlertasAlquilerService.obtenerTodasLasAlertas).toHaveBeenCalledWith(1, {
             usuario_id: 1, solo_criticas: true
         });
     });
@@ -46,7 +47,7 @@ describe('getAlertasCriticas', () => {
         AlertasAlquilerService.obtenerTodasLasAlertas.mockResolvedValue([{ id: 1, critica: true }]);
         const res = mockRes();
         await controller.getAlertasCriticas(mockReq(), res, mockNext());
-        expect(AlertasAlquilerService.obtenerTodasLasAlertas).toHaveBeenCalledWith({
+        expect(AlertasAlquilerService.obtenerTodasLasAlertas).toHaveBeenCalledWith(1, {
             usuario_id: 1, solo_criticas: true
         });
         expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true, total: 1 }));
@@ -81,7 +82,7 @@ describe('ignorarAlerta', () => {
         await controller.ignorarAlerta(mockReq({
             body: { tipo: 'vencimiento', referencia_id: 10 }
         }), res, mockNext());
-        expect(AlertasAlquilerService.ignorarAlerta).toHaveBeenCalledWith('vencimiento', 10, 1, 1);
+        expect(AlertasAlquilerService.ignorarAlerta).toHaveBeenCalledWith(1, 'vencimiento', 10, 1, 1);
     });
 
     test('error si falta tipo', async () => {

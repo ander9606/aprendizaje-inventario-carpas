@@ -18,6 +18,7 @@ const controller = require('../vehiculoController');
 
 const mockReq = (o = {}) => ({
     body: {}, params: {}, query: {},
+    tenant: { id: 1, slug: 'test', nombre: 'Test Tenant' },
     usuario: { id: 1, email: 'admin@test.com' },
     ip: '127.0.0.1',
     get: jest.fn().mockReturnValue('test-agent'),
@@ -76,7 +77,7 @@ describe('create', () => {
             body: { placa: 'abc123', marca: 'Toyota', modelo: 'Hilux', tipo: 'camioneta' }
         }), res, mockNext());
         expect(res.status).toHaveBeenCalledWith(201);
-        expect(VehiculoModel.crear).toHaveBeenCalledWith(expect.objectContaining({ placa: 'ABC123' }));
+        expect(VehiculoModel.crear).toHaveBeenCalledWith(1, expect.objectContaining({ placa: 'ABC123' }));
     });
 
     test('error si faltan campos requeridos', async () => {
@@ -117,7 +118,7 @@ describe('update', () => {
         AuthModel.registrarAuditoria.mockResolvedValue();
         const req = mockReq({ params: { id: '1' }, body: { placa: 'xyz789' } });
         await controller.update(req, mockRes(), mockNext());
-        expect(VehiculoModel.actualizar).toHaveBeenCalledWith(1, expect.objectContaining({ placa: 'XYZ789' }));
+        expect(VehiculoModel.actualizar).toHaveBeenCalledWith(1, 1, expect.objectContaining({ placa: 'XYZ789' }));
     });
 
     test('error si tipo inválido', async () => {
@@ -176,13 +177,13 @@ describe('getDisponibles', () => {
         const res = mockRes();
         await controller.getDisponibles(mockReq({ query: {} }), res, mockNext());
         expect(res.json).toHaveBeenCalledWith({ success: true, data: [{ id: 1 }] });
-        expect(VehiculoModel.obtenerDisponibles).toHaveBeenCalledWith(null);
+        expect(VehiculoModel.obtenerDisponibles).toHaveBeenCalledWith(1, null);
     });
 
     test('pasa fecha si se proporciona', async () => {
         VehiculoModel.obtenerDisponibles.mockResolvedValue([]);
         await controller.getDisponibles(mockReq({ query: { fecha: '2025-06-01' } }), mockRes(), mockNext());
-        expect(VehiculoModel.obtenerDisponibles).toHaveBeenCalledWith(expect.any(Date));
+        expect(VehiculoModel.obtenerDisponibles).toHaveBeenCalledWith(1, expect.any(Date));
     });
 });
 
@@ -207,7 +208,7 @@ describe('registrarUso', () => {
             params: { id: '1' },
             body: {}
         }), res, mockNext());
-        expect(VehiculoModel.registrarUso).toHaveBeenCalledWith(1, expect.objectContaining({ conductor_id: 1 }));
+        expect(VehiculoModel.registrarUso).toHaveBeenCalledWith(1, 1, expect.objectContaining({ conductor_id: 1 }));
     });
 });
 

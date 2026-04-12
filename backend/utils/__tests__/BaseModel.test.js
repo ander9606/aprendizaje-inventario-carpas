@@ -9,6 +9,7 @@ jest.mock('../../config/database', () => ({
 const { pool } = require('../../config/database');
 const BaseModel = require('../BaseModel');
 
+const T = 1; // tenantId
 let model;
 
 beforeEach(() => {
@@ -25,7 +26,7 @@ beforeEach(() => {
 describe('obtenerTodos', () => {
     test('retorna todas las filas ordenadas por defecto', async () => {
         pool.query.mockResolvedValue([[{ id: 1, nombre: 'Acero' }]]);
-        const result = await model.obtenerTodos();
+        const result = await model.obtenerTodos(T);
         expect(result).toEqual([{ id: 1, nombre: 'Acero' }]);
         expect(pool.query.mock.calls[0][0]).toContain('FROM materiales m');
         expect(pool.query.mock.calls[0][0]).toContain('ORDER BY m.nombre');
@@ -35,14 +36,14 @@ describe('obtenerTodos', () => {
 describe('obtenerPorId', () => {
     test('retorna una fila por id', async () => {
         pool.query.mockResolvedValue([[{ id: 5, nombre: 'Aluminio' }]]);
-        const result = await model.obtenerPorId(5);
+        const result = await model.obtenerPorId(T, 5);
         expect(result).toEqual({ id: 5, nombre: 'Aluminio' });
-        expect(pool.query.mock.calls[0][1]).toEqual([5]);
+        expect(pool.query.mock.calls[0][1]).toEqual([5, T]);
     });
 
     test('retorna undefined si no existe', async () => {
         pool.query.mockResolvedValue([[]]);
-        const result = await model.obtenerPorId(999);
+        const result = await model.obtenerPorId(T, 999);
         expect(result).toBeUndefined();
     });
 });
@@ -50,30 +51,30 @@ describe('obtenerPorId', () => {
 describe('obtenerConPaginacion', () => {
     test('aplica limit y offset', async () => {
         pool.query.mockResolvedValue([[{ id: 1 }]]);
-        await model.obtenerConPaginacion({ limit: 10, offset: 20, sortBy: 'nombre', order: 'ASC' });
+        await model.obtenerConPaginacion(T, { limit: 10, offset: 20, sortBy: 'nombre', order: 'ASC' });
         const query = pool.query.mock.calls[0][0];
         expect(query).toContain('LIMIT');
-        expect(pool.query.mock.calls[0][1]).toEqual([10, 20]);
+        expect(pool.query.mock.calls[0][1]).toEqual([T, 10, 20]);
     });
 
     test('aplica busqueda', async () => {
         pool.query.mockResolvedValue([[{ id: 1 }]]);
-        await model.obtenerConPaginacion({ limit: 10, offset: 0, search: 'acero' });
+        await model.obtenerConPaginacion(T, { limit: 10, offset: 0, search: 'acero' });
         const query = pool.query.mock.calls[0][0];
         expect(query).toContain('WHERE');
         expect(query).toContain('LIKE');
-        expect(pool.query.mock.calls[0][1][0]).toBe('%acero%');
+        expect(pool.query.mock.calls[0][1][1]).toBe('%acero%');
     });
 
     test('valida orden DESC', async () => {
         pool.query.mockResolvedValue([[]]);
-        await model.obtenerConPaginacion({ limit: 10, offset: 0, order: 'DESC' });
+        await model.obtenerConPaginacion(T, { limit: 10, offset: 0, order: 'DESC' });
         expect(pool.query.mock.calls[0][0]).toContain('DESC');
     });
 
     test('usa campo de ordenamiento por defecto si sortBy es invalido', async () => {
         pool.query.mockResolvedValue([[]]);
-        await model.obtenerConPaginacion({ limit: 10, offset: 0, sortBy: 'INVALID' });
+        await model.obtenerConPaginacion(T, { limit: 10, offset: 0, sortBy: 'INVALID' });
         expect(pool.query.mock.calls[0][0]).toContain('m.nombre');
     });
 });
@@ -81,14 +82,15 @@ describe('obtenerConPaginacion', () => {
 describe('contarTodos', () => {
     test('retorna total sin busqueda', async () => {
         pool.query.mockResolvedValue([[{ total: 42 }]]);
-        const result = await model.contarTodos();
+        const result = await model.contarTodos(T);
         expect(result).toBe(42);
-        expect(pool.query.mock.calls[0][0]).not.toContain('WHERE');
+        // Has WHERE for tenant_id
+        expect(pool.query.mock.calls[0][0]).toContain('WHERE');
     });
 
     test('retorna total con busqueda', async () => {
         pool.query.mockResolvedValue([[{ total: 3 }]]);
-        const result = await model.contarTodos('acero');
+        const result = await model.contarTodos(T, 'acero');
         expect(result).toBe(3);
         expect(pool.query.mock.calls[0][0]).toContain('WHERE');
     });
@@ -97,7 +99,7 @@ describe('contarTodos', () => {
 describe('obtenerPorNombre', () => {
     test('retorna fila por nombre', async () => {
         pool.query.mockResolvedValue([[{ id: 1, nombre: 'Acero' }]]);
-        const result = await model.obtenerPorNombre('Acero');
+        const result = await model.obtenerPorNombre(T, 'Acero');
         expect(result).toEqual({ id: 1, nombre: 'Acero' });
     });
 });
@@ -105,44 +107,45 @@ describe('obtenerPorNombre', () => {
 describe('nombreExiste', () => {
     test('retorna true si existe', async () => {
         pool.query.mockResolvedValue([[{ total: 1 }]]);
-        const result = await model.nombreExiste('Acero');
+        const result = await model.nombreExiste(T, 'Acero');
         expect(result).toBe(true);
     });
 
     test('excluye id si se proporciona', async () => {
         pool.query.mockResolvedValue([[{ total: 0 }]]);
-        const result = await model.nombreExiste('Acero', 5);
+        const result = await model.nombreExiste(T, 'Acero', 5);
         expect(result).toBe(false);
-        expect(pool.query.mock.calls[0][1]).toEqual(['Acero', 5]);
+        expect(pool.query.mock.calls[0][1]).toEqual(['Acero', T, 5]);
     });
 });
 
 describe('crear', () => {
     test('inserta y retorna insertId', async () => {
         pool.query.mockResolvedValue([{ insertId: 10 }]);
-        const result = await model.crear({ nombre: 'Nuevo', descripcion: 'Desc' });
+        const result = await model.crear(T, { nombre: 'Nuevo', descripcion: 'Desc' });
         expect(result).toBe(10);
         expect(pool.query.mock.calls[0][0]).toContain('INSERT INTO materiales');
-        expect(pool.query.mock.calls[0][1]).toEqual(['Nuevo', 'Desc']);
+        // data fields + tenant_id
+        expect(pool.query.mock.calls[0][1]).toEqual(['Nuevo', 'Desc', T]);
     });
 });
 
 describe('actualizar', () => {
     test('actualiza campos por id', async () => {
         pool.query.mockResolvedValue([{ affectedRows: 1 }]);
-        const result = await model.actualizar(5, { nombre: 'Editado' });
+        const result = await model.actualizar(T, 5, { nombre: 'Editado' });
         expect(result).toBe(1);
         expect(pool.query.mock.calls[0][0]).toContain('UPDATE materiales SET nombre = ?');
-        expect(pool.query.mock.calls[0][1]).toEqual(['Editado', 5]);
+        expect(pool.query.mock.calls[0][1]).toEqual(['Editado', 5, T]);
     });
 });
 
 describe('eliminar', () => {
     test('elimina por id', async () => {
         pool.query.mockResolvedValue([{ affectedRows: 1 }]);
-        const result = await model.eliminar(5);
+        const result = await model.eliminar(T, 5);
         expect(result).toBe(1);
-        expect(pool.query.mock.calls[0][1]).toEqual([5]);
+        expect(pool.query.mock.calls[0][1]).toEqual([5, T]);
     });
 });
 
@@ -170,11 +173,11 @@ describe('configuracion', () => {
             searchColumns: ['nombre', 'placa']
         });
         pool.query.mockResolvedValue([[]]);
-        await multi.obtenerConPaginacion({ limit: 10, offset: 0, search: 'abc' });
+        await multi.obtenerConPaginacion(T, { limit: 10, offset: 0, search: 'abc' });
         const query = pool.query.mock.calls[0][0];
         expect(query).toContain('v.nombre LIKE ?');
         expect(query).toContain('v.placa LIKE ?');
         expect(query).toContain('OR');
-        expect(pool.query.mock.calls[0][1]).toEqual(['%abc%', '%abc%', 10, 0]);
+        expect(pool.query.mock.calls[0][1]).toEqual([T, '%abc%', '%abc%', 10, 0]);
     });
 });

@@ -4,10 +4,11 @@ const AppError = require('../../../utils/AppError');
 class OrdenElementoModel {
     /**
      * Obtener elementos de una orden
+     * @param {number} tenantId
      * @param {number} ordenId
      * @returns {Promise<Array>}
      */
-    static async obtenerPorOrden(ordenId) {
+    static async obtenerPorOrden(tenantId, ordenId) {
         const [rows] = await pool.query(`
             SELECT
                 ote.id,
@@ -24,23 +25,24 @@ class OrdenElementoModel {
                 s.numero_serie,
                 l.lote_numero
             FROM orden_trabajo_elementos ote
-            INNER JOIN elementos el ON ote.elemento_id = el.id
-            LEFT JOIN series s ON ote.serie_id = s.id
-            LEFT JOIN lotes l ON ote.lote_id = l.id
-            WHERE ote.orden_id = ?
+            INNER JOIN elementos el ON ote.elemento_id = el.id AND el.tenant_id = ?
+            LEFT JOIN series s ON ote.serie_id = s.id AND s.tenant_id = ?
+            LEFT JOIN lotes l ON ote.lote_id = l.id AND l.tenant_id = ?
+            WHERE ote.tenant_id = ? AND ote.orden_id = ?
             ORDER BY el.nombre ASC
-        `, [ordenId]);
+        `, [tenantId, tenantId, tenantId, tenantId, ordenId]);
 
         return rows;
     }
 
     /**
      * Cambiar estado de un elemento en la orden
+     * @param {number} tenantId
      * @param {number} elementoId - ID del registro en orden_trabajo_elementos
      * @param {string} estado
      * @returns {Promise<Object>}
      */
-    static async cambiarEstado(elementoId, estado) {
+    static async cambiarEstado(tenantId, elementoId, estado) {
         const estadosValidos = ['pendiente', 'preparado', 'cargado', 'descargado', 'instalado', 'desmontado', 'retornado', 'incidencia'];
 
         if (!estadosValidos.includes(estado)) {
@@ -48,8 +50,8 @@ class OrdenElementoModel {
         }
 
         const [existente] = await pool.query(
-            'SELECT * FROM orden_trabajo_elementos WHERE id = ?',
-            [elementoId]
+            'SELECT * FROM orden_trabajo_elementos WHERE tenant_id = ? AND id = ?',
+            [tenantId, elementoId]
         );
 
         if (existente.length === 0) {
@@ -59,8 +61,8 @@ class OrdenElementoModel {
         await pool.query(`
             UPDATE orden_trabajo_elementos
             SET estado = ?
-            WHERE id = ?
-        `, [estado, elementoId]);
+            WHERE tenant_id = ? AND id = ?
+        `, [estado, tenantId, elementoId]);
 
         const [resultado] = await pool.query(`
             SELECT
@@ -69,11 +71,11 @@ class OrdenElementoModel {
                 s.numero_serie,
                 l.lote_numero
             FROM orden_trabajo_elementos ote
-            INNER JOIN elementos el ON ote.elemento_id = el.id
-            LEFT JOIN series s ON ote.serie_id = s.id
-            LEFT JOIN lotes l ON ote.lote_id = l.id
-            WHERE ote.id = ?
-        `, [elementoId]);
+            INNER JOIN elementos el ON ote.elemento_id = el.id AND el.tenant_id = ?
+            LEFT JOIN series s ON ote.serie_id = s.id AND s.tenant_id = ?
+            LEFT JOIN lotes l ON ote.lote_id = l.id AND l.tenant_id = ?
+            WHERE ote.tenant_id = ? AND ote.id = ?
+        `, [tenantId, tenantId, tenantId, tenantId, elementoId]);
 
         return resultado[0];
     }
@@ -83,12 +85,13 @@ class OrdenElementoModel {
      * Cambiar estado de múltiples elementos a la vez
      * Permite operaciones masivas para agilizar el proceso
      * ============================================
+     * @param {number} tenantId
      * @param {number} ordenId - ID de la orden de trabajo
      * @param {Array<number>} elementoIds - IDs de los registros en orden_trabajo_elementos
      * @param {string} estado - Nuevo estado a aplicar
      * @returns {Promise<Object>} - Cantidad de registros actualizados
      */
-    static async cambiarEstadoMasivo(ordenId, elementoIds, estado) {
+    static async cambiarEstadoMasivo(tenantId, ordenId, elementoIds, estado) {
         const estadosValidos = ['pendiente', 'preparado', 'cargado', 'descargado', 'instalado', 'desmontado', 'retornado', 'incidencia'];
 
         if (!estadosValidos.includes(estado)) {
@@ -102,8 +105,8 @@ class OrdenElementoModel {
         // Verificar que todos los elementos pertenecen a la orden
         const placeholders = elementoIds.map(() => '?').join(',');
         const [existentes] = await pool.query(
-            `SELECT id FROM orden_trabajo_elementos WHERE orden_id = ? AND id IN (${placeholders})`,
-            [ordenId, ...elementoIds]
+            `SELECT id FROM orden_trabajo_elementos WHERE tenant_id = ? AND orden_id = ? AND id IN (${placeholders})`,
+            [tenantId, ordenId, ...elementoIds]
         );
 
         if (existentes.length !== elementoIds.length) {
@@ -114,8 +117,8 @@ class OrdenElementoModel {
         const [result] = await pool.query(`
             UPDATE orden_trabajo_elementos
             SET estado = ?, updated_at = NOW()
-            WHERE orden_id = ? AND id IN (${placeholders})
-        `, [estado, ordenId, ...elementoIds]);
+            WHERE tenant_id = ? AND orden_id = ? AND id IN (${placeholders})
+        `, [estado, tenantId, ordenId, ...elementoIds]);
 
         return {
             actualizados: result.affectedRows,
@@ -125,14 +128,15 @@ class OrdenElementoModel {
 
     /**
      * Verificar salida de elemento
+     * @param {number} tenantId
      * @param {number} elementoId
      * @param {number} verificadoPor
      * @returns {Promise<Object>}
      */
-    static async verificarSalida(elementoId, verificadoPor) {
+    static async verificarSalida(tenantId, elementoId, verificadoPor) {
         const [existente] = await pool.query(
-            'SELECT * FROM orden_trabajo_elementos WHERE id = ?',
-            [elementoId]
+            'SELECT * FROM orden_trabajo_elementos WHERE tenant_id = ? AND id = ?',
+            [tenantId, elementoId]
         );
 
         if (existente.length === 0) {
@@ -143,22 +147,23 @@ class OrdenElementoModel {
             UPDATE orden_trabajo_elementos
             SET verificado_salida = TRUE,
                 estado = 'cargado'
-            WHERE id = ?
-        `, [elementoId]);
+            WHERE tenant_id = ? AND id = ?
+        `, [tenantId, elementoId]);
 
-        return this.obtenerPorId(elementoId);
+        return this.obtenerPorId(tenantId, elementoId);
     }
 
     /**
      * Verificar retorno de elemento
+     * @param {number} tenantId
      * @param {number} elementoId
      * @param {number} verificadoPor
      * @returns {Promise<Object>}
      */
-    static async verificarRetorno(elementoId, verificadoPor) {
+    static async verificarRetorno(tenantId, elementoId, verificadoPor) {
         const [existente] = await pool.query(
-            'SELECT * FROM orden_trabajo_elementos WHERE id = ?',
-            [elementoId]
+            'SELECT * FROM orden_trabajo_elementos WHERE tenant_id = ? AND id = ?',
+            [tenantId, elementoId]
         );
 
         if (existente.length === 0) {
@@ -169,23 +174,24 @@ class OrdenElementoModel {
             UPDATE orden_trabajo_elementos
             SET verificado_retorno = TRUE,
                 estado = 'retornado'
-            WHERE id = ?
-        `, [elementoId]);
+            WHERE tenant_id = ? AND id = ?
+        `, [tenantId, elementoId]);
 
-        return this.obtenerPorId(elementoId);
+        return this.obtenerPorId(tenantId, elementoId);
     }
 
     /**
      * Toggle verificación de cargue (salida) de un elemento
+     * @param {number} tenantId
      * @param {number} elementoId
      * @param {boolean} verificado
      * @param {string|null} notas
      * @returns {Promise<Object>}
      */
-    static async toggleVerificacionCargue(elementoId, verificado, notas = null) {
+    static async toggleVerificacionCargue(tenantId, elementoId, verificado, notas = null) {
         const [existente] = await pool.query(
-            'SELECT * FROM orden_trabajo_elementos WHERE id = ?',
-            [elementoId]
+            'SELECT * FROM orden_trabajo_elementos WHERE tenant_id = ? AND id = ?',
+            [tenantId, elementoId]
         );
 
         if (existente.length === 0) {
@@ -195,31 +201,32 @@ class OrdenElementoModel {
         const nuevoEstado = verificado ? 'cargado' : 'pendiente';
         const updateNotas = notas !== null ? ', notas = ?' : '';
         const params = notas !== null
-            ? [verificado, nuevoEstado, notas, elementoId]
-            : [verificado, nuevoEstado, elementoId];
+            ? [verificado, nuevoEstado, notas, tenantId, elementoId]
+            : [verificado, nuevoEstado, tenantId, elementoId];
 
         await pool.query(`
             UPDATE orden_trabajo_elementos
             SET verificado_salida = ?,
                 estado = ?
                 ${updateNotas}
-            WHERE id = ?
+            WHERE tenant_id = ? AND id = ?
         `, params);
 
-        return this.obtenerPorId(elementoId);
+        return this.obtenerPorId(tenantId, elementoId);
     }
 
     /**
      * Toggle verificación de recogida (recoger en sitio del evento) de un elemento
+     * @param {number} tenantId
      * @param {number} elementoId
      * @param {boolean} verificado
      * @param {string|null} notas
      * @returns {Promise<Object>}
      */
-    static async toggleVerificacionDescargue(elementoId, verificado, notas = null) {
+    static async toggleVerificacionDescargue(tenantId, elementoId, verificado, notas = null) {
         const [existente] = await pool.query(
-            'SELECT * FROM orden_trabajo_elementos WHERE id = ?',
-            [elementoId]
+            'SELECT * FROM orden_trabajo_elementos WHERE tenant_id = ? AND id = ?',
+            [tenantId, elementoId]
         );
 
         if (existente.length === 0) {
@@ -229,31 +236,32 @@ class OrdenElementoModel {
         const nuevoEstado = verificado ? 'descargado' : 'pendiente';
         const updateNotas = notas !== null ? ', notas = ?' : '';
         const params = notas !== null
-            ? [verificado, nuevoEstado, notas, elementoId]
-            : [verificado, nuevoEstado, elementoId];
+            ? [verificado, nuevoEstado, notas, tenantId, elementoId]
+            : [verificado, nuevoEstado, tenantId, elementoId];
 
         await pool.query(`
             UPDATE orden_trabajo_elementos
             SET verificado_retorno = ?,
                 estado = ?
                 ${updateNotas}
-            WHERE id = ?
+            WHERE tenant_id = ? AND id = ?
         `, params);
 
-        return this.obtenerPorId(elementoId);
+        return this.obtenerPorId(tenantId, elementoId);
     }
 
     /**
      * Toggle verificación en bodega (descarga del camión en bodega) de un elemento
+     * @param {number} tenantId
      * @param {number} elementoId
      * @param {boolean} verificado
      * @param {string|null} notas
      * @returns {Promise<Object>}
      */
-    static async toggleVerificacionBodega(elementoId, verificado, notas = null) {
+    static async toggleVerificacionBodega(tenantId, elementoId, verificado, notas = null) {
         const [existente] = await pool.query(
-            'SELECT * FROM orden_trabajo_elementos WHERE id = ?',
-            [elementoId]
+            'SELECT * FROM orden_trabajo_elementos WHERE tenant_id = ? AND id = ?',
+            [tenantId, elementoId]
         );
 
         if (existente.length === 0) {
@@ -265,17 +273,17 @@ class OrdenElementoModel {
 
         const updateNotas = notas !== null ? ', notas = ?' : '';
         const params = notas !== null
-            ? [verificado, notas, elementoId]
-            : [verificado, elementoId];
+            ? [verificado, notas, tenantId, elementoId]
+            : [verificado, tenantId, elementoId];
 
         await pool.query(`
             UPDATE orden_trabajo_elementos
             SET verificado_bodega = ?
                 ${updateNotas}
-            WHERE id = ?
+            WHERE tenant_id = ? AND id = ?
         `, params);
 
-        return this.obtenerPorId(elementoId);
+        return this.obtenerPorId(tenantId, elementoId);
     }
 
     /**
@@ -319,18 +327,19 @@ class OrdenElementoModel {
 
     /**
      * Marcar o desmarcar daño en un elemento del checklist
+     * @param {number} tenantId
      * @param {number} elementoId
      * @param {boolean} marcadoDano
      * @param {string|null} descripcionDano
      * @param {number|null} cantidadDanada - Para lotes, cuántos están dañados
      * @returns {Promise<Object>}
      */
-    static async marcarDano(elementoId, marcadoDano, descripcionDano = null, cantidadDanada = null) {
+    static async marcarDano(tenantId, elementoId, marcadoDano, descripcionDano = null, cantidadDanada = null) {
         await this._ensureColumnsMarcadoDano();
 
         const [existente] = await pool.query(
-            'SELECT * FROM orden_trabajo_elementos WHERE id = ?',
-            [elementoId]
+            'SELECT * FROM orden_trabajo_elementos WHERE tenant_id = ? AND id = ?',
+            [tenantId, elementoId]
         );
 
         if (existente.length === 0) {
@@ -347,23 +356,25 @@ class OrdenElementoModel {
             SET marcado_dano = ?,
                 descripcion_dano = ?,
                 cantidad_danada = ?
-            WHERE id = ?
+            WHERE tenant_id = ? AND id = ?
         `, [
             marcadoDano,
             marcadoDano ? descripcionDano : null,
             marcadoDano ? cantidadDanada : null,
+            tenantId,
             elementoId
         ]);
 
-        return this.obtenerPorId(elementoId);
+        return this.obtenerPorId(tenantId, elementoId);
     }
 
     /**
      * Obtener elementos marcados con daño de una orden
+     * @param {number} tenantId
      * @param {number} ordenId
      * @returns {Promise<Array>}
      */
-    static async obtenerElementosConDano(ordenId) {
+    static async obtenerElementosConDano(tenantId, ordenId) {
         await this._ensureColumnsMarcadoDano();
 
         const [rows] = await pool.query(`
@@ -383,22 +394,23 @@ class OrdenElementoModel {
                 s.numero_serie as serie_codigo,
                 l.lote_numero as lote_codigo
             FROM orden_trabajo_elementos ote
-            INNER JOIN elementos el ON ote.elemento_id = el.id
-            LEFT JOIN series s ON ote.serie_id = s.id
-            LEFT JOIN lotes l ON ote.lote_id = l.id
-            WHERE ote.orden_id = ? AND ote.marcado_dano = TRUE
+            INNER JOIN elementos el ON ote.elemento_id = el.id AND el.tenant_id = ?
+            LEFT JOIN series s ON ote.serie_id = s.id AND s.tenant_id = ?
+            LEFT JOIN lotes l ON ote.lote_id = l.id AND l.tenant_id = ?
+            WHERE ote.tenant_id = ? AND ote.orden_id = ? AND ote.marcado_dano = TRUE
             ORDER BY el.nombre ASC
-        `, [ordenId]);
+        `, [tenantId, tenantId, tenantId, tenantId, ordenId]);
 
         return rows;
     }
 
     /**
      * Obtener resumen de checklist para una orden
+     * @param {number} tenantId
      * @param {number} ordenId
      * @returns {Promise<Object>} - { elementos, totalElementos, verificadosCargue, verificadosRecogida, verificadosBodega }
      */
-    static async obtenerChecklistOrden(ordenId) {
+    static async obtenerChecklistOrden(tenantId, ordenId) {
         // Asegurar que las columnas dinámicas existen
         await this._ensureColumnVerificadoBodega();
         await this._ensureColumnsMarcadoDano();
@@ -423,12 +435,12 @@ class OrdenElementoModel {
                 s.numero_serie as serie_codigo,
                 l.lote_numero as lote_codigo
             FROM orden_trabajo_elementos ote
-            INNER JOIN elementos el ON ote.elemento_id = el.id
-            LEFT JOIN series s ON ote.serie_id = s.id
-            LEFT JOIN lotes l ON ote.lote_id = l.id
-            WHERE ote.orden_id = ?
+            INNER JOIN elementos el ON ote.elemento_id = el.id AND el.tenant_id = ?
+            LEFT JOIN series s ON ote.serie_id = s.id AND s.tenant_id = ?
+            LEFT JOIN lotes l ON ote.lote_id = l.id AND l.tenant_id = ?
+            WHERE ote.tenant_id = ? AND ote.orden_id = ?
             ORDER BY el.nombre ASC
-        `, [ordenId]);
+        `, [tenantId, tenantId, tenantId, tenantId, ordenId]);
 
         const totalElementos = rows.length;
         const verificadosCargue = rows.filter(r => r.verificado_salida).length;
@@ -450,10 +462,11 @@ class OrdenElementoModel {
 
     /**
      * Obtener elemento por ID
+     * @param {number} tenantId
      * @param {number} elementoId
      * @returns {Promise<Object|null>}
      */
-    static async obtenerPorId(elementoId) {
+    static async obtenerPorId(tenantId, elementoId) {
         const [rows] = await pool.query(`
             SELECT
                 ote.*,
@@ -461,41 +474,42 @@ class OrdenElementoModel {
                 s.numero_serie,
                 l.lote_numero
             FROM orden_trabajo_elementos ote
-            INNER JOIN elementos el ON ote.elemento_id = el.id
-            LEFT JOIN series s ON ote.serie_id = s.id
-            LEFT JOIN lotes l ON ote.lote_id = l.id
-            WHERE ote.id = ?
-        `, [elementoId]);
+            INNER JOIN elementos el ON ote.elemento_id = el.id AND el.tenant_id = ?
+            LEFT JOIN series s ON ote.serie_id = s.id AND s.tenant_id = ?
+            LEFT JOIN lotes l ON ote.lote_id = l.id AND l.tenant_id = ?
+            WHERE ote.tenant_id = ? AND ote.id = ?
+        `, [tenantId, tenantId, tenantId, tenantId, elementoId]);
 
         return rows.length > 0 ? rows[0] : null;
     }
 
     /**
      * Registrar incidencia en un elemento
+     * @param {number} tenantId
      * @param {number} elementoOrdenId
      * @param {Object} datos
      * @returns {Promise<Object>}
      */
-    static async registrarIncidencia(elementoOrdenId, datos) {
+    static async registrarIncidencia(tenantId, elementoOrdenId, datos) {
         const { tipo, descripcion, severidad = 'media', reportado_por } = datos;
 
-        const elemento = await this.obtenerPorId(elementoOrdenId);
+        const elemento = await this.obtenerPorId(tenantId, elementoOrdenId);
         if (!elemento) {
             throw new AppError('Elemento no encontrado en la orden', 404);
         }
 
         const [result] = await pool.query(`
             INSERT INTO elemento_incidencias
-            (orden_elemento_id, tipo, descripcion, severidad, reportado_por)
-            VALUES (?, ?, ?, ?, ?)
-        `, [elementoOrdenId, tipo, descripcion, severidad, reportado_por]);
+            (tenant_id, orden_elemento_id, tipo, descripcion, severidad, reportado_por)
+            VALUES (?, ?, ?, ?, ?, ?)
+        `, [tenantId, elementoOrdenId, tipo, descripcion, severidad, reportado_por]);
 
         // Cambiar estado del elemento a incidencia
         await pool.query(`
             UPDATE orden_trabajo_elementos
             SET estado = 'incidencia'
-            WHERE id = ?
-        `, [elementoOrdenId]);
+            WHERE tenant_id = ? AND id = ?
+        `, [tenantId, elementoOrdenId]);
 
         const [incidencia] = await pool.query(`
             SELECT
@@ -503,19 +517,20 @@ class OrdenElementoModel {
                 e.nombre as reportador_nombre,
                 e.apellido as reportador_apellido
             FROM elemento_incidencias ei
-            LEFT JOIN empleados e ON ei.reportado_por = e.id
-            WHERE ei.id = ?
-        `, [result.insertId]);
+            LEFT JOIN empleados e ON ei.reportado_por = e.id AND e.tenant_id = ?
+            WHERE ei.tenant_id = ? AND ei.id = ?
+        `, [tenantId, tenantId, result.insertId]);
 
         return incidencia[0];
     }
 
     /**
      * Obtener incidencias de un elemento
+     * @param {number} tenantId
      * @param {number} elementoOrdenId
      * @returns {Promise<Array>}
      */
-    static async obtenerIncidencias(elementoOrdenId) {
+    static async obtenerIncidencias(tenantId, elementoOrdenId) {
         const [rows] = await pool.query(`
             SELECT
                 ei.*,
@@ -524,27 +539,28 @@ class OrdenElementoModel {
                 er.nombre as resolutor_nombre,
                 er.apellido as resolutor_apellido
             FROM elemento_incidencias ei
-            LEFT JOIN empleados e ON ei.reportado_por = e.id
-            LEFT JOIN empleados er ON ei.resuelto_por = er.id
-            WHERE ei.orden_elemento_id = ?
+            LEFT JOIN empleados e ON ei.reportado_por = e.id AND e.tenant_id = ?
+            LEFT JOIN empleados er ON ei.resuelto_por = er.id AND er.tenant_id = ?
+            WHERE ei.tenant_id = ? AND ei.orden_elemento_id = ?
             ORDER BY ei.created_at DESC
-        `, [elementoOrdenId]);
+        `, [tenantId, tenantId, tenantId, elementoOrdenId]);
 
         return rows;
     }
 
     /**
      * Resolver incidencia
+     * @param {number} tenantId
      * @param {number} incidenciaId
      * @param {Object} datos
      * @returns {Promise<Object>}
      */
-    static async resolverIncidencia(incidenciaId, datos) {
+    static async resolverIncidencia(tenantId, incidenciaId, datos) {
         const { resolucion, resuelto_por } = datos;
 
         const [existente] = await pool.query(
-            'SELECT * FROM elemento_incidencias WHERE id = ?',
-            [incidenciaId]
+            'SELECT * FROM elemento_incidencias WHERE tenant_id = ? AND id = ?',
+            [tenantId, incidenciaId]
         );
 
         if (existente.length === 0) {
@@ -557,8 +573,8 @@ class OrdenElementoModel {
                 resolucion = ?,
                 resuelto_por = ?,
                 fecha_resolucion = CURRENT_TIMESTAMP
-            WHERE id = ?
-        `, [resolucion, resuelto_por, incidenciaId]);
+            WHERE tenant_id = ? AND id = ?
+        `, [resolucion, resuelto_por, tenantId, incidenciaId]);
 
         const [incidencia] = await pool.query(`
             SELECT
@@ -568,37 +584,38 @@ class OrdenElementoModel {
                 er.nombre as resolutor_nombre,
                 er.apellido as resolutor_apellido
             FROM elemento_incidencias ei
-            LEFT JOIN empleados e ON ei.reportado_por = e.id
-            LEFT JOIN empleados er ON ei.resuelto_por = er.id
-            WHERE ei.id = ?
-        `, [incidenciaId]);
+            LEFT JOIN empleados e ON ei.reportado_por = e.id AND e.tenant_id = ?
+            LEFT JOIN empleados er ON ei.resuelto_por = er.id AND er.tenant_id = ?
+            WHERE ei.tenant_id = ? AND ei.id = ?
+        `, [tenantId, tenantId, tenantId, incidenciaId]);
 
         return incidencia[0];
     }
 
     /**
      * Subir foto de elemento
+     * @param {number} tenantId
      * @param {number} elementoOrdenId
      * @param {Object} datos
      * @returns {Promise<Object>}
      */
-    static async subirFoto(elementoOrdenId, datos) {
+    static async subirFoto(tenantId, elementoOrdenId, datos) {
         const { url_foto, tipo, descripcion, subido_por } = datos;
 
-        const elemento = await this.obtenerPorId(elementoOrdenId);
+        const elemento = await this.obtenerPorId(tenantId, elementoOrdenId);
         if (!elemento) {
             throw new AppError('Elemento no encontrado en la orden', 404);
         }
 
         const [result] = await pool.query(`
             INSERT INTO orden_elemento_fotos
-            (orden_elemento_id, url_foto, tipo, descripcion, subido_por)
-            VALUES (?, ?, ?, ?, ?)
-        `, [elementoOrdenId, url_foto, tipo || 'estado', descripcion || null, subido_por]);
+            (tenant_id, orden_elemento_id, url_foto, tipo, descripcion, subido_por)
+            VALUES (?, ?, ?, ?, ?, ?)
+        `, [tenantId, elementoOrdenId, url_foto, tipo || 'estado', descripcion || null, subido_por]);
 
         const [foto] = await pool.query(
-            'SELECT * FROM orden_elemento_fotos WHERE id = ?',
-            [result.insertId]
+            'SELECT * FROM orden_elemento_fotos WHERE tenant_id = ? AND id = ?',
+            [tenantId, result.insertId]
         );
 
         return foto[0];
@@ -606,49 +623,52 @@ class OrdenElementoModel {
 
     /**
      * Obtener fotos de un elemento
+     * @param {number} tenantId
      * @param {number} elementoOrdenId
      * @returns {Promise<Array>}
      */
-    static async obtenerFotos(elementoOrdenId) {
+    static async obtenerFotos(tenantId, elementoOrdenId) {
         const [rows] = await pool.query(`
             SELECT
                 oef.*,
                 e.nombre as subidor_nombre,
                 e.apellido as subidor_apellido
             FROM orden_elemento_fotos oef
-            LEFT JOIN empleados e ON oef.subido_por = e.id
-            WHERE oef.orden_elemento_id = ?
+            LEFT JOIN empleados e ON oef.subido_por = e.id AND e.tenant_id = ?
+            WHERE oef.tenant_id = ? AND oef.orden_elemento_id = ?
             ORDER BY oef.created_at DESC
-        `, [elementoOrdenId]);
+        `, [tenantId, tenantId, elementoOrdenId]);
 
         return rows;
     }
 
     /**
      * Agregar elemento a una orden
+     * @param {number} tenantId
      * @param {number} ordenId
      * @param {Object} datos
      * @returns {Promise<Object>}
      */
-    static async agregarElemento(ordenId, datos) {
+    static async agregarElemento(tenantId, ordenId, datos) {
         const { elemento_id, serie_id, lote_id, cantidad = 1 } = datos;
 
         const [result] = await pool.query(`
             INSERT INTO orden_trabajo_elementos
-            (orden_id, elemento_id, serie_id, lote_id, cantidad, estado)
-            VALUES (?, ?, ?, ?, ?, 'pendiente')
-        `, [ordenId, elemento_id, serie_id || null, lote_id || null, cantidad]);
+            (tenant_id, orden_id, elemento_id, serie_id, lote_id, cantidad, estado)
+            VALUES (?, ?, ?, ?, ?, ?, 'pendiente')
+        `, [tenantId, ordenId, elemento_id, serie_id || null, lote_id || null, cantidad]);
 
-        return this.obtenerPorId(result.insertId);
+        return this.obtenerPorId(tenantId, result.insertId);
     }
 
     /**
      * Eliminar elemento de una orden
+     * @param {number} tenantId
      * @param {number} elementoId
      * @returns {Promise<boolean>}
      */
-    static async eliminarElemento(elementoId) {
-        const elemento = await this.obtenerPorId(elementoId);
+    static async eliminarElemento(tenantId, elementoId) {
+        const elemento = await this.obtenerPorId(tenantId, elementoId);
         if (!elemento) {
             throw new AppError('Elemento no encontrado en la orden', 404);
         }
@@ -658,19 +678,20 @@ class OrdenElementoModel {
             throw new AppError('Solo se pueden eliminar elementos en estado pendiente', 400);
         }
 
-        await pool.query('DELETE FROM orden_trabajo_elementos WHERE id = ?', [elementoId]);
+        await pool.query('DELETE FROM orden_trabajo_elementos WHERE tenant_id = ? AND id = ?', [tenantId, elementoId]);
 
         return true;
     }
 
     /**
      * Actualizar notas de un elemento
+     * @param {number} tenantId
      * @param {number} elementoId
      * @param {string} notas
      * @returns {Promise<Object>}
      */
-    static async actualizarNotas(elementoId, notas) {
-        const elemento = await this.obtenerPorId(elementoId);
+    static async actualizarNotas(tenantId, elementoId, notas) {
+        const elemento = await this.obtenerPorId(tenantId, elementoId);
         if (!elemento) {
             throw new AppError('Elemento no encontrado en la orden', 404);
         }
@@ -678,10 +699,10 @@ class OrdenElementoModel {
         await pool.query(`
             UPDATE orden_trabajo_elementos
             SET notas = ?
-            WHERE id = ?
-        `, [notas, elementoId]);
+            WHERE tenant_id = ? AND id = ?
+        `, [notas, tenantId, elementoId]);
 
-        return this.obtenerPorId(elementoId);
+        return this.obtenerPorId(tenantId, elementoId);
     }
 }
 

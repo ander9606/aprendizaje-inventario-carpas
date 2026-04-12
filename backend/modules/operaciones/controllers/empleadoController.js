@@ -11,6 +11,7 @@ const logger = require('../../../utils/logger');
  */
 const getAll = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const {
             page = 1,
             limit = 20,
@@ -21,7 +22,7 @@ const getAll = async (req, res, next) => {
             direccion
         } = req.query;
 
-        const resultado = await EmpleadoModel.obtenerTodos({
+        const resultado = await EmpleadoModel.obtenerTodos(tenantId, {
             page: parseInt(page),
             limit: parseInt(limit),
             buscar,
@@ -52,9 +53,10 @@ const getAll = async (req, res, next) => {
  */
 const getById = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { id } = req.params;
 
-        const empleado = await EmpleadoModel.obtenerPorId(parseInt(id));
+        const empleado = await EmpleadoModel.obtenerPorId(tenantId, parseInt(id));
 
         if (!empleado) {
             throw new AppError('Empleado no encontrado', 404);
@@ -75,6 +77,7 @@ const getById = async (req, res, next) => {
  */
 const create = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { nombre, apellido, email, telefono, password, rol_id } = req.body;
 
         // Validaciones
@@ -89,7 +92,7 @@ const create = async (req, res, next) => {
         // Hash de la contraseña
         const password_hash = await bcrypt.hash(password, 10);
 
-        const empleado = await EmpleadoModel.crear({
+        const empleado = await EmpleadoModel.crear(tenantId, {
             nombre,
             apellido,
             email,
@@ -99,7 +102,7 @@ const create = async (req, res, next) => {
         });
 
         // Registrar en auditoría
-        await AuthModel.registrarAuditoria({
+        await AuthModel.registrarAuditoria(tenantId, {
             empleado_id: req.usuario.id,
             accion: 'CREAR_EMPLEADO',
             tabla_afectada: 'empleados',
@@ -127,15 +130,16 @@ const create = async (req, res, next) => {
  */
 const update = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { id } = req.params;
         const { nombre, apellido, email, telefono, rol_id, estado } = req.body;
 
-        const empleadoAnterior = await EmpleadoModel.obtenerPorId(parseInt(id));
+        const empleadoAnterior = await EmpleadoModel.obtenerPorId(tenantId, parseInt(id));
         if (!empleadoAnterior) {
             throw new AppError('Empleado no encontrado', 404);
         }
 
-        const empleado = await EmpleadoModel.actualizar(parseInt(id), {
+        const empleado = await EmpleadoModel.actualizar(tenantId, parseInt(id), {
             nombre,
             apellido,
             email,
@@ -145,7 +149,7 @@ const update = async (req, res, next) => {
         });
 
         // Registrar en auditoría
-        await AuthModel.registrarAuditoria({
+        await AuthModel.registrarAuditoria(tenantId, {
             empleado_id: req.usuario.id,
             accion: 'ACTUALIZAR_EMPLEADO',
             tabla_afectada: 'empleados',
@@ -180,6 +184,7 @@ const update = async (req, res, next) => {
  */
 const remove = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { id } = req.params;
 
         // No permitir auto-eliminación
@@ -187,15 +192,15 @@ const remove = async (req, res, next) => {
             throw new AppError('No puede desactivar su propia cuenta', 400);
         }
 
-        const empleado = await EmpleadoModel.obtenerPorId(parseInt(id));
+        const empleado = await EmpleadoModel.obtenerPorId(tenantId, parseInt(id));
         if (!empleado) {
             throw new AppError('Empleado no encontrado', 404);
         }
 
-        await EmpleadoModel.eliminar(parseInt(id));
+        await EmpleadoModel.eliminar(tenantId, parseInt(id));
 
         // Registrar en auditoría
-        await AuthModel.registrarAuditoria({
+        await AuthModel.registrarAuditoria(tenantId, {
             empleado_id: req.usuario.id,
             accion: 'DESACTIVAR_EMPLEADO',
             tabla_afectada: 'empleados',
@@ -223,12 +228,13 @@ const remove = async (req, res, next) => {
  */
 const reactivar = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { id } = req.params;
 
-        const empleado = await EmpleadoModel.reactivar(parseInt(id));
+        const empleado = await EmpleadoModel.reactivar(tenantId, parseInt(id));
 
         // Registrar en auditoría
-        await AuthModel.registrarAuditoria({
+        await AuthModel.registrarAuditoria(tenantId, {
             empleado_id: req.usuario.id,
             accion: 'REACTIVAR_EMPLEADO',
             tabla_afectada: 'empleados',
@@ -257,6 +263,7 @@ const reactivar = async (req, res, next) => {
  */
 const cambiarPassword = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { id } = req.params;
         const { password } = req.body;
 
@@ -264,16 +271,16 @@ const cambiarPassword = async (req, res, next) => {
             throw new AppError('La contraseña debe tener al menos 8 caracteres', 400);
         }
 
-        const empleado = await EmpleadoModel.obtenerPorId(parseInt(id));
+        const empleado = await EmpleadoModel.obtenerPorId(tenantId, parseInt(id));
         if (!empleado) {
             throw new AppError('Empleado no encontrado', 404);
         }
 
         const password_hash = await bcrypt.hash(password, 10);
-        await EmpleadoModel.cambiarPassword(parseInt(id), password_hash);
+        await EmpleadoModel.cambiarPassword(tenantId, parseInt(id), password_hash);
 
         // Registrar en auditoría
-        await AuthModel.registrarAuditoria({
+        await AuthModel.registrarAuditoria(tenantId, {
             empleado_id: req.usuario.id,
             accion: 'CAMBIAR_PASSWORD_EMPLEADO',
             tabla_afectada: 'empleados',
@@ -299,9 +306,11 @@ const cambiarPassword = async (req, res, next) => {
  */
 const getDisponiblesCampo = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { fecha } = req.query;
 
         const empleados = await EmpleadoModel.obtenerDisponiblesCampo(
+            tenantId,
             fecha ? new Date(fecha) : null
         );
 
@@ -320,7 +329,8 @@ const getDisponiblesCampo = async (req, res, next) => {
  */
 const getRoles = async (req, res, next) => {
     try {
-        const roles = await EmpleadoModel.obtenerRoles();
+        const tenantId = req.tenant.id;
+        const roles = await EmpleadoModel.obtenerRoles(tenantId);
 
         res.json({
             success: true,
@@ -337,7 +347,8 @@ const getRoles = async (req, res, next) => {
  */
 const getEstadisticas = async (req, res, next) => {
     try {
-        const estadisticas = await EmpleadoModel.obtenerEstadisticas();
+        const tenantId = req.tenant.id;
+        const estadisticas = await EmpleadoModel.obtenerEstadisticas(tenantId);
 
         res.json({
             success: true,
@@ -354,6 +365,7 @@ const getEstadisticas = async (req, res, next) => {
  */
 const aprobar = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { id } = req.params;
         const { rol_id } = req.body;
 
@@ -361,9 +373,9 @@ const aprobar = async (req, res, next) => {
             throw new AppError('Debe especificar un rol para el empleado', 400);
         }
 
-        const empleado = await EmpleadoModel.aprobarSolicitud(parseInt(id), parseInt(rol_id));
+        const empleado = await EmpleadoModel.aprobarSolicitud(tenantId, parseInt(id), parseInt(rol_id));
 
-        await AuthModel.registrarAuditoria({
+        await AuthModel.registrarAuditoria(tenantId, {
             empleado_id: req.usuario.id,
             accion: 'APROBAR_SOLICITUD',
             tabla_afectada: 'empleados',
@@ -399,12 +411,13 @@ const aprobar = async (req, res, next) => {
  */
 const rechazar = async (req, res, next) => {
     try {
+        const tenantId = req.tenant.id;
         const { id } = req.params;
         const { motivo } = req.body;
 
-        const empleado = await EmpleadoModel.rechazarSolicitud(parseInt(id), motivo);
+        const empleado = await EmpleadoModel.rechazarSolicitud(tenantId, parseInt(id), motivo);
 
-        await AuthModel.registrarAuditoria({
+        await AuthModel.registrarAuditoria(tenantId, {
             empleado_id: req.usuario.id,
             accion: 'RECHAZAR_SOLICITUD',
             tabla_afectada: 'empleados',
@@ -440,7 +453,8 @@ const rechazar = async (req, res, next) => {
  */
 const getPendientesCount = async (req, res, next) => {
     try {
-        const total = await EmpleadoModel.contarPendientes();
+        const tenantId = req.tenant.id;
+        const total = await EmpleadoModel.contarPendientes(tenantId);
 
         res.json({
             success: true,
