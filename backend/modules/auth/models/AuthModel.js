@@ -190,9 +190,11 @@ class AuthModel {
                 e.ultimo_login,
                 e.created_at,
                 r.nombre as rol_nombre,
-                r.permisos
+                r.permisos,
+                t.slug as tenant_slug
             FROM empleados e
             LEFT JOIN roles r ON e.rol_id = r.id AND r.tenant_id = ?
+            LEFT JOIN tenants t ON e.tenant_id = t.id
             WHERE e.id = ? AND e.tenant_id = ?
         `, [tenantId, id, tenantId]);
 

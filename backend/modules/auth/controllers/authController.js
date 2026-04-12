@@ -259,7 +259,9 @@ const me = async (req, res, next) => {
                 rol: empleado.rol_nombre,
                 permisos: empleado.permisos,
                 ultimo_login: empleado.ultimo_login,
-                created_at: empleado.created_at
+                created_at: empleado.created_at,
+                tenant_id: empleado.tenant_id,
+                tenant_slug: empleado.tenant_slug
             }
         });
     } catch (error) {

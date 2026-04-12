@@ -53,7 +53,7 @@ api.interceptors.request.use(
 
             // Enviar X-Tenant-Slug (excepto para rutas de superadmin)
             if (!config.url?.includes('/superadmin/')) {
-                // En producción: slug del subdominio; en dev: del store
+                // En producción: slug del subdominio; en dev: del store o fallback
                 const hostname = window.location.hostname
                 const parts = hostname.split('.')
                 let slug = null
@@ -61,6 +61,9 @@ api.interceptors.request.use(
                     slug = parts[0]
                 } else if (usuario?.tenant_slug) {
                     slug = usuario.tenant_slug
+                } else if (import.meta.env.DEV) {
+                    // Fallback en desarrollo: tenant principal
+                    slug = 'principal'
                 }
                 if (slug) {
                     config.headers['X-Tenant-Slug'] = slug
